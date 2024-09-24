@@ -3,7 +3,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Purview.EventSourcing.AzureStorage\Purview.EventSourcing.AzureStorage.csproj" />
 		<ProjectReference Include="..\Purview.EventSourcing.MongoDB.Events\Purview.EventSourcing.MongoDB.Events.csproj" />
-		<ProjectReference Include="..\Purview.EventSourcing.CosmosDb.Snapshot\Purview.EventSourcing.CosmosDb.Snapshot.csproj"/>
+		<ProjectReference Include="..\Purview.EventSourcing.CosmosDb.Snapshot\Purview.EventSourcing.CosmosDb.Snapshot.csproj" />
 		<ProjectReference Include="..\Purview.EventSourcing.MongoDB.Snapshot\Purview.EventSourcing.MongoDB.Snapshot.csproj">
 			<Aliases>MongoDBSnapshots</Aliases>
 		</ProjectReference>
@@ -24,6 +24,17 @@
 	  <None Update="Resources\**\*">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Update="xunit.analyzers">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+	  <PackageReference Update="xunit.runner.visualstudio">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
 	</ItemGroup>
 	
 </Project>
