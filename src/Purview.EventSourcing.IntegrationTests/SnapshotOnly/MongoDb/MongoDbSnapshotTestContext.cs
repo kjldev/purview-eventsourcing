@@ -62,7 +62,8 @@ public sealed class MongoDBSnapshotTestContext
 				ConnectionString = config.ConnectionString,
 				ApplicationName = "purview-integration-tests",
 				Database = config.Database,
-				Collection = config.Collection
+				Collection = config.Collection,
+				ReplicaName = "rs0",
 			});
 
 		return eventStore;

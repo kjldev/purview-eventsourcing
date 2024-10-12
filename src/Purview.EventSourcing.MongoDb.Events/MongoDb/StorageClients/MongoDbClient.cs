@@ -18,7 +18,13 @@ sealed partial class MongoDBClient
 
 	readonly string _collectionName;
 
-	static MongoDBClient()
+	readonly static Lazy<bool> _initialized = new(Init);
+
+#if EventsBasedStore
+	readonly static Lazy<bool> _eventsInitialized = new(EventsInit);
+#endif
+
+	static bool Init()
 	{
 		try
 		{
@@ -28,8 +34,38 @@ sealed partial class MongoDBClient
 
 			BsonSerializer.RegisterSerializer(new ObjectSerializer(iEntityType.IsAssignableFrom));
 		}
-		catch { }
+		catch
+		{
+			return false;
+		}
+
+		return true;
 	}
+
+#if EventsBasedStore
+
+	static bool EventsInit()
+	{
+		try
+		{
+			Type[] entityType = [
+				typeof(EventEntity),
+				typeof(IdempotencyMarkerEntity),
+				typeof(SnapshotEntity),
+				typeof(StreamVersionEntity)
+			];
+
+			BsonSerializer.RegisterSerializer(new ObjectSerializer(t => Array.IndexOf(entityType, t) > -1));
+		}
+		catch
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+#endif
 
 	public MongoDBClient(IMongoDBClientTelemetry telemetry, MongoDBConfiguration configuration, string? databaseOverride = null, string? collectionOverride = null)
 	{
@@ -42,6 +78,15 @@ sealed partial class MongoDBClient
 		_client = new MongoClient(settings);
 		_database = _client.GetDatabase(databaseOverride ?? configuration.Database);
 		_collectionName = collectionOverride ?? configuration.Collection;
+
+		if (_initialized.Value)
+			_telemetry.Initialized();
+
+#if EventsBasedStore
+
+		if (_eventsInitialized.Value)
+			_telemetry.EventsInitialized();
+#endif
 	}
 
 	static FilterDefinition<T> BuildPredicate<T>(string id, int? entityType)

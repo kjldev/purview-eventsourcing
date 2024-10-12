@@ -26,6 +26,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		nuget.config = nuget.config
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "msbuild", "msbuild", "{EE336B73-5B78-4252-A9DB-7DC0A5DC9904}"
+	ProjectSection(SolutionItems) = preProject
+		.build-system\Directory.Build.props = .build-system\Directory.Build.props
+		.build-system\Directory.Build.targets = .build-system\Directory.Build.targets
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +69,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EE336B73-5B78-4252-A9DB-7DC0A5DC9904} = {5A0529F1-A3A9-487A-91F2-E04641CE704C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A36D164E-EDA9-41C6-88D3-151E15E8D5A6}

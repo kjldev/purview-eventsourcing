@@ -43,7 +43,6 @@ partial class MongoDBClient
 			{
 				await s.AbortTransactionAsync(ct);
 
-
 				// Do something in response to the exception
 				throw; // NOTE: You must rethrow the exception otherwise an infinite loop can occur.
 			}

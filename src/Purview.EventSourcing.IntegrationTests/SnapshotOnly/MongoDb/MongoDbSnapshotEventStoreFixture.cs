@@ -12,7 +12,11 @@ public class MongoDBSnapshotEventStoreFixture : IAsyncLifetime
 	}
 
 	public MongoDBSnapshotTestContext CreateContext(int correlationIdsToGenerate = 1, string? collectionName = null)
-		=> new(_mongoDBContainer.GetConnectionString(), _azuriteContainer.GetConnectionString(), correlationIdsToGenerate, collectionName);
+		=> new(
+			_mongoDBContainer.GetConnectionString(),
+			_azuriteContainer.GetConnectionString(),
+			correlationIdsToGenerate,
+			collectionName);
 
 	public async Task InitializeAsync()
 	{

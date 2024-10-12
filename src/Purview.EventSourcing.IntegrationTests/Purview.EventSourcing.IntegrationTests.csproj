@@ -1,5 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+	<PropertyGroup>
+		<DefineConstants>EventsBasedStore</DefineConstants>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="..\Purview.EventSourcing.AzureStorage\Purview.EventSourcing.AzureStorage.csproj" />
 		<ProjectReference Include="..\Purview.EventSourcing.MongoDB.Events\Purview.EventSourcing.MongoDB.Events.csproj" />
@@ -10,8 +14,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Include="..\.shared-testing-helpers\**\*" LinkBase="" />
-		<Compile Include="..\.shared-extensions\**\*" LinkBase="" />
+		<Compile Include="../.shared-testing-helpers/**/*" LinkBase="/" />
+		<Compile Include="../.shared-extensions/**/*" LinkBase="/" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -21,7 +25,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="Resources\**\*">
+	  <None Update="Resources/**/*">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>

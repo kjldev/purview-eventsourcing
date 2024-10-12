@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+  </Folder>
+  <Folder Name="/Solution Items/msbuild/">
+    <File Path=".build-system\Directory.Build.props" />
+    <File Path=".build-system\Directory.Build.targets" />
+  </Folder>
+  <Project Path="Purview.EventSourcing.AzureStorage\Purview.EventSourcing.AzureStorage.csproj" />
+  <Project Path="Purview.EventSourcing.CosmosDb.Snapshot\Purview.EventSourcing.CosmosDb.Snapshot.csproj" />
+  <Project Path="Purview.EventSourcing.IntegrationTests\Purview.EventSourcing.IntegrationTests.csproj" />
+  <Project Path="Purview.EventSourcing.MongoDB.Events\Purview.EventSourcing.MongoDB.Events.csproj" />
+  <Project Path="Purview.EventSourcing.MongoDB.Snapshot\Purview.EventSourcing.MongoDB.Snapshot.csproj" />
+  <Project Path="Purview.EventSourcing.UnitTests\Purview.EventSourcing.UnitTests.csproj" />
+  <Project Path="Purview.EventSourcing\Purview.EventSourcing.csproj" />
+  <Properties Name="Visual Studio">
+    <Property Name="OpenWith" Value="Visual Studio Version 17" />
+  </Properties>
+</Solution>

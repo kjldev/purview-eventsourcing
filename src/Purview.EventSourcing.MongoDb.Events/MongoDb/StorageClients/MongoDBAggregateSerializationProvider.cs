@@ -7,7 +7,7 @@ namespace Purview.EventSourcing.MongoDB.StorageClients;
 sealed class MongoDBAggregateSerializationProvider : IBsonSerializationProvider
 {
 	static readonly Type _aggregateInterfaceType = typeof(IAggregate);
-	static readonly ConcurrentDictionary<Type, IBsonSerializer> _serializers = new();
+	static readonly ConcurrentDictionary<Type, IBsonSerializer> _serializers = [];
 
 	public IBsonSerializer GetSerializer(Type type)
 	{
