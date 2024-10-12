@@ -18,17 +18,35 @@ sealed partial class MongoDBClient
 
 	readonly string _collectionName;
 
-	static MongoDBClient()
+	readonly static Lazy<bool> _initialized = new(Init);
+
+	static bool Init()
 	{
 		try
 		{
 			BsonSerializer.RegisterSerializationProvider(new MongoDBAggregateSerializationProvider());
 
+#if EventsBasedStore
+			Type[] entityType = [
+				typeof(EventEntity),
+				typeof(IdempotencyMarkerEntity),
+				typeof(SnapshotEntity),
+				typeof(StreamVersionEntity)
+			];
+
+			BsonSerializer.RegisterSerializer(new ObjectSerializer(t => Array.IndexOf(entityType, t) > -1));
+#endif
+
 			var iEntityType = typeof(IEntity);
 
 			BsonSerializer.RegisterSerializer(new ObjectSerializer(iEntityType.IsAssignableFrom));
 		}
-		catch { }
+		catch
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 	public MongoDBClient(IMongoDBClientTelemetry telemetry, MongoDBConfiguration configuration, string? databaseOverride = null, string? collectionOverride = null)
@@ -42,6 +60,9 @@ sealed partial class MongoDBClient
 		_client = new MongoClient(settings);
 		_database = _client.GetDatabase(databaseOverride ?? configuration.Database);
 		_collectionName = collectionOverride ?? configuration.Collection;
+
+		if (_initialized.Value)
+			_telemetry.Initialized();
 	}
 
 	static FilterDefinition<T> BuildPredicate<T>(string id, int? entityType)

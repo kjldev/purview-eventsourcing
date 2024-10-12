@@ -8,11 +8,12 @@
 		<IsPackable>true</IsPackable>
 		<Title>Purview Event Store based on MongoDB</Title>
 		<Description>Event Store using MongoDB for event information.</Description>
-		<PackageTags>$(PackageTags);events;event-sourcing;event-store;mongodb;</PackageTags>
+		<PackageTags>$(PackageTags);events;event-sourcing;event-store;mongodb</PackageTags>
+		<DefineConstants>EventsBasedStore</DefineConstants>	
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="..\.shared-extensions\**\*" LinkBase="" />
+		<Compile Include="../.shared-extensions/**/*" LinkBase="/" />
 	</ItemGroup>
 
 	<ItemGroup>

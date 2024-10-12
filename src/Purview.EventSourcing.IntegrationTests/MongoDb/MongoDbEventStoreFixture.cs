@@ -10,18 +10,14 @@ namespace Purview.EventSourcing.MongoDB;
 
 public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 {
-	public const bool UseTestContainers = false;
-
-	readonly Testcontainers.MongoDb.MongoDbContainer _mongoDBContainer;
-	readonly DotNet.Testcontainers.Containers.IContainer _mongoDbReplicaContainer;
+	readonly MongoDbContainer _mongoDBContainer;
 
 	IAggregateEventNameMapper _eventNameMapper = default!;
 	IDisposable? _eventStoreAsDisposable;
 
 	public MongoDBEventStoreFixture()
 	{
-		_mongoDBContainer = UseTestContainers ? ContainerHelper.CreateMongoDB() : default!;
-		_mongoDbReplicaContainer = UseTestContainers ? ContainerHelper.CreateMongoDBWithReplicaSet() : default!;
+		_mongoDBContainer = ContainerHelper.CreateMongoDB();
 	}
 
 	public IDistributedCache Cache { get; private set; } = default!;
@@ -49,14 +45,7 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 
 		_eventNameMapper = new AggregateEventNameMapper();
 
-		string connectionString;
-		if (UseTestContainers)
-		{
-			connectionString = _mongoDBContainer.GetConnectionString();
-			connectionString = $"mongodb://{MongoDbBuilder.DefaultUsername}:{MongoDbBuilder.DefaultPassword}@localhost:{_mongoDbReplicaContainer.GetMappedPublicPort(MongoDbBuilder.MongoDbPort)}";
-		}
-		else
-			connectionString = "mongodb://localhost:27017";
+		var connectionString = _mongoDBContainer.GetConnectionString();
 
 		var aggregateRequirementsManager = Substitute.For<IAggregateRequirementsManager>();
 		MongoDBEventStoreOptions mongoDBOptions = new()
@@ -82,8 +71,6 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 			mongoDBClientTelemetry: mongoDBClientTelemetry,
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
-
-
 
 		EventClient = new(
 			mongoDBClientTelemetry,
@@ -117,38 +104,13 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 
 	public async Task InitializeAsync()
 	{
-		if (!UseTestContainers)
-			return;
-
 		await _mongoDBContainer.StartAsync();
-		await _mongoDbReplicaContainer.StartAsync();
 	}
 
 	public async Task DisposeAsync()
 	{
 		_eventStoreAsDisposable?.Dispose();
 
-		if (!UseTestContainers)
-			return;
-
-		var output = await _mongoDBContainer.GetLogsAsync();
-
-		Console.WriteLine("MongoDB Container Output:");
-		Console.WriteLine("stdout:");
-		Console.WriteLine(output.Stdout);
-		Console.WriteLine("stderr:");
-		Console.WriteLine(output.Stderr);
-
 		await _mongoDBContainer.DisposeAsync();
-
-		output = await _mongoDbReplicaContainer.GetLogsAsync();
-
-		Console.WriteLine("MongoDB Replica Container Output:");
-		Console.WriteLine("stdout:");
-		Console.WriteLine(output.Stdout);
-		Console.WriteLine("stderr:");
-		Console.WriteLine(output.Stderr);
-
-		await _mongoDbReplicaContainer.DisposeAsync();
 	}
 }

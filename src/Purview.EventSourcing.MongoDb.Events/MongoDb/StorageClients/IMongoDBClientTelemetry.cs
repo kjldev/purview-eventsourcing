@@ -11,4 +11,6 @@ public interface IMongoDBClientTelemetry
 
 	[Log(LogLevel.Error)]
 	void FailedToWriteBatch(Exception exception);
+
+	void Initialized();
 }
