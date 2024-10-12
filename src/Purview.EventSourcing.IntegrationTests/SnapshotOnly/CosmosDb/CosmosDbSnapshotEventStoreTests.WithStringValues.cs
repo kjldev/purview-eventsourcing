@@ -22,10 +22,10 @@ partial class CosmosDbSnapshotEventStoreTests
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
 			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
-			aggregate.AddKVPs(new[] {
-							new KeyValuePair<string, StringValues> ( "name-1", "value-1" ),
-							new KeyValuePair<string, StringValues> ( "name-2", new[] { "value-100", "value-200" })
-						});
+			aggregate.AddKVPs([
+				new KeyValuePair<string, StringValues> ( "name-1", "value-1" ),
+				new KeyValuePair<string, StringValues> ( "name-2", new[] { "value-100", "value-200" })
+			]);
 
 			bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
@@ -64,10 +64,10 @@ partial class CosmosDbSnapshotEventStoreTests
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
 			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
-			aggregate.AddKVPs(new[] {
-							new KeyValuePair<string, string> ( "name-1", "value-1" ),
-							new KeyValuePair<string, string> ( "name-2", "value-100" )
-						});
+			aggregate.AddKVPs([
+				new KeyValuePair<string, string> ( "name-1", "value-1" ),
+				new KeyValuePair<string, string> ( "name-2", "value-100" )
+			]);
 
 			bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 

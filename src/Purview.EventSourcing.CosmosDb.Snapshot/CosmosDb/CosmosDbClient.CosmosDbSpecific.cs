@@ -138,7 +138,7 @@ partial class CosmosDbClient
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
 
-		var responses = await DeleteAsync(new[] { document }, partitionKey, cancellationToken);
+		var responses = await DeleteAsync([document], partitionKey, cancellationToken);
 
 		return responses.Single();
 	}
@@ -182,7 +182,7 @@ partial class CosmosDbClient
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
 
-		var responses = await InsertAsync(new[] { document }, partitionKey, cancellationToken);
+		var responses = await InsertAsync([document], partitionKey, cancellationToken);
 		return responses.Single();
 	}
 
@@ -208,7 +208,7 @@ partial class CosmosDbClient
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
 
-		var responses = await UpsertAsync(new[] { document }, partitionKey, cancellationToken);
+		var responses = await UpsertAsync([document], partitionKey, cancellationToken);
 		return responses.Single();
 	}
 
@@ -234,7 +234,7 @@ partial class CosmosDbClient
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
 
-		var responses = await ReplaceAsync(new[] { document }, partitionKey, cancellationToken);
+		var responses = await ReplaceAsync([document], partitionKey, cancellationToken);
 		return responses.Single();
 	}
 
