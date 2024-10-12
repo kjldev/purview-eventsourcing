@@ -4,8 +4,10 @@ SOLUTION_FILE = $(ROOT_FOLDER)Purview.EventSourcing.sln
 TEST_PROJECT = $(ROOT_FOLDER)Purview.EventSourcing.sln
 CONFIGURATION = Release
 
-PACK_VERSION = 1.0.0
+PACK_VERSION = 1.0.2
 ARTIFACT_FOLDER = p:/sync-projects/.local-nuget/
+
+.PHONY: build test pack format act
 
 # Targets
 build:
@@ -23,4 +25,3 @@ format:
 act:
 	act -P ubuntu-latest=-self-hosted
 
-.PHONY: build test
