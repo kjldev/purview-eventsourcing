@@ -13,4 +13,6 @@ public interface IMongoDBClientTelemetry
 	void FailedToWriteBatch(Exception exception);
 
 	void Initialized();
+
+	void EventsInitialized();
 }
