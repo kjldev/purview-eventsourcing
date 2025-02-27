@@ -18,13 +18,13 @@ public class MongoDBSnapshotEventStoreFixture : IAsyncLifetime
 			correlationIdsToGenerate,
 			collectionName);
 
-	public async Task InitializeAsync()
+	public async ValueTask InitializeAsync()
 	{
 		await _mongoDBContainer.StartAsync();
 		await _azuriteContainer.StartAsync();
 	}
 
-	public async Task DisposeAsync()
+	public async ValueTask DisposeAsync()
 	{
 		await _mongoDBContainer.DisposeAsync();
 		await _azuriteContainer.DisposeAsync();

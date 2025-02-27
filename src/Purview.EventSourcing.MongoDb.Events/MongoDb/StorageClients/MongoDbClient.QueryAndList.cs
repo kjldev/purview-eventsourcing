@@ -17,7 +17,7 @@ partial class MongoDBClient
 
 		var whereQuery = collection.AsQueryable().Where(whereClause);
 		if (orderByClause != null)
-			whereQuery = (IMongoQueryable<T>)orderByClause(whereQuery);
+			whereQuery = orderByClause(whereQuery);
 
 		var results = whereQuery.Skip(skipCount).Take(request.MaxRecords);
 		var itemResults = (await results.ToListAsync(cancellationToken)).ToArray();
@@ -44,7 +44,7 @@ partial class MongoDBClient
 
 		var listQuery = collection.AsQueryable();
 		if (orderByClause != null)
-			listQuery = (IMongoQueryable<T>)orderByClause(listQuery);
+			listQuery = orderByClause(listQuery);
 
 		var results = listQuery.Skip(skipCount).Take(request.MaxRecords);
 		var itemResults = (await results.ToListAsync(cancellationToken)).ToArray();

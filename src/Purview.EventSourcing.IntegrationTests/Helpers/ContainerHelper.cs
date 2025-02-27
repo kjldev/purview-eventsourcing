@@ -41,6 +41,7 @@ public static class ContainerHelper
 	public static MongoDbContainer CreateMongoDB(Action<MongoDbBuilder>? config = null)
 	{
 		var builder = new MongoDbBuilder()
+			.WithImage("mongo:7.0")
 			.WithReplicaSet()
 		//.WithAutoRemove(true)
 		//.WithCleanUp(true)

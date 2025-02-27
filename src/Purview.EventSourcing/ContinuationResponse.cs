@@ -83,7 +83,7 @@ public class ContinuationResponse<T>
 		{
 			ContinuationToken = ContinuationToken,
 			RequestedCount = RequestedCount,
-			Results = Results.Select(convert).Where(m => m != null).Cast<TTo>().ToArray()
+			Results = [.. Results.Select(convert).Where(m => m != null).Cast<TTo>()]
 		};
 	}
 }

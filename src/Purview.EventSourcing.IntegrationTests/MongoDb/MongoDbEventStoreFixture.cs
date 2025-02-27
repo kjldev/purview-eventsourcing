@@ -102,12 +102,12 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 		return cache;
 	}
 
-	public async Task InitializeAsync()
+	public async ValueTask InitializeAsync()
 	{
 		await _mongoDBContainer.StartAsync();
 	}
 
-	public async Task DisposeAsync()
+	public async ValueTask DisposeAsync()
 	{
 		_eventStoreAsDisposable?.Dispose();
 

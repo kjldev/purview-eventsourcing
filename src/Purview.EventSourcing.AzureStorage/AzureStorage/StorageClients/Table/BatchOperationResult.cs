@@ -9,7 +9,7 @@ sealed class BatchOperationResult(Dictionary<int, Response[]> responses) : IEnum
 	readonly Dictionary<int, Response[]> _responses = responses;
 
 	public static implicit operator Response[]([NotNull] BatchOperationResult batch)
-		=> batch._responses.SelectMany(m => m.Value).ToArray();
+		=> [.. batch._responses.SelectMany(m => m.Value)];
 
 	public int BatchCount => _responses.Count;
 

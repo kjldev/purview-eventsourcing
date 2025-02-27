@@ -41,7 +41,7 @@ partial class CosmosDbSnapshotEventStore<T>
 		var expressionToRun = BuildQueryExpression();
 		var results = await _cosmosDbClient.QueryAsync(expressionToRun, orderByClause, request, _partitionKey, cancellationToken);
 
-		results.Results = results.Results.Select(FulfilRequirements).ToArray();
+		results.Results = [.. results.Results.Select(FulfilRequirements)];
 
 		return results;
 	}

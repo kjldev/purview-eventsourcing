@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing</RootNamespace>
 	</PropertyGroup>
@@ -28,5 +27,4 @@
 		<PackageReference Include="Microsoft.Extensions.Options" />
 		<PackageReference Include="Newtonsoft.Json" />
 	</ItemGroup>
-
 </Project>

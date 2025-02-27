@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing</RootNamespace>
 	</PropertyGroup>
@@ -12,7 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="..\.shared-extensions\**\*" LinkBase="" />
+		<Compile Include="..\.shared-extensions\**\*" LinkBase="\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -25,6 +24,6 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
 		<PackageReference Include="Microsoft.Extensions.Options" />
+		<PackageReference Include="Newtonsoft.Json" />
 	</ItemGroup>
-
 </Project>

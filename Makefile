@@ -1,27 +1,29 @@
+include .build/common.mk
+
 # Variables
 ROOT_FOLDER = src/
-SOLUTION_FILE = $(ROOT_FOLDER)Purview.EventSourcing.sln
-TEST_PROJECT = $(ROOT_FOLDER)Purview.EventSourcing.sln
+SOLUTION_FILE = $(ROOT_FOLDER)Purview.EventSourcing.slnx
+TEST_PROJECT = $(ROOT_FOLDER)Purview.EventSourcing.slnx
 CONFIGURATION = Release
 
 PACK_VERSION = 1.0.2
 ARTIFACT_FOLDER = p:/sync-projects/.local-nuget/
 
-.PHONY: build test pack format act
-
 # Targets
-build:
+vs: ## Open the solution in Visual Studio
+	@start "$(SOLUTION_FILE)"
+
+build: ## Build the solution
 	dotnet build $(SOLUTION_FILE) --configuration $(CONFIGURATION)
 
-test:
+test: ## Run the tests
 	dotnet test $(TEST_PROJECT) --configuration $(CONFIGURATION)
 
-pack:
+pack: ## Pack the solution
 	dotnet pack -c $(CONFIGURATION) -o $(ARTIFACT_FOLDER) $(SOLUTION_FILE) --property:Version=$(PACK_VERSION) --include-symbols
 
-format:
+format: ## Format the code
 	dotnet format $(ROOT_FOLDER)
 
-act:
+act: ## Run act
 	act -P ubuntu-latest=-self-hosted
-

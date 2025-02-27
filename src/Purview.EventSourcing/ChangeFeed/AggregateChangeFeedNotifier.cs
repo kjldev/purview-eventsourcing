@@ -10,9 +10,8 @@ sealed class AggregateChangeFeedNotifier<T>(
 	IEnumerable<IAggregateChangeFeedProcessor<T>> typedChangeFeedProcessors) : IAggregateChangeFeedNotifier<T>
 	where T : class, IAggregate, new()
 {
-
-	readonly IAggregateChangeFeedProcessor[] _changeFeedProcessors = changeFeedProcessors.ToArray();
-	readonly IAggregateChangeFeedProcessor<T>[] _typedChangeFeedProcessors = typedChangeFeedProcessors.ToArray();
+	readonly IAggregateChangeFeedProcessor[] _changeFeedProcessors = [.. changeFeedProcessors];
+	readonly IAggregateChangeFeedProcessor<T>[] _typedChangeFeedProcessors = [.. typedChangeFeedProcessors];
 
 	public async Task BeforeDeleteAsync(T aggregate, CancellationToken cancellationToken = default)
 	{

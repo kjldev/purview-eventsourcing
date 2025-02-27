@@ -50,17 +50,13 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var blobName = eventStore.GenerateSnapshotBlobName(aggregateId);
 		var exists = await fixture.BlobClient.ExistsAsync(blobName, cancellationToken: tokenSource.Token);
 
-		exists
-			.Should()
-			.BeTrue();
+		exists.ShouldBeTrue();
 
 		await fixture.BlobClient.DeleteBlobIfExistsAsync(blobName, cancellationToken: tokenSource.Token);
 
 		exists = await fixture.BlobClient.ExistsAsync(blobName, cancellationToken: tokenSource.Token);
 
-		exists
-			.Should()
-			.BeFalse();
+		exists.ShouldBeFalse();
 
 		// Assert
 		var result = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);

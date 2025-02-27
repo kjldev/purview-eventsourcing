@@ -23,13 +23,13 @@ public class CosmosDbSnapshotEventStoreFixture : IAsyncLifetime
 		return eventStoreContext;
 	}
 
-	public async Task DisposeAsync()
+	public async ValueTask DisposeAsync()
 	{
 		await _azuriteContainer.DisposeAsync().AsTask();
 		await _cosmosDbContainer.DisposeAsync().AsTask();
 	}
 
-	public async Task InitializeAsync()
+	public async ValueTask InitializeAsync()
 	{
 		await _azuriteContainer.StartAsync();
 		await _cosmosDbContainer.StartAsync();

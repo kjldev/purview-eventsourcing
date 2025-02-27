@@ -59,7 +59,7 @@ sealed partial class AggregateEventNameMapper : IAggregateEventNameMapper
 			var aggregateInstance = new T();
 			var aggregateName = aggregateInstance.AggregateType;
 
-			Populate<T>(aggregateName, aggregateInstance.GetRegisteredEventTypes().ToArray());
+			Populate<T>(aggregateName, [.. aggregateInstance.GetRegisteredEventTypes()]);
 
 			return aggregateName;
 		});

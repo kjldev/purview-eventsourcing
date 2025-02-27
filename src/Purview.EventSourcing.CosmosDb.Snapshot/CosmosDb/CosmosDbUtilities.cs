@@ -38,7 +38,7 @@ static class CosmosDbUtilities
 			if (idProperties == null || !idProperties.Any())
 				throw new NullReferenceException($"Unable to locate an `Id` property on {documentType.FullName}.");
 
-			processData = new SerializeProcessData(idProperties.ToArray(), properties);
+			processData = new SerializeProcessData([.. idProperties], properties);
 			if (!_documentSerializers.TryAdd(documentType, processData))
 				processData = _documentSerializers[documentType];
 		}

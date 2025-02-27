@@ -88,9 +88,9 @@ public sealed class TableEventStoreFixture : IAsyncLifetime
 		return cache;
 	}
 
-	public Task InitializeAsync() => _azuriteContainer.StartAsync();
+	public async ValueTask InitializeAsync() => await _azuriteContainer.StartAsync();
 
-	public async Task DisposeAsync()
+	public async ValueTask DisposeAsync()
 	{
 		_eventStoreAsDisposable?.Dispose();
 
