@@ -1,14 +1,13 @@
 ﻿{
-	"$schema": "https://xunit.net/schema/current/xunit.runner.schema.json",
-	"longRunningTestSeconds": 15,
-	"failWarns": true,
-	"methodDisplay": "method",
+	"$schema": "https://xunit.net/schema/v3.1/xunit.runner.schema.json",
 	"methodDisplayOptions": "all",
-	"diagnosticMessages": false,
+	"methodDisplay": "method",
+	"longRunningTestSeconds": 15,
 	"maxParallelThreads": "unlimited",
 	"parallelizeAssembly": true,
 	"parallelizeTestCollections": true,
-	"parallelAlgorithm": "aggressive",
 	"preEnumerateTheories": true,
+	"parallelAlgorithm": "aggressive",
+	"diagnosticMessages": false,
 	"showLiveOutput": true
 }

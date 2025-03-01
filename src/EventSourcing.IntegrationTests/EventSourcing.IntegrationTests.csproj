@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<DefineConstants>EventsBasedStore</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
+		<ProjectReference Include="..\EventSourcing.MongoDB.Events\EventSourcing.MongoDB.Events.csproj" />
+		<ProjectReference Include="..\EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
+		<ProjectReference Include="..\EventSourcing.MongoDB.Snapshot\EventSourcing.MongoDB.Snapshot.csproj">
+			<Aliases>MongoDBSnapshots</Aliases>
+		</ProjectReference>
+		<ProjectReference Include="..\EventSourcing.Testing\EventSourcing.Testing.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="../.shared-testing-helpers/**/*" LinkBase="/" />
+		<!--<Compile Include="../.shared-extensions/**/*" LinkBase="/" />-->
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Testcontainers.Azurite" />
+		<PackageReference Include="Testcontainers.CosmosDb" />
+		<PackageReference Include="Testcontainers.MongoDb" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Resources/**/*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	  <RootNamespace>Purview.EventSourcing</RootNamespace>
+	  <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+</Project>

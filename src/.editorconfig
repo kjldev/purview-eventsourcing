@@ -1,8 +1,12 @@
-root = true
+﻿root = true
 
 # All files
 [*]
 indent_style = tab
+
+# Spelling configuration
+spelling_languages = en-gb,en-us
+spelling_exclusion_path = ./exclusion.dic
 
 # Xml files
 [*.xml]
@@ -10,20 +14,15 @@ indent_size = 2
 
 # C# files
 [*.cs]
-
-#### Core EditorConfig Options ####
-
-# Indentation and spacing
-indent_size = 4
 tab_width = 4
-
-# New line preferences
+indent_size = 4
 end_of_line = crlf
 insert_final_newline = true
 
-#### .NET Coding Conventions ####
-[*.{cs,vb}]
+# Catch more specific exceptions.
+dotnet_diagnostic.CA1031.severity = none
 
+# New line preferences
 dotnet_naming_rule.private_members_with_underscore.symbols = private_fields
 dotnet_naming_rule.private_members_with_underscore.style = prefix_underscore
 dotnet_naming_rule.private_members_with_underscore.severity = warning
@@ -376,7 +375,51 @@ dotnet_naming_style.s_camelcase.required_prefix = s_
 dotnet_naming_style.s_camelcase.required_suffix = 
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
-tab_width = 4
-indent_size = 4
-end_of_line = crlf
 
+[**/Migrations/*.cs]
+# Default severity for all analyzer diagnostics
+# WHY DON'T THESE WORK???!!!
+dotnet_analyzer_diagnostic.severity = none
+dotnet_analyzer_diagnostic.category-Design.severity = none
+dotnet_analyzer_diagnostic.category-Documentation.severity = none
+dotnet_analyzer_diagnostic.category-Globalization.severity = none
+dotnet_analyzer_diagnostic.category-Interoperability.severity = none
+dotnet_analyzer_diagnostic.category-Maintainability.severity = none
+dotnet_analyzer_diagnostic.category-Performance.severity = none
+dotnet_analyzer_diagnostic.category-SingleFile.severity = none
+dotnet_analyzer_diagnostic.category-Reliability.severity = none
+dotnet_analyzer_diagnostic.category-Security.severity = none
+dotnet_analyzer_diagnostic.category-Style.severity = none
+dotnet_analyzer_diagnostic.category-Usage.severity = none
+
+csharp_style_expression_bodied_lambdas = true:none
+
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1861.severity = none
+
+dotnet_diagnostic.CS8981.severity = none
+
+dotnet_diagnostic.IDE0053.severity = none
+dotnet_diagnostic.IDE0055.severity = none
+
+[**/WizSchemaModels.cs]
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1819.severity = none
+
+dotnet_diagnostic.CS8618.severity = none
+
+dotnet_diagnostic.IDE0032.severity = none
+dotnet_diagnostic.IDE0034.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0066.severity = none
+dotnet_diagnostic.IDE0090.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+dotnet_diagnostic.IDE1066.severity = none
+
+[**/Extensions/**/*.cs]
+dotnet_diagnostic.IDE0130.severity = none
