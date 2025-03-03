@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup Label="NuGet Package Values">
+		<IsPackable>true</IsPackable>
+		<Title>Purview Event Sourcing</Title>
+		<Description>Core framework for building Event Sourcing-based projects.</Description>
+		<PackageTags>$(PackageTags);event-store;events;event-sourcing;eventstore;eventsourcing;</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="../.shared-extensions/Properties/**/*" LinkBase="Properties/" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="FluentValidation" />
+		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions" />
+	</ItemGroup>
+</Project>

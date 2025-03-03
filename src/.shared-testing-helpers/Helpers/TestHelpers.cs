@@ -10,7 +10,8 @@ static class TestHelpers
 		return guidString
 			.Replace("=", "", StringComparison.OrdinalIgnoreCase)
 			.Replace("+", "", StringComparison.OrdinalIgnoreCase)
-			.Replace("/", "", StringComparison.OrdinalIgnoreCase);
+			.Replace("/", "", StringComparison.OrdinalIgnoreCase)
+		;
 	}
 
 	public static string GenAzureTableName(Guid? value = null, string? prefix = null)
@@ -41,11 +42,13 @@ static class TestHelpers
 		return $"{prefix}{GenName(value)}";
 	}
 
-	public static CancellationTokenSource CancellationTokenSource(bool throwOnCall = false)
+	public static CancellationTokenSource CancellationTokenSource(bool throwOnCall = false, CancellationToken cancellationToken = default)
 	{
 		CancellationTokenSource cancellationTokenSource = new();
 		if (throwOnCall)
 			cancellationTokenSource.Cancel();
+
+		cancellationToken.Register(cancellationTokenSource.Cancel);
 
 		return cancellationTokenSource;
 	}

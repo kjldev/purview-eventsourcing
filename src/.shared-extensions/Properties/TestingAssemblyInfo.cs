@@ -1,3 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Purview.EventSourcing.IntegrationTests")]
+[assembly: InternalsVisibleTo("EventSourcing.IntegrationTests")]
+[assembly: InternalsVisibleTo("EventSourcing.UnitTests")]

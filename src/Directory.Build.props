@@ -1,9 +1,14 @@
 ﻿<Project>
+	<PropertyGroup>
+		<!-- Set the default namespace for all projects -->
+		<NamespacePrefix>Purview</NamespacePrefix>
+		<!-- Set the repository URL here -->
+		<RepositoryUrl>https://github.com/purview-dev/purview-eventsourcing</RepositoryUrl>
+	</PropertyGroup>
 
 	<Import Project="./.build-system/Directory.Build.props"/>
 
 	<PropertyGroup>
 		<NoWarn>$(NoWarn);CS0436;</NoWarn>
 	</PropertyGroup>
-
 </Project>
