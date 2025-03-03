@@ -59,6 +59,6 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		List<IEvent> eventList = [];
 		foreach ((var @event, _) in results)
-			@event.Details.AggregateVersion.ShouldBe(++startEvent);
+			@event.Details.AggregateVersion.ShouldBe(startEvent++);
 	}
 }

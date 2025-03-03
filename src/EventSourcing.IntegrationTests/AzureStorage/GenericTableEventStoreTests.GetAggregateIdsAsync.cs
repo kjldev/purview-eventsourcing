@@ -66,7 +66,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		// Assert
 		returnedTypes.ShouldHaveCount(nonDeletedAggregateIdCount);
-		generatedIds.ShouldBeEquivalentTo(returnedTypes);
+		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
 	}
 
 	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)

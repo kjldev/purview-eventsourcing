@@ -9,8 +9,6 @@ partial class MongoDBEventStore<T>
 			var exists = await ExistsAsync(aggregateId, cancellationToken);
 			if (exists)
 				return await GetAsync(aggregateId, operationContext, cancellationToken);
-
-			return null;
 		}
 
 		return await CreateAsync(aggregateId, cancellationToken);

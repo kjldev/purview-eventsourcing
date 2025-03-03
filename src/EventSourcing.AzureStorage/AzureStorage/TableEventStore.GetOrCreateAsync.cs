@@ -10,7 +10,7 @@ partial class TableEventStore<T>
 			if (exists)
 				return await GetAsync(aggregateId, operationContext, cancellationToken);
 
-			return null;
+			//return null;
 		}
 
 		return await CreateAsync(aggregateId, cancellationToken);
