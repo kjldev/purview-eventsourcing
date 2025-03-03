@@ -8,7 +8,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
 
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: aggregateCount);
+		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: aggregateCount);
 
 		for (var i = 0; i < aggregateCount; i++)
 		{
@@ -26,7 +26,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		// Assert
 		returnedTypes.ShouldHaveCount(aggregateCount);
-		generatedIds.ShouldBeEquivalentTo(returnedTypes);
+		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
 	}
 
 	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
@@ -35,7 +35,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
 
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2));
+		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2));
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{
@@ -63,7 +63,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		// Assert
 		returnedTypes.ShouldHaveCount(nonDeletedAggregateIdCount);
-		generatedIds.ShouldBeEquivalentTo(returnedTypes);
+		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
 	}
 
 	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
@@ -72,7 +72,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
 
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2));
+		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2));
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{
@@ -102,6 +102,6 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		// Assert
 		returnedTypes.ShouldHaveCount(deletedAggregateIdCount + nonDeletedAggregateIdCount);
-		generatedIds.ShouldBeEquivalentTo(returnedTypes);
+		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
 	}
 }

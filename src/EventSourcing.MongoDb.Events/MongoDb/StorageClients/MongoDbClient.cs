@@ -8,7 +8,7 @@ using Purview.EventSourcing.MongoDB.Entities;
 
 namespace Purview.EventSourcing.MongoDB.StorageClients;
 
-sealed partial class MongoDBClient
+sealed partial class MongoDBClient : IDisposable
 {
 	readonly IMongoDBClientTelemetry _telemetry;
 
@@ -117,5 +117,12 @@ sealed partial class MongoDBClient
 					.SetSerializer(new StringSerializer(BsonType.ObjectId));
 			}
 		}
+	}
+
+	public void Dispose()
+	{
+		GC.SuppressFinalize(this);
+
+		_client?.Dispose();
 	}
 }

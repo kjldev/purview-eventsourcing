@@ -22,11 +22,14 @@ partial class GenericTableEventStoreTests<TAggregate>
 		}
 
 		// Act
-		var returnedTypes = eventStore.GetAggregateIdsAsync(true, cancellationToken: tokenSource.Token).ToBlockingEnumerable(tokenSource.Token);
+		var returnedTypes = eventStore
+			.GetAggregateIdsAsync(true, cancellationToken: tokenSource.Token)
+			.ToBlockingEnumerable(tokenSource.Token)
+		;
 
 		// Assert
 		returnedTypes.ShouldHaveCount(aggregateCount);
-		generatedIds.ShouldBeEquivalentTo(returnedTypes);
+		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
 	}
 
 	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
@@ -102,6 +105,6 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		// Assert
 		returnedTypes.ShouldHaveCount(deletedAggregateIdCount + nonDeletedAggregateIdCount);
-		generatedIds.ShouldBeEquivalentTo(returnedTypes);
+		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
 	}
 }

@@ -19,7 +19,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.AppendString($"{i + 1} of {eventsToCreate}(s) to created.");
 
-		var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
+		using var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
 
 		aggregateChangeNotifier
 			.When(m => m.BeforeSaveAsync(Arg.Is(aggregate), Arg.Is(true), Arg.Any<CancellationToken>()))
@@ -61,7 +61,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 
-		var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
+		using var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);

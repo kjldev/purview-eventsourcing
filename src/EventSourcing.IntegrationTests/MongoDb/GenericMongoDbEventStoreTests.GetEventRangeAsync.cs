@@ -12,7 +12,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
@@ -38,7 +38,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)

@@ -44,7 +44,7 @@ partial class MongoDBSnapshotEventStore<T>
 
 		var result = await _mongoDbClient.QueryAsync(whereClause, orderByClause, request, cancellationToken);
 
-		result.Results = result.Results.Select(FulfilRequirements).ToArray();
+		result.Results = [.. result.Results.Select(FulfilRequirements)];
 
 		return result;
 	}
@@ -53,7 +53,7 @@ partial class MongoDBSnapshotEventStore<T>
 	{
 		var results = await _mongoDbClient.ListAsync(orderByClause, request, cancellationToken);
 
-		results.Results = results.Results.Select(FulfilRequirements).ToArray();
+		results.Results = [.. results.Results.Select(FulfilRequirements)];
 
 		return results;
 	}

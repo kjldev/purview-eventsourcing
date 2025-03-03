@@ -262,7 +262,7 @@ partial class CosmosDbClient
 		await _container;
 		await _database.DeleteAsync(cancellationToken: cancellationToken);
 
-		_ = _createdDatabases.TryRemove(_databaseCreatedKey, out _);
+		_ = CreatedDatabases.TryRemove(_databaseCreatedKey, out _);
 	}
 
 	public async Task DeleteContainerAsync(CancellationToken cancellationToken = default)
@@ -270,6 +270,6 @@ partial class CosmosDbClient
 		var container = await _container;
 		await container.DeleteContainerAsync(cancellationToken: cancellationToken);
 
-		_ = _createdContainers.TryRemove(_containerCreatedKey, out _);
+		_ = CreatedContainers.TryRemove(_containerCreatedKey, out _);
 	}
 }

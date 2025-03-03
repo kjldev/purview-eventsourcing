@@ -2,7 +2,7 @@
 	<!-- Defining properties to determine if it's a C# project, and what SDK type it is. -->
 	<PropertyGroup Label="Define C# Properties" Condition="'$(MSBuildProjectExtension)' == '.csproj'">
 		<IsCSharpProject>true</IsCSharpProject>
-		<IsTestProject>false</IsTestProject>
+		<!--<IsTestProject>false</IsTestProject>-->
 		<IsSdkProject>false</IsSdkProject>
 		<IsWebSdkProject>false</IsWebSdkProject>
 		<IsWorkerSdkProject>false</IsWorkerSdkProject>

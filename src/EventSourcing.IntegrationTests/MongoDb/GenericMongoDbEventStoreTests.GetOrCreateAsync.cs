@@ -8,7 +8,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
 
 		var aggregateId = $"{Guid.NewGuid()}";
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var result = await eventStore.GetOrCreateAsync(aggregateId, cancellationToken: tokenSource.Token);

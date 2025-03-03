@@ -13,7 +13,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
@@ -37,7 +37,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2, removeFromCacheOnDelete: true);
+		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2, removeFromCacheOnDelete: true);
 
 		var cacheKey = eventStore.CreateCacheKey(aggregateId);
 
@@ -69,7 +69,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
+		using var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
 
 		aggregateChangeNotifier
 			.When(m => m.BeforeDeleteAsync(aggregate, Arg.Any<CancellationToken>()))

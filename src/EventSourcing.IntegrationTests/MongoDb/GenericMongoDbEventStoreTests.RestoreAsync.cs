@@ -11,7 +11,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 3);
+		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 3);
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 		await eventStore.DeleteAsync(aggregate, cancellationToken: tokenSource.Token);

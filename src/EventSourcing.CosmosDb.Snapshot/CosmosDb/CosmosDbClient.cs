@@ -18,9 +18,9 @@ sealed partial class CosmosDbClient
 	readonly string _containerCreatedKey;
 	readonly string _partitionKey;
 
-	static readonly ConcurrentDictionary<string, CosmosClient> _cosmosDbClients = new();
-	static readonly ConcurrentDictionary<string, AsyncLazy<Database>> _createdDatabases = new();
-	static readonly ConcurrentDictionary<string, AsyncLazy<Container>> _createdContainers = new();
+	static readonly ConcurrentDictionary<string, CosmosClient> CosmosDbClients = new();
+	static readonly ConcurrentDictionary<string, AsyncLazy<Database>> CreatedDatabases = new();
+	static readonly ConcurrentDictionary<string, AsyncLazy<Container>> CreatedContainers = new();
 
 	public CosmosDbClient([NotNull] CosmosDbEventStoreOptions cosmosDbOptions,
 		string? partitionKeyOverride = null,
@@ -182,7 +182,7 @@ sealed partial class CosmosDbClient
 
 	async Task<Container> InitializeContainerAsync(CancellationToken cancellationToken)
 	{
-		return await _createdContainers.GetOrAdd(_containerCreatedKey, _ => new AsyncLazy<Container>(async () =>
+		return await CreatedContainers.GetOrAdd(_containerCreatedKey, _ => new AsyncLazy<Container>(async () =>
 		{
 			var response = await GetOrCreateContainerAsync(cancellationToken) ?? throw new NullReferenceException($"Unable to get the container response for '{_containerName}'");
 			if (!(response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Accepted))
@@ -194,7 +194,7 @@ sealed partial class CosmosDbClient
 
 	async Task<Database> InitializeDatabase(CosmosClient client, CancellationToken cancellationToken)
 	{
-		return _database = await _createdDatabases.GetOrAdd(_databaseCreatedKey, _ => new AsyncLazy<Database>(async () =>
+		return _database = await CreatedDatabases.GetOrAdd(_databaseCreatedKey, _ => new AsyncLazy<Database>(async () =>
 		{
 			var response = await client.CreateDatabaseIfNotExistsAsync(_cosmosDbOptions.Database, throughput: _cosmosDbOptions.DatabaseThroughput, cancellationToken: cancellationToken);
 			if (!(response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Accepted || response.StatusCode == System.Net.HttpStatusCode.Created))
@@ -209,7 +209,7 @@ sealed partial class CosmosDbClient
 
 	static CosmosClient GetOrCreateClient(CosmosDbEventStoreOptions configuration)
 	{
-		return _cosmosDbClients.GetOrAdd($"{configuration.ConnectionString}".ToUpperInvariant(), _ =>
+		return CosmosDbClients.GetOrAdd($"{configuration.ConnectionString}".ToUpperInvariant(), _ =>
 		{
 			CosmosClientOptions clientOptions = new()
 			{

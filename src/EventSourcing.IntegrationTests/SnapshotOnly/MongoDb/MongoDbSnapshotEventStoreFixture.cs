@@ -26,6 +26,8 @@ public class MongoDBSnapshotEventStoreFixture : IAsyncLifetime
 
 	public async ValueTask DisposeAsync()
 	{
+		GC.SuppressFinalize(this);
+
 		await _mongoDBContainer.DisposeAsync();
 		await _azuriteContainer.DisposeAsync();
 	}

@@ -5,7 +5,7 @@ using Purview.EventSourcing.MongoDB.StorageClients;
 
 namespace Purview.EventSourcing.MongoDB.Snapshot;
 
-public partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEventStore<T>
+public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEventStore<T>, IDisposable
 	where T : AggregateBase, new()
 {
 	readonly IEventStore<T> _eventStore;
@@ -50,5 +50,11 @@ public partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEventStore<T
 			.Eq(MongoDBAggregateSerializer<T>.BsonDocuemntIdPropertyName, aggregate.Id());
 
 		return predicate;
+	}
+
+	public void Dispose()
+	{
+		GC.SuppressFinalize(this);
+		_mongoDbClient?.Dispose();
 	}
 }

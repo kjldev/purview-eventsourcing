@@ -16,7 +16,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 		await eventStore.DeleteAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -41,7 +41,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
@@ -82,7 +82,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(snapshotRecalculationInterval: snapshotInterval);
+		using var eventStore = fixture.CreateEventStore<TAggregate>(snapshotRecalculationInterval: snapshotInterval);
 
 		// Act
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -128,7 +128,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < numberOfOldEventsToCreate; i++)
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -177,7 +177,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < numberOfOldEventsToCreate; i++)
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);

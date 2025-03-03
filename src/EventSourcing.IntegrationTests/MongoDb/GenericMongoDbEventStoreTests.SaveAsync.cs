@@ -14,7 +14,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId, a => a.SetValidatedProperty(-1));
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -39,7 +39,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.SetComplexProperty(complexProperty);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
@@ -59,7 +59,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -82,7 +82,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -126,7 +126,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -170,7 +170,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
@@ -206,7 +206,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToGenerate; i++)
 			aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var func = async () => await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);

@@ -13,7 +13,6 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 	readonly MongoDbContainer _mongoDBContainer;
 
 	IAggregateEventNameMapper _eventNameMapper = default!;
-	IDisposable? _eventStoreAsDisposable;
 
 	public MongoDBEventStoreFixture()
 	{
@@ -87,8 +86,6 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 				ReplicaName = mongoDBOptions.ReplicaName
 			}, mongoDBOptions.Database, mongoDBOptions.SnapshotCollection);
 
-		_eventStoreAsDisposable = eventStore as IDisposable;
-
 		return eventStore;
 	}
 
@@ -109,7 +106,8 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 
 	public async ValueTask DisposeAsync()
 	{
-		_eventStoreAsDisposable?.Dispose();
+		EventClient?.Dispose();
+		SnapshotClient?.Dispose();
 
 		await _mongoDBContainer.DisposeAsync();
 	}

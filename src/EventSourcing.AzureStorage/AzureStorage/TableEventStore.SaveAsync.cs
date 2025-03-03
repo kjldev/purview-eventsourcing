@@ -119,7 +119,7 @@ partial class TableEventStore<T>
 
 				var serializedEvent = SerializeEvent(changeEvent);
 				var eventEntity = CreateSerializedEvent(aggregate.Id(), changeEvent, serializedEvent, idempotencyMarkerOperation.RowKey);
-				if (Encoding.UTF8.GetByteCount(serializedEvent) >= _maxEventSize)
+				if (Encoding.UTF8.GetByteCount(serializedEvent) >= MaxEventSize)
 				{
 					LargeEventPointerEvent largeEventPointer = new()
 					{
@@ -225,7 +225,7 @@ partial class TableEventStore<T>
 			var blobName = GenerateEventBlobName(aggregateId, largeEvent.Key);
 			var largeEventContent = SerializeEvent(largeEvent.Value);
 			using MemoryStream stream = new();
-			using (StreamWriter writer = new(stream, Encoding.UTF8, _serializationBufferSize, true))
+			using (StreamWriter writer = new(stream, Encoding.UTF8, SerializationBufferSize, true))
 				await writer.WriteAsync(largeEventContent);
 
 			stream.Position = 0;
@@ -333,7 +333,7 @@ partial class TableEventStore<T>
 		var snapshotName = GenerateSnapshotBlobName(aggregate.Id());
 
 		using MemoryStream content = new();
-		using (StreamWriter writer = new(content, Encoding.UTF8, _serializationBufferSize, leaveOpen: true))
+		using (StreamWriter writer = new(content, Encoding.UTF8, SerializationBufferSize, leaveOpen: true))
 			await writer.WriteAsync(snapshot);
 
 		content.Position = 0;

@@ -90,7 +90,7 @@
 		<None Remove="TestResults/**" />
 	</ItemGroup>
 
-	<ItemGroup Label="C# Project Item Groups" Condition="'$(IsCSharpProject)' == 'true' AND $(IsTestProject) == 'false'">
+	<ItemGroup Label="C# Project Item Groups" Condition="'$(IsCSharpProject)' == 'true' AND $(IsTestProject) != 'true'">
 		<PackageReference Include="Purview.Telemetry.SourceGenerator">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

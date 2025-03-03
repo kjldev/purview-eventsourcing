@@ -9,7 +9,7 @@ using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.MongoDB;
 
-public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>
+public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDisposable
 	where T : class, IAggregate, new()
 {
 	readonly StorageClients.MongoDBClient _eventClient;
@@ -191,4 +191,12 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>
 
 	public string CreateCacheKey(string aggregateId)
 		=> $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+
+	public void Dispose()
+	{
+		GC.SuppressFinalize(this);
+
+		_eventClient?.Dispose();
+		_snapshotClient?.Dispose();
+	}
 }

@@ -10,6 +10,7 @@ partial class CosmosDbSnapshotEventStoreTests
 	[InlineData(1)]
 	[InlineData(5)]
 	[InlineData(10)]
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1861:Avoid constant arrays as arguments")]
 	public async Task CanQuery_GivenAggregatesContainsDictionaryWithStringValuesAsValue_QueryAsExpected(int numberOfAggregates)
 	{
 		// Arrange
@@ -33,7 +34,7 @@ partial class CosmosDbSnapshotEventStoreTests
 		}
 
 		// Act
-		IEnumerable<PersistenceAggregate> aggregates = (await context.CosmosDbClient.QueryAsync<PersistenceAggregate>(
+		var aggregates = (await context.CosmosDbClient.QueryAsync<PersistenceAggregate>(
 			m => m.StringValuesDictionary["name-1"] == "value-1",
 			partitionKey,
 			maxRecords: numberOfAggregates,
@@ -72,7 +73,11 @@ partial class CosmosDbSnapshotEventStoreTests
 
 		// Act
 #pragma warning disable CA1304 // Specify CultureInfo
+#pragma warning disable CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
+#pragma warning disable CA1311 // Specify a culture or use an invariant version
 		IEnumerable<PersistenceAggregate> aggregates = (await context.CosmosDbClient.QueryAsync<PersistenceAggregate>(m => m.StringsDictionary["name-1"].ToLower() == "value-1", partitionKey, maxRecords: numberOfAggregates, cancellationToken: tokenSource.Token)).Results;
+#pragma warning restore CA1311 // Specify a culture or use an invariant version
+#pragma warning restore CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
 #pragma warning restore CA1304 // Specify CultureInfo
 
 		// Assert

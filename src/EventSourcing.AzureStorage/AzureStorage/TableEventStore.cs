@@ -12,8 +12,8 @@ namespace Purview.EventSourcing.AzureStorage;
 public sealed partial class TableEventStore<T> : ITableEventStore<T>
 	where T : class, IAggregate, new()
 {
-	const int _serializationBufferSize = 4096;
-	const int _maxEventSize = 32000;
+	const int SerializationBufferSize = 4096;
+	const int MaxEventSize = 32000;
 
 	readonly StorageClients.Table.AzureTableClient _tableClient;
 	readonly StorageClients.Blob.AzureBlobClient _blobClient;

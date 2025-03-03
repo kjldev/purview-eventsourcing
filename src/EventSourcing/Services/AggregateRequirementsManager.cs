@@ -10,11 +10,11 @@ sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider) :
 {
 	// This is static, but still allows the AggregateRequiredServiceManager to be registered as scoped
 	// for the sake of the IServiceProvider.
-	static readonly ConcurrentDictionary<Type, AggregateRequiredServiceManagerContext> _builders = new();
+	static readonly ConcurrentDictionary<Type, AggregateRequiredServiceManagerContext> Builders = new();
 
 	public void Fulfil(IAggregate aggregate)
 	{
-		var context = _builders.GetOrAdd(aggregate.GetType(), t =>
+		var context = Builders.GetOrAdd(aggregate.GetType(), t =>
 		{
 			AggregateRequiredServiceManagerContext builder = new(t);
 			builder.Build();
@@ -29,7 +29,7 @@ sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider) :
 	{
 		readonly List<Action<object[]>> _requiredServices = [];
 
-		static readonly Lazy<MethodInfo> _populateMethod = new(() => typeof(AggregateRequiredServiceManagerContext).GetMethod(nameof(Populate), BindingFlags.Static | BindingFlags.NonPublic)!);
+		static readonly Lazy<MethodInfo> PopulateMethod = new(() => typeof(AggregateRequiredServiceManagerContext).GetMethod(nameof(Populate), BindingFlags.Static | BindingFlags.NonPublic)!);
 
 		bool _hasRequirements;
 
@@ -40,7 +40,7 @@ sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider) :
 			{
 				var serviceType = requiredService.GetGenericArguments()[0];
 
-				var genericMethod = _populateMethod.Value.MakeGenericMethod(serviceType);
+				var genericMethod = PopulateMethod.Value.MakeGenericMethod(serviceType);
 				var parameters = genericMethod.GetParameters();
 				var actionParams = Expression.Parameter(typeof(object[]), "params");
 				var argExpressions = parameters.Select((param, i) =>
