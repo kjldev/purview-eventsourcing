@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Internal;
 
