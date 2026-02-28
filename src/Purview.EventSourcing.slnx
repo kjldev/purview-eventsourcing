@@ -14,6 +14,7 @@
   </Folder>
   <Project Path="EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
   <Project Path="EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
+  <Project Path="EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
   <Project Path="EventSourcing.IntegrationTests\EventSourcing.IntegrationTests.csproj" />
   <Project Path="EventSourcing.MongoDB.Events\EventSourcing.MongoDB.Events.csproj" />
   <Project Path="EventSourcing.MongoDB.Snapshot\EventSourcing.MongoDB.Snapshot.csproj" />
