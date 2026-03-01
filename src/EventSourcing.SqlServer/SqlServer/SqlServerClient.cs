@@ -37,8 +37,10 @@ sealed partial class SqlServerClient : IDisposable
 					CONSTRAINT {QuoteIdentifier($"PK_{options.TableName}")} PRIMARY KEY ([Id])
 				);
 
+				-- Covers: QueryByAggregateType (returns Payload via INCLUDE, avoids key lookup)
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_AggregateType")}
-					ON {quotedFullName} ([AggregateType]);
+					ON {quotedFullName} ([AggregateType])
+					INCLUDE ([Payload]);
 			END
 			""";
 

@@ -47,11 +47,21 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 					CONSTRAINT {QuoteIdentifier($"PK_{options.TableName}")} PRIMARY KEY ([Id])
 				);
 
+				-- Covers: GetByAggregateIdAndEntityType, GetIdempotencyMarkers, DeleteByAggregateId
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_AggregateId_EntityType")}
-					ON {quotedFullName} ([AggregateId], [EntityType]);
+					ON {quotedFullName} ([AggregateId], [EntityType])
+					INCLUDE ([Version], [IsDeleted], [AggregateType], [EventType], [IdempotencyId], [Timestamp]);
 
-				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_AggregateType")}
-					ON {quotedFullName} ([AggregateType]);
+				-- Covers: GetEventRange (AggregateId + EntityType=1 + Version range, ORDER BY Version)
+				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_EventRange")}
+					ON {quotedFullName} ([AggregateId], [EntityType], [Version])
+					INCLUDE ([Payload], [EventType], [IdempotencyId], [IsDeleted], [AggregateType], [Timestamp])
+					WHERE [EntityType] = 1;
+
+				-- Covers: GetAggregateIdsAsync (AggregateType + EntityType + optional IsDeleted filter)
+				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_AggregateType_EntityType")}
+					ON {quotedFullName} ([AggregateType], [EntityType], [IsDeleted])
+					INCLUDE ([AggregateId]);
 			END
 			""";
 
