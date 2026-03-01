@@ -15,6 +15,7 @@ sealed partial class SqlServerClient : IDisposable
 	readonly string _upsertSql;
 	readonly string _deleteSql;
 	readonly string _querySql;
+	readonly string _getByIdSql;
 
 	volatile bool _tableCreated;
 
@@ -55,6 +56,8 @@ sealed partial class SqlServerClient : IDisposable
 		_deleteSql = $"DELETE FROM {quotedFullName} WHERE [Id] = @Id";
 
 		_querySql = $"SELECT [Payload] FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
+
+		_getByIdSql = $"SELECT [Payload] FROM {quotedFullName} WHERE [Id] = @Id";
 	}
 
 	public async Task EnsureTableExistsAsync(CancellationToken cancellationToken = default)
@@ -132,6 +135,28 @@ sealed partial class SqlServerClient : IDisposable
 		}
 
 		return results;
+	}
+
+	public async Task<T?> GetByIdAsync<T>(string id, CancellationToken cancellationToken = default)
+		where T : class
+	{
+		await EnsureConfiguredAsync(cancellationToken);
+
+		await using var connection = CreateConnection();
+		await connection.OpenAsync(cancellationToken);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = _getByIdSql;
+		command.Parameters.Add(new SqlParameter("@Id", SqlDbType.NVarChar, 450) { Value = id });
+
+		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+		if (await reader.ReadAsync(cancellationToken))
+		{
+			var payload = reader.GetString(0);
+			return JsonConvert.DeserializeObject<T>(payload, JsonHelpers.JsonSerializerSettings);
+		}
+
+		return null;
 	}
 
 	async Task EnsureConfiguredAsync(CancellationToken cancellationToken)

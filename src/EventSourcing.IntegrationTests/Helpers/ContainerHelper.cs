@@ -1,6 +1,7 @@
 ﻿using Testcontainers.Azurite;
 using Testcontainers.CosmosDb;
 using Testcontainers.MongoDb;
+using Testcontainers.MsSql;
 
 namespace Purview.EventSourcing;
 
@@ -47,6 +48,15 @@ public static class ContainerHelper
 		//.WithCleanUp(true)
 		//.WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(27017))
 		;
+
+		config?.Invoke(builder);
+
+		return builder.Build();
+	}
+
+	public static MsSqlContainer CreateMsSql(Action<MsSqlBuilder>? config = null)
+	{
+		var builder = new MsSqlBuilder();
 
 		config?.Invoke(builder);
 
