@@ -20,7 +20,7 @@ partial class SqlServerEventStore<T>
 			throw new ArgumentOutOfRangeException(nameof(versionFrom), versionFrom, $"{nameof(versionFrom)} must be greater than 0.");
 
 		if (versionTo < versionFrom)
-			throw new ArgumentOutOfRangeException(nameof(versionTo), versionTo.Value, $"{nameof(versionTo)} ({versionTo}) must be greater than or equal to ${nameof(versionFrom)} ({versionFrom}).");
+			throw new ArgumentOutOfRangeException(nameof(versionTo), versionTo.Value, $"{nameof(versionTo)} ({versionTo}) must be greater than or equal to {nameof(versionFrom)} ({versionFrom}).");
 
 		var aggregateVersion = versionFrom;
 		var effectiveVersionTo = versionTo ?? int.MaxValue;
