@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<RootNamespace>Purview.EventSourcing</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup Label="NuGet Package Values">
+		<IsPackable>true</IsPackable>
+		<Title>Purview Event Store based on Azure SQL / SQL Server</Title>
+		<Description>Event Store using Azure SQL / SQL Server for event information.</Description>
+		<PackageTags>$(PackageTags);events;event-sourcing;event-store;azure-sql;sql-server</PackageTags>
+		<DefineConstants>EventsBasedStore</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="../.shared-extensions/**/*" LinkBase="/" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing.Shared\EventSourcing.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Data.SqlClient" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+		<PackageReference Include="Microsoft.Extensions.Options" />
+	</ItemGroup>
+</Project>

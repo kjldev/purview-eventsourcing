@@ -5,3 +5,4 @@
 [assembly: InternalsVisibleTo("EventSourcing.MongoDB.Events")]
 [assembly: InternalsVisibleTo("EventSourcing.MongoDB.Snapshot")]
 [assembly: InternalsVisibleTo("EventSourcing.SqlServer")]
+[assembly: InternalsVisibleTo("EventSourcing.SqlServer.Events")]
