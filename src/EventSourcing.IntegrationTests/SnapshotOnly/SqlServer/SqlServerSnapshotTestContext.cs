@@ -42,7 +42,7 @@ public sealed class SqlServerSnapshotTestContext
 
 		var resolvedTableName = tableName ?? $"Snapshots_{RunId:N}";
 
-		SqlServerEventStoreOptions config = new()
+		Purview.EventSourcing.SqlServer.Snapshot.SqlServerEventStoreOptions config = new()
 		{
 			ConnectionString = _sqlServerConnectionString,
 			TableName = resolvedTableName,
