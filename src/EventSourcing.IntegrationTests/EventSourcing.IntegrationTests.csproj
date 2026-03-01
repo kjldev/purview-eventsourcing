@@ -11,6 +11,7 @@
 			<Aliases>MongoDBSnapshots</Aliases>
 		</ProjectReference>
 		<ProjectReference Include="..\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+		<ProjectReference Include="..\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
 		<ProjectReference Include="..\EventSourcing.Testing\EventSourcing.Testing.csproj" />
 	</ItemGroup>
 
