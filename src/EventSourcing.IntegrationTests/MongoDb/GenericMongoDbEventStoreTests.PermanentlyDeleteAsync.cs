@@ -8,7 +8,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	public async Task DeleteAsync_GivenAggregateExists_PermanentlyDeletesAllData()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -19,18 +21,19 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		aggregate = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
-		aggregate.ShouldNotBeNull();
+		await Assert.That(aggregate).IsNotNull();
 
 		// Act
-		var result = await eventStore.DeleteAsync(aggregate!, new EventStoreOperationContext
-		{
-			PermanentlyDelete = true
-		}, cancellationToken: tokenSource.Token);
+		var result = await eventStore.DeleteAsync(
+			aggregate!,
+			new EventStoreOperationContext { PermanentlyDelete = true },
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		result.ShouldBeTrue();
-		aggregate.Details.IsDeleted.ShouldBeTrue();
-		aggregate.Details.Locked.ShouldBeTrue();
+		await Assert.That(result).IsTrue();
+		await Assert.That(aggregate.Details.IsDeleted).IsTrue();
+		await Assert.That(aggregate.Details.Locked).IsTrue();
 
 		await ValidateEntitiesDeletedAsync(aggregate, tokenSource.Token);
 	}
@@ -38,7 +41,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -62,35 +67,48 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		aggregate = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
-		aggregate.ShouldNotBeNull();
+		await Assert.That(aggregate).IsNotNull();
 
 		// Act
-		var result = await eventStore.DeleteAsync(aggregate!, new EventStoreOperationContext
-		{
-			PermanentlyDelete = true
-		}, cancellationToken: tokenSource.Token);
+		var result = await eventStore.DeleteAsync(
+			aggregate!,
+			new EventStoreOperationContext { PermanentlyDelete = true },
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		result.ShouldBeTrue();
+		await Assert.That(result).IsTrue();
 
-		aggregate.Details.IsDeleted.ShouldBeTrue();
-		aggregate.Details.Locked.ShouldBeTrue();
+		await Assert.That(aggregate.Details.IsDeleted).IsTrue();
+		await Assert.That(aggregate.Details.Locked).IsTrue();
 
 		await ValidateEntitiesDeletedAsync(aggregate, tokenSource.Token);
 	}
 
 	async Task ValidateEntitiesDeletedAsync(TAggregate aggregate, CancellationToken cancellationToken)
 	{
-		var eventCount = await fixture.EventClient.CountAsync<EventEntity>(m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.EventType, cancellationToken: cancellationToken);
-		eventCount.ShouldBe(0);
+		var eventCount = await fixture.EventClient.CountAsync<EventEntity>(
+			m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.EventType,
+			cancellationToken: cancellationToken
+		);
+		await Assert.That(eventCount).IsEqualTo(0);
 
-		var streamVersionCount = await fixture.EventClient.CountAsync<StreamVersionEntity>(m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.StreamVersionType, cancellationToken: cancellationToken);
-		streamVersionCount.ShouldBe(0);
+		var streamVersionCount = await fixture.EventClient.CountAsync<StreamVersionEntity>(
+			m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.StreamVersionType,
+			cancellationToken: cancellationToken
+		);
+		await Assert.That(streamVersionCount).IsEqualTo(0);
 
-		var idempotencyMarkerCount = await fixture.EventClient.CountAsync<IdempotencyMarkerEntity>(m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.StreamVersionType, cancellationToken: cancellationToken);
-		idempotencyMarkerCount.ShouldBe(0);
+		var idempotencyMarkerCount = await fixture.EventClient.CountAsync<IdempotencyMarkerEntity>(
+			m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.StreamVersionType,
+			cancellationToken: cancellationToken
+		);
+		await Assert.That(idempotencyMarkerCount).IsEqualTo(0);
 
-		var snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(m => m.Id == aggregate.Id() && m.EntityType == EntityTypes.SnapshotType, cancellationToken: cancellationToken);
-		snapshotEntity.ShouldBeNull();
+		var snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(
+			m => m.Id == aggregate.Id() && m.EntityType == EntityTypes.SnapshotType,
+			cancellationToken: cancellationToken
+		);
+		await Assert.That(snapshotEntity).IsNull();
 	}
 }

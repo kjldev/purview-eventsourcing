@@ -4,10 +4,11 @@ using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
 using Testcontainers.MsSql;
+using TUnit.Core.Interfaces;
 
 namespace Purview.EventSourcing.SqlServer;
 
-public sealed class SqlServerEventStoreFixture : IAsyncLifetime
+public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
 	readonly MsSqlContainer _msSqlContainer;
 	IAggregateEventNameMapper _eventNameMapper = default!;
@@ -25,7 +26,8 @@ public sealed class SqlServerEventStoreFixture : IAsyncLifetime
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
 		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1)
+		int snapshotRecalculationInterval = 1
+	)
 		where TAggregate : class, IAggregate, new()
 	{
 		var runId = Guid.NewGuid();
@@ -44,7 +46,7 @@ public sealed class SqlServerEventStoreFixture : IAsyncLifetime
 			AutoCreateTable = true,
 			TimeoutInSeconds = 60,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
-			SnapshotInterval = snapshotRecalculationInterval
+			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
 		Client = new SqlServerEventStoreClient(options);
@@ -54,7 +56,8 @@ public sealed class SqlServerEventStoreFixture : IAsyncLifetime
 			sqlServerOptions: Microsoft.Extensions.Options.Options.Create(options),
 			distributedCache: Cache,
 			eventStoreTelemetry: Telemetry,
-			aggregateChangeNotifier: aggregateChangeNotifier ?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
+			aggregateChangeNotifier: aggregateChangeNotifier
+				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
 
@@ -64,13 +67,11 @@ public sealed class SqlServerEventStoreFixture : IAsyncLifetime
 	public static IDistributedCache CreateDistributedCache()
 	{
 		var cache = Substitute.For<IDistributedCache>();
-		cache
-			.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-			.ReturnsNullForAnyArgs();
+		cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).ReturnsNullForAnyArgs();
 		return cache;
 	}
 
-	public async ValueTask InitializeAsync()
+	public async Task InitializeAsync()
 	{
 		await _msSqlContainer.StartAsync();
 	}

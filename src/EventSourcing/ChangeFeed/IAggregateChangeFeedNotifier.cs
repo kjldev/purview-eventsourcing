@@ -45,7 +45,13 @@ public interface IAggregateChangeFeedNotifier<T>
 	/// <param name="events">The <see cref="IEvent"/>s that were saved as part of this operation.</param>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
-	Task AfterSaveAsync(T aggregate, int previousSavedVersion, bool isNew, IEvent[] events, CancellationToken cancellationToken = default);
+	Task AfterSaveAsync(
+		T aggregate,
+		int previousSavedVersion,
+		bool isNew,
+		IEvent[] events,
+		CancellationToken cancellationToken = default
+	);
 
 	/// <summary>
 	/// Notifies all interested processors that a delete operation has completed successfully.
@@ -64,5 +70,10 @@ public interface IAggregateChangeFeedNotifier<T>
 	/// <param name="exception">The exception that occurred during the operation.</param>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
-	Task FailureAsync(T aggregate, bool isDelete, Exception exception, CancellationToken cancellationToken = default);
+	Task FailureAsync(
+		T aggregate,
+		bool isDelete,
+		Exception exception,
+		CancellationToken cancellationToken = default
+	);
 }

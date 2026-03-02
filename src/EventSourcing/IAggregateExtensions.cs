@@ -19,8 +19,7 @@ public static class IAggregateExtensions
 	/// </summary>
 	/// <param name="aggregate">The <see cref="IAggregate"/>.</param>
 	/// <returns>The <see cref="AggregateDetails.Id"/> from the <see cref="IAggregate.Details"/> property.</returns>
-	public static string Id([NotNull] this IAggregate aggregate)
-		=> aggregate.Details.Id;
+	public static string Id([NotNull] this IAggregate aggregate) => aggregate.Details.Id;
 
 	/// <summary>
 	/// Determines if the <see cref="IAggregate"/> instance is new,
@@ -28,8 +27,8 @@ public static class IAggregateExtensions
 	/// </summary>
 	/// <param name="aggregate">The <see cref="IAggregate"/> to check.</param>
 	/// <returns>Returns true if the <see cref="AggregateDetails.SavedVersion"/> is 0, zero. Otherwise, returns false.</returns>
-	public static bool IsNew([NotNull] this IAggregate aggregate)
-		=> aggregate.Details.SavedVersion == 0;
+	public static bool IsNew([NotNull] this IAggregate aggregate) =>
+		aggregate.Details.SavedVersion == 0;
 
 	/// <summary>
 	/// <para>
@@ -51,12 +50,20 @@ public static class IAggregateExtensions
 	/// <param name="proposedValue">The new value of the property.</param>
 	/// <param name="eventCreator">Creates a new <typeparamref name="TEvent"/> with the <paramref name="proposedValue"/>.</param>
 	/// <returns>The <paramref name="aggregate"/>.</returns>
-	public static TAggregate CompareRecordAndApply<TAggregate, TProperty, TEvent>([NotNull] this TAggregate aggregate, [NotNull] Expression<Func<TAggregate, TProperty>> aggregatePropertyExpression, TProperty proposedValue, [NotNull] Func<TProperty, TEvent> eventCreator)
+	public static TAggregate CompareRecordAndApply<TAggregate, TProperty, TEvent>(
+		[NotNull] this TAggregate aggregate,
+		[NotNull] Expression<Func<TAggregate, TProperty>> aggregatePropertyExpression,
+		TProperty proposedValue,
+		[NotNull] Func<TProperty, TEvent> eventCreator
+	)
 		where TAggregate : AggregateBase
 		where TEvent : IEvent
 	{
 		if (aggregatePropertyExpression.Body is not MemberExpression aggregateExpressionMember)
-			throw new ArgumentException("Invalid property expression.", nameof(aggregatePropertyExpression));
+			throw new ArgumentException(
+				"Invalid property expression.",
+				nameof(aggregatePropertyExpression)
+			);
 
 		var existingValue = aggregatePropertyExpression.Compile()(aggregate);
 		if (!EqualityComparer<TProperty>.Default.Equals(existingValue, proposedValue))

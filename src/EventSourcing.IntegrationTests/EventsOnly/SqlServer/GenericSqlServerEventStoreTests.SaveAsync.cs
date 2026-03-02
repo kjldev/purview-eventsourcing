@@ -1,4 +1,4 @@
-using Purview.EventSourcing.Aggregates;
+﻿using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.SqlServer;
 
@@ -6,23 +6,29 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 {
 	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved()
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId, a => a.SetValidatedProperty(-1));
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-		result.Saved.ShouldBeFalse();
-		result.IsValid.ShouldBeFalse();
-		((bool)result).ShouldBeFalse();
-		result.ValidationResult.Errors.ShouldHaveSingleItem();
-		result.ValidationResult.Errors.Single().PropertyName.ShouldBe(nameof(IAggregateTest.IncrementInt32));
+		await Assert.That(result.Saved).IsFalse();
+		await Assert.That(result.IsValid).IsFalse();
+		await Assert.That(((bool)result)).IsFalse();
+		await Assert.That(result.ValidationResult.Errors).HasSingleItem();
+		await Assert
+			.That(result.ValidationResult.Errors.Single().PropertyName)
+			.IsEqualTo(nameof(IAggregateTest.IncrementInt32));
 	}
 
 	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty()
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var complexProperty = CreateComplexTestType();
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -32,26 +38,30 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 
 		var aggregateGetResult = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
 
-		aggregateGetResult.ShouldNotBeNull();
-		aggregate.ComplexTestType.ShouldBeEquivalentTo(aggregateGetResult.ComplexTestType);
+		await Assert.That(aggregateGetResult).IsNotNull();
+		await Assert.That(aggregate.ComplexTestType).IsEquivalentTo(aggregateGetResult.ComplexTestType);
 	}
 
 	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotSave()
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-		result.ShouldBeFalse();
+		await Assert.That(result).IsFalse();
 		fixture.Telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
 	}
 
 	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate()
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
@@ -59,23 +69,27 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-		result.Saved.ShouldBeTrue();
-		result.Skipped.ShouldBeFalse();
-		aggregate.IsNew().ShouldBeFalse();
+		await Assert.That(result.Saved).IsTrue();
+		await Assert.That(result.Skipped).IsFalse();
+		await Assert.That(aggregate.IsNew()).IsFalse();
 
 		var aggregateFromEventStore = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
-		aggregateFromEventStore.ShouldNotBeNull();
-		aggregateFromEventStore.Id().ShouldBe(aggregate.Id());
-		aggregateFromEventStore.IncrementInt32.ShouldBe(aggregate.IncrementInt32);
-		aggregateFromEventStore.Details.SavedVersion.ShouldBe(aggregate.Details.SavedVersion);
-		aggregateFromEventStore.Details.CurrentVersion.ShouldBe(aggregate.Details.CurrentVersion);
-		aggregateFromEventStore.Details.SnapshotVersion.ShouldBe(aggregate.Details.SnapshotVersion);
-		aggregateFromEventStore.Details.Etag.ShouldBe(aggregate.Details.Etag);
+		await Assert.That(aggregateFromEventStore).IsNotNull();
+		await Assert.That(aggregateFromEventStore.Id()).IsEqualTo(aggregate.Id());
+		await Assert.That(aggregateFromEventStore.IncrementInt32).IsEqualTo(aggregate.IncrementInt32);
+		await Assert.That(aggregateFromEventStore.Details.SavedVersion).IsEqualTo(aggregate.Details.SavedVersion);
+		await Assert.That(aggregateFromEventStore.Details.CurrentVersion).IsEqualTo(aggregate.Details.CurrentVersion);
+		await Assert.That(aggregateFromEventStore.Details.SnapshotVersion).IsEqualTo(aggregate.Details.SnapshotVersion);
+		await Assert.That(aggregateFromEventStore.Details.Etag).IsEqualTo(aggregate.Details.Etag);
 	}
 
-	public async Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedEventsInSaveOperation_ThrowsException(int eventsToGenerate)
+	public async Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedEventsInSaveOperation_ThrowsException(
+		int eventsToGenerate
+	)
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToGenerate; i++)
@@ -84,6 +98,6 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 
 		var func = async () => await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-		await Should.ThrowAsync<ArgumentOutOfRangeException>(func);
+		await Assert.That(func).Throws<ArgumentOutOfRangeException>();
 	}
 }

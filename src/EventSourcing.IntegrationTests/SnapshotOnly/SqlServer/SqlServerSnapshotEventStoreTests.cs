@@ -3,22 +3,12 @@ using Purview.EventSourcing.SnapshotOnly.SqlServer;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
-[Collection("SqlServer")]
-[NCrunch.Framework.Category("SqlServer")]
-[NCrunch.Framework.Category("Storage")]
-[NCrunch.Framework.Serial]
-[CollectionDefinition("SqlServer")]
-public partial class SqlServerSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture) : IClassFixture<SqlServerSnapshotEventStoreFixture>
+[ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public partial class SqlServerSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture)
 {
 	static PersistenceAggregate CreateAggregate(string? id = null, Action<PersistenceAggregate>? action = null)
 	{
-		PersistenceAggregate aggregate = new()
-		{
-			Details =
-			{
-				Id = id ?? Guid.NewGuid().ToString()
-			}
-		};
+		PersistenceAggregate aggregate = new() { Details = { Id = id ?? Guid.NewGuid().ToString() } };
 
 		action?.Invoke(aggregate);
 

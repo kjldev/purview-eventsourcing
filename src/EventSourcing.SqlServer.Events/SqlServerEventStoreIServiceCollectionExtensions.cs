@@ -10,7 +10,9 @@ namespace Purview.EventSourcing;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class SqlServerEventStoreIServiceCollectionExtensions
 {
-	public static IServiceCollection AddSqlServerEventStore([NotNull] this IServiceCollection services)
+	public static IServiceCollection AddSqlServerEventStore(
+		[NotNull] this IServiceCollection services
+	)
 	{
 		services.AddEventSourcing();
 
@@ -22,19 +24,23 @@ public static class SqlServerEventStoreIServiceCollectionExtensions
 
 		services
 			.AddOptions<SqlServerEventStoreOptions>()
-			.Configure<IConfiguration>((options, configuration) =>
-			{
-				configuration.GetSection(SqlServerEventStoreOptions.SqlServerEventStore).Bind(options);
-
-				if (string.IsNullOrWhiteSpace(options.ConnectionString))
+			.Configure<IConfiguration>(
+				(options, configuration) =>
 				{
-					options.ConnectionString =
-						configuration.GetConnectionString("EventStore_SqlServer")
-						?? configuration.GetConnectionString("SqlServer")
-						// This will get picked up by the validation.
-						?? default!;
+					configuration
+						.GetSection(SqlServerEventStoreOptions.SqlServerEventStore)
+						.Bind(options);
+
+					if (string.IsNullOrWhiteSpace(options.ConnectionString))
+					{
+						options.ConnectionString =
+							configuration.GetConnectionString("EventStore_SqlServer")
+							?? configuration.GetConnectionString("SqlServer")
+							// This will get picked up by the validation.
+							?? default!;
+					}
 				}
-			})
+			)
 			.ValidateOnStart();
 
 		return services;

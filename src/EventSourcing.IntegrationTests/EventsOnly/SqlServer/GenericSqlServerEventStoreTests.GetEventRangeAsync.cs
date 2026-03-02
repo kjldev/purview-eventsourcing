@@ -1,10 +1,16 @@
-namespace Purview.EventSourcing.SqlServer;
+﻿namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(int eventsToCreate, int startEvent, int? endEvent)
+	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(
+		int eventsToCreate,
+		int startEvent,
+		int? endEvent
+	)
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
@@ -18,12 +24,21 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 
 		// Verify events are in order
 		for (var i = 1; i < events.Count; i++)
-			events[i].@event.Details.AggregateVersion.ShouldBeGreaterThan(events[i - 1].@event.Details.AggregateVersion);
+			await Assert
+				.That(events[i].@event.Details.AggregateVersion)
+				.IsGreaterThan(events[i - 1].@event.Details.AggregateVersion);
 	}
 
-	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_GetsEventsRequested(int eventsToCreate, int startEvent, int? endEvent, int expectedEventCount)
+	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_GetsEventsRequested(
+		int eventsToCreate,
+		int startEvent,
+		int? endEvent,
+		int expectedEventCount
+	)
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
@@ -35,6 +50,6 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await foreach (var e in eventStore.GetEventRangeAsync(aggregateId, startEvent, endEvent, tokenSource.Token))
 			events.Add(e);
 
-		events.Count.ShouldBe(expectedEventCount);
+		await Assert.That(events.Count).IsEqualTo(expectedEventCount);
 	}
 }

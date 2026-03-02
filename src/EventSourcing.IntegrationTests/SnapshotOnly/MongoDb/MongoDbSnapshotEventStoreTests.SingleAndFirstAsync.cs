@@ -2,14 +2,14 @@
 
 partial class MongoDBSnapshotEventStoreTests
 {
-	[Theory]
-	[InlineData(1)]
-	[InlineData(2)]
-	[InlineData(3)]
-	[InlineData(5)]
-	[InlineData(10)]
-	[InlineData(15)]
-	[InlineData(50)]
+	[Test]
+	[Arguments(1)]
+	[Arguments(2)]
+	[Arguments(3)]
+	[Arguments(5)]
+	[Arguments(10)]
+	[Arguments(15)]
+	[Arguments(50)]
 	public async Task SingleOrDefaultAsync_GivenAggregatesExist_ReturnsAggregate(int numberOfAggregates)
 	{
 		string? firstId = null;
@@ -17,7 +17,9 @@ partial class MongoDBSnapshotEventStoreTests
 		const int numberOfEvents = 5;
 
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
 
 		var eventStore = context.EventStore;
@@ -34,25 +36,28 @@ partial class MongoDBSnapshotEventStoreTests
 
 			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
-		var aggregateResult = await eventStore.SingleOrDefaultAsync(m => m.StringProperty == firstId, cancellationToken: tokenSource.Token);
+		var aggregateResult = await eventStore.SingleOrDefaultAsync(
+			m => m.StringProperty == firstId,
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		aggregateResult.ShouldNotBeNull();
-		aggregateResult.ShouldBeEquivalentTo(aggregateResult);
+		await Assert.That(aggregateResult).IsNotNull();
+		await Assert.That(aggregateResult).IsEquivalentTo(aggregateResult);
 	}
 
-	[Theory]
-	[InlineData(1)]
-	[InlineData(2)]
-	[InlineData(3)]
-	[InlineData(5)]
-	[InlineData(10)]
-	[InlineData(15)]
-	[InlineData(50)]
+	[Test]
+	[Arguments(1)]
+	[Arguments(2)]
+	[Arguments(3)]
+	[Arguments(5)]
+	[Arguments(10)]
+	[Arguments(15)]
+	[Arguments(50)]
 	public async Task FirstOrDefaultAsync_GivenAggregatesExist_ReturnsAggregate(int numberOfAggregates)
 	{
 		const int numberOfEvents = 5;
@@ -60,7 +65,9 @@ partial class MongoDBSnapshotEventStoreTests
 		string? firstId = null;
 
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
 
 		var eventStore = context.EventStore;
@@ -76,32 +83,39 @@ partial class MongoDBSnapshotEventStoreTests
 
 			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
-		var aggregateResult = await eventStore.FirstOrDefaultAsync(m => m.IncrementInt32 == numberOfEvents, cancellationToken: tokenSource.Token);
+		var aggregateResult = await eventStore.FirstOrDefaultAsync(
+			m => m.IncrementInt32 == numberOfEvents,
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		aggregateResult.ShouldNotBeNull();
-		aggregateResult.ShouldBeEquivalentTo(aggregateResult);
+		await Assert.That(aggregateResult).IsNotNull();
+		await Assert.That(aggregateResult).IsEquivalentTo(aggregateResult);
 	}
 
-	[Theory]
-	[InlineData(2)]
-	[InlineData(3)]
-	[InlineData(5)]
-	[InlineData(10)]
-	[InlineData(15)]
-	[InlineData(50)]
-	public async Task FirstOrDefaultAsync_GivenAggregatesExistWithDescendingOrdering_ReturnsCorrect(int numberOfAggregates)
+	[Test]
+	[Arguments(2)]
+	[Arguments(3)]
+	[Arguments(5)]
+	[Arguments(10)]
+	[Arguments(15)]
+	[Arguments(50)]
+	public async Task FirstOrDefaultAsync_GivenAggregatesExistWithDescendingOrdering_ReturnsCorrect(
+		int numberOfAggregates
+	)
 	{
 		const int numberOfEvents = 5;
 
 		string? firstId = null;
 
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
 
 		var eventStore = context.EventStore;
@@ -119,32 +133,40 @@ partial class MongoDBSnapshotEventStoreTests
 
 			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
-		var aggregateResult = await eventStore.FirstOrDefaultAsync(m => m.IncrementInt32 == numberOfEvents, m => m.OrderByDescending(m => m.Int32Value), cancellationToken: tokenSource.Token);
+		var aggregateResult = await eventStore.FirstOrDefaultAsync(
+			m => m.IncrementInt32 == numberOfEvents,
+			m => m.OrderByDescending(m => m.Int32Value),
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		aggregateResult.ShouldNotBeNull();
-		aggregateResult.Int32Value.ShouldBe(numberOfAggregates);
+		await Assert.That(aggregateResult).IsNotNull();
+		await Assert.That(aggregateResult.Int32Value).IsEqualTo(numberOfAggregates);
 	}
 
-	[Theory]
-	[InlineData(2)]
-	[InlineData(3)]
-	[InlineData(5)]
-	[InlineData(10)]
-	[InlineData(15)]
-	[InlineData(50)]
-	public async Task FirstOrDefaultAsync_GivenAggregatesExistWithAscendingOrdering_ReturnsCorrect(int numberOfAggregates)
+	[Test]
+	[Arguments(2)]
+	[Arguments(3)]
+	[Arguments(5)]
+	[Arguments(10)]
+	[Arguments(15)]
+	[Arguments(50)]
+	public async Task FirstOrDefaultAsync_GivenAggregatesExistWithAscendingOrdering_ReturnsCorrect(
+		int numberOfAggregates
+	)
 	{
 		const int numberOfEvents = 5;
 
 		string? firstId = null;
 
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
 
 		var eventStore = context.EventStore;
@@ -162,15 +184,18 @@ partial class MongoDBSnapshotEventStoreTests
 
 			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
-		var aggregateResult = await eventStore.FirstOrDefaultAsync(m => m.IncrementInt32 == numberOfEvents, m => m.OrderBy(m => m.Int32Value), cancellationToken: tokenSource.Token);
+		var aggregateResult = await eventStore.FirstOrDefaultAsync(
+			m => m.IncrementInt32 == numberOfEvents,
+			m => m.OrderBy(m => m.Int32Value),
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		aggregateResult.ShouldNotBeNull();
-		aggregateResult.Int32Value.ShouldBe(1);
+		await Assert.That(aggregateResult).IsNotNull();
+		await Assert.That(aggregateResult.Int32Value).IsEqualTo(1);
 	}
 }
-

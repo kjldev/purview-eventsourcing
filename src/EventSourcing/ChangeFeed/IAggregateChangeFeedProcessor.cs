@@ -19,8 +19,7 @@ public interface IAggregateChangeFeedProcessor
 	/// <returns>True to use the implementation to process notifications. Otherwise, false and no
 	/// methods will be called.n</returns>
 	/// <remarks>Has a default implementation that returns true.</remarks>
-	bool CanProcess(IAggregate aggregate)
-		=> true;
+	bool CanProcess(IAggregate aggregate) => true;
 
 	/// <summary>
 	/// Called prior to the save operation being called on the aggregate.
@@ -30,8 +29,11 @@ public interface IAggregateChangeFeedProcessor
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task BeforeSaveAsync(IAggregate aggregate, bool isNew, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task BeforeSaveAsync(
+		IAggregate aggregate,
+		bool isNew,
+		CancellationToken cancellationToken = default
+	) => Task.CompletedTask;
 
 	/// <summary>
 	/// Called after the save operations has been successfully called on the aggregate.
@@ -43,8 +45,13 @@ public interface IAggregateChangeFeedProcessor
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task AfterSaveAsync(IAggregate aggregate, int previousSavedVersion, bool isNew, IEvent[] events, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task AfterSaveAsync(
+		IAggregate aggregate,
+		int previousSavedVersion,
+		bool isNew,
+		IEvent[] events,
+		CancellationToken cancellationToken = default
+	) => Task.CompletedTask;
 
 	/// <summary>
 	/// Called before the delete operation has completed.
@@ -53,8 +60,8 @@ public interface IAggregateChangeFeedProcessor
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task BeforeDeleteAsync(IAggregate aggregate, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task BeforeDeleteAsync(IAggregate aggregate, CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	/// <summary>
 	/// Called after the delete operation has completed successfully.
@@ -63,8 +70,8 @@ public interface IAggregateChangeFeedProcessor
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task AfterDeleteAsync(IAggregate aggregate, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task AfterDeleteAsync(IAggregate aggregate, CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	/// <summary>
 	/// Called if the operation failurd during a save or delete operation.
@@ -75,7 +82,12 @@ public interface IAggregateChangeFeedProcessor
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task FailureAsync(IAggregate aggregate, bool isDelete, Exception exception, CancellationToken cancellationToken = default);
+	Task FailureAsync(
+		IAggregate aggregate,
+		bool isDelete,
+		Exception exception,
+		CancellationToken cancellationToken = default
+	);
 }
 
 /// <summary>
@@ -94,8 +106,8 @@ public interface IAggregateChangeFeedProcessor<T>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task BeforeSaveAsync(T aggregate, bool isNew, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task BeforeSaveAsync(T aggregate, bool isNew, CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	/// <summary>
 	/// Called prior to the save operation being called on the aggregate.
@@ -107,8 +119,13 @@ public interface IAggregateChangeFeedProcessor<T>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task AfterSaveAsync(T aggregate, int previousSavedVersion, bool isNew, IEvent[] events, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task AfterSaveAsync(
+		T aggregate,
+		int previousSavedVersion,
+		bool isNew,
+		IEvent[] events,
+		CancellationToken cancellationToken = default
+	) => Task.CompletedTask;
 
 	/// <summary>
 	/// Called before the delete operation has completed.
@@ -117,8 +134,8 @@ public interface IAggregateChangeFeedProcessor<T>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task BeforeDeleteAsync(T aggregate, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task BeforeDeleteAsync(T aggregate, CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	/// <summary>
 	/// Called after the delete operation has completed successfully.
@@ -127,8 +144,8 @@ public interface IAggregateChangeFeedProcessor<T>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task AfterDeleteAsync(T aggregate, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task AfterDeleteAsync(T aggregate, CancellationToken cancellationToken = default) =>
+		Task.CompletedTask;
 
 	/// <summary>
 	/// Called if the operation failurd during a save or delete operation.
@@ -139,6 +156,10 @@ public interface IAggregateChangeFeedProcessor<T>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>An awaitable task.</returns>
 	/// <remarks>Returns a <see cref="Task.CompletedTask"/>.</remarks>
-	Task FailureAsync(T aggregate, bool isDelete, Exception exception, CancellationToken cancellationToken = default)
-		=> Task.CompletedTask;
+	Task FailureAsync(
+		T aggregate,
+		bool isDelete,
+		Exception exception,
+		CancellationToken cancellationToken = default
+	) => Task.CompletedTask;
 }

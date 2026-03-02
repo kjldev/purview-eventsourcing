@@ -5,7 +5,9 @@ using Purview.EventSourcing.MongoDB.StorageClients;
 
 namespace Purview.EventSourcing.MongoDB.Snapshot;
 
-public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEventStore<T>, IDisposable
+public sealed partial class MongoDBSnapshotEventStore<T>
+	: IMongoDBSnapshotEventStore<T>,
+		IDisposable
 	where T : AggregateBase, new()
 {
 	readonly IEventStore<T> _eventStore;
@@ -19,7 +21,8 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 		Internal.INonQueryableEventStore<T> eventStore,
 		IOptions<MongoDBEventStoreOptions> mongoDbOptions,
 		IMongoDBSnapshotEventStoreTelemetry telemetry,
-		IMongoDBClientTelemetry mongoDBClientTelemetry)
+		IMongoDBClientTelemetry mongoDBClientTelemetry
+	)
 	{
 		_eventStore = eventStore;
 		_mongoDbOptions = mongoDbOptions;
@@ -27,27 +30,38 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 
 		_aggregateName = TypeNameHelper.GetName(typeof(T), "Aggregate");
 		var collectionName = _mongoDbOptions.Value.Collection ?? $"snapshot-{_aggregateName}-store";
-		_mongoDbClient = new(mongoDBClientTelemetry, new()
-		{
-			ConnectionString = _mongoDbOptions.Value.ConnectionString,
-			Database = _mongoDbOptions.Value.Database,
-			Collection = collectionName,
-			ApplicationName = _mongoDbOptions.Value.ApplicationName
-		});
+		_mongoDbClient = new(
+			mongoDBClientTelemetry,
+			new()
+			{
+				ConnectionString = _mongoDbOptions.Value.ConnectionString,
+				Database = _mongoDbOptions.Value.Database,
+				Collection = collectionName,
+				ApplicationName = _mongoDbOptions.Value.ApplicationName,
+			}
+		);
 	}
 
 	public async Task SnapshotAsync(T aggregate, CancellationToken cancellationToken = default)
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
 
-		if (await _mongoDbClient.UpsertAsync(aggregate, BuildPredicate(aggregate), cancellationToken))
+		if (
+			await _mongoDbClient.UpsertAsync(
+				aggregate,
+				BuildPredicate(aggregate),
+				cancellationToken
+			)
+		)
 			_telemetry.SnapshotCreated(_aggregateName);
 	}
 
 	static FilterDefinition<T> BuildPredicate(T aggregate)
 	{
-		var predicate = new FilterDefinitionBuilder<T>()
-			.Eq(MongoDBAggregateSerializer<T>.BsonDocuemntIdPropertyName, aggregate.Id());
+		var predicate = new FilterDefinitionBuilder<T>().Eq(
+			MongoDBAggregateSerializer<T>.BsonDocuemntIdPropertyName,
+			aggregate.Id()
+		);
 
 		return predicate;
 	}

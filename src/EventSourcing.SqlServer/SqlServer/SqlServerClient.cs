@@ -57,7 +57,8 @@ sealed partial class SqlServerClient : IDisposable
 
 		_deleteSql = $"DELETE FROM {quotedFullName} WHERE [Id] = @Id";
 
-		_querySql = $"SELECT [Payload] FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
+		_querySql =
+			$"SELECT [Payload] FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
 
 		_getByIdSql = $"SELECT [Payload] FROM {quotedFullName} WHERE [Id] = @Id";
 	}
@@ -72,14 +73,23 @@ sealed partial class SqlServerClient : IDisposable
 
 		await using var command = connection.CreateCommand();
 		command.CommandText = _ensureTableSql;
-		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
-		command.Parameters.Add(new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName });
+		command.Parameters.Add(
+			new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName }
+		);
+		command.Parameters.Add(
+			new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName }
+		);
 
 		await command.ExecuteNonQueryAsync(cancellationToken);
 		_tableCreated = true;
 	}
 
-	public async Task<bool> UpsertAsync<T>(T aggregate, string id, string aggregateType, CancellationToken cancellationToken = default)
+	public async Task<bool> UpsertAsync<T>(
+		T aggregate,
+		string id,
+		string aggregateType,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		await EnsureConfiguredAsync(cancellationToken);
@@ -92,8 +102,12 @@ sealed partial class SqlServerClient : IDisposable
 		await using var command = connection.CreateCommand();
 		command.CommandText = _upsertSql;
 		command.Parameters.Add(new SqlParameter("@Id", SqlDbType.NVarChar, 450) { Value = id });
-		command.Parameters.Add(new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType });
-		command.Parameters.Add(new SqlParameter("@Payload", SqlDbType.NVarChar, -1) { Value = json });
+		command.Parameters.Add(
+			new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType }
+		);
+		command.Parameters.Add(
+			new SqlParameter("@Payload", SqlDbType.NVarChar, -1) { Value = json }
+		);
 
 		var result = await command.ExecuteNonQueryAsync(cancellationToken);
 		return result > 0;
@@ -114,7 +128,10 @@ sealed partial class SqlServerClient : IDisposable
 		return result > 0;
 	}
 
-	public async Task<List<T>> QueryByAggregateTypeAsync<T>(string aggregateType, CancellationToken cancellationToken = default)
+	public async Task<List<T>> QueryByAggregateTypeAsync<T>(
+		string aggregateType,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		await EnsureConfiguredAsync(cancellationToken);
@@ -124,14 +141,19 @@ sealed partial class SqlServerClient : IDisposable
 
 		await using var command = connection.CreateCommand();
 		command.CommandText = _querySql;
-		command.Parameters.Add(new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType });
+		command.Parameters.Add(
+			new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType }
+		);
 
 		var results = new List<T>();
 		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 		while (await reader.ReadAsync(cancellationToken))
 		{
 			var payload = reader.GetString(0);
-			var item = JsonConvert.DeserializeObject<T>(payload, JsonHelpers.JsonSerializerSettings);
+			var item = JsonConvert.DeserializeObject<T>(
+				payload,
+				JsonHelpers.JsonSerializerSettings
+			);
 			if (item != null)
 				results.Add(item);
 		}
@@ -181,7 +203,10 @@ sealed partial class SqlServerClient : IDisposable
 			throw new ArgumentException("Identifier cannot be null or empty.", nameof(identifier));
 
 		if (!IdentifierRegex().IsMatch(identifier))
-			throw new ArgumentException($"Identifier '{identifier}' contains invalid characters.", nameof(identifier));
+			throw new ArgumentException(
+				$"Identifier '{identifier}' contains invalid characters.",
+				nameof(identifier)
+			);
 	}
 
 	[GeneratedRegex(@"^[\w\-\.]+$")]

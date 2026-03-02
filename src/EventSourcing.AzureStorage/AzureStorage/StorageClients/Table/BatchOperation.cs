@@ -13,22 +13,38 @@ sealed class BatchOperation
 	public bool Any() => _operations.Count > 0;
 
 	public void Delete<TEntity>(TEntity entity, int? recordAt = null)
-		where TEntity : class, ITableEntity, new()
-		=> AddAction(TableTransactionActionType.Delete, entity, recordAt);
+		where TEntity : class, ITableEntity, new() =>
+		AddAction(TableTransactionActionType.Delete, entity, recordAt);
 
 	public void Add<TEntity>(TEntity entity, int? recordAt = null)
-		where TEntity : class, ITableEntity, new()
-		=> AddAction(TableTransactionActionType.Add, entity, recordAt);
+		where TEntity : class, ITableEntity, new() =>
+		AddAction(TableTransactionActionType.Add, entity, recordAt);
 
 	public void Update<TEntity>(TEntity entity, bool merge = true, int? recordAt = null)
-		where TEntity : class, ITableEntity, new()
-		=> AddAction(merge ? TableTransactionActionType.UpdateMerge : TableTransactionActionType.UpdateReplace, entity, recordAt);
+		where TEntity : class, ITableEntity, new() =>
+		AddAction(
+			merge
+				? TableTransactionActionType.UpdateMerge
+				: TableTransactionActionType.UpdateReplace,
+			entity,
+			recordAt
+		);
 
 	public void Upsert<TEntity>(TEntity entity, bool merge = true, int? recordAt = null)
-		where TEntity : class, ITableEntity, new()
-		=> AddAction(merge ? TableTransactionActionType.UpsertMerge : TableTransactionActionType.UpsertReplace, entity, recordAt);
+		where TEntity : class, ITableEntity, new() =>
+		AddAction(
+			merge
+				? TableTransactionActionType.UpsertMerge
+				: TableTransactionActionType.UpsertReplace,
+			entity,
+			recordAt
+		);
 
-	public void AddAction<TEntity>(TableTransactionActionType actionType, TEntity entity, int? recordAt = null)
+	public void AddAction<TEntity>(
+		TableTransactionActionType actionType,
+		TEntity entity,
+		int? recordAt = null
+	)
 		where TEntity : class, ITableEntity, new()
 	{
 		if (PartitionKey == null)
@@ -43,6 +59,5 @@ sealed class BatchOperation
 			_operations.Add(tableOperation);
 	}
 
-	internal IEnumerable<TableTransactionAction> GetActions()
-		=> _operations;
+	internal IEnumerable<TableTransactionAction> GetActions() => _operations;
 }

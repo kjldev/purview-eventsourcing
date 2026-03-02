@@ -20,10 +20,8 @@ public readonly record struct ExistsState(ExistsStatus Status, int? Version)
 	/// <param name="state">The value to convert.</param>
 	/// <returns>Returns true if the <see cref="Status"/> equals <see cref="ExistsStatus.Exists"/>
 	/// </summary>
-	public static implicit operator bool([NotNull] ExistsState state)
-		=> state.Status is
-			ExistsStatus.Exists
-			or ExistsStatus.ExistsInDeletedState;
+	public static implicit operator bool([NotNull] ExistsState state) =>
+		state.Status is ExistsStatus.Exists or ExistsStatus.ExistsInDeletedState;
 
 	/// <summary>
 	/// Represents a value that indicates the aggregate does not exist.

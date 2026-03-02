@@ -5,7 +5,13 @@ namespace Purview.EventSourcing.SqlServer.Snapshot;
 
 partial class SqlServerSnapshotEventStore<T>
 {
-	public async IAsyncEnumerable<T> GetQueryEnumerableAsync(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<T> GetQueryEnumerableAsync(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords,
+		[System.Runtime.CompilerServices.EnumeratorCancellation]
+			CancellationToken cancellationToken = default
+	)
 	{
 		var request = new ContinuationRequest { MaxRecords = maxRecordsPerIteration };
 		ContinuationResponse<T>? response;
@@ -16,11 +22,15 @@ partial class SqlServerSnapshotEventStore<T>
 				yield return FulfilRequirements(result);
 
 			request = response;
-		}
-		while (response.HasMoreRecords);
+		} while (response.HasMoreRecords);
 	}
 
-	public async IAsyncEnumerable<T> GetListEnumerableAsync(Func<IQueryable<T>, IQueryable<T>>? orderByClause, int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<T> GetListEnumerableAsync(
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords,
+		[System.Runtime.CompilerServices.EnumeratorCancellation]
+			CancellationToken cancellationToken = default
+	)
 	{
 		var request = new ContinuationRequest { MaxRecords = maxRecordsPerIteration };
 		ContinuationResponse<T>? response;
@@ -31,11 +41,15 @@ partial class SqlServerSnapshotEventStore<T>
 				yield return FulfilRequirements(result);
 
 			request = response;
-		}
-		while (response.HasMoreRecords);
+		} while (response.HasMoreRecords);
 	}
 
-	public async Task<ContinuationResponse<T>> QueryAsync(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> QueryAsync(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentNullException.ThrowIfNull(whereClause, nameof(whereClause));
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
@@ -44,7 +58,11 @@ partial class SqlServerSnapshotEventStore<T>
 		return await ExecuteQueryAsync(expressionToRun, orderByClause, request, cancellationToken);
 	}
 
-	public async Task<ContinuationResponse<T>> ListAsync(Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> ListAsync(
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
 
@@ -52,41 +70,82 @@ partial class SqlServerSnapshotEventStore<T>
 		return await ExecuteQueryAsync(expressionToRun, orderByClause, request, cancellationToken);
 	}
 
-	public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> whereClause, CancellationToken cancellationToken = default)
+	public async Task<T?> SingleOrDefaultAsync(
+		Expression<Func<T, bool>> whereClause,
+		CancellationToken cancellationToken = default
+	)
 	{
 		// Leave as 2 as it'll throw when expected.
-		var query = await GetSpecificNumberAsync(whereClause, null, 2, cancellationToken: cancellationToken);
+		var query = await GetSpecificNumberAsync(
+			whereClause,
+			null,
+			2,
+			cancellationToken: cancellationToken
+		);
 		return query.SingleOrDefault();
 	}
 
-	public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, CancellationToken cancellationToken = default)
+	public async Task<T?> FirstOrDefaultAsync(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		CancellationToken cancellationToken = default
+	)
 	{
-		var query = await GetSpecificNumberAsync(whereClause, orderByClause, 1, cancellationToken: cancellationToken);
+		var query = await GetSpecificNumberAsync(
+			whereClause,
+			orderByClause,
+			1,
+			cancellationToken: cancellationToken
+		);
 		return query.FirstOrDefault();
 	}
 
-	public async Task<long> CountAsync(Expression<Func<T, bool>>? whereClause, CancellationToken cancellationToken = default)
+	public async Task<long> CountAsync(
+		Expression<Func<T, bool>>? whereClause,
+		CancellationToken cancellationToken = default
+	)
 	{
 		var expressionToRun = BuildQueryExpression(whereClause);
-		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(GetAggregateTypeName(), cancellationToken);
+		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(
+			GetAggregateTypeName(),
+			cancellationToken
+		);
 
 		var compiledExpression = expressionToRun.Compile();
 		return allItems.Count(compiledExpression);
 	}
 
-	async Task<IEnumerable<T>> GetSpecificNumberAsync(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, int maxCount, CancellationToken cancellationToken = default)
+	async Task<IEnumerable<T>> GetSpecificNumberAsync(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		int maxCount,
+		CancellationToken cancellationToken = default
+	)
 	{
-		var query = await QueryAsync(whereClause, orderByClause, request: new ContinuationRequest { MaxRecords = maxCount }, cancellationToken: cancellationToken);
+		var query = await QueryAsync(
+			whereClause,
+			orderByClause,
+			request: new ContinuationRequest { MaxRecords = maxCount },
+			cancellationToken: cancellationToken
+		);
 
 		return query.Results.Select(FulfilRequirements);
 	}
 
-	async Task<ContinuationResponse<T>> ExecuteQueryAsync(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, CancellationToken cancellationToken)
+	async Task<ContinuationResponse<T>> ExecuteQueryAsync(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		CancellationToken cancellationToken
+	)
 	{
 		if (!int.TryParse(request.ContinuationToken, out var skipCount))
 			skipCount = 0;
 
-		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(GetAggregateTypeName(), cancellationToken);
+		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(
+			GetAggregateTypeName(),
+			cancellationToken
+		);
 
 		IQueryable<T> query = allItems.AsQueryable().Where(whereClause);
 
@@ -101,9 +160,7 @@ partial class SqlServerSnapshotEventStore<T>
 		{
 			Results = results,
 			RequestedCount = request.MaxRecords,
-			ContinuationToken = results.Length == 0
-				? null
-				: $"{skipCount + request.MaxRecords}"
+			ContinuationToken = results.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
 		};
 	}
 
@@ -115,7 +172,11 @@ partial class SqlServerSnapshotEventStore<T>
 		if (whereClause == null)
 			return PredicateBuilder.New(defaultClause);
 
-		var aggregateClause = PredicateBuilder.Extend(defaultClause, whereClause, PredicateOperator.And);
+		var aggregateClause = PredicateBuilder.Extend(
+			defaultClause,
+			whereClause,
+			PredicateOperator.And
+		);
 		var expressionToRun = aggregateClause.Expand();
 
 		return expressionToRun;

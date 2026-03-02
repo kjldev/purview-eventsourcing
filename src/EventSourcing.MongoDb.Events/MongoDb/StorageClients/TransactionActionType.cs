@@ -4,5 +4,5 @@ enum TransactionActionType
 {
 	Insert,
 	Update,
-	Delete
+	Delete,
 }

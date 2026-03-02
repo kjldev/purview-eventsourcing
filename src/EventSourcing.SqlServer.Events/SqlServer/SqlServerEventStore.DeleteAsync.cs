@@ -4,7 +4,11 @@ namespace Purview.EventSourcing.SqlServer;
 
 partial class SqlServerEventStore<T>
 {
-	public async Task<bool> DeleteAsync(T aggregate, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
+	public async Task<bool> DeleteAsync(
+		T aggregate,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
 	{
 		if (aggregate == null)
 			throw NullAggregate(aggregate);
@@ -22,19 +26,29 @@ partial class SqlServerEventStore<T>
 
 		DeleteEvent deleteAggregateEvent = new()
 		{
-			Details = {
+			Details =
+			{
 				AggregateVersion = aggregate.Details.CurrentVersion + 1,
-				When = DateTimeOffset.UtcNow
-			}
+				When = DateTimeOffset.UtcNow,
+			},
 		};
 		aggregate.ApplyEvent(deleteAggregateEvent);
 
-		var result = await SaveCoreAsync(aggregate, operationContext, cancellationToken, deleteAggregateEvent);
+		var result = await SaveCoreAsync(
+			aggregate,
+			operationContext,
+			cancellationToken,
+			deleteAggregateEvent
+		);
 
 		return result.Saved;
 	}
 
-	async Task<bool> PermanentlyDeleteAsync(T aggregate, EventStoreOperationContext operationContext, CancellationToken cancellationToken = default)
+	async Task<bool> PermanentlyDeleteAsync(
+		T aggregate,
+		EventStoreOperationContext operationContext,
+		CancellationToken cancellationToken = default
+	)
 	{
 		if (aggregate == null)
 			throw NullAggregate(aggregate);

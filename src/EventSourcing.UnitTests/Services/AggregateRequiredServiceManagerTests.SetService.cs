@@ -1,11 +1,11 @@
-﻿using Purview.EventSourcing.Aggregates.Test;
+using Purview.EventSourcing.Aggregates.Test;
 
 namespace Purview.EventSourcing.Services;
 
 partial class AggregateRequiredServiceManagerTests
 {
-	[Fact]
-	public void Populate_GivenAggregateHasIRequirement_PopulatesService()
+	[Test]
+	public async Task Populate_GivenAggregateHasIRequirement_PopulatesService()
 	{
 		// Arrange
 		var aggregate = TestHelpers.Aggregate<AggregateRequirementsTest>();
@@ -18,11 +18,11 @@ partial class AggregateRequiredServiceManagerTests
 		serviceManager.Fulfil(aggregate);
 
 		// Assert
-		aggregate.TestService.ShouldBeSameAs(testService);
+		await Assert.That(aggregate.TestService).IsSameReferenceAs(testService);
 	}
 
-	[Fact]
-	public void Populate_GivenAggregateHasMultipleIRequirements_PopulatesServices()
+	[Test]
+	public async Task Populate_GivenAggregateHasMultipleIRequirements_PopulatesServices()
 	{
 		// Arrange
 		var aggregate = TestHelpers.Aggregate<AggregateMultipleRequirementsTest>();
@@ -41,12 +41,12 @@ partial class AggregateRequiredServiceManagerTests
 		serviceManager.Fulfil(aggregate);
 
 		// Assert
-		aggregate.TestService.ShouldBeSameAs(testService);
-		aggregate.TestService2.ShouldBeSameAs(testService2);
+		await Assert.That(aggregate.TestService).IsSameReferenceAs(testService);
+		await Assert.That(aggregate.TestService2).IsSameReferenceAs(testService2);
 	}
 
-	[Fact]
-	public void Populate_GivenAggregateHasNoIRequirements_DoesNotThrow()
+	[Test]
+	public async Task Populate_GivenAggregateHasNoIRequirements_DoesNotThrow()
 	{
 		// Arrange
 		var aggregate = TestHelpers.Aggregate<TestAggregate>();
@@ -58,6 +58,6 @@ partial class AggregateRequiredServiceManagerTests
 		var act = () => serviceManager.Fulfil(aggregate);
 
 		// Assert
-		act.ShouldNotThrow();
+		await Assert.That(act).ThrowsNothing();
 	}
 }

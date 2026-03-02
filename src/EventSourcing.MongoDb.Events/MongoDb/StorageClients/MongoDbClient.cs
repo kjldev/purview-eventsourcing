@@ -18,7 +18,7 @@ sealed partial class MongoDBClient : IDisposable
 
 	readonly string _collectionName;
 
-	readonly static Lazy<bool> Initialized = new(Init);
+	static readonly Lazy<bool> Initialized = new(Init);
 
 #if EventsBasedStore
 	readonly static Lazy<bool> EventsInitialized = new(EventsInit);
@@ -28,7 +28,9 @@ sealed partial class MongoDBClient : IDisposable
 	{
 		try
 		{
-			BsonSerializer.RegisterSerializationProvider(new MongoDBAggregateSerializationProvider());
+			BsonSerializer.RegisterSerializationProvider(
+				new MongoDBAggregateSerializationProvider()
+			);
 
 			var iEntityType = typeof(IEntity);
 
@@ -48,14 +50,17 @@ sealed partial class MongoDBClient : IDisposable
 	{
 		try
 		{
-			Type[] entityType = [
+			Type[] entityType =
+			[
 				typeof(EventEntity),
 				typeof(IdempotencyMarkerEntity),
 				typeof(SnapshotEntity),
-				typeof(StreamVersionEntity)
+				typeof(StreamVersionEntity),
 			];
 
-			BsonSerializer.RegisterSerializer(new ObjectSerializer(t => Array.IndexOf(entityType, t) > -1));
+			BsonSerializer.RegisterSerializer(
+				new ObjectSerializer(t => Array.IndexOf(entityType, t) > -1)
+			);
 		}
 		catch
 		{
@@ -64,10 +69,14 @@ sealed partial class MongoDBClient : IDisposable
 
 		return true;
 	}
-
 #endif
 
-	public MongoDBClient(IMongoDBClientTelemetry telemetry, MongoDBConfiguration configuration, string? databaseOverride = null, string? collectionOverride = null)
+	public MongoDBClient(
+		IMongoDBClientTelemetry telemetry,
+		MongoDBConfiguration configuration,
+		string? databaseOverride = null,
+		string? collectionOverride = null
+	)
 	{
 		_telemetry = telemetry;
 		_configuration = configuration;
@@ -102,7 +111,9 @@ sealed partial class MongoDBClient : IDisposable
 		return predicate.And(predicate.Eq(nameof(IEntity.EntityType), entityType));
 	}
 
-	sealed class StringObjectIdIdGeneratorConventionThatWorks : ConventionBase, IPostProcessingConvention
+	sealed class StringObjectIdIdGeneratorConventionThatWorks
+		: ConventionBase,
+			IPostProcessingConvention
 	{
 		public void PostProcess(BsonClassMap classMap)
 		{

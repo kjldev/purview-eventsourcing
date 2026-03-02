@@ -7,7 +7,11 @@ namespace Purview.EventSourcing.AzureStorage;
 
 partial class TableEventStore<T>
 {
-	public async Task<bool> DeleteAsync(T aggregate, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
+	public async Task<bool> DeleteAsync(
+		T aggregate,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
 	{
 		if (aggregate == null)
 			throw NullAggregate(aggregate);
@@ -25,19 +29,28 @@ partial class TableEventStore<T>
 
 		DeleteEvent deleteAggregateEvent = new()
 		{
-			Details = {
+			Details =
+			{
 				AggregateVersion = aggregate.Details.CurrentVersion + 1,
-				When = DateTimeOffset.UtcNow
-			}
+				When = DateTimeOffset.UtcNow,
+			},
 		};
 		aggregate.ApplyEvent(deleteAggregateEvent);
 
-		var result = await SaveCoreAsync(aggregate, operationContext, cancellationToken, deleteAggregateEvent);
+		var result = await SaveCoreAsync(
+			aggregate,
+			operationContext,
+			cancellationToken,
+			deleteAggregateEvent
+		);
 
 		return result.Saved;
 	}
 
-	async Task<bool> PermanentlyDeleteAsync(T aggregate, CancellationToken cancellationToken = default)
+	async Task<bool> PermanentlyDeleteAsync(
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
 	{
 		if (aggregate == null)
 			throw NullAggregate(aggregate);
@@ -53,18 +66,24 @@ partial class TableEventStore<T>
 		try
 		{
 			List<TableEntity> entitiesToDelete = [];
-			var results = _tableClient.QueryEnumerableAsync<TableEntity>(m => m.PartitionKey == aggregate.Details.Id, fields: [nameof(TableEntity.PartitionKey), nameof(TableEntity.RowKey)], cancellationToken: cancellationToken);
+			var results = _tableClient.QueryEnumerableAsync<TableEntity>(
+				m => m.PartitionKey == aggregate.Details.Id,
+				fields: [nameof(TableEntity.PartitionKey), nameof(TableEntity.RowKey)],
+				cancellationToken: cancellationToken
+			);
 			await foreach (var entity in results)
 				entitiesToDelete.Add(entity);
 
-			var batches = entitiesToDelete.Chunk(entitiesInEachBatch).Select(m =>
-			{
-				BatchOperation batch = new();
-				foreach (var entity in m)
-					batch.Delete(entity);
+			var batches = entitiesToDelete
+				.Chunk(entitiesInEachBatch)
+				.Select(m =>
+				{
+					BatchOperation batch = new();
+					foreach (var entity in m)
+						batch.Delete(entity);
 
-				return batch;
-			});
+					return batch;
+				});
 
 			foreach (var batch in batches)
 				await _tableClient.SubmitBatchAsync(batch, cancellationToken);

@@ -19,7 +19,12 @@ public sealed record class EventStoreOperationContext
 	public static EventStoreOperationContext DefaultContext
 	{
 		get => _default;
-		set => _default = value ?? throw new NullReferenceException($"A default {nameof(EventStoreOperationContext)} is required, null is not allowed.");
+		set =>
+			_default =
+				value
+				?? throw new NullReferenceException(
+					$"A default {nameof(EventStoreOperationContext)} is required, null is not allowed."
+				);
 	}
 
 	/// <summary>
@@ -93,7 +98,8 @@ public sealed record class EventStoreOperationContext
 	/// If true, a valid <see cref="ClaimIdentifier"/> must be returned from <see cref="ClaimsPrincipal"/> or
 	/// an exception is thrown.
 	/// </summary>
-	public bool RequiresValidPrincipalIdentifier { get; set; } = RequiresValidPrincipalIdentifierDefault;
+	public bool RequiresValidPrincipalIdentifier { get; set; } =
+		RequiresValidPrincipalIdentifierDefault;
 
 	/// <summary>
 	/// The claim identifier to use when retrieving the Id from the <see cref="ClaimsPrincipal"/>.

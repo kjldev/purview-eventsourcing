@@ -8,7 +8,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 	public async Task DeleteAsync_GivenAggregateExists_PermanentlyDeletesAllData()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -19,19 +21,20 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		aggregate = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
-		aggregate.ShouldNotBeNull();
+		await Assert.That(aggregate).IsNotNull();
 
 		// Act
-		var result = await eventStore.DeleteAsync(aggregate!, new EventStoreOperationContext
-		{
-			PermanentlyDelete = true
-		}, cancellationToken: tokenSource.Token);
+		var result = await eventStore.DeleteAsync(
+			aggregate!,
+			new EventStoreOperationContext { PermanentlyDelete = true },
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		result.ShouldBeTrue();
+		await Assert.That(result).IsTrue();
 
-		aggregate.Details.IsDeleted.ShouldBeTrue();
-		aggregate.Details.Locked.ShouldBeTrue();
+		await Assert.That(aggregate.Details.IsDeleted).IsTrue();
+		await Assert.That(aggregate.Details.Locked).IsTrue();
 
 		await ValidateEntitiesDeletedAsync(aggregate, eventStore, tokenSource.Token);
 	}
@@ -39,7 +42,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -63,32 +68,40 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		aggregate = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
-		aggregate.ShouldNotBeNull();
+		await Assert.That(aggregate).IsNotNull();
 
 		// Act
-		var result = await eventStore.DeleteAsync(aggregate!, new EventStoreOperationContext
-		{
-			PermanentlyDelete = true
-		}, cancellationToken: tokenSource.Token);
+		var result = await eventStore.DeleteAsync(
+			aggregate!,
+			new EventStoreOperationContext { PermanentlyDelete = true },
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		result.ShouldBeTrue();
-		aggregate.Details.IsDeleted.ShouldBeTrue();
-		aggregate.Details.Locked.ShouldBeTrue();
+		await Assert.That(result).IsTrue();
+		await Assert.That(aggregate.Details.IsDeleted).IsTrue();
+		await Assert.That(aggregate.Details.Locked).IsTrue();
 
 		await ValidateEntitiesDeletedAsync(aggregate, eventStore, tokenSource.Token);
 	}
 
-	async Task ValidateEntitiesDeletedAsync(TAggregate aggregate, TableEventStore<TAggregate> eventStore, CancellationToken cancellationToken)
+	async Task ValidateEntitiesDeletedAsync(
+		TAggregate aggregate,
+		TableEventStore<TAggregate> eventStore,
+		CancellationToken cancellationToken
+	)
 	{
-		var results = await fixture.TableClient.QueryAsync<TableEntity>(m => m.PartitionKey == aggregate.Details.Id, cancellationToken: cancellationToken);
+		var results = await fixture.TableClient.QueryAsync<TableEntity>(
+			m => m.PartitionKey == aggregate.Details.Id,
+			cancellationToken: cancellationToken
+		);
 
-		results.Results.ShouldBeEmpty();
+		await Assert.That(results.Results).IsEmpty();
 
 		var prefix = eventStore.GenerateSnapshotBlobPath(aggregate.Id());
 		var blobResults = await fixture.BlobClient.GetBlobsAsync(prefix, cancellationToken: cancellationToken);
 		var blobsToDelete = blobResults.ToBlockingEnumerable(cancellationToken: cancellationToken);
 
-		blobsToDelete.ShouldBeEmpty();
+		await Assert.That(blobsToDelete).IsEmpty();
 	}
 }

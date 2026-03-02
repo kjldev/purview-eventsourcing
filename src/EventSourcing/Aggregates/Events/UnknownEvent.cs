@@ -20,6 +20,5 @@ public sealed class UnknownEvent : EventBase
 	public string? Payload { get; set; }
 
 	///<inheritdoc/>
-	protected override void BuildEventHash(ref HashCode hash)
-		=> hash.Add(Payload);
+	protected override void BuildEventHash(ref HashCode hash) => hash.Add(Payload);
 }

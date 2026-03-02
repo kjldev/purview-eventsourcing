@@ -1,10 +1,12 @@
-namespace Purview.EventSourcing.SqlServer;
+﻿namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
 	public async Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount)
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var expectedIds = new List<string>();
@@ -21,14 +23,19 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await foreach (var id in eventStore.GetAggregateIdsAsync(false, cancellationToken: tokenSource.Token))
 			ids.Add(id);
 
-		ids.Count.ShouldBe(aggregateCount);
+		await Assert.That(ids.Count).IsEqualTo(aggregateCount);
 		foreach (var expectedId in expectedIds)
-			ids.ShouldContain(expectedId);
+			await Assert.That(ids).Contains(expectedId);
 	}
 
-	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
+	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(
+		int nonDeletedAggregateIdCount,
+		int deletedAggregateIdCount
+	)
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
@@ -50,12 +57,17 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await foreach (var id in eventStore.GetAggregateIdsAsync(true, cancellationToken: tokenSource.Token))
 			ids.Add(id);
 
-		ids.Count.ShouldBe(nonDeletedAggregateIdCount + deletedAggregateIdCount);
+		await Assert.That(ids.Count).IsEqualTo(nonDeletedAggregateIdCount + deletedAggregateIdCount);
 	}
 
-	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
+	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(
+		int nonDeletedAggregateIdCount,
+		int deletedAggregateIdCount
+	)
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
@@ -77,6 +89,6 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await foreach (var id in eventStore.GetAggregateIdsAsync(false, cancellationToken: tokenSource.Token))
 			ids.Add(id);
 
-		ids.Count.ShouldBe(nonDeletedAggregateIdCount);
+		await Assert.That(ids.Count).IsEqualTo(nonDeletedAggregateIdCount);
 	}
 }

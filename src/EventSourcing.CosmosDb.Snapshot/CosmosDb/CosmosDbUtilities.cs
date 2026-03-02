@@ -18,7 +18,10 @@ static class CosmosDbUtilities
 		return processData.GetId(document);
 	}
 
-	public static Task<Stream> SerializeDocumentAsync(object document, CancellationToken cancellationToken = default)
+	public static Task<Stream> SerializeDocumentAsync(
+		object document,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentNullException.ThrowIfNull(document);
 
@@ -35,7 +38,9 @@ static class CosmosDbUtilities
 			var properties = documentType.GetProperties();
 			var idProperties = FindIdProperties(properties);
 			if (idProperties == null || !idProperties.Any())
-				throw new NullReferenceException($"Unable to locate an `Id` property on {documentType.FullName}.");
+				throw new NullReferenceException(
+					$"Unable to locate an `Id` property on {documentType.FullName}."
+				);
 
 			processData = new SerializeProcessData([.. idProperties], properties);
 			if (!_documentSerializers.TryAdd(documentType, processData))
@@ -80,7 +85,9 @@ static class CosmosDbUtilities
 				{
 					var jsonAttrib = p.GetCustomAttribute<JsonPropertyAttribute>();
 					if (jsonAttrib?.PropertyName != _idPropertyName)
-						throw new NullReferenceException("Unable to process object, missing property with name 'id' or JsonPropertyAttribute using that name.");
+						throw new NullReferenceException(
+							"Unable to process object, missing property with name 'id' or JsonPropertyAttribute using that name."
+						);
 				}
 			}
 
@@ -90,14 +97,20 @@ static class CosmosDbUtilities
 
 		public bool IsIdDefinedAtTopLevel => _idProperties.Length == 1;
 
-		public async Task<Stream> SerializeAsync(object document, CancellationToken cancellationToken)
+		public async Task<Stream> SerializeAsync(
+			object document,
+			CancellationToken cancellationToken
+		)
 		{
 			var documentResponse = GetDocument(document);
 
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var memoryStream = new MemoryStream();
-			var value = JsonConvert.SerializeObject(documentResponse, JsonHelpers.JsonSerializerSettings);
+			var value = JsonConvert.SerializeObject(
+				documentResponse,
+				JsonHelpers.JsonSerializerSettings
+			);
 			using (var writer = new StreamWriter(memoryStream, Encoding.Default, 2048, true))
 				await writer.WriteAsync(value);
 
@@ -119,7 +132,9 @@ static class CosmosDbUtilities
 					throw new NullReferenceException("Some or all of id parts are null.");
 			}
 
-			var id = currentItem.ToString() ?? throw new NullReferenceException("Some or all of id parts are null.");
+			var id =
+				currentItem.ToString()
+				?? throw new NullReferenceException("Some or all of id parts are null.");
 			return id;
 		}
 

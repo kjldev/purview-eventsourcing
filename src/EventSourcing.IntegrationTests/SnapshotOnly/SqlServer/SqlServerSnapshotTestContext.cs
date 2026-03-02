@@ -28,7 +28,12 @@ public sealed class SqlServerSnapshotTestContext
 
 	public SqlServerSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
 
-	public SqlServerSnapshotTestContext(string sqlServerConnectionString, string azuriteConnectionString, int correlationIdsToGenerate = 1, string? tableName = null)
+	public SqlServerSnapshotTestContext(
+		string sqlServerConnectionString,
+		string azuriteConnectionString,
+		int correlationIdsToGenerate = 1,
+		string? tableName = null
+	)
 	{
 		_sqlServerConnectionString = sqlServerConnectionString;
 		_azuriteConnectionString = azuriteConnectionString;
@@ -36,7 +41,10 @@ public sealed class SqlServerSnapshotTestContext
 		EventStore = CreateSqlServerEventStore(correlationIdsToGenerate, tableName);
 	}
 
-	SqlServerSnapshotEventStore<PersistenceAggregate> CreateSqlServerEventStore(int correlationIdsToGenerate = 1, string? tableName = null)
+	SqlServerSnapshotEventStore<PersistenceAggregate> CreateSqlServerEventStore(
+		int correlationIdsToGenerate = 1,
+		string? tableName = null
+	)
 	{
 		var tableEventStore = CreateTableEventStore(correlationIdsToGenerate);
 
@@ -47,7 +55,7 @@ public sealed class SqlServerSnapshotTestContext
 			ConnectionString = _sqlServerConnectionString,
 			TableName = resolvedTableName,
 			SchemaName = "dbo",
-			AutoCreateTable = true
+			AutoCreateTable = true,
 		};
 
 		SqlServerSnapshotEventStore<PersistenceAggregate> eventStore = new(
@@ -56,20 +64,25 @@ public sealed class SqlServerSnapshotTestContext
 			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
 		);
 
-		SqlServerClient = new(new SqlServerClientOptions
-		{
-			ConnectionString = config.ConnectionString,
-			TableName = config.TableName,
-			SchemaName = config.SchemaName,
-			AutoCreateTable = config.AutoCreateTable
-		});
+		SqlServerClient = new(
+			new SqlServerClientOptions
+			{
+				ConnectionString = config.ConnectionString,
+				TableName = config.TableName,
+				SchemaName = config.SchemaName,
+				AutoCreateTable = config.AutoCreateTable,
+			}
+		);
 
 		return eventStore;
 	}
 
 	TableEventStore<PersistenceAggregate> CreateTableEventStore(int correlationIdsToGenerate = 1)
 	{
-		var runIds = Enumerable.Range(1, correlationIdsToGenerate).Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant()).ToArray();
+		var runIds = Enumerable
+			.Range(1, correlationIdsToGenerate)
+			.Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant())
+			.ToArray();
 
 		_eventNameMapper = new AggregateEventNameMapper();
 		_telemetry = Substitute.For<ITableEventStoreTelemetry>();
@@ -81,14 +94,16 @@ public sealed class SqlServerSnapshotTestContext
 			Container = TestHelpers.GenAzureBlobContainerName(RunId),
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = true,
-			SnapshotInterval = 1
+			SnapshotInterval = 1,
 		};
 
 		TableEventStore<PersistenceAggregate> eventStore = new(
 			eventNameMapper: _eventNameMapper,
 			azureStorageOptions: Microsoft.Extensions.Options.Options.Create(azureStorageOptions),
 			distributedCache: Substitute.For<IDistributedCache>(),
-			aggregateChangeNotifier: Substitute.For<IAggregateChangeFeedNotifier<PersistenceAggregate>>(),
+			aggregateChangeNotifier: Substitute.For<
+				IAggregateChangeFeedNotifier<PersistenceAggregate>
+			>(),
 			eventStoreTelemetry: _telemetry,
 			aggregateRequirementsManager: Substitute.For<IAggregateRequirementsManager>()
 		);

@@ -4,20 +4,12 @@ using Purview.EventSourcing.SnapshotOnly.MongoDB;
 
 namespace Purview.EventSourcing.MongoDB.Snapshot;
 
-[Collection("MongoDB")]
-[NCrunch.Framework.Category("MongoDB")]
-[NCrunch.Framework.Category("Storage")]
-public partial class MongoDBSnapshotEventStoreTests(MongoDBSnapshotEventStoreFixture fixture) : IClassFixture<MongoDBSnapshotEventStoreFixture>
+[ClassDataSource<MongoDBSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public partial class MongoDBSnapshotEventStoreTests(MongoDBSnapshotEventStoreFixture fixture)
 {
 	static PersistenceAggregate CreateAggregate(string? id = null, Action<PersistenceAggregate>? action = null)
 	{
-		PersistenceAggregate aggregate = new()
-		{
-			Details =
-			{
-				Id = id ?? Guid.NewGuid().ToString()
-			}
-		};
+		PersistenceAggregate aggregate = new() { Details = { Id = id ?? Guid.NewGuid().ToString() } };
 
 		action?.Invoke(aggregate);
 
@@ -26,8 +18,7 @@ public partial class MongoDBSnapshotEventStoreTests(MongoDBSnapshotEventStoreFix
 
 	static FilterDefinition<PersistenceAggregate> PredicateId(string aggregateId)
 	{
-		var builder = new FilterDefinitionBuilder<PersistenceAggregate>()
-			.Eq("_id", aggregateId);
+		var builder = new FilterDefinitionBuilder<PersistenceAggregate>().Eq("_id", aggregateId);
 
 		return builder;
 	}

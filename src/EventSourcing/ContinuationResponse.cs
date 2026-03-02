@@ -14,7 +14,9 @@ public class ContinuationResponse<T>
 	/// Implicit conversion to <see cref="ContinuationRequest"/>.
 	/// </summary>
 	/// <param name="response"></param>
-	public static implicit operator ContinuationRequest([NotNull] ContinuationResponse<T> response) => response.ToRequest();
+	public static implicit operator ContinuationRequest(
+		[NotNull] ContinuationResponse<T> response
+	) => response.ToRequest();
 
 	/// <summary>
 	/// If there are more records, use this token to provide access to the next set.
@@ -56,8 +58,7 @@ public class ContinuationResponse<T>
 	/// <param name="convert">The <see cref="Func{T, TTo}"/> used to convert models.</param>
 	/// <returns></returns>
 	public ContinuationResponse<TTo> Convert<TTo>(Func<T, TTo?> convert)
-		where TTo : class
-		=> CreateResponse<ContinuationResponse<TTo>, TTo>(convert);
+		where TTo : class => CreateResponse<ContinuationResponse<TTo>, TTo>(convert);
 
 	/// <summary>
 	/// Creates a <see cref="ContinuationRequest"/> from the current response.
@@ -68,11 +69,7 @@ public class ContinuationResponse<T>
 	protected TRequest CreateRequest<TRequest>()
 		where TRequest : ContinuationRequest, new()
 	{
-		return new()
-		{
-			ContinuationToken = ContinuationToken,
-			MaxRecords = RequestedCount
-		};
+		return new() { ContinuationToken = ContinuationToken, MaxRecords = RequestedCount };
 	}
 
 	protected TRequest CreateResponse<TRequest, TTo>(Func<T, TTo?> convert)
@@ -83,7 +80,7 @@ public class ContinuationResponse<T>
 		{
 			ContinuationToken = ContinuationToken,
 			RequestedCount = RequestedCount,
-			Results = [.. Results.Select(convert).Where(m => m != null).Cast<TTo>()]
+			Results = [.. Results.Select(convert).Where(m => m != null).Cast<TTo>()],
 		};
 	}
 }

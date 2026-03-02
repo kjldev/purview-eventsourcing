@@ -7,16 +7,26 @@ namespace Purview.EventSourcing.CosmosDb;
 
 partial class CosmosDbClient
 {
-	public async Task<ContinuationResponse<T>> ListAsync<T>(Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> ListAsync<T>(
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		QueryRequestOptions requestOptions = new()
 		{
 			MaxItemCount = request.MaxRecords,
-			PartitionKey = partitionKey
+			PartitionKey = partitionKey,
 		};
 
-		var queryIterator = await FeedQueryAsync(orderByClause, request.ContinuationToken, requestOptions, cancellationToken: cancellationToken);
+		var queryIterator = await FeedQueryAsync(
+			orderByClause,
+			request.ContinuationToken,
+			requestOptions,
+			cancellationToken: cancellationToken
+		);
 		if (queryIterator.HasMoreResults)
 		{
 			var currentSet = await queryIterator.ReadNextAsync(cancellationToken);
@@ -25,7 +35,7 @@ partial class CosmosDbClient
 			{
 				ContinuationToken = currentSet.ContinuationToken,
 				RequestedCount = request.MaxRecords,
-				Results = [.. currentSet]
+				Results = [.. currentSet],
 			};
 		}
 
@@ -33,21 +43,27 @@ partial class CosmosDbClient
 		{
 			ContinuationToken = null,
 			RequestedCount = request.MaxRecords,
-			Results = []
+			Results = [],
 		};
 	}
 
-	public async Task<long> CountAsync<T>(Expression<Func<T, bool>>? whereClause, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<long> CountAsync<T>(
+		Expression<Func<T, bool>>? whereClause,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 	{
 		var container = await _container;
 
 		QueryRequestOptions requestOptions = new()
 		{
 			MaxItemCount = 1,
-			PartitionKey = partitionKey
+			PartitionKey = partitionKey,
 		};
 
-		var queryable = container.GetItemLinqQueryable<T>(requestOptions: requestOptions).AsQueryable();
+		var queryable = container
+			.GetItemLinqQueryable<T>(requestOptions: requestOptions)
+			.AsQueryable();
 		if (whereClause != null)
 		{
 			queryable = queryable.Where(whereClause);
@@ -56,16 +72,28 @@ partial class CosmosDbClient
 		return await queryable.CountAsync(cancellationToken);
 	}
 
-	public async Task<ContinuationResponse<T>> QueryAsync<T>(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> QueryAsync<T>(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		QueryRequestOptions requestOptions = new()
 		{
 			MaxItemCount = request.MaxRecords,
-			PartitionKey = partitionKey
+			PartitionKey = partitionKey,
 		};
 
-		var queryIterator = await FeedQueryAsync(whereClause, orderByClause, request.ContinuationToken, requestOptions, cancellationToken: cancellationToken);
+		var queryIterator = await FeedQueryAsync(
+			whereClause,
+			orderByClause,
+			request.ContinuationToken,
+			requestOptions,
+			cancellationToken: cancellationToken
+		);
 		if (queryIterator.HasMoreResults)
 		{
 			var currentSet = await queryIterator.ReadNextAsync(cancellationToken);
@@ -73,7 +101,7 @@ partial class CosmosDbClient
 			{
 				ContinuationToken = currentSet.ContinuationToken,
 				RequestedCount = request.MaxRecords,
-				Results = [.. currentSet]
+				Results = [.. currentSet],
 			};
 		}
 
@@ -81,11 +109,16 @@ partial class CosmosDbClient
 		{
 			ContinuationToken = null,
 			RequestedCount = request.MaxRecords,
-			Results = []
+			Results = [],
 		};
 	}
 
-	async Task<FeedIterator<T>> FeedQueryAsync<T>(Func<IQueryable<T>, IQueryable<T>>? orderByClause, string? continuationToken = null, QueryRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+	async Task<FeedIterator<T>> FeedQueryAsync<T>(
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		string? continuationToken = null,
+		QueryRequestOptions? requestOptions = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		var container = await _container;
@@ -93,7 +126,10 @@ partial class CosmosDbClient
 		cancellationToken.ThrowIfCancellationRequested();
 
 		var listQuery = container
-			.GetItemLinqQueryable<T>(continuationToken: continuationToken, requestOptions: requestOptions)
+			.GetItemLinqQueryable<T>(
+				continuationToken: continuationToken,
+				requestOptions: requestOptions
+			)
 			.AsQueryable();
 
 		if (orderByClause != null)
@@ -102,7 +138,13 @@ partial class CosmosDbClient
 		return listQuery.ToFeedIterator();
 	}
 
-	async Task<FeedIterator<T>> FeedQueryAsync<T>(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, string? continuationToken = null, QueryRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+	async Task<FeedIterator<T>> FeedQueryAsync<T>(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		string? continuationToken = null,
+		QueryRequestOptions? requestOptions = null,
+		CancellationToken cancellationToken = default
+	)
 	{
 		var container = await _container;
 		var c = whereClause.Expand();
@@ -110,7 +152,10 @@ partial class CosmosDbClient
 		cancellationToken.ThrowIfCancellationRequested();
 
 		var whereQuery = container
-			.GetItemLinqQueryable<T>(continuationToken: continuationToken, requestOptions: requestOptions)
+			.GetItemLinqQueryable<T>(
+				continuationToken: continuationToken,
+				requestOptions: requestOptions
+			)
 			.Where(c);
 
 		if (orderByClause != null)
@@ -119,13 +164,21 @@ partial class CosmosDbClient
 		return whereQuery.ToFeedIterator();
 	}
 
-	public async Task<T?> GetAsync<T>(string id, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<T?> GetAsync<T>(
+		string id,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(id, nameof(id));
 		var container = await _container;
 
-		var response = await container.ReadItemStreamAsync(id, partitionKey, cancellationToken: cancellationToken);
+		var response = await container.ReadItemStreamAsync(
+			id,
+			partitionKey,
+			cancellationToken: cancellationToken
+		);
 		if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
 			return null;
 
@@ -133,7 +186,11 @@ partial class CosmosDbClient
 		return client.ClientOptions.Serializer.FromStream<T>(response.Content);
 	}
 
-	public async Task<ResponseMessage> DeleteAsync<T>(T document, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ResponseMessage> DeleteAsync<T>(
+		T document,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
@@ -143,7 +200,11 @@ partial class CosmosDbClient
 		return responses.Single();
 	}
 
-	public Task<IEnumerable<ResponseMessage>> DeleteAsync<T>(T[] documents, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public Task<IEnumerable<ResponseMessage>> DeleteAsync<T>(
+		T[] documents,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(documents, nameof(documents));
@@ -154,7 +215,11 @@ partial class CosmosDbClient
 		return DeleteAsync(ids, partitionKey, cancellationToken);
 	}
 
-	public async Task<ResponseMessage> DeleteAsync(string id, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ResponseMessage> DeleteAsync(
+		string id,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(id, nameof(id));
 
@@ -162,22 +227,37 @@ partial class CosmosDbClient
 		return responses.Single();
 	}
 
-	public async Task<IEnumerable<ResponseMessage>> DeleteAsync(string[] ids, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<IEnumerable<ResponseMessage>> DeleteAsync(
+		string[] ids,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentNullException.ThrowIfNull(ids, nameof(ids));
 		if (ids.Length == 0)
 			return [];
 
 		var container = await _container;
-		return await Task.WhenAll(ids.Where(m => m != null).Select(async id =>
-		{
-			var response = await container.DeleteItemStreamAsync(id, partitionKey, cancellationToken: cancellationToken);
+		return await Task.WhenAll(
+			ids.Where(m => m != null)
+				.Select(async id =>
+				{
+					var response = await container.DeleteItemStreamAsync(
+						id,
+						partitionKey,
+						cancellationToken: cancellationToken
+					);
 
-			return response;
-		}));
+					return response;
+				})
+		);
 	}
 
-	public async Task<ResponseMessage> InsertAsync<T>(T document, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ResponseMessage> InsertAsync<T>(
+		T document,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
@@ -186,7 +266,11 @@ partial class CosmosDbClient
 		return responses.Single();
 	}
 
-	public async Task<IEnumerable<ResponseMessage>> InsertAsync<T>(T[] documents, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<IEnumerable<ResponseMessage>> InsertAsync<T>(
+		T[] documents,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(documents, nameof(documents));
@@ -194,16 +278,29 @@ partial class CosmosDbClient
 			return [];
 
 		var container = await _container;
-		return await Task.WhenAll(documents.Select(async document =>
-		{
-			var stream = await CosmosDbUtilities.SerializeDocumentAsync(document, cancellationToken);
-			var response = await container.CreateItemStreamAsync(stream, partitionKey, cancellationToken: cancellationToken);
+		return await Task.WhenAll(
+			documents.Select(async document =>
+			{
+				var stream = await CosmosDbUtilities.SerializeDocumentAsync(
+					document,
+					cancellationToken
+				);
+				var response = await container.CreateItemStreamAsync(
+					stream,
+					partitionKey,
+					cancellationToken: cancellationToken
+				);
 
-			return response;
-		}));
+				return response;
+			})
+		);
 	}
 
-	public async Task<ResponseMessage> UpsertAsync<T>(T document, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ResponseMessage> UpsertAsync<T>(
+		T document,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
@@ -212,7 +309,11 @@ partial class CosmosDbClient
 		return responses.Single();
 	}
 
-	public async Task<IEnumerable<ResponseMessage>> UpsertAsync<T>(T[] documents, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<IEnumerable<ResponseMessage>> UpsertAsync<T>(
+		T[] documents,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(documents, nameof(documents));
@@ -220,16 +321,31 @@ partial class CosmosDbClient
 			return [];
 
 		var container = await _container;
-		return await Task.WhenAll(documents.Where(m => m != null).Select(async document =>
-		{
-			var stream = await CosmosDbUtilities.SerializeDocumentAsync(document, cancellationToken);
-			var response = await container.UpsertItemStreamAsync(stream, partitionKey, cancellationToken: cancellationToken);
+		return await Task.WhenAll(
+			documents
+				.Where(m => m != null)
+				.Select(async document =>
+				{
+					var stream = await CosmosDbUtilities.SerializeDocumentAsync(
+						document,
+						cancellationToken
+					);
+					var response = await container.UpsertItemStreamAsync(
+						stream,
+						partitionKey,
+						cancellationToken: cancellationToken
+					);
 
-			return response;
-		}));
+					return response;
+				})
+		);
 	}
 
-	public async Task<ResponseMessage> ReplaceAsync<T>(T document, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<ResponseMessage> ReplaceAsync<T>(
+		T document,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(document, nameof(document));
@@ -238,7 +354,11 @@ partial class CosmosDbClient
 		return responses.Single();
 	}
 
-	public async Task<IEnumerable<ResponseMessage>> ReplaceAsync<T>(T[] documents, PartitionKey partitionKey, CancellationToken cancellationToken = default)
+	public async Task<IEnumerable<ResponseMessage>> ReplaceAsync<T>(
+		T[] documents,
+		PartitionKey partitionKey,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(documents, nameof(documents));
@@ -247,14 +367,26 @@ partial class CosmosDbClient
 
 		var container = await _container;
 
-		return await Task.WhenAll(documents.Where(m => m != null).Select(async document =>
-		{
-			var documentId = CosmosDbUtilities.GetDocumentId(document);
-			var stream = await CosmosDbUtilities.SerializeDocumentAsync(document, cancellationToken);
-			var response = await container.ReplaceItemStreamAsync(stream, documentId, partitionKey, cancellationToken: cancellationToken);
+		return await Task.WhenAll(
+			documents
+				.Where(m => m != null)
+				.Select(async document =>
+				{
+					var documentId = CosmosDbUtilities.GetDocumentId(document);
+					var stream = await CosmosDbUtilities.SerializeDocumentAsync(
+						document,
+						cancellationToken
+					);
+					var response = await container.ReplaceItemStreamAsync(
+						stream,
+						documentId,
+						partitionKey,
+						cancellationToken: cancellationToken
+					);
 
-			return response;
-		}));
+					return response;
+				})
+		);
 	}
 
 	public async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)

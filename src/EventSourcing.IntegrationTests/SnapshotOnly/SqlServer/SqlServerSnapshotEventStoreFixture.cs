@@ -1,6 +1,8 @@
-﻿namespace Purview.EventSourcing.SnapshotOnly.SqlServer;
+using TUnit.Core.Interfaces;
 
-public class SqlServerSnapshotEventStoreFixture : IAsyncLifetime
+namespace Purview.EventSourcing.SnapshotOnly.SqlServer;
+
+public class SqlServerSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
 	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer;
 	readonly Testcontainers.MsSql.MsSqlContainer _msSqlContainer;
@@ -11,14 +13,15 @@ public class SqlServerSnapshotEventStoreFixture : IAsyncLifetime
 		_msSqlContainer = ContainerHelper.CreateMsSql();
 	}
 
-	public SqlServerSnapshotTestContext CreateContext(int correlationIdsToGenerate = 1, string? tableName = null)
-		=> new(
+	public SqlServerSnapshotTestContext CreateContext(int correlationIdsToGenerate = 1, string? tableName = null) =>
+		new(
 			_msSqlContainer.GetConnectionString(),
 			_azuriteContainer.GetConnectionString(),
 			correlationIdsToGenerate,
-			tableName);
+			tableName
+		);
 
-	public async ValueTask InitializeAsync()
+	public async Task InitializeAsync()
 	{
 		await _msSqlContainer.StartAsync();
 		await _azuriteContainer.StartAsync();

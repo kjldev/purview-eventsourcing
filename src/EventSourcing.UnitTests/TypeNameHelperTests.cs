@@ -4,20 +4,24 @@ namespace Purview.EventSourcing;
 
 public class TypeNameHelperTests
 {
-	[Theory]
-	[InlineData("test", "TESTAggregate", "Aggregate")]
-	[InlineData("test", "TestAggregate", "Aggregate")]
-	[InlineData("test", "testAggregate", "Aggregate")]
-	[InlineData("kieron", "KieronAggregate", "Aggregate")]
-	[InlineData("kieron", "KIERONAggregate", "Aggregate")]
-	[InlineData("kieron", "kieronAggregate", "Aggregate")]
-	[InlineData("test", "TESTEvent", "Event")]
-	[InlineData("test", "TestEvent", "Event")]
-	[InlineData("test", "testEvent", "Event")]
-	[InlineData("kieron", "KieronEvent", "Event")]
-	[InlineData("kieron", "KIERONEvent", "Event")]
-	[InlineData("kieron", "kieronEvent", "Event")]
-	public void GetName_GivenAggregateTypeEndsWithTrimNamePart_ReturnsLoweredTypeNameWithoutTrimNamePart(string expectation, string aggregateName, string trimNamePart)
+	[Test]
+	[Arguments("test", "TESTAggregate", "Aggregate")]
+	[Arguments("test", "TestAggregate", "Aggregate")]
+	[Arguments("test", "testAggregate", "Aggregate")]
+	[Arguments("kieron", "KieronAggregate", "Aggregate")]
+	[Arguments("kieron", "KIERONAggregate", "Aggregate")]
+	[Arguments("kieron", "kieronAggregate", "Aggregate")]
+	[Arguments("test", "TESTEvent", "Event")]
+	[Arguments("test", "TestEvent", "Event")]
+	[Arguments("test", "testEvent", "Event")]
+	[Arguments("kieron", "KieronEvent", "Event")]
+	[Arguments("kieron", "KIERONEvent", "Event")]
+	[Arguments("kieron", "kieronEvent", "Event")]
+	public async Task GetName_GivenAggregateTypeEndsWithTrimNamePart_ReturnsLoweredTypeNameWithoutTrimNamePart(
+		string expectation,
+		string aggregateName,
+		string trimNamePart
+	)
 	{
 		// Arrange
 		var type = Substitute.For<Type>();
@@ -28,19 +32,23 @@ public class TypeNameHelperTests
 		var result = TypeNameHelper.GetName(type, trimNamePart);
 
 		// Assert
-		result.ShouldBe(expectation);
+		await Assert.That(result).IsEqualTo(expectation);
 	}
 
-	[Theory]
-	[InlineData("test-kieron", "TestKieronAggregate", "Aggregate")]
-	[InlineData("kieron-test", "KieronTestAggregate", "Aggregate")]
-	[InlineData("kieron-test", "KieronTESTAggregate", "Aggregate")]
-	[InlineData("learn-html-test", "LearnHTMLTestAggregate", "Aggregate")]
-	[InlineData("test-kieron", "TestKieronEvent", "Event")]
-	[InlineData("kieron-test", "KieronTestEvent", "Event")]
-	[InlineData("kieron-test", "KieronTESTEvent", "Event")]
-	[InlineData("learn-html-test", "LearnHTMLTestEvent", "Event")]
-	public void GetName_GivenAggregateTypeEndsWithTrimNamePartAndHasTitleCasedName_ReturnsLoweredTypeNameWithoutAggregateSplitByDash(string expectation, string aggregateName, string trimNamePart)
+	[Test]
+	[Arguments("test-kieron", "TestKieronAggregate", "Aggregate")]
+	[Arguments("kieron-test", "KieronTestAggregate", "Aggregate")]
+	[Arguments("kieron-test", "KieronTESTAggregate", "Aggregate")]
+	[Arguments("learn-html-test", "LearnHTMLTestAggregate", "Aggregate")]
+	[Arguments("test-kieron", "TestKieronEvent", "Event")]
+	[Arguments("kieron-test", "KieronTestEvent", "Event")]
+	[Arguments("kieron-test", "KieronTESTEvent", "Event")]
+	[Arguments("learn-html-test", "LearnHTMLTestEvent", "Event")]
+	public async Task GetName_GivenAggregateTypeEndsWithTrimNamePartAndHasTitleCasedName_ReturnsLoweredTypeNameWithoutAggregateSplitByDash(
+		string expectation,
+		string aggregateName,
+		string trimNamePart
+	)
 	{
 		// Arrange
 		var type = Substitute.For<Type>();
@@ -51,17 +59,21 @@ public class TypeNameHelperTests
 		var result = TypeNameHelper.GetName(type, trimNamePart);
 
 		// Assert
-		result.ShouldBe(expectation);
+		await Assert.That(result).IsEqualTo(expectation);
 	}
 
-	[Theory]
-	[InlineData("TEST", "TEST", "Aggregate")]
-	[InlineData("Test", "Test", "Aggregate")]
-	[InlineData("test", "test", "Aggregate")]
-	[InlineData("Kieron", "Kieron", "Aggregate")]
-	[InlineData("KIERON", "KIERON", "Aggregate")]
-	[InlineData("kieron", "kieron", "Aggregate")]
-	public void GetName_GivenTypeDoesNotEndsWithTrimNamePartAndFallThroughToFullTypeNameIsTrue_ReturnsTypeFullName(string expectation, string aggregateName, string trimNamePart)
+	[Test]
+	[Arguments("TEST", "TEST", "Aggregate")]
+	[Arguments("Test", "Test", "Aggregate")]
+	[Arguments("test", "test", "Aggregate")]
+	[Arguments("Kieron", "Kieron", "Aggregate")]
+	[Arguments("KIERON", "KIERON", "Aggregate")]
+	[Arguments("kieron", "kieron", "Aggregate")]
+	public async Task GetName_GivenTypeDoesNotEndsWithTrimNamePartAndFallThroughToFullTypeNameIsTrue_ReturnsTypeFullName(
+		string expectation,
+		string aggregateName,
+		string trimNamePart
+	)
 	{
 		// Arrange
 		var type = Substitute.For<Type>();
@@ -72,18 +84,21 @@ public class TypeNameHelperTests
 		var result = TypeNameHelper.GetName(type, trimNamePart, fallThroughToFullTypeName: true);
 
 		// Assert
-		result.ShouldBe(expectation);
+		await Assert.That(result).IsEqualTo(expectation);
 	}
 
-
-	[Theory]
-	[InlineData("TEST", "TEST", "Aggregate")]
-	[InlineData("Test", "Test", "Aggregate")]
-	[InlineData("test", "test", "Aggregate")]
-	[InlineData("Kieron", "Kieron", "Aggregate")]
-	[InlineData("KIERON", "KIERON", "Aggregate")]
-	[InlineData("kieron", "kieron", "Aggregate")]
-	public void GetName_GivenTypeDoesNotEndsWithTrimNamePart_ReturnsTypeName(string expectation, string aggregateName, string trimNamePart)
+	[Test]
+	[Arguments("TEST", "TEST", "Aggregate")]
+	[Arguments("Test", "Test", "Aggregate")]
+	[Arguments("test", "test", "Aggregate")]
+	[Arguments("Kieron", "Kieron", "Aggregate")]
+	[Arguments("KIERON", "KIERON", "Aggregate")]
+	[Arguments("kieron", "kieron", "Aggregate")]
+	public async Task GetName_GivenTypeDoesNotEndsWithTrimNamePart_ReturnsTypeName(
+		string expectation,
+		string aggregateName,
+		string trimNamePart
+	)
 	{
 		// Arrange
 		var type = Substitute.For<Type>();
@@ -94,6 +109,6 @@ public class TypeNameHelperTests
 		var result = TypeNameHelper.GetName(type, trimNamePart);
 
 		// Assert
-		result.ShouldBe(expectation);
+		await Assert.That(result).IsEqualTo(expectation);
 	}
 }

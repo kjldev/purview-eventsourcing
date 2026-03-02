@@ -12,7 +12,11 @@ public sealed class SnapshotEntity : IEntity
 	public string Id { get; set; } = default!;
 
 	[BsonIgnore]
-	public string AggregateId { get => Id; set => Id = value; }
+	public string AggregateId
+	{
+		get => Id;
+		set => Id = value;
+	}
 
 	public int EntityType { get; set; } = EntityTypes.SnapshotType;
 

@@ -4,13 +4,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="../.shared-extensions/**/*" LinkBase="/" />
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>EventSourcing.IntegrationTests</_Parameter1>
+		</AssemblyAttribute>
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<PackageReference Include="Newtonsoft.Json" />
 	</ItemGroup>
-	
+
 	<ItemGroup>
 		<ProjectReference Include="..\EventSourcing\EventSourcing.csproj" />
 	</ItemGroup>

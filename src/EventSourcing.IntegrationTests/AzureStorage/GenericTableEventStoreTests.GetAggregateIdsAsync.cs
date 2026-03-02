@@ -5,7 +5,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 	public async Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		List<string> generatedIds = [];
 		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: aggregateCount);
@@ -24,21 +26,27 @@ partial class GenericTableEventStoreTests<TAggregate>
 		// Act
 		var returnedTypes = eventStore
 			.GetAggregateIdsAsync(true, cancellationToken: tokenSource.Token)
-			.ToBlockingEnumerable(tokenSource.Token)
-		;
+			.ToBlockingEnumerable(tokenSource.Token);
 
 		// Assert
-		returnedTypes.ShouldHaveCount(aggregateCount);
-		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
+		await Assert.That(returnedTypes.Count()).IsEqualTo(aggregateCount);
+		await Assert.That(generatedIds).IsEquivalentTo(returnedTypes);
 	}
 
-	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
+	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(
+		int nonDeletedAggregateIdCount,
+		int deletedAggregateIdCount
+	)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2));
+		var eventStore = fixture.CreateEventStore<TAggregate>(
+			correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2)
+		);
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{
@@ -62,20 +70,29 @@ partial class GenericTableEventStoreTests<TAggregate>
 		}
 
 		// Act
-		var returnedTypes = eventStore.GetAggregateIdsAsync(false, cancellationToken: tokenSource.Token).ToBlockingEnumerable(tokenSource.Token);
+		var returnedTypes = eventStore
+			.GetAggregateIdsAsync(false, cancellationToken: tokenSource.Token)
+			.ToBlockingEnumerable(tokenSource.Token);
 
 		// Assert
-		returnedTypes.ShouldHaveCount(nonDeletedAggregateIdCount);
-		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
+		await Assert.That(returnedTypes.Count()).IsEqualTo(nonDeletedAggregateIdCount);
+		await Assert.That(generatedIds).IsEquivalentTo(returnedTypes);
 	}
 
-	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(int nonDeletedAggregateIdCount, int deletedAggregateIdCount)
+	public async Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(
+		int nonDeletedAggregateIdCount,
+		int deletedAggregateIdCount
+	)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2));
+		var eventStore = fixture.CreateEventStore<TAggregate>(
+			correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2)
+		);
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{
@@ -101,10 +118,12 @@ partial class GenericTableEventStoreTests<TAggregate>
 		}
 
 		// Act
-		var returnedTypes = eventStore.GetAggregateIdsAsync(true, cancellationToken: tokenSource.Token).ToBlockingEnumerable(tokenSource.Token);
+		var returnedTypes = eventStore
+			.GetAggregateIdsAsync(true, cancellationToken: tokenSource.Token)
+			.ToBlockingEnumerable(tokenSource.Token);
 
 		// Assert
-		returnedTypes.ShouldHaveCount(deletedAggregateIdCount + nonDeletedAggregateIdCount);
-		generatedIds.ShouldBe(returnedTypes, ignoreOrder: true);
+		await Assert.That(returnedTypes.Count()).IsEqualTo(deletedAggregateIdCount + nonDeletedAggregateIdCount);
+		await Assert.That(generatedIds).IsEquivalentTo(returnedTypes);
 	}
 }

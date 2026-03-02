@@ -8,7 +8,10 @@ namespace Purview;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class MongoDBSnapshotIEventStoreServiceCollectionExtensions
 {
-	public static IServiceCollection AddMongoDBSnapshotQueryableEventStore(this IServiceCollection services, bool registerAsIEventStore = false)
+	public static IServiceCollection AddMongoDBSnapshotQueryableEventStore(
+		this IServiceCollection services,
+		bool registerAsIEventStore = false
+	)
 	{
 		services.AddEventSourcing();
 
@@ -22,18 +25,22 @@ public static class MongoDBSnapshotIEventStoreServiceCollectionExtensions
 
 		services
 			.AddOptions<MongoDBEventStoreOptions>()
-			.Configure<IConfiguration>((options, configuration) =>
-			{
-				configuration.GetSection(MongoDBEventStoreOptions.MongoDBEventStore).Bind(options);
+			.Configure<IConfiguration>(
+				(options, configuration) =>
+				{
+					configuration
+						.GetSection(MongoDBEventStoreOptions.MongoDBEventStore)
+						.Bind(options);
 
-				options.ConnectionString ??=
-					configuration.GetConnectionString("EventStore_MongoDBSnapshot")
+					options.ConnectionString ??=
+						configuration.GetConnectionString("EventStore_MongoDBSnapshot")
 						?? configuration.GetConnectionString("MongoDBSnapshot")
 						?? configuration.GetConnectionString("EventStore_MongoDB")
 						?? configuration.GetConnectionString("MongoDB")
 						// This will get picked up by the validation.
 						?? default!;
-			})
+				}
+			)
 			.ValidateOnStart();
 
 		return services;

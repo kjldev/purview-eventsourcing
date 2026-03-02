@@ -51,11 +51,10 @@ public sealed class PersistenceAggregate : AggregateBase, IAggregateTest
 
 	void Apply(OldEvent @event) => OldEventValue = @event.Value;
 
-	public void SetValidatedProperty(int value)
-		=> RecordAndApply(new SetIncrementEvent { Value = value });
+	public void SetValidatedProperty(int value) =>
+		RecordAndApply(new SetIncrementEvent { Value = value });
 
-	public void IncrementInt32Value()
-		=> RecordAndApply(new IncrementInt32ValueEvent());
+	public void IncrementInt32Value() => RecordAndApply(new IncrementInt32ValueEvent());
 
 	public void SetInt32Value(int value)
 	{
@@ -65,29 +64,23 @@ public sealed class PersistenceAggregate : AggregateBase, IAggregateTest
 
 	public void AppendString(string value)
 	{
-		RecordAndApply(new StringValueEvent
-		{
-			Value = value
-		});
+		RecordAndApply(new StringValueEvent { Value = value });
 	}
 
-	public void AddKVPs(params KeyValuePair<string, StringValues>[] pairs)
-		=> RecordAndApply(new AddStringValuesDictionaryKVPsEvent { KVPs = pairs });
+	public void AddKVPs(params KeyValuePair<string, StringValues>[] pairs) =>
+		RecordAndApply(new AddStringValuesDictionaryKVPsEvent { KVPs = pairs });
 
-	public void AddKVPs(params KeyValuePair<string, string>[] pairs)
-		=> RecordAndApply(new AddStringDictionaryKVPsEvent { KVPs = pairs });
+	public void AddKVPs(params KeyValuePair<string, string>[] pairs) =>
+		RecordAndApply(new AddStringDictionaryKVPsEvent { KVPs = pairs });
 
 	public void SetOldEventValue(Guid value)
 	{
 		if (value == Guid.Empty)
 			throw new ArgumentException("Don't use an empty guid, just for clarity.");
 
-		RecordAndApply(new OldEvent
-		{
-			Value = value
-		});
+		RecordAndApply(new OldEvent { Value = value });
 	}
 
-	public void SetComplexProperty(ComplexTestType complexTestType)
-		=> RecordAndApply(new SetComplexPropertyEvent { ComplexProperty = complexTestType });
+	public void SetComplexProperty(ComplexTestType complexTestType) =>
+		RecordAndApply(new SetComplexPropertyEvent { ComplexProperty = complexTestType });
 }

@@ -1,4 +1,4 @@
-﻿using Purview.Telemetry.Metrics;
+﻿using Purview.Telemetry;
 
 namespace Purview.EventSourcing.MongoDB.Snapshot;
 

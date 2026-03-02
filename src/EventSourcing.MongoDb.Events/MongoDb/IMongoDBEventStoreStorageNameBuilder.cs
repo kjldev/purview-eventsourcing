@@ -22,6 +22,6 @@ public interface IMongoDBEventStoreStorageNameBuilder
 	/// Generate the name of table to use for storing the events and other data associated with the <see cref="IMongoDBEventStore{T}"/>.
 	/// </summary>
 	/// <typeparam name="T">The <see cref="IAggregate"/> type to generate the name for.</typeparam>
-	/// <returns>An azure storage table name.</returns>	
+	/// <returns>An azure storage table name.</returns>
 	string? GetDatabaseName<T>();
 }

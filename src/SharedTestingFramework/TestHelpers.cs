@@ -2,7 +2,7 @@
 
 namespace Purview.EventSourcing;
 
-static class TestHelpers
+public static class TestHelpers
 {
 	public static string GenName(Guid? value = null)
 	{
@@ -10,8 +10,7 @@ static class TestHelpers
 		return guidString
 			.Replace("=", "", StringComparison.OrdinalIgnoreCase)
 			.Replace("+", "", StringComparison.OrdinalIgnoreCase)
-			.Replace("/", "", StringComparison.OrdinalIgnoreCase)
-		;
+			.Replace("/", "", StringComparison.OrdinalIgnoreCase);
 	}
 
 	public static string GenAzureTableName(Guid? value = null, string? prefix = null)
@@ -42,7 +41,10 @@ static class TestHelpers
 		return $"{prefix}{GenName(value)}";
 	}
 
-	public static CancellationTokenSource CancellationTokenSource(bool throwOnCall = false, CancellationToken cancellationToken = default)
+	public static CancellationTokenSource CancellationTokenSource(
+		bool throwOnCall = false,
+		CancellationToken cancellationToken = default
+	)
 	{
 		CancellationTokenSource cancellationTokenSource = new();
 		if (throwOnCall)
@@ -60,24 +62,24 @@ static class TestHelpers
 		{
 			foreach (var serviceDef in serviceDefinitions)
 			{
-				serviceProvider
-					.GetService(Arg.Is(serviceDef.ServiceType))
-					.Returns(serviceDef.Instance);
+				serviceProvider.GetService(Arg.Is(serviceDef.ServiceType)).Returns(serviceDef.Instance);
 			}
 		}
 
 		return serviceProvider;
 	}
 
-	public static TAggregate Aggregate<TAggregate>(object? aggregateId = null, Action<TAggregate>? creator = null, bool clearEvents = true, bool clearIsNew = false)
+	public static TAggregate Aggregate<TAggregate>(
+		object? aggregateId = null,
+		Action<TAggregate>? creator = null,
+		bool clearEvents = true,
+		bool clearIsNew = false
+	)
 		where TAggregate : class, IAggregate, new()
 	{
 		TAggregate aggregate = new()
 		{
-			Details =
-			{
-				Id = aggregateId?.ToString() ?? typeof(TAggregate).Name + $"_{Guid.NewGuid()}"
-			}
+			Details = { Id = aggregateId?.ToString() ?? typeof(TAggregate).Name + $"_{Guid.NewGuid()}" },
 		};
 
 		creator?.Invoke(aggregate);

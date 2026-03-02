@@ -9,9 +9,7 @@ public class InvalidEventTestAggregate : AggregateBase
 		Register<InvalidEventType>(Apply);
 	}
 
-	void Apply(InvalidEventType obj)
-	{
-	}
+	void Apply(InvalidEventType obj) { }
 }
 
 public class InvalidEventType : EventBase

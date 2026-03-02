@@ -3,7 +3,8 @@ using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.AzureStorage;
 
-public partial class GenericTableEventStoreTests<TAggregate>(TableEventStoreFixture fixture) : ITableEventStoreTests, IClassFixture<TableEventStoreFixture>
+[ClassDataSource<TableEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public partial class GenericTableEventStoreTests<TAggregate>(TableEventStoreFixture fixture) : ITableEventStoreTests
 	where TAggregate : class, IAggregateTest, new()
 {
 	static ComplexTestType CreateComplexTestType()
@@ -15,10 +16,7 @@ public partial class GenericTableEventStoreTests<TAggregate>(TableEventStoreFixt
 			Int64Property = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue) * 5L,
 			StringProperty = $"{Guid.NewGuid()}",
 			DateTimeOffsetProperty = DateTimeOffset.UtcNow.AddYears(RandomNumberGenerator.GetInt32(100, 1001)),
-			ComplexNestedTestTypeProperty = new()
-			{
-				Nested = $"Nested_{Guid.NewGuid()}"
-			}
+			ComplexNestedTestTypeProperty = new() { Nested = $"Nested_{Guid.NewGuid()}" },
 		};
 	}
 }

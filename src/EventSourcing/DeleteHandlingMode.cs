@@ -18,5 +18,5 @@ public enum DeleteHandlingMode
 	/// <summary>
 	/// Returns the aggregate in it's deleted state.
 	/// </summary>
-	ReturnsAggregate
+	ReturnsAggregate,
 }

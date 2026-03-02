@@ -33,7 +33,11 @@ public static partial class TypeNameHelper
 	/// the <see cref="Type.FullName"/> is returned, other the
 	/// <see cref="Type.Name"/> is returned. This is also true if the full name is not valid. Defaults to false.</param>
 	/// <returns>The converted string based on the <paramref name="objectType"/> and <paramref name="trimPart"/>.</returns>
-	public static string GetName(Type objectType, string trimPart, bool fallThroughToFullTypeName = false)
+	public static string GetName(
+		Type objectType,
+		string trimPart,
+		bool fallThroughToFullTypeName = false
+	)
 	{
 		ArgumentNullException.ThrowIfNull(objectType, nameof(objectType));
 		ArgumentException.ThrowIfNullOrWhiteSpace(trimPart, nameof(trimPart));
@@ -46,8 +50,6 @@ public static partial class TypeNameHelper
 				return TitleCaseSplit.Replace(result, "-$1").ToLowerSafe();
 		}
 
-		return fallThroughToFullTypeName
-			? objectType.FullName ?? objectType.Name
-			: name;
+		return fallThroughToFullTypeName ? objectType.FullName ?? objectType.Name : name;
 	}
 }

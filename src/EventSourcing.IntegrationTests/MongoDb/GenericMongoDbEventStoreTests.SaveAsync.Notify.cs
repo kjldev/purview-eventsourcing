@@ -10,7 +10,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		// Arrange
 		var aggregateChangeNotifier = Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>();
 
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var beforeWasCalled = false;
 		var afterWasCalled = false;
@@ -32,23 +34,35 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			});
 
 		aggregateChangeNotifier
-			.When(m => m.AfterSaveAsync(Arg.Is(aggregate), Arg.Is(0), Arg.Is(true), Arg.Any<IEvent[]>(), Arg.Any<CancellationToken>()))
+			.When(m =>
+				m.AfterSaveAsync(
+					Arg.Is(aggregate),
+					Arg.Is(0),
+					Arg.Is(true),
+					Arg.Any<IEvent[]>(),
+					Arg.Any<CancellationToken>()
+				)
+			)
 			.Do(_ => afterWasCalled = true);
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Assert
-		beforeWasCalled.ShouldBeTrue();
-		afterWasCalled.ShouldBeTrue();
+		await Assert.That(beforeWasCalled).IsTrue();
+		await Assert.That(afterWasCalled).IsTrue();
+
+		await aggregateChangeNotifier.Received(1).BeforeSaveAsync(aggregate, true, Arg.Any<CancellationToken>());
 
 		await aggregateChangeNotifier
 			.Received(1)
-			.BeforeSaveAsync(aggregate, true, Arg.Any<CancellationToken>());
-
-		await aggregateChangeNotifier
-			.Received(1)
-			.AfterSaveAsync(aggregate, 0, true, Arg.Is<IEvent[]>(events => events.Length == eventsToCreate), Arg.Any<CancellationToken>());
+			.AfterSaveAsync(
+				aggregate,
+				0,
+				true,
+				Arg.Is<IEvent[]>(events => events.Length == eventsToCreate),
+				Arg.Any<CancellationToken>()
+			);
 	}
 
 	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotNotifyChangeFeed()
@@ -56,7 +70,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		// Arrange
 		var aggregateChangeNotifier = Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>();
 
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);

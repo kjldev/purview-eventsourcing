@@ -39,7 +39,8 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		IAggregateRequirementsManager aggregateRequirementsManager,
 		FluentValidation.IValidator<T>? validator = null,
 		ITableEventStoreStorageNameBuilder? nameBuilder = null,
-		IAggregateIdFactory? aggregateIdFactory = null)
+		IAggregateIdFactory? aggregateIdFactory = null
+	)
 	{
 		_eventNameMapper = eventNameMapper;
 		_eventStoreOptions = azureStorageOptions;
@@ -53,7 +54,8 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		var name = typeof(T).Name;
 
 		TableName = nameBuilder?.GetTableName<T>() ?? $"{azureStorageOptions.Value.Table}{name}";
-		ContainerName = nameBuilder?.GetBlobContainerName<T>() ?? azureStorageOptions.Value.Container;
+		ContainerName =
+			nameBuilder?.GetBlobContainerName<T>() ?? azureStorageOptions.Value.Container;
 
 		_tableClient = new(azureStorageOptions.Value, TableName);
 		_blobClient = new(azureStorageOptions.Value, ContainerName);
@@ -78,22 +80,38 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		return aggregate;
 	}
 
-	async Task UpdateCacheAsync(T aggregate, DistributedCacheEntryOptions? cacheEntryOptions, CancellationToken cancellationToken = default)
+	async Task UpdateCacheAsync(
+		T aggregate,
+		DistributedCacheEntryOptions? cacheEntryOptions,
+		CancellationToken cancellationToken = default
+	)
 	{
 		cacheEntryOptions = GetCacheEntryOptions(cacheEntryOptions);
 
 		try
 		{
 			var cacheKey = CreateCacheKey(aggregate.Id());
-			if (aggregate.Details.Locked || (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache))
+			if (
+				aggregate.Details.Locked
+				|| (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache)
+			)
 				await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
 			else
 			{
-				if (!_eventStoreOptions.Value.CacheMode.HasFlag(EventStoreCachingOptions.StoreInCache))
+				if (
+					!_eventStoreOptions.Value.CacheMode.HasFlag(
+						EventStoreCachingOptions.StoreInCache
+					)
+				)
 					return;
 
 				var data = SerializeSnapshot(aggregate);
-				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
+				await _distributedCache.SetStringAsync(
+					cacheKey,
+					data,
+					cacheEntryOptions,
+					cancellationToken
+				);
 			}
 		}
 		catch (Exception ex)
@@ -102,19 +120,26 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		}
 	}
 
-	DistributedCacheEntryOptions GetCacheEntryOptions(DistributedCacheEntryOptions? cacheEntryOptions)
-		=> cacheEntryOptions ?? new()
-		{
-			SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration,
-		};
+	DistributedCacheEntryOptions GetCacheEntryOptions(
+		DistributedCacheEntryOptions? cacheEntryOptions
+	) =>
+		cacheEntryOptions
+		?? new() { SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration };
 
-	public async IAsyncEnumerable<string> GetAggregateIdsAsync(bool includeDeleted, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<string> GetAggregateIdsAsync(
+		bool includeDeleted,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default
+	)
 	{
 		List<string> tableColumns = [nameof(ITableEntity.PartitionKey)];
 		if (!includeDeleted)
 			tableColumns.Add(nameof(StreamVersionEntity.IsDeleted));
 
-		var query = _tableClient.QueryEnumerableAsync<StreamVersionEntity>(m => m.RowKey == TableEventStoreConstants.StreamVersionRowKey, fields: tableColumns, cancellationToken: cancellationToken);
+		var query = _tableClient.QueryEnumerableAsync<StreamVersionEntity>(
+			m => m.RowKey == TableEventStoreConstants.StreamVersionRowKey,
+			fields: tableColumns,
+			cancellationToken: cancellationToken
+		);
 		await foreach (var entity in query)
 		{
 			if (includeDeleted || !entity.IsDeleted)
@@ -122,9 +147,16 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		}
 	}
 
-	async Task<StreamVersionEntity?> GetStreamVersionAsync(string aggregateId, bool expectedToExist, CancellationToken cancellationToken)
+	async Task<StreamVersionEntity?> GetStreamVersionAsync(
+		string aggregateId,
+		bool expectedToExist,
+		CancellationToken cancellationToken
+	)
 	{
-		_eventStoreTelemetry.GetStreamVersionStart(aggregateId, TableEventStoreConstants.StreamVersionRowKey);
+		_eventStoreTelemetry.GetStreamVersionStart(
+			aggregateId,
+			TableEventStoreConstants.StreamVersionRowKey
+		);
 
 		var elapsedMilliseconds = 0L;
 		StreamVersionEntity? result = null;
@@ -132,7 +164,11 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		{
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 
-			result = await _tableClient.GetAsync<StreamVersionEntity>(aggregateId, TableEventStoreConstants.StreamVersionRowKey, cancellationToken);
+			result = await _tableClient.GetAsync<StreamVersionEntity>(
+				aggregateId,
+				TableEventStoreConstants.StreamVersionRowKey,
+				cancellationToken
+			);
 			sw.Stop();
 
 			elapsedMilliseconds = sw.ElapsedMilliseconds;
@@ -145,19 +181,36 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 					_eventStoreTelemetry.StreamVersionNotFound(aggregateId);
 			}
 			else
-				_eventStoreTelemetry.StreamVersionFound(aggregateId, result.Version, result.AggregateType, result.IsDeleted);
+				_eventStoreTelemetry.StreamVersionFound(
+					aggregateId,
+					result.Version,
+					result.AggregateType,
+					result.IsDeleted
+				);
 		}
 		catch (Exception ex)
 		{
-			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, TableEventStoreConstants.StreamVersionRowKey, ex);
+			_eventStoreTelemetry.GetStreamVersionFailed(
+				aggregateId,
+				TableEventStoreConstants.StreamVersionRowKey,
+				ex
+			);
 		}
 
-		_eventStoreTelemetry.GetStreamVersionComplete(aggregateId, TableEventStoreConstants.StreamVersionRowKey, elapsedMilliseconds);
+		_eventStoreTelemetry.GetStreamVersionComplete(
+			aggregateId,
+			TableEventStoreConstants.StreamVersionRowKey,
+			elapsedMilliseconds
+		);
 
 		return result;
 	}
 
-	static bool ReturnAggregate(bool isDeleted, string aggregateId, EventStoreOperationContext context)
+	static bool ReturnAggregate(
+		bool isDeleted,
+		string aggregateId,
+		EventStoreOperationContext context
+	)
 	{
 		if (isDeleted)
 		{
@@ -173,21 +226,21 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		return true;
 	}
 
-	string CreateEventRowKey(int version)
-		=> $"{_eventStoreOptions.Value.EventPrefix}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
+	string CreateEventRowKey(int version) =>
+		$"{_eventStoreOptions.Value.EventPrefix}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
 
-	static string CreateIdempotencyCheckRowKey(string idempotencyId)
-		=> $"{TableEventStoreConstants.IdempotencyCheckRowKeyPrefix}{idempotencyId}";
+	static string CreateIdempotencyCheckRowKey(string idempotencyId) =>
+		$"{TableEventStoreConstants.IdempotencyCheckRowKeyPrefix}{idempotencyId}";
 
-	string GenerateEventBlobName(string aggregateId, string eventId)
-		=> $"{_aggregateTypeShortName}/{aggregateId}/{eventId}.json".ToLowerSafe();
+	string GenerateEventBlobName(string aggregateId, string eventId) =>
+		$"{_aggregateTypeShortName}/{aggregateId}/{eventId}.json".ToLowerSafe();
 
-	public string GenerateSnapshotBlobName(string aggregateId)
-		=> $"{GenerateSnapshotBlobPath(aggregateId)}/{TableEventStoreConstants.SnapshotFilename}".ToLowerSafe();
+	public string GenerateSnapshotBlobName(string aggregateId) =>
+		$"{GenerateSnapshotBlobPath(aggregateId)}/{TableEventStoreConstants.SnapshotFilename}".ToLowerSafe();
 
-	public string GenerateSnapshotBlobPath(string aggregateId)
-		=> $"{_aggregateTypeShortName}/{aggregateId}".ToLowerSafe();
+	public string GenerateSnapshotBlobPath(string aggregateId) =>
+		$"{_aggregateTypeShortName}/{aggregateId}".ToLowerSafe();
 
-	public string CreateCacheKey(string aggregateId)
-		=> $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+	public string CreateCacheKey(string aggregateId) =>
+		$"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
 }

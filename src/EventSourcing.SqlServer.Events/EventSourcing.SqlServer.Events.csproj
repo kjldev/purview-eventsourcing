@@ -12,10 +12,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="../.shared-extensions/**/*" LinkBase="/" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\EventSourcing.Shared\EventSourcing.Shared.csproj" />
 	</ItemGroup>
 

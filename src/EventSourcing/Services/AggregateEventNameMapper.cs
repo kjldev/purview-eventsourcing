@@ -6,19 +6,31 @@ namespace Purview.EventSourcing.Services;
 
 sealed partial class AggregateEventNameMapper : IAggregateEventNameMapper
 {
-	readonly ConcurrentDictionary<string, string> _eventNamesByAssemblyTypeName = new(StringComparer.InvariantCulture);
-	readonly ConcurrentDictionary<string, string> _eventNamesByDefinedTypeName = new(StringComparer.InvariantCulture);
-	readonly ConcurrentDictionary<string, string> _registeredAggregateTypes = new(StringComparer.InvariantCulture);
+	readonly ConcurrentDictionary<string, string> _eventNamesByAssemblyTypeName = new(
+		StringComparer.InvariantCulture
+	);
+	readonly ConcurrentDictionary<string, string> _eventNamesByDefinedTypeName = new(
+		StringComparer.InvariantCulture
+	);
+	readonly ConcurrentDictionary<string, string> _registeredAggregateTypes = new(
+		StringComparer.InvariantCulture
+	);
 
 	public string GetName<T>(IEvent @event)
-		where T : IAggregate
-		=> GetName<T>(@event.GetType());
+		where T : IAggregate => GetName<T>(@event.GetType());
 
 	public string GetName<T>(Type aggregateEventType)
 		where T : IAggregate
 	{
-		var eventTypeAssemblyQualifiedName = aggregateEventType.AssemblyQualifiedName.OrDefault(aggregateEventType.ToString());
-		if (!_eventNamesByAssemblyTypeName.TryGetValue(eventTypeAssemblyQualifiedName, out var eventName))
+		var eventTypeAssemblyQualifiedName = aggregateEventType.AssemblyQualifiedName.OrDefault(
+			aggregateEventType.ToString()
+		);
+		if (
+			!_eventNamesByAssemblyTypeName.TryGetValue(
+				eventTypeAssemblyQualifiedName,
+				out var eventName
+			)
+		)
 		{
 			eventName = TypeNameHelper.GetName(aggregateEventType, "Event", true);
 
@@ -26,7 +38,9 @@ sealed partial class AggregateEventNameMapper : IAggregateEventNameMapper
 			{
 				var aggregateType = typeof(T).FullName!;
 				if (!_registeredAggregateTypes.TryGetValue(aggregateType, out var aggregateName))
-					throw new InvalidOperationException($"{aggregateType} has not been registered, call InitializeAggregate.");
+					throw new InvalidOperationException(
+						$"{aggregateType} has not been registered, call InitializeAggregate."
+					);
 
 				eventName = $"{aggregateName}.{eventName}";
 			}
@@ -54,15 +68,18 @@ sealed partial class AggregateEventNameMapper : IAggregateEventNameMapper
 		var aggregateType = typeof(T);
 		var aggregateTypeFullName = aggregateType.FullName!;
 
-		return _registeredAggregateTypes.GetOrAdd(aggregateTypeFullName, _ =>
-		{
-			var aggregateInstance = new T();
-			var aggregateName = aggregateInstance.AggregateType;
+		return _registeredAggregateTypes.GetOrAdd(
+			aggregateTypeFullName,
+			_ =>
+			{
+				var aggregateInstance = new T();
+				var aggregateName = aggregateInstance.AggregateType;
 
-			Populate<T>(aggregateName, [.. aggregateInstance.GetRegisteredEventTypes()]);
+				Populate<T>(aggregateName, [.. aggregateInstance.GetRegisteredEventTypes()]);
 
-			return aggregateName;
-		});
+				return aggregateName;
+			}
+		);
 	}
 
 	void Populate<T>(string aggregateName, Type[] aggregateEvents)
@@ -74,8 +91,15 @@ sealed partial class AggregateEventNameMapper : IAggregateEventNameMapper
 		for (var i = 0; i < aggregateEvents.Length; i++)
 		{
 			var aggregateEventType = aggregateEvents[i];
-			var eventTypeAssemblyQualifiedName = aggregateEventType.AssemblyQualifiedName.OrDefault(aggregateEventType.ToString());
-			if (!_eventNamesByAssemblyTypeName.TryGetValue(eventTypeAssemblyQualifiedName, out var _))
+			var eventTypeAssemblyQualifiedName = aggregateEventType.AssemblyQualifiedName.OrDefault(
+				aggregateEventType.ToString()
+			);
+			if (
+				!_eventNamesByAssemblyTypeName.TryGetValue(
+					eventTypeAssemblyQualifiedName,
+					out var _
+				)
+			)
 			{
 				var eventName = TypeNameHelper.GetName(aggregateEventType, "Event", true);
 				if (eventName != aggregateEventType.FullName)

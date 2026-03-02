@@ -2,7 +2,11 @@
 
 partial class TableEventStore<T>
 {
-	public async Task<T?> GetOrCreateAsync(string? aggregateId, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
+	public async Task<T?> GetOrCreateAsync(
+		string? aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
 	{
 		if (!string.IsNullOrWhiteSpace(aggregateId))
 		{

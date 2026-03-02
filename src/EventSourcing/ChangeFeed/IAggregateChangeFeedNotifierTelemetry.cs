@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using Purview.Telemetry.Logging;
+using Purview.Telemetry;
 
 namespace Purview.EventSourcing.ChangeFeed;
 
@@ -7,22 +7,43 @@ namespace Purview.EventSourcing.ChangeFeed;
 public interface IAggregateChangeFeedNotifierTelemetry
 {
 	[Log(LogLevel.Information)]
-	void AfterSaveNotificationStart(string id, string aggregateType, bool isNewAggregate, int eventCount);
+	void AfterSaveNotificationStart(
+		string id,
+		string aggregateType,
+		bool isNewAggregate,
+		int eventCount
+	);
 
 	[Log(LogLevel.Information)]
 	void ProcessingStart(string id, string changeFeedProcessorType);
 
 	[Log(LogLevel.Information)]
-	void ProcessingComplete(string id, string changeFeedProcessorType, long elapsedMilliseconds, bool success);
+	void ProcessingComplete(
+		string id,
+		string changeFeedProcessorType,
+		long elapsedMilliseconds,
+		bool success
+	);
 
 	[Log(LogLevel.Error)]
 	void ProcessingFailed(string id, string changeFeedProcessorType, Exception exception);
 
 	[Log(LogLevel.Information)]
-	void AfterSaveNotificationComplete(string id, string aggregateType, bool isNewAggregate, int eventCount, long elapsedMilliseconds);
+	void AfterSaveNotificationComplete(
+		string id,
+		string aggregateType,
+		bool isNewAggregate,
+		int eventCount,
+		long elapsedMilliseconds
+	);
 
 	[Log(LogLevel.Information)]
-	void BeforeSaveNotificationComplete(string id, string aggregateType, bool isNewAggregate, long elapsedMilliseconds);
+	void BeforeSaveNotificationComplete(
+		string id,
+		string aggregateType,
+		bool isNewAggregate,
+		long elapsedMilliseconds
+	);
 
 	[Log(LogLevel.Information)]
 	void BeforeSaveNotificationStart(string id, string aggregateType, bool isNewAggregate);
@@ -40,7 +61,11 @@ public interface IAggregateChangeFeedNotifierTelemetry
 	void AfterDeleteNotificationStart(string id, string aggregateType);
 
 	[Log(LogLevel.Information)]
-	void BeforeDeleteNotificationComplete(string id, string aggregateType, long elapsedMilliseconds);
+	void BeforeDeleteNotificationComplete(
+		string id,
+		string aggregateType,
+		long elapsedMilliseconds
+	);
 
 	[Log(LogLevel.Information)]
 	void BeforeDeleteNotificationStart(string id, string aggregateType);

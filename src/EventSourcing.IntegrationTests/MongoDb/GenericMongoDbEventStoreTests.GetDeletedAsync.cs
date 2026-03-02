@@ -5,7 +5,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	public async Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -20,8 +22,8 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregateResult = await eventStore.GetDeletedAsync(aggregateId, cancellationToken: tokenSource.Token);
 
 		// Assert
-		aggregateResult.ShouldNotBeNull();
-		aggregateResult.Details.IsDeleted.ShouldBeTrue();
-		aggregateResult.Details.SavedVersion.ShouldBe(2);
+		await Assert.That(aggregateResult).IsNotNull();
+		await Assert.That(aggregateResult.Details.IsDeleted).IsTrue();
+		await Assert.That(aggregateResult.Details.SavedVersion).IsEqualTo(2);
 	}
 }

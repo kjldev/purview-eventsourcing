@@ -15,7 +15,11 @@ public sealed class IdempotencyMarkerEntity : IEntity
 
 	public string AggregateId { get; set; } = default!;
 
-	[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "This is a DTO.")]
+	[System.Diagnostics.CodeAnalysis.SuppressMessage(
+		"Performance",
+		"CA1819:Properties should not return arrays",
+		Justification = "This is a DTO."
+	)]
 	public int[] EventVersions { get; set; } = [];
 
 	public DateTimeOffset? Timestamp { get; set; }

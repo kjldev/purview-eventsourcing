@@ -40,7 +40,8 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		ChangeFeed.IAggregateChangeFeedNotifier<T> aggregateChangeNotifier,
 		IAggregateRequirementsManager aggregateRequirementsManager,
 		FluentValidation.IValidator<T>? validator = null,
-		IAggregateIdFactory? aggregateIdFactory = null)
+		IAggregateIdFactory? aggregateIdFactory = null
+	)
 	{
 		_eventNameMapper = eventNameMapper;
 		_eventStoreOptions = sqlServerOptions;
@@ -68,22 +69,38 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		return aggregate;
 	}
 
-	async Task UpdateCacheAsync(T aggregate, DistributedCacheEntryOptions? cacheEntryOptions, CancellationToken cancellationToken = default)
+	async Task UpdateCacheAsync(
+		T aggregate,
+		DistributedCacheEntryOptions? cacheEntryOptions,
+		CancellationToken cancellationToken = default
+	)
 	{
 		cacheEntryOptions = GetCacheEntryOptions(cacheEntryOptions);
 
 		try
 		{
 			var cacheKey = CreateCacheKey(aggregate.Id());
-			if (aggregate.Details.Locked || (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache))
+			if (
+				aggregate.Details.Locked
+				|| (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache)
+			)
 				await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
 			else
 			{
-				if (!_eventStoreOptions.Value.CacheMode.HasFlag(EventStoreCachingOptions.StoreInCache))
+				if (
+					!_eventStoreOptions.Value.CacheMode.HasFlag(
+						EventStoreCachingOptions.StoreInCache
+					)
+				)
 					return;
 
 				var data = SerializeSnapshot(aggregate);
-				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
+				await _distributedCache.SetStringAsync(
+					cacheKey,
+					data,
+					cacheEntryOptions,
+					cancellationToken
+				);
 			}
 		}
 		catch (Exception ex)
@@ -92,13 +109,16 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		}
 	}
 
-	DistributedCacheEntryOptions GetCacheEntryOptions(DistributedCacheEntryOptions? cacheEntryOptions)
-		=> cacheEntryOptions ?? new()
-		{
-			SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration,
-		};
+	DistributedCacheEntryOptions GetCacheEntryOptions(
+		DistributedCacheEntryOptions? cacheEntryOptions
+	) =>
+		cacheEntryOptions
+		?? new() { SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration };
 
-	public async IAsyncEnumerable<string> GetAggregateIdsAsync(bool includeDeleted, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<string> GetAggregateIdsAsync(
+		bool includeDeleted,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default
+	)
 	{
 		var streamVersionId = CreateStreamVersionId(string.Empty);
 		// We query all stream versions from the client by aggregate id pattern.
@@ -106,7 +126,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		// we get stream version rows by entity type and aggregate type.
 		await EnsureConfiguredAsync(cancellationToken);
 
-		await using var connection = new Microsoft.Data.SqlClient.SqlConnection(_eventStoreOptions.Value.ConnectionString);
+		await using var connection = new Microsoft.Data.SqlClient.SqlConnection(
+			_eventStoreOptions.Value.ConnectionString
+		);
 		await connection.OpenAsync(cancellationToken);
 
 		var quotedSchema = QuoteIdentifierForQuery(_eventStoreOptions.Value.SchemaName);
@@ -118,15 +140,33 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 
 		await using var command = connection.CreateCommand();
 		command.CommandText = sql;
-		command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@AggregateType", System.Data.SqlDbType.NVarChar, 450) { Value = _aggregateTypeShortName });
-		command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@EntityType", System.Data.SqlDbType.Int) { Value = StreamVersionType });
+		command.Parameters.Add(
+			new Microsoft.Data.SqlClient.SqlParameter(
+				"@AggregateType",
+				System.Data.SqlDbType.NVarChar,
+				450
+			)
+			{
+				Value = _aggregateTypeShortName,
+			}
+		);
+		command.Parameters.Add(
+			new Microsoft.Data.SqlClient.SqlParameter("@EntityType", System.Data.SqlDbType.Int)
+			{
+				Value = StreamVersionType,
+			}
+		);
 
 		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 		while (await reader.ReadAsync(cancellationToken))
 			yield return reader.GetString(0);
 	}
 
-	async Task<StreamVersionData?> GetStreamVersionAsync(string aggregateId, bool expectedToExist, CancellationToken cancellationToken)
+	async Task<StreamVersionData?> GetStreamVersionAsync(
+		string aggregateId,
+		bool expectedToExist,
+		CancellationToken cancellationToken
+	)
 	{
 		_eventStoreTelemetry.GetStreamVersionStart(aggregateId);
 
@@ -136,7 +176,10 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		{
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 
-			var row = await _client.GetByIdAsync(CreateStreamVersionId(aggregateId), cancellationToken);
+			var row = await _client.GetByIdAsync(
+				CreateStreamVersionId(aggregateId),
+				cancellationToken
+			);
 			sw.Stop();
 
 			elapsedMilliseconds = sw.ElapsedMilliseconds;
@@ -156,9 +199,14 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 					AggregateId = row.AggregateId,
 					AggregateType = row.AggregateType,
 					Version = row.Version,
-					IsDeleted = row.IsDeleted
+					IsDeleted = row.IsDeleted,
 				};
-				_eventStoreTelemetry.StreamVersionFound(aggregateId, result.Version, result.AggregateType, result.IsDeleted);
+				_eventStoreTelemetry.StreamVersionFound(
+					aggregateId,
+					result.Version,
+					result.AggregateType,
+					result.IsDeleted
+				);
 			}
 		}
 		catch (Exception ex)
@@ -171,7 +219,11 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		return result;
 	}
 
-	static bool ReturnAggregate(bool isDeleted, string aggregateId, EventStoreOperationContext context)
+	static bool ReturnAggregate(
+		bool isDeleted,
+		string aggregateId,
+		EventStoreOperationContext context
+	)
 	{
 		if (isDeleted)
 		{
@@ -187,20 +239,19 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		return true;
 	}
 
-	string CreateStreamVersionId(string aggregateId)
-		=> $"s_{_aggregateTypeShortName}_{aggregateId}";
+	string CreateStreamVersionId(string aggregateId) =>
+		$"s_{_aggregateTypeShortName}_{aggregateId}";
 
-	string CreateEventId(string aggregateId, int version)
-		=> $"e_{_aggregateTypeShortName}_{aggregateId}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
+	string CreateEventId(string aggregateId, int version) =>
+		$"e_{_aggregateTypeShortName}_{aggregateId}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
 
-	string CreateIdempotencyCheckId(string aggregateId, string idempotencyId)
-		=> $"i_{_aggregateTypeShortName}_{aggregateId}_{idempotencyId}";
+	string CreateIdempotencyCheckId(string aggregateId, string idempotencyId) =>
+		$"i_{_aggregateTypeShortName}_{aggregateId}_{idempotencyId}";
 
-	string CreateSnapshotId(string aggregateId)
-		=> $"snap_{_aggregateTypeShortName}_{aggregateId}";
+	string CreateSnapshotId(string aggregateId) => $"snap_{_aggregateTypeShortName}_{aggregateId}";
 
-	public string CreateCacheKey(string aggregateId)
-		=> $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+	public string CreateCacheKey(string aggregateId) =>
+		$"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
 
 	async Task EnsureConfiguredAsync(CancellationToken cancellationToken)
 	{
@@ -208,8 +259,8 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 			await _client.EnsureTableExistsAsync(cancellationToken);
 	}
 
-	static string QuoteIdentifierForQuery(string identifier)
-		=> $"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
+	static string QuoteIdentifierForQuery(string identifier) =>
+		$"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
 
 	public void Dispose()
 	{

@@ -5,12 +5,17 @@ using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.MongoDB.StorageClients;
 
-sealed class MongoDBAggregateSerializer<TAggregate> : SerializerBase<TAggregate>, IBsonDocumentSerializer
+sealed class MongoDBAggregateSerializer<TAggregate>
+	: SerializerBase<TAggregate>,
+		IBsonDocumentSerializer
 	where TAggregate : class, IAggregate, new()
 {
 	public const string BsonDocuemntIdPropertyName = "_id";
 
-	public override TAggregate Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+	public override TAggregate Deserialize(
+		BsonDeserializationContext context,
+		BsonDeserializationArgs args
+	)
 	{
 		var serializer = BsonSerializer.LookupSerializer(typeof(BsonDocument));
 		var document = serializer.Deserialize(context, args);
@@ -18,10 +23,17 @@ sealed class MongoDBAggregateSerializer<TAggregate> : SerializerBase<TAggregate>
 		var bsonDocument = document.ToBsonDocument();
 		var result = bsonDocument.ToJson();
 
-		return Newtonsoft.Json.JsonConvert.DeserializeObject<TAggregate>(result, JsonHelpers.JsonSerializerSettings)!;
+		return Newtonsoft.Json.JsonConvert.DeserializeObject<TAggregate>(
+			result,
+			JsonHelpers.JsonSerializerSettings
+		)!;
 	}
 
-	public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TAggregate value)
+	public override void Serialize(
+		BsonSerializationContext context,
+		BsonSerializationArgs args,
+		TAggregate value
+	)
 	{
 		var jsonDocument = Newtonsoft.Json.JsonConvert.SerializeObject(value);
 		var bsonDocument = BsonSerializer.Deserialize<BsonDocument>(jsonDocument);
@@ -33,7 +45,10 @@ sealed class MongoDBAggregateSerializer<TAggregate> : SerializerBase<TAggregate>
 		serializer.Serialize(context, doc);
 	}
 
-	public bool TryGetMemberSerializationInfo(string memberName, out BsonSerializationInfo? serializationInfo)
+	public bool TryGetMemberSerializationInfo(
+		string memberName,
+		out BsonSerializationInfo? serializationInfo
+	)
 	{
 		var memberType = ValueType.GetProperty(memberName)?.PropertyType;
 		if (memberType == null)

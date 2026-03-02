@@ -3,7 +3,9 @@ using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.SqlServer;
 
-public partial class GenericSqlServerEventStoreTests<TAggregate>(SqlServerEventStoreFixture fixture) : ISqlServerEventStoreTests, IClassFixture<SqlServerEventStoreFixture>
+[ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public partial class GenericSqlServerEventStoreTests<TAggregate>(SqlServerEventStoreFixture fixture)
+	: ISqlServerEventStoreTests
 	where TAggregate : class, IAggregateTest, new()
 {
 	static ComplexTestType CreateComplexTestType()
@@ -15,14 +17,13 @@ public partial class GenericSqlServerEventStoreTests<TAggregate>(SqlServerEventS
 			Int64Property = RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue) * 5L,
 			StringProperty = $"{Guid.NewGuid()}",
 			DateTimeOffsetProperty = DateTimeOffset.UtcNow.AddYears(RandomNumberGenerator.GetInt32(100, 1001)),
-			ComplexNestedTestTypeProperty = new()
-			{
-				Nested = $"Nested_{Guid.NewGuid()}"
-			}
+			ComplexNestedTestTypeProperty = new() { Nested = $"Nested_{Guid.NewGuid()}" },
 		};
 	}
 
-	public Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(int eventsToGenerate)
+	public Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(
+		int eventsToGenerate
+	)
 	{
 		throw new NotImplementedException();
 	}

@@ -11,8 +11,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="../.shared-extensions/**/*" LinkBase="/" />
-		<Compile Include="../EventSourcing.MongoDB.Events/MongoDB/StorageClients/**/*" LinkBase="MongoDB/StorageClients/" />
+		<Compile
+			Include="../EventSourcing.MongoDB.Events/MongoDB/StorageClients/**/*"
+			LinkBase="MongoDB/StorageClients/"
+		/>
 	</ItemGroup>
 
 	<ItemGroup>

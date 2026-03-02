@@ -12,7 +12,7 @@ public record struct AggregateVersionData(int SavedVersion, int SnapshotVersion,
 		{
 			SavedVersion = aggregate.Details.SavedVersion,
 			SnapshotVersion = aggregate.Details.SnapshotVersion,
-			CurrentVersion = aggregate.Details.CurrentVersion
+			CurrentVersion = aggregate.Details.CurrentVersion,
 		};
 	}
 }

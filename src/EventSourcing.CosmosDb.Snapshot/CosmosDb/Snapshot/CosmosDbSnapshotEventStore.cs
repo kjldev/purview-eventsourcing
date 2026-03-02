@@ -19,14 +19,18 @@ public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEve
 	readonly Type _aggregateType = typeof(T);
 	readonly string _aggregateName;
 
-	static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, string> AggregateTypeNames = new();
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<
+		Type,
+		string
+	> AggregateTypeNames = new();
 
 	public CosmosDbSnapshotEventStore(
 		// Explicitly request a non-queryable event store.
 		INonQueryableEventStore<T> eventStore,
 		IOptions<CosmosDbEventStoreOptions> cosmosDbEventStoreOptions,
 		ICosmosDbSnapshotEventStoreTelemetry telemetry,
-		CosmosClient? cosmosClient = null)
+		CosmosClient? cosmosClient = null
+	)
 	{
 		_eventStore = eventStore;
 		_cosmosDbEventStoreOptions = cosmosDbEventStoreOptions;
@@ -34,7 +38,10 @@ public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEve
 
 		_partitionKey = new(GetAggregateTypeName());
 
-		_cosmosDbClient = new CosmosDbClient(_cosmosDbEventStoreOptions.Value, cosmosClient: cosmosClient);
+		_cosmosDbClient = new CosmosDbClient(
+			_cosmosDbEventStoreOptions.Value,
+			cosmosClient: cosmosClient
+		);
 		_aggregateName = TypeNameHelper.GetName(_aggregateType, "Aggregate");
 	}
 
@@ -52,6 +59,6 @@ public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEve
 			_telemetry.SnapshotCreated(_aggregateName);
 	}
 
-	string GetAggregateTypeName()
-		=> AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);
+	string GetAggregateTypeName() =>
+		AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);
 }

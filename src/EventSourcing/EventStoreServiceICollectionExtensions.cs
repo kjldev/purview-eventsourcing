@@ -21,15 +21,17 @@ public static class EventStoreServiceICollectionExtensions
 			.AddSingleton<IAggregateEventNameMapper, AggregateEventNameMapper>()
 			.AddAggregateChangeFeedNotifierTelemetry()
 			.AddScoped<IAggregateRequirementsManager, AggregateRequiredServiceManager>()
-			.AddScoped(typeof(IAggregateChangeFeedNotifier<>), typeof(AggregateChangeFeedNotifier<>));
+			.AddScoped(
+				typeof(IAggregateChangeFeedNotifier<>),
+				typeof(AggregateChangeFeedNotifier<>)
+			);
 
 		return services;
 	}
 
 	public static IServiceCollection AddNullQueryableEventStore(this IServiceCollection services)
 	{
-		services
-			.AddTransient(typeof(IQueryableEventStore<>), typeof(NullQueryableEventStore<>));
+		services.AddTransient(typeof(IQueryableEventStore<>), typeof(NullQueryableEventStore<>));
 
 		return services;
 	}

@@ -5,20 +5,22 @@ namespace Purview.EventSourcing.SqlServer.Snapshot;
 
 partial class SqlServerSnapshotEventStoreTests
 {
-	[Theory]
-	[InlineData(10, 5)]
-	[InlineData(20, 5)]
-	[InlineData(25, 5)]
-	[InlineData(26, 5)]
-	[InlineData(27, 5)]
-	[InlineData(50, 5)]
-	[InlineData(51, 5)]
+	[Test]
+	[Arguments(10, 5)]
+	[Arguments(20, 5)]
+	[Arguments(25, 5)]
+	[Arguments(26, 5)]
+	[Arguments(27, 5)]
+	[Arguments(50, 5)]
+	[Arguments(51, 5)]
 	public async Task ListAsync_GivenData_ListsAsExpected(int numberOfAggregates, int pageCount)
 	{
 		const int numberOfEvents = 10;
 
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
 
 		var eventStore = context.EventStore;
@@ -32,33 +34,39 @@ partial class SqlServerSnapshotEventStoreTests
 
 			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
 		List<PersistenceAggregate> aggregates = [];
 
-		var aggregateResponse = await eventStore.ListAsync(maxRecordCount: pageCount, cancellationToken: tokenSource.Token);
+		var aggregateResponse = await eventStore.ListAsync(
+			maxRecordCount: pageCount,
+			cancellationToken: tokenSource.Token
+		);
 		aggregates.AddRange(aggregateResponse.Results);
 
 		while (aggregateResponse.ContinuationToken != null)
 		{
-			aggregateResponse = await eventStore.ListAsync(aggregateResponse.ToRequest(), cancellationToken: tokenSource.Token);
+			aggregateResponse = await eventStore.ListAsync(
+				aggregateResponse.ToRequest(),
+				cancellationToken: tokenSource.Token
+			);
 			aggregates.AddRange(aggregateResponse.Results);
 		}
 
 		// Assert
-		aggregates.ShouldHaveCount(numberOfAggregates);
+		await Assert.That(aggregates).HasCount(numberOfAggregates);
 	}
 
-	[Theory]
-	[InlineData(10, 5)]
-	[InlineData(20, 5)]
-	[InlineData(25, 5)]
-	[InlineData(26, 5)]
-	[InlineData(27, 5)]
-	[InlineData(50, 5)]
-	[InlineData(51, 5)]
+	[Test]
+	[Arguments(10, 5)]
+	[Arguments(20, 5)]
+	[Arguments(25, 5)]
+	[Arguments(26, 5)]
+	[Arguments(27, 5)]
+	[Arguments(50, 5)]
+	[Arguments(51, 5)]
 	public async Task QueryAsync_GivenWhereClause_QueryAsExpected(int numberOfAggregates, int pageCount)
 	{
 		const int numberOfEvents = 10;
@@ -74,9 +82,12 @@ partial class SqlServerSnapshotEventStoreTests
 			for (var eventIndex = 0; eventIndex < numberOfEvents; eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: TestContext.Current.CancellationToken);
+			bool saveResult = await eventStore.SaveAsync(
+				aggregate,
+				cancellationToken: TestContext.Current.Execution.CancellationToken
+			);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// These are non-matching.
@@ -88,9 +99,12 @@ partial class SqlServerSnapshotEventStoreTests
 			for (var eventIndex = 0; eventIndex < (numberOfEvents * 2); eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: TestContext.Current.CancellationToken);
+			bool saveResult = await eventStore.SaveAsync(
+				aggregate,
+				cancellationToken: TestContext.Current.Execution.CancellationToken
+			);
 
-			saveResult.ShouldBeTrue();
+			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
@@ -98,16 +112,24 @@ partial class SqlServerSnapshotEventStoreTests
 
 		Expression<Func<PersistenceAggregate, bool>> query = a => a.IncrementInt32 == numberOfEvents;
 
-		var aggregateResponse = await eventStore.QueryAsync(query, maxRecordCount: pageCount, cancellationToken: TestContext.Current.CancellationToken);
+		var aggregateResponse = await eventStore.QueryAsync(
+			query,
+			maxRecordCount: pageCount,
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		aggregates.AddRange(aggregateResponse.Results);
 
 		while (aggregateResponse.ContinuationToken != null)
 		{
-			aggregateResponse = await eventStore.QueryAsync(query, aggregateResponse.ToRequest(), cancellationToken: TestContext.Current.CancellationToken);
+			aggregateResponse = await eventStore.QueryAsync(
+				query,
+				aggregateResponse.ToRequest(),
+				cancellationToken: TestContext.Current.Execution.CancellationToken
+			);
 			aggregates.AddRange(aggregateResponse.Results);
 		}
 
 		// Assert
-		aggregates.ShouldHaveCount(numberOfAggregates);
+		await Assert.That(aggregates).HasCount(numberOfAggregates);
 	}
 }

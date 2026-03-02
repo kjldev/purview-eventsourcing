@@ -1,26 +1,22 @@
 <Solution>
-  <Folder Name="/Solution Items/">
-    <File Path=".editorconfig" />
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Build.targets" />
-    <File Path="Directory.Packages.props" />
-    <File Path="global.json" />
-    <File Path="nuget.config" />
-  </Folder>
-  <Folder Name="/Solution Items/.build-system/" Id="461461c1-af5a-6cc9-9b6b-12ff49213760">
-    <File Path=".build-system/BuildVariables.props" />
-    <File Path=".build-system\Directory.Build.props" />
-    <File Path=".build-system\Directory.Build.targets" />
-  </Folder>
-  <Project Path="EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
-  <Project Path="EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
-  <Project Path="EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
-  <Project Path="EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
-  <Project Path="EventSourcing.IntegrationTests\EventSourcing.IntegrationTests.csproj" />
-  <Project Path="EventSourcing.MongoDB.Events\EventSourcing.MongoDB.Events.csproj" />
-  <Project Path="EventSourcing.MongoDB.Snapshot\EventSourcing.MongoDB.Snapshot.csproj" />
-  <Project Path="EventSourcing.Shared/EventSourcing.Shared.csproj" Id="83e32d4e-99e2-4466-bd3c-ca2e6d710f39" />
-  <Project Path="EventSourcing.Testing/EventSourcing.Testing.csproj" />
-  <Project Path="EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
-  <Project Path="EventSourcing\EventSourcing.csproj" />
+	<Folder Name="/Solution Items/">
+		<File Path="Directory.Build.props" />
+		<File Path="Directory.Build.targets" />
+		<File Path="Directory.Packages.props" />
+		<File Path="global.json" />
+	</Folder>
+	<Project Path="EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
+	<Project Path="EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
+	<Project Path="EventSourcing.IntegrationTests\EventSourcing.IntegrationTests.csproj" />
+	<Project Path="EventSourcing.MongoDB.Events\EventSourcing.MongoDB.Events.csproj" />
+	<Project Path="EventSourcing.MongoDB.Snapshot\EventSourcing.MongoDB.Snapshot.csproj" />
+	<Project
+		Path="EventSourcing.Shared/EventSourcing.Shared.csproj"
+		Id="83e32d4e-99e2-4466-bd3c-ca2e6d710f39"
+	/>
+	<Project Path="EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
+	<Project Path="EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+	<Project Path="EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
+	<Project Path="EventSourcing\EventSourcing.csproj" />
+	<Project Path="SharedTestingFramework/SharedTestingFramework.csproj" />
 </Solution>

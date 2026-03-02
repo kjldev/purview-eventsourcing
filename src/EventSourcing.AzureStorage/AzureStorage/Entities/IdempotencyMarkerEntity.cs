@@ -11,9 +11,7 @@ public sealed class IdempotencyMarkerEntity : ITableEntity
 		RowKey = rowKey;
 	}
 
-	public IdempotencyMarkerEntity()
-	{
-	}
+	public IdempotencyMarkerEntity() { }
 
 	public string Events { get; set; } = default!;
 

@@ -13,5 +13,5 @@ public enum LockHandlingMode
 	/// <summary>
 	/// If the aggregate is marked as locked, save operations return false.
 	/// </summary>
-	ReturnsFalse = 1
+	ReturnsFalse = 1,
 }

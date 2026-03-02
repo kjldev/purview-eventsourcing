@@ -1,6 +1,8 @@
-﻿namespace Purview.EventSourcing.SnapshotOnly.MongoDB;
+using TUnit.Core.Interfaces;
 
-public class MongoDBSnapshotEventStoreFixture : IAsyncLifetime
+namespace Purview.EventSourcing.SnapshotOnly.MongoDB;
+
+public class MongoDBSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
 	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer;
 	readonly Testcontainers.MongoDb.MongoDbContainer _mongoDBContainer;
@@ -11,14 +13,15 @@ public class MongoDBSnapshotEventStoreFixture : IAsyncLifetime
 		_mongoDBContainer = ContainerHelper.CreateMongoDB();
 	}
 
-	public MongoDBSnapshotTestContext CreateContext(int correlationIdsToGenerate = 1, string? collectionName = null)
-		=> new(
+	public MongoDBSnapshotTestContext CreateContext(int correlationIdsToGenerate = 1, string? collectionName = null) =>
+		new(
 			_mongoDBContainer.GetConnectionString(),
 			_azuriteContainer.GetConnectionString(),
 			correlationIdsToGenerate,
-			collectionName);
+			collectionName
+		);
 
-	public async ValueTask InitializeAsync()
+	public async Task InitializeAsync()
 	{
 		await _mongoDBContainer.StartAsync();
 		await _azuriteContainer.StartAsync();

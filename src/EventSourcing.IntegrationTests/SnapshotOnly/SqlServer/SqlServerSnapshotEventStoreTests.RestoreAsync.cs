@@ -4,11 +4,13 @@ namespace Purview.EventSourcing.SqlServer.Snapshot;
 
 partial class SqlServerSnapshotEventStoreTests
 {
-	[Fact]
+	[Test]
 	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInSqlServerWhenRestore_SnapshotCreatedInSqlServer()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var context = fixture.CreateContext();
 
 		var aggregateId = Guid.NewGuid().ToString();
@@ -16,24 +18,33 @@ partial class SqlServerSnapshotEventStoreTests
 		aggregate.IncrementInt32Value();
 
 		bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
-		saveResult.ShouldBeTrue();
+		await Assert.That(saveResult).IsTrue();
 
-		var aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(aggregateId, cancellationToken: tokenSource.Token);
-		aggregateFromSqlServer.ShouldNotBeNull();
+		var aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+			aggregateId,
+			cancellationToken: tokenSource.Token
+		);
+		await Assert.That(aggregateFromSqlServer).IsNotNull();
 
 		var deleteResult = await context.EventStore.DeleteAsync(aggregate, cancellationToken: tokenSource.Token);
-		deleteResult.ShouldBeTrue();
+		await Assert.That(deleteResult).IsTrue();
 
-		aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(aggregateId, cancellationToken: tokenSource.Token);
-		aggregateFromSqlServer.ShouldBeNull();
+		aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+			aggregateId,
+			cancellationToken: tokenSource.Token
+		);
+		await Assert.That(aggregateFromSqlServer).IsNull();
 
 		// Act
 		var restoreResult = await context.EventStore.RestoreAsync(aggregate, cancellationToken: tokenSource.Token);
 
-		aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(aggregateId, cancellationToken: tokenSource.Token);
+		aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+			aggregateId,
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
-		restoreResult.ShouldBeTrue();
-		aggregateFromSqlServer.ShouldNotBeNull();
+		await Assert.That(restoreResult).IsTrue();
+		await Assert.That(aggregateFromSqlServer).IsNotNull();
 	}
 }

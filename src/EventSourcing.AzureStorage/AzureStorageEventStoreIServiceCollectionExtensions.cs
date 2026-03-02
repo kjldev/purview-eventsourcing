@@ -21,19 +21,23 @@ public static class AzureStorageEventStoreIServiceCollectionExtensions
 
 		services
 			.AddOptions<AzureStorageEventStoreOptions>()
-			.Configure<IConfiguration>((options, configuration) =>
-			{
-				configuration.GetSection(AzureStorageEventStoreOptions.AzureStorageEventStore).Bind(options);
-
-				if (string.IsNullOrWhiteSpace(options.ConnectionString))
+			.Configure<IConfiguration>(
+				(options, configuration) =>
 				{
-					options.ConnectionString =
-						configuration.GetConnectionString("EventStore_AzureStorage")
-						?? configuration.GetConnectionString("AzureStorage")
-						// This will get picked up by the validation.
-						?? default!;
+					configuration
+						.GetSection(AzureStorageEventStoreOptions.AzureStorageEventStore)
+						.Bind(options);
+
+					if (string.IsNullOrWhiteSpace(options.ConnectionString))
+					{
+						options.ConnectionString =
+							configuration.GetConnectionString("EventStore_AzureStorage")
+							?? configuration.GetConnectionString("AzureStorage")
+							// This will get picked up by the validation.
+							?? default!;
+					}
 				}
-			})
+			)
 			.ValidateOnStart();
 
 		return services;

@@ -2,13 +2,20 @@
 
 partial class SqlServerEventStore<T>
 {
-	public async Task<T?> GetDeletedAsync(string aggregateId, CancellationToken cancellationToken = default)
+	public async Task<T?> GetDeletedAsync(
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
 	{
-		var aggregate = await GetCoreAsync(aggregateId, new()
-		{
-			CacheMode = EventStoreCachingOptions.None,
-			DeleteMode = DeleteHandlingMode.ReturnsAggregate
-		}, cancellationToken);
+		var aggregate = await GetCoreAsync(
+			aggregateId,
+			new()
+			{
+				CacheMode = EventStoreCachingOptions.None,
+				DeleteMode = DeleteHandlingMode.ReturnsAggregate,
+			},
+			cancellationToken
+		);
 
 		if (aggregate == null)
 			return null;

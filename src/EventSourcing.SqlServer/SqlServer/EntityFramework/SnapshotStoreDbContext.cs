@@ -22,14 +22,16 @@ public class SnapshotStoreDbContext : DbContext
 	/// Schema and table names default to "dbo" and "Snapshots".
 	/// </summary>
 	public SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options)
-		: this(options, "dbo", "Snapshots")
-	{
-	}
+		: this(options, "dbo", "Snapshots") { }
 
 	/// <summary>
 	/// Creates a new <see cref="SnapshotStoreDbContext"/> with explicit schema and table names.
 	/// </summary>
-	public SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options, string schemaName, string tableName)
+	public SnapshotStoreDbContext(
+		DbContextOptions<SnapshotStoreDbContext> options,
+		string schemaName,
+		string tableName
+	)
 		: base(options)
 	{
 		_schemaName = schemaName;
@@ -50,7 +52,8 @@ public class SnapshotStoreDbContext : DbContext
 			entity.Property(e => e.Payload).HasColumnType("NVARCHAR(MAX)").IsRequired();
 
 			// Covers: QueryByAggregateType (returns Payload via INCLUDE, avoids key lookup)
-			entity.HasIndex(e => e.AggregateType)
+			entity
+				.HasIndex(e => e.AggregateType)
 				.HasDatabaseName($"IX_{_tableName}_AggregateType")
 				.IncludeProperties(e => e.Payload);
 		});

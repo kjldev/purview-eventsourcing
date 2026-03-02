@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.CosmosDb;
 
 partial class CosmosDbClient
 {
-	sealed public class CosmosJsonNetSerializer : CosmosSerializer
+	public sealed class CosmosJsonNetSerializer : CosmosSerializer
 	{
 		static readonly Encoding DefaultEncoding = new UTF8Encoding(false, true);
 
@@ -14,9 +14,7 @@ partial class CosmosDbClient
 		readonly JsonSerializerSettings _serializerSettings;
 
 		public CosmosJsonNetSerializer()
-			: this(new JsonSerializerSettings())
-		{
-		}
+			: this(new JsonSerializerSettings()) { }
 
 		public CosmosJsonNetSerializer(JsonSerializerSettings serializerSettings)
 		{
@@ -41,11 +39,18 @@ partial class CosmosDbClient
 		public override Stream ToStream<T>(T input)
 		{
 			var streamPayload = new MemoryStream();
-			using (var streamWriter = new StreamWriter(streamPayload, encoding: DefaultEncoding, bufferSize: 2048, leaveOpen: true))
+			using (
+				var streamWriter = new StreamWriter(
+					streamPayload,
+					encoding: DefaultEncoding,
+					bufferSize: 2048,
+					leaveOpen: true
+				)
+			)
 			{
 				using JsonWriter writer = new JsonTextWriter(streamWriter)
 				{
-					Formatting = Formatting.None
+					Formatting = Formatting.None,
 				};
 				_serializer.Serialize(writer, input);
 

@@ -10,7 +10,9 @@ namespace Purview.EventSourcing;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class MongoDBEventStoreIServiceCollectionExtensions
 {
-	public static IServiceCollection AddMongoDBEventStore([NotNull] this IServiceCollection services)
+	public static IServiceCollection AddMongoDBEventStore(
+		[NotNull] this IServiceCollection services
+	)
 	{
 		services.AddEventSourcing();
 
@@ -24,19 +26,23 @@ public static class MongoDBEventStoreIServiceCollectionExtensions
 
 		services
 			.AddOptions<MongoDBEventStoreOptions>()
-			.Configure<IConfiguration>((options, configuration) =>
-			{
-				configuration.GetSection(MongoDBEventStoreOptions.MongoDBEventStore).Bind(options);
-
-				if (string.IsNullOrWhiteSpace(options.ConnectionString))
+			.Configure<IConfiguration>(
+				(options, configuration) =>
 				{
-					options.ConnectionString =
-						configuration.GetConnectionString("EventStore_MongoDB")
-						?? configuration.GetConnectionString("MongoDB")
-						// This will get picked up by the validation.
-						?? default!;
+					configuration
+						.GetSection(MongoDBEventStoreOptions.MongoDBEventStore)
+						.Bind(options);
+
+					if (string.IsNullOrWhiteSpace(options.ConnectionString))
+					{
+						options.ConnectionString =
+							configuration.GetConnectionString("EventStore_MongoDB")
+							?? configuration.GetConnectionString("MongoDB")
+							// This will get picked up by the validation.
+							?? default!;
+					}
 				}
-			})
+			)
 			.ValidateOnStart();
 
 		return services;

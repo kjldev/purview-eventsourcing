@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using Purview.Telemetry.Logging;
+using Purview.Telemetry;
 
 namespace Purview.EventSourcing.MongoDB;
 
@@ -13,10 +13,21 @@ public interface IMongoDBEventStoreTelemetry
 	void GetAggregateStart(string aggregateId, string aggregateTypeFullName);
 
 	[Log(LogLevel.Error)]
-	void GetAggregateAtSpecificVersionFailed(string aggregateId, string aggregateTypeFullName, int specificVersion, Exception exception);
+	void GetAggregateAtSpecificVersionFailed(
+		string aggregateId,
+		string aggregateTypeFullName,
+		int specificVersion,
+		Exception exception
+	);
 
 	[Log(LogLevel.Debug)]
-	void ReconstitutedAggregateFromEvents(string aggregateId, string aggregateTypeFullName, string aggregateType, int eventCount, AggregateVersionData versionData);
+	void ReconstitutedAggregateFromEvents(
+		string aggregateId,
+		string aggregateTypeFullName,
+		string aggregateType,
+		int eventCount,
+		AggregateVersionData versionData
+	);
 
 	[Log(LogLevel.Debug)]
 	void GetAggregateAtSpecificVersionStart(string aggregateId, int specificVersion, string aggregateTypeFullName);
@@ -25,10 +36,23 @@ public interface IMongoDBEventStoreTelemetry
 	void SaveContainedNoChanges(string aggregateId, string aggregateTypeFullName, string aggregateType);
 
 	[Log(LogLevel.Warning)]
-	void SkippedUnknownEvent(string aggregateId, string aggregateTypeFullName, string aggregateType, string eventType, int aggregateVersion);
+	void SkippedUnknownEvent(
+		string aggregateId,
+		string aggregateTypeFullName,
+		string aggregateType,
+		string eventType,
+		int aggregateVersion
+	);
 
 	[Log(LogLevel.Warning)]
-	void CannotApplyEvent(string aggregateId, string aggregateTypeFullName, string aggregateType, string eventType, string eventTypeFullName, int aggregateVersion);
+	void CannotApplyEvent(
+		string aggregateId,
+		string aggregateTypeFullName,
+		string aggregateType,
+		string eventType,
+		string eventTypeFullName,
+		int aggregateVersion
+	);
 
 	[Log(LogLevel.Debug)]
 	void GetAggregateComplete(string aggregateId, string aggregateTypeFullName, long elapsedMilliseconds);
@@ -67,13 +91,23 @@ public interface IMongoDBEventStoreTelemetry
 	void MissingEventType(string aggregateTypeFullName, string eventType);
 
 	[Log(LogLevel.Debug)]
-	void GetAggregateAtSpecificVersionComplete(string aggregateId, string aggregateTypeFullName, int specificVersion, long elapsedMilliseconds);
+	void GetAggregateAtSpecificVersionComplete(
+		string aggregateId,
+		string aggregateTypeFullName,
+		int specificVersion,
+		long elapsedMilliseconds
+	);
 
 	[Log(LogLevel.Warning)]
 	void SkippedMissingBlobEvent(string partitionKey, string rowKey, string serializedEventType, string blobName);
 
 	[Log(LogLevel.Warning)]
-	void MissingBlobEventType(string aggregateTypeFullName, string eventType, string serializedEventType, string blobEventTypeName);
+	void MissingBlobEventType(
+		string aggregateTypeFullName,
+		string eventType,
+		string serializedEventType,
+		string blobEventTypeName
+	);
 
 	[Log(LogLevel.Warning)]
 	void CacheRemovalFailure(string aggregateId, string aggregateTypeFullName, Exception exception);

@@ -54,7 +54,10 @@ public abstract class AggregateBase : IAggregate
 	{
 		var unsavedEventCount = _unsavedEvents.Count;
 		if (upToVersion.HasValue)
-			_unsavedEvents = [.. _unsavedEvents.Where(m => m.Details.AggregateVersion > upToVersion)];
+			_unsavedEvents =
+			[
+				.. _unsavedEvents.Where(m => m.Details.AggregateVersion > upToVersion),
+			];
 		else
 			_unsavedEvents.Clear();
 
@@ -70,8 +73,8 @@ public abstract class AggregateBase : IAggregate
 	public bool HasUnsavedEvents() => !_unsavedEvents.IsEmpty;
 
 	///<inheritdoc/>
-	public bool CanApplyEvent([NotNull] IEvent aggregateEvent)
-		=> _appliersByEventType.ContainsKey(aggregateEvent.GetType());
+	public bool CanApplyEvent([NotNull] IEvent aggregateEvent) =>
+		_appliersByEventType.ContainsKey(aggregateEvent.GetType());
 
 	/// <summary>
 	/// Records an <see cref="IEvent"/> in the form of <typeparamref name="TEvent"/>.
@@ -133,7 +136,9 @@ public abstract class AggregateBase : IAggregate
 		ArgumentNullException.ThrowIfNull(applier);
 
 		if (!typeof(TEvent).Name.EndsWith("Event", StringComparison.InvariantCulture))
-			throw new InvalidOperationException($"Registering events failed, events must end with name 'Event'.\n\nFailed even type: {typeof(TEvent).FullName}");
+			throw new InvalidOperationException(
+				$"Registering events failed, events must end with name 'Event'.\n\nFailed even type: {typeof(TEvent).FullName}"
+			);
 
 		_appliersByEventType.Add(typeof(TEvent), ev => applier((TEvent)ev));
 	}

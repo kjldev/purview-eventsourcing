@@ -10,11 +10,15 @@ namespace Newtonsoft.Json.Converters;
 sealed class StringValuesConverter : JsonConverter
 {
 	/// <inheritdoc/>
-	public override bool CanConvert(Type objectType)
-		=> objectType == typeof(StringValues);
+	public override bool CanConvert(Type objectType) => objectType == typeof(StringValues);
 
 	/// <inheritdoc/>
-	public override object? ReadJson([NotNull] JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+	public override object? ReadJson(
+		[NotNull] JsonReader reader,
+		Type objectType,
+		object? existingValue,
+		JsonSerializer serializer
+	)
 	{
 		if (reader!.TokenType == JsonToken.StartArray)
 		{
@@ -31,7 +35,11 @@ sealed class StringValuesConverter : JsonConverter
 	}
 
 	/// <inheritdoc/>
-	public override void WriteJson([NotNull] JsonWriter writer, object? value, JsonSerializer serializer)
+	public override void WriteJson(
+		[NotNull] JsonWriter writer,
+		object? value,
+		JsonSerializer serializer
+	)
 	{
 		var stringValues = (StringValues)value!;
 		if (stringValues.Count == 0)

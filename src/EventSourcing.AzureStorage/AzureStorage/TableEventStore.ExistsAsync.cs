@@ -2,7 +2,10 @@
 
 partial class TableEventStore<T>
 {
-	public async Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken cancellationToken = default)
+	public async Task<ExistsState> ExistsAsync(
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
@@ -15,8 +18,7 @@ partial class TableEventStore<T>
 			Status = streamVersion.IsDeleted
 				? ExistsStatus.ExistsInDeletedState
 				: ExistsStatus.Exists,
-			Version = streamVersion.Version
+			Version = streamVersion.Version,
 		};
 	}
 }
-

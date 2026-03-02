@@ -4,10 +4,17 @@ namespace Purview.EventSourcing.AzureStorage;
 
 partial class GenericTableEventStoreTests<TAggregate>
 {
-	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_GetsEventsRequested(int eventsToCreate, int startEvent, int? endEvent, int expectedEventCount)
+	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_GetsEventsRequested(
+		int eventsToCreate,
+		int startEvent,
+		int? endEvent,
+		int expectedEventCount
+	)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var eventStore = fixture.CreateEventStore<TAggregate>();
@@ -19,20 +26,31 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Act
-		var results = eventStore.GetEventRangeAsync(aggregateId, startEvent, endEvent, cancellationToken: tokenSource.Token);
+		var results = eventStore.GetEventRangeAsync(
+			aggregateId,
+			startEvent,
+			endEvent,
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
 		List<IEvent> eventList = [];
 		await foreach ((var @event, _) in results)
 			eventList.Add(@event);
 
-		eventList.ShouldHaveCount(expectedEventCount);
+		await Assert.That(eventList.Count).IsEqualTo(expectedEventCount);
 	}
 
-	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(int eventsToCreate, int startEvent, int? endEvent)
+	public async Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(
+		int eventsToCreate,
+		int startEvent,
+		int? endEvent
+	)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
@@ -45,11 +63,16 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Act
-		var results = eventStore.GetEventRangeAsync(aggregateId, startEvent, endEvent, cancellationToken: tokenSource.Token);
+		var results = eventStore.GetEventRangeAsync(
+			aggregateId,
+			startEvent,
+			endEvent,
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
 		List<IEvent> eventList = [];
 		await foreach ((var @event, _) in results)
-			@event.Details.AggregateVersion.ShouldBe(startEvent++);
+			await Assert.That(@event.Details.AggregateVersion).IsEqualTo(startEvent++);
 	}
 }

@@ -29,7 +29,12 @@ public sealed class MongoDBSnapshotTestContext
 
 	public MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
 
-	public MongoDBSnapshotTestContext(string mongoDbConnectionString, string azuriteConnectionString, int correlationIdsToGenerate = 1, string? collectionName = null)
+	public MongoDBSnapshotTestContext(
+		string mongoDbConnectionString,
+		string azuriteConnectionString,
+		int correlationIdsToGenerate = 1,
+		string? collectionName = null
+	)
 	{
 		_mongoDbConnectionString = mongoDbConnectionString;
 		_azuriteConnectionString = azuriteConnectionString;
@@ -37,23 +42,28 @@ public sealed class MongoDBSnapshotTestContext
 		EventStore = CreateMongoDBEventStore(correlationIdsToGenerate, collectionName);
 	}
 
-	public MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> CreateMongoDBEventStore(int correlationIdsToGenerate = 1, string? collectionName = null)
+	public MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> CreateMongoDBEventStore(
+		int correlationIdsToGenerate = 1,
+		string? collectionName = null
+	)
 	{
 		var tableEventStore = CreateTableEventStore(correlationIdsToGenerate);
 
-		MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBEventStoreOptions config = new()
-		{
-			ConnectionString = _mongoDbConnectionString,
-			Database = GetType().Name,
-			Collection = collectionName ?? TestHelpers.GenMongoDBCollectionName()
-		};
+		MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBEventStoreOptions config =
+			new()
+			{
+				ConnectionString = _mongoDbConnectionString,
+				Database = GetType().Name,
+				Collection = collectionName ?? TestHelpers.GenMongoDBCollectionName(),
+			};
 
-		MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> eventStore = new(
-			tableEventStore,
-			Microsoft.Extensions.Options.Options.Create(config),
-			Substitute.For<MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.IMongoDBSnapshotEventStoreTelemetry>(),
-			Substitute.For<MongoDBSnapshots::Purview.EventSourcing.MongoDB.StorageClients.IMongoDBClientTelemetry>()
-		);
+		MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> eventStore =
+			new(
+				tableEventStore,
+				Microsoft.Extensions.Options.Options.Create(config),
+				Substitute.For<MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.IMongoDBSnapshotEventStoreTelemetry>(),
+				Substitute.For<MongoDBSnapshots::Purview.EventSourcing.MongoDB.StorageClients.IMongoDBClientTelemetry>()
+			);
 
 		MongoDBClient = new(
 			Substitute.For<IMongoDBClientTelemetry>(),
@@ -64,14 +74,18 @@ public sealed class MongoDBSnapshotTestContext
 				Database = config.Database,
 				Collection = config.Collection,
 				ReplicaName = "rs0",
-			});
+			}
+		);
 
 		return eventStore;
 	}
 
 	TableEventStore<PersistenceAggregate> CreateTableEventStore(int correlationIdsToGenerate = 1)
 	{
-		var runIds = Enumerable.Range(1, correlationIdsToGenerate).Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant()).ToArray();
+		var runIds = Enumerable
+			.Range(1, correlationIdsToGenerate)
+			.Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant())
+			.ToArray();
 
 		_eventNameMapper = new AggregateEventNameMapper();
 		_telemetry = Substitute.For<ITableEventStoreTelemetry>();
@@ -83,14 +97,16 @@ public sealed class MongoDBSnapshotTestContext
 			Container = TestHelpers.GenAzureBlobContainerName(RunId),
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = true,
-			SnapshotInterval = 1
+			SnapshotInterval = 1,
 		};
 
 		TableEventStore<PersistenceAggregate> eventStore = new(
 			eventNameMapper: _eventNameMapper,
 			azureStorageOptions: Microsoft.Extensions.Options.Options.Create(azureStorageOptions),
 			distributedCache: Substitute.For<IDistributedCache>(),
-			aggregateChangeNotifier: Substitute.For<IAggregateChangeFeedNotifier<PersistenceAggregate>>(),
+			aggregateChangeNotifier: Substitute.For<
+				IAggregateChangeFeedNotifier<PersistenceAggregate>
+			>(),
 			eventStoreTelemetry: _telemetry,
 			aggregateRequirementsManager: Substitute.For<IAggregateRequirementsManager>()
 		);

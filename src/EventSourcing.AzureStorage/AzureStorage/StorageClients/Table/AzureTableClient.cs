@@ -13,9 +13,15 @@ sealed class AzureTableClient
 	readonly AzureStorageEventStoreOptions _configuration;
 	readonly string _tableName;
 
-	static readonly string[] SelectedColumnsForEntityExistsQuery = [nameof(ITableEntity.PartitionKey)];
+	static readonly string[] SelectedColumnsForEntityExistsQuery =
+	[
+		nameof(ITableEntity.PartitionKey),
+	];
 
-	public AzureTableClient(AzureStorageEventStoreOptions configuration, string? tableOverride = null)
+	public AzureTableClient(
+		AzureStorageEventStoreOptions configuration,
+		string? tableOverride = null
+	)
 	{
 		_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
@@ -23,7 +29,11 @@ sealed class AzureTableClient
 		_tableClient = new AsyncLazy<TableClient>(InitializeAsync);
 	}
 
-	public async Task<T?> OperationAsync<T>(TableTransactionActionType action, T entity, CancellationToken cancellationToken = default)
+	public async Task<T?> OperationAsync<T>(
+		TableTransactionActionType action,
+		T entity,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, ITableEntity, new()
 	{
 		ArgumentNullException.ThrowIfNull(entity, nameof(entity));
@@ -36,36 +46,53 @@ sealed class AzureTableClient
 				response = await table.AddEntityAsync(entity, cancellationToken);
 				break;
 			case TableTransactionActionType.Delete:
-				response = await table.DeleteEntityAsync(entity.PartitionKey, entity.RowKey, entity.ETag, cancellationToken);
+				response = await table.DeleteEntityAsync(
+					entity.PartitionKey,
+					entity.RowKey,
+					entity.ETag,
+					cancellationToken
+				);
 				break;
 			case TableTransactionActionType.UpdateMerge:
 			case TableTransactionActionType.UpdateReplace:
-				var updateMode = action == TableTransactionActionType.UpdateMerge
-					? TableUpdateMode.Merge
-					: TableUpdateMode.Replace;
-				response = await table.UpdateEntityAsync(entity, entity.ETag, updateMode, cancellationToken);
+				var updateMode =
+					action == TableTransactionActionType.UpdateMerge
+						? TableUpdateMode.Merge
+						: TableUpdateMode.Replace;
+				response = await table.UpdateEntityAsync(
+					entity,
+					entity.ETag,
+					updateMode,
+					cancellationToken
+				);
 				break;
 			case TableTransactionActionType.UpsertMerge:
 			case TableTransactionActionType.UpsertReplace:
-				var upsertMode = action == TableTransactionActionType.UpsertMerge
-					? TableUpdateMode.Merge
-					: TableUpdateMode.Replace;
+				var upsertMode =
+					action == TableTransactionActionType.UpsertMerge
+						? TableUpdateMode.Merge
+						: TableUpdateMode.Replace;
 				response = await table.UpsertEntityAsync(entity, upsertMode, cancellationToken);
 				break;
 			default:
-				throw new InvalidEnumArgumentException(nameof(action), (int)action, typeof(TableTransactionActionType));
+				throw new InvalidEnumArgumentException(
+					nameof(action),
+					(int)action,
+					typeof(TableTransactionActionType)
+				);
 		}
 
 		var status = response.Status;
 		if (status >= 400)
 			throw new TableOperationException(entity, action, response);
 
-		return action == TableTransactionActionType.Delete
-			? null
-			: entity;
+		return action == TableTransactionActionType.Delete ? null : entity;
 	}
 
-	public async Task<BatchOperationResult> SubmitBatchAsync(BatchOperation batchOperation, CancellationToken cancellationToken = default)
+	public async Task<BatchOperationResult> SubmitBatchAsync(
+		BatchOperation batchOperation,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentNullException.ThrowIfNull(batchOperation, nameof(batchOperation));
 		if (!batchOperation.Any())
@@ -88,7 +115,12 @@ sealed class AzureTableClient
 		return new(responses);
 	}
 
-	public async IAsyncEnumerable<T> QueryEnumerableAsync<T>(Expression<Func<T, bool>> whereClause, int maxPerPage = 50, IEnumerable<string>? fields = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<T> QueryEnumerableAsync<T>(
+		Expression<Func<T, bool>> whereClause,
+		int maxPerPage = 50,
+		IEnumerable<string>? fields = null,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default
+	)
 		where T : class, ITableEntity, new()
 	{
 		var table = await _tableClient;
@@ -104,7 +136,12 @@ sealed class AzureTableClient
 		}
 	}
 
-	public async IAsyncEnumerable<T> QueryEnumerableAsync<T>(string? filter = null, int maxPerPage = 50, IEnumerable<string>? fields = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<T> QueryEnumerableAsync<T>(
+		string? filter = null,
+		int maxPerPage = 50,
+		IEnumerable<string>? fields = null,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default
+	)
 		where T : class, ITableEntity, new()
 	{
 		var table = await _tableClient;
@@ -120,7 +157,13 @@ sealed class AzureTableClient
 		}
 	}
 
-	public async Task<ContinuationResponse<T>> QueryAsync<T>(Expression<Func<T, bool>> whereClause, int maxPerPage = 50, IEnumerable<string>? fields = null, string? continuationToken = null, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> QueryAsync<T>(
+		Expression<Func<T, bool>> whereClause,
+		int maxPerPage = 50,
+		IEnumerable<string>? fields = null,
+		string? continuationToken = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, ITableEntity, new()
 	{
 		var table = await _tableClient;
@@ -131,14 +174,20 @@ sealed class AzureTableClient
 			return new()
 			{
 				ContinuationToken = result.ContinuationToken,
-				Results = [.. result.Values]
+				Results = [.. result.Values],
 			};
 		}
 
 		return new();
 	}
 
-	public async Task<ContinuationResponse<T>> QueryAsync<T>(string? filter = null, int maxPerPage = 50, IEnumerable<string>? fields = null, string? continuationToken = null, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> QueryAsync<T>(
+		string? filter = null,
+		int maxPerPage = 50,
+		IEnumerable<string>? fields = null,
+		string? continuationToken = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, ITableEntity, new()
 	{
 		var table = await _tableClient;
@@ -149,18 +198,27 @@ sealed class AzureTableClient
 			return new()
 			{
 				ContinuationToken = result.ContinuationToken,
-				Results = [.. result.Values]
+				Results = [.. result.Values],
 			};
 		}
 
 		return new();
 	}
 
-	public Task<T?> GetAsync<T>(string partitionKey, string rowKey, CancellationToken cancellationToken = default)
-		where T : class, ITableEntity, new()
-		=> GetAsync<T>(partitionKey, rowKey, null, cancellationToken);
+	public Task<T?> GetAsync<T>(
+		string partitionKey,
+		string rowKey,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, ITableEntity, new() =>
+		GetAsync<T>(partitionKey, rowKey, null, cancellationToken);
 
-	public async Task<T?> GetAsync<T>(string partitionKey, string rowKey, IEnumerable<string>? fields, CancellationToken cancellationToken = default)
+	public async Task<T?> GetAsync<T>(
+		string partitionKey,
+		string rowKey,
+		IEnumerable<string>? fields,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, ITableEntity, new()
 	{
 		ArgumentNullException.ThrowIfNull(partitionKey, nameof(partitionKey));
@@ -169,7 +227,12 @@ sealed class AzureTableClient
 		var table = await _tableClient;
 		try
 		{
-			var pagedResults = table.QueryAsync<T>(e => e.PartitionKey == partitionKey && e.RowKey == rowKey, maxPerPage: 1, select: fields, cancellationToken);
+			var pagedResults = table.QueryAsync<T>(
+				e => e.PartitionKey == partitionKey && e.RowKey == rowKey,
+				maxPerPage: 1,
+				select: fields,
+				cancellationToken
+			);
 			// The foreach is because it's a paged result set.
 			await foreach (var entity in pagedResults)
 				return entity;
@@ -189,12 +252,21 @@ sealed class AzureTableClient
 		await table.DeleteAsync(cancellationToken);
 	}
 
-	public async Task<bool> EntityExistsAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default)
+	public async Task<bool> EntityExistsAsync(
+		string partitionKey,
+		string rowKey,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentNullException.ThrowIfNull(partitionKey, nameof(partitionKey));
 		ArgumentNullException.ThrowIfNull(rowKey, nameof(rowKey));
 
-		var entity = await GetAsync<TableEntity>(partitionKey, rowKey, SelectedColumnsForEntityExistsQuery, cancellationToken);
+		var entity = await GetAsync<TableEntity>(
+			partitionKey,
+			rowKey,
+			SelectedColumnsForEntityExistsQuery,
+			cancellationToken
+		);
 
 		return entity != null;
 	}
@@ -211,7 +283,9 @@ sealed class AzureTableClient
 	{
 		TableClientOptions clientOptions = new();
 		if (_configuration.TimeoutInSeconds.HasValue)
-			clientOptions.Retry.NetworkTimeout = TimeSpan.FromSeconds(_configuration.TimeoutInSeconds.Value);
+			clientOptions.Retry.NetworkTimeout = TimeSpan.FromSeconds(
+				_configuration.TimeoutInSeconds.Value
+			);
 
 		return new(_configuration.ConnectionString, clientOptions);
 	}

@@ -10,7 +10,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	public async Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -22,19 +24,23 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.DeleteAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Act
-		var func = () => eventStore.GetAsync(aggregateId, new EventStoreOperationContext
-		{
-			DeleteMode = DeleteHandlingMode.ThrowsException
-		}, cancellationToken: tokenSource.Token);
+		var func = () =>
+			eventStore.GetAsync(
+				aggregateId,
+				new EventStoreOperationContext { DeleteMode = DeleteHandlingMode.ThrowsException },
+				cancellationToken: tokenSource.Token
+			);
 
 		// Assert
-		await Should.ThrowAsync<AggregateIsDeletedException>(func);
+		await Assert.That(func).Throws<AggregateIsDeletedException>();
 	}
 
 	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(int eventsToCreate)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -46,27 +52,41 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Act
-		var snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(aggregateId, EntityTypes.SnapshotType, cancellationToken: tokenSource.Token);
+		var snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(
+			aggregateId,
+			EntityTypes.SnapshotType,
+			cancellationToken: tokenSource.Token
+		);
 
-		snapshotEntity.ShouldNotBeNull();
+		await Assert.That(snapshotEntity).IsNotNull();
 
-		await fixture.SnapshotClient.DeleteAsync<SnapshotEntity>(m => m.Id == aggregateId, cancellationToken: tokenSource.Token);
+		await fixture.SnapshotClient.DeleteAsync<SnapshotEntity>(
+			m => m.Id == aggregateId,
+			cancellationToken: tokenSource.Token
+		);
 
-		snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(aggregateId, EntityTypes.SnapshotType, cancellationToken: tokenSource.Token);
+		snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(
+			aggregateId,
+			EntityTypes.SnapshotType,
+			cancellationToken: tokenSource.Token
+		);
 
-		snapshotEntity.ShouldBeNull();
+		await Assert.That(snapshotEntity).IsNull();
 
 		// Assert
 		var result = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
 
-		result.ShouldNotBeNull();
-		result.IsNew().ShouldBeFalse();
-		result.Id().ShouldBe(aggregate.Id());
-		result.IncrementInt32.ShouldBe(aggregate.IncrementInt32);
-		result.Details.SavedVersion.ShouldBe(aggregate.Details.SavedVersion);
-		result.Details.CurrentVersion.ShouldBe(aggregate.Details.CurrentVersion);
-		result.Details.Etag.ShouldBe(aggregate.Details.Etag);
-		result.Details.SnapshotVersion.ShouldBe(0, "There is no snapshot version as it was deleted as part of this test.");
+		await Assert.That(result).IsNotNull();
+		await Assert.That(result.IsNew()).IsFalse();
+		await Assert.That(result.Id()).IsEqualTo(aggregate.Id());
+		await Assert.That(result.IncrementInt32).IsEqualTo(aggregate.IncrementInt32);
+		await Assert.That(result.Details.SavedVersion).IsEqualTo(aggregate.Details.SavedVersion);
+		await Assert.That(result.Details.CurrentVersion).IsEqualTo(aggregate.Details.CurrentVersion);
+		await Assert.That(result.Details.Etag).IsEqualTo(aggregate.Details.Etag);
+		await Assert
+			.That(result.Details.SnapshotVersion)
+			.IsEqualTo(0)
+			.Because("There is no snapshot version as it was deleted as part of this test.");
 	}
 
 	public async Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(int eventsToCreate)
@@ -78,7 +98,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var expectedSnapshotVersion = eventsToCreate - eventCountOffset;
 		var initialEventsToCreate = eventsToCreate - eventCountOffset;
 
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
@@ -99,23 +121,28 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		// Assert
 		var result = await eventStore.GetAsync(aggregateId, cancellationToken: tokenSource.Token);
 
-		result.ShouldNotBeNull();
-		result.IsNew().ShouldBeFalse();
-		result.IncrementInt32.ShouldBe(eventsToCreate);
-		result.Details.SavedVersion.ShouldBe(eventsToCreate);
-		result.Details.SnapshotVersion.ShouldBe(expectedSnapshotVersion);
+		await Assert.That(result).IsNotNull();
+		await Assert.That(result.IsNew()).IsFalse();
+		await Assert.That(result.IncrementInt32).IsEqualTo(eventsToCreate);
+		await Assert.That(result.Details.SavedVersion).IsEqualTo(eventsToCreate);
+		await Assert.That(result.Details.SnapshotVersion).IsEqualTo(expectedSnapshotVersion);
 	}
 
 	// This is testing that the aggregate is still correct after having an event type removed (in this case,
 	// it deserializes, but it's not registered any longer),
 	// this is often due to the schema changes and the event not being required anymore, but the
 	// event record still (correctly) exists.
-	public async Task GetAsync_GivenAnAggregateWithNonRegisteredEventType_RecreatesAggregateAndLogsCannotApplyEvent(int eventsToCreate, int numberOfOldEventsToCreate)
+	public async Task GetAsync_GivenAnAggregateWithNonRegisteredEventType_RecreatesAggregateAndLogsCannotApplyEvent(
+		int eventsToCreate,
+		int numberOfOldEventsToCreate
+	)
 	{
 		// Arrange
 		var totalEvents = eventsToCreate + numberOfOldEventsToCreate;
 
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -134,37 +161,49 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Get without using the snapshot, just from the event record.
-		var result = await eventStore.GetAsync(aggregateId, new EventStoreOperationContext
-		{
-			SkipSnapshot = true
-		}, cancellationToken: tokenSource.Token);
+		var result = await eventStore.GetAsync(
+			aggregateId,
+			new EventStoreOperationContext { SkipSnapshot = true },
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
 		fixture
-			.Telemetry
-			.Received(numberOfOldEventsToCreate)
-			.CannotApplyEvent(aggregateId, Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Is<string>(eventType => eventType.Contains(typeof(OldEvent).Name, StringComparison.Ordinal)), Arg.Any<int>());
+			.Telemetry.Received(numberOfOldEventsToCreate)
+			.CannotApplyEvent(
+				aggregateId,
+				Arg.Any<string>(),
+				Arg.Any<string>(),
+				Arg.Any<string>(),
+				Arg.Is<string>(eventType => eventType.Contains(typeof(OldEvent).Name, StringComparison.Ordinal)),
+				Arg.Any<int>()
+			);
 
-		result.ShouldNotBeNull();
-		result.IsNew().ShouldBeFalse();
-		result.Id().ShouldBe(aggregate.Id());
-		result.IncrementInt32.ShouldBe(aggregate.IncrementInt32);
-		result.Details.SavedVersion.ShouldBe(totalEvents);
-		result.Details.CurrentVersion.ShouldBe(totalEvents);
+		await Assert.That(result).IsNotNull();
+		await Assert.That(result.IsNew()).IsFalse();
+		await Assert.That(result.Id()).IsEqualTo(aggregate.Id());
+		await Assert.That(result.IncrementInt32).IsEqualTo(aggregate.IncrementInt32);
+		await Assert.That(result.Details.SavedVersion).IsEqualTo(totalEvents);
+		await Assert.That(result.Details.CurrentVersion).IsEqualTo(totalEvents);
 	}
 
-	// This is testing that the aggregate is still correct after an event type cannot be found - removed 
+	// This is testing that the aggregate is still correct after an event type cannot be found - removed
 	// from the assembly/ failure to load the type -
 	// this is often due to the schema changes and the event not being required anymore, but the
 	// event record still (correctly) exists.
-	public async Task GetAsync_GivenAnAggregateWithUnknownEventType_RecreatesAggregateAndLogsUnknown(int eventsToCreate, int numberOfOldEventsToCreate)
+	public async Task GetAsync_GivenAnAggregateWithUnknownEventType_RecreatesAggregateAndLogsUnknown(
+		int eventsToCreate,
+		int numberOfOldEventsToCreate
+	)
 	{
 		// Arrange
 		const string unknownEventType = "an-unknown-type";
 
 		var totalEvents = eventsToCreate + numberOfOldEventsToCreate;
 
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -183,7 +222,12 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
 		// Update existing events to make them unknown types effectively.
-		var eventsToUpdate = eventStore.GetEventRangeEntitiesAsync(aggregateId, eventsToCreate + 1, totalEvents, tokenSource.Token);
+		var eventsToUpdate = eventStore.GetEventRangeEntitiesAsync(
+			aggregateId,
+			eventsToCreate + 1,
+			totalEvents,
+			tokenSource.Token
+		);
 
 		BatchOperation batchOperation = new();
 		var batch = batchOperation;
@@ -197,22 +241,22 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await fixture.EventClient.SubmitBatchAsync(batch, tokenSource.Token);
 
 		// Get without using the snapshot, just from the event record.
-		var result = await eventStore.GetAsync(aggregateId, new EventStoreOperationContext
-		{
-			SkipSnapshot = true
-		}, cancellationToken: tokenSource.Token);
+		var result = await eventStore.GetAsync(
+			aggregateId,
+			new EventStoreOperationContext { SkipSnapshot = true },
+			cancellationToken: tokenSource.Token
+		);
 
 		// Assert
 		fixture
-			.Telemetry
-			.Received(numberOfOldEventsToCreate)
+			.Telemetry.Received(numberOfOldEventsToCreate)
 			.SkippedUnknownEvent(aggregateId, Arg.Any<string>(), Arg.Any<string>(), unknownEventType, Arg.Any<int>());
 
-		result.ShouldNotBeNull();
-		result.IsNew().ShouldBeFalse();
-		result.Id().ShouldBe(aggregate.Id());
-		result.IncrementInt32.ShouldBe(aggregate.IncrementInt32);
-		result.Details.SavedVersion.ShouldBe(totalEvents);
-		result.Details.CurrentVersion.ShouldBe(totalEvents);
+		await Assert.That(result).IsNotNull();
+		await Assert.That(result.IsNew()).IsFalse();
+		await Assert.That(result.Id()).IsEqualTo(aggregate.Id());
+		await Assert.That(result.IncrementInt32).IsEqualTo(aggregate.IncrementInt32);
+		await Assert.That(result.Details.SavedVersion).IsEqualTo(totalEvents);
+		await Assert.That(result.Details.CurrentVersion).IsEqualTo(totalEvents);
 	}
 }

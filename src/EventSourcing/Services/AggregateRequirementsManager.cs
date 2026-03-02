@@ -6,21 +6,26 @@ using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.Services;
 
-sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider) : IAggregateRequirementsManager
+sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider)
+	: IAggregateRequirementsManager
 {
 	// This is static, but still allows the AggregateRequiredServiceManager to be registered as scoped
 	// for the sake of the IServiceProvider.
-	static readonly ConcurrentDictionary<Type, AggregateRequiredServiceManagerContext> Builders = new();
+	static readonly ConcurrentDictionary<Type, AggregateRequiredServiceManagerContext> Builders =
+		new();
 
 	public void Fulfil(IAggregate aggregate)
 	{
-		var context = Builders.GetOrAdd(aggregate.GetType(), t =>
-		{
-			AggregateRequiredServiceManagerContext builder = new(t);
-			builder.Build();
+		var context = Builders.GetOrAdd(
+			aggregate.GetType(),
+			t =>
+			{
+				AggregateRequiredServiceManagerContext builder = new(t);
+				builder.Build();
 
-			return builder;
-		});
+				return builder;
+			}
+		);
 
 		context.Populate(aggregate, serviceProvider);
 	}
@@ -29,13 +34,22 @@ sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider) :
 	{
 		readonly List<Action<object[]>> _requiredServices = [];
 
-		static readonly Lazy<MethodInfo> PopulateMethod = new(() => typeof(AggregateRequiredServiceManagerContext).GetMethod(nameof(Populate), BindingFlags.Static | BindingFlags.NonPublic)!);
+		static readonly Lazy<MethodInfo> PopulateMethod = new(() =>
+			typeof(AggregateRequiredServiceManagerContext).GetMethod(
+				nameof(Populate),
+				BindingFlags.Static | BindingFlags.NonPublic
+			)!
+		);
 
 		bool _hasRequirements;
 
 		public void Build()
 		{
-			var requiredServices = aggregateType.GetInterfaces().Where(m => m.IsGenericType && m.GetGenericTypeDefinition() == typeof(IRequirement<>));
+			var requiredServices = aggregateType
+				.GetInterfaces()
+				.Where(m =>
+					m.IsGenericType && m.GetGenericTypeDefinition() == typeof(IRequirement<>)
+				);
 			foreach (var requiredService in requiredServices)
 			{
 				var serviceType = requiredService.GetGenericArguments()[0];
@@ -43,11 +57,15 @@ sealed class AggregateRequiredServiceManager(IServiceProvider serviceProvider) :
 				var genericMethod = PopulateMethod.Value.MakeGenericMethod(serviceType);
 				var parameters = genericMethod.GetParameters();
 				var actionParams = Expression.Parameter(typeof(object[]), "params");
-				var argExpressions = parameters.Select((param, i) =>
-					Expression.Convert(
-						Expression.ArrayIndex(actionParams, Expression.Constant(i)),
-						param.ParameterType)
-					).ToArray();
+				var argExpressions = parameters
+					.Select(
+						(param, i) =>
+							Expression.Convert(
+								Expression.ArrayIndex(actionParams, Expression.Constant(i)),
+								param.ParameterType
+							)
+					)
+					.ToArray();
 
 				var callExpression = Expression.Call(null, genericMethod, argExpressions);
 

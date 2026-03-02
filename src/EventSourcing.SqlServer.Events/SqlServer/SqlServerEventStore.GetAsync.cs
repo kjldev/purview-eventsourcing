@@ -7,10 +7,17 @@ namespace Purview.EventSourcing.SqlServer;
 partial class SqlServerEventStore<T>
 {
 	[System.Diagnostics.DebuggerStepThrough]
-	public Task<T?> GetAsync(string aggregateId, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
-		=> GetCoreAsync(aggregateId, operationContext, cancellationToken);
+	public Task<T?> GetAsync(
+		string aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	) => GetCoreAsync(aggregateId, operationContext, cancellationToken);
 
-	async Task<T?> GetCoreAsync(string aggregateId, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
+	async Task<T?> GetCoreAsync(
+		string aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
@@ -20,13 +27,18 @@ partial class SqlServerEventStore<T>
 		var getStopwatch = System.Diagnostics.Stopwatch.StartNew();
 		try
 		{
-			var aggregate = operationContext.CacheMode.HasFlag(EventStoreCachingOptions.GetFromCache)
+			var aggregate = operationContext.CacheMode.HasFlag(
+				EventStoreCachingOptions.GetFromCache
+			)
 				? await GetFromCacheAsync(aggregateId, cancellationToken)
 				: null;
 
 			if (aggregate != null)
 			{
-				_eventStoreTelemetry.AggregateRetrievedFromCache(aggregateId, _aggregateTypeFullName);
+				_eventStoreTelemetry.AggregateRetrievedFromCache(
+					aggregateId,
+					_aggregateTypeFullName
+				);
 
 				return ReturnAggregate(aggregate.Details.IsDeleted, aggregateId, operationContext)
 					? PrepareAggregateForReturn(aggregate, _aggregateRequirementsManager)
@@ -44,14 +56,14 @@ partial class SqlServerEventStore<T>
 			if (!operationContext.SkipSnapshot)
 				aggregate = await GetLatestSnapshotAsync(aggregateId, cancellationToken);
 
-			aggregate ??= new T
-			{
-				Details = {
-					Id = aggregateId
-				}
-			};
+			aggregate ??= new T { Details = { Id = aggregateId } };
 
-			await GetAndApplyEventsAsync(aggregate, streamVersion, streamVersionIdentifier, cancellationToken);
+			await GetAndApplyEventsAsync(
+				aggregate,
+				streamVersion,
+				streamVersionIdentifier,
+				cancellationToken
+			);
 			await UpdateCacheAsync(aggregate, operationContext.CacheOptions, cancellationToken);
 
 			return PrepareAggregateForReturn(aggregate, _aggregateRequirementsManager);
@@ -64,10 +76,17 @@ partial class SqlServerEventStore<T>
 		finally
 		{
 			getStopwatch.Stop();
-			_eventStoreTelemetry.GetAggregateComplete(aggregateId, _aggregateTypeFullName, getStopwatch.ElapsedMilliseconds);
+			_eventStoreTelemetry.GetAggregateComplete(
+				aggregateId,
+				_aggregateTypeFullName,
+				getStopwatch.ElapsedMilliseconds
+			);
 		}
 
-		static T PrepareAggregateForReturn(T aggregate, Services.IAggregateRequirementsManager aggregateRequirementsManager)
+		static T PrepareAggregateForReturn(
+			T aggregate,
+			Services.IAggregateRequirementsManager aggregateRequirementsManager
+		)
 		{
 			var currentVersion = aggregate.Details.CurrentVersion;
 
@@ -81,11 +100,21 @@ partial class SqlServerEventStore<T>
 		}
 	}
 
-	async Task GetAndApplyEventsAsync(T aggregate, StreamVersionData streamVersion, int? maxVersion, CancellationToken cancellationToken)
+	async Task GetAndApplyEventsAsync(
+		T aggregate,
+		StreamVersionData streamVersion,
+		int? maxVersion,
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateId = aggregate.Id();
 		var eventCount = 0;
-		var eventQuery = GetEventRangeAsync(aggregateId, aggregate.Details.SnapshotVersion + 1, maxVersion, cancellationToken);
+		var eventQuery = GetEventRangeAsync(
+			aggregateId,
+			aggregate.Details.SnapshotVersion + 1,
+			maxVersion,
+			cancellationToken
+		);
 		await foreach (var eventResult in eventQuery)
 		{
 			var @event = eventResult.@event;
@@ -93,9 +122,22 @@ partial class SqlServerEventStore<T>
 			{
 				var eventType = @event.GetType();
 				if (@event is UnknownEvent)
-					_eventStoreTelemetry.SkippedUnknownEvent(aggregateId, _aggregateTypeFullName, aggregate.AggregateType, eventResult.eventType, @event.Details.AggregateVersion);
+					_eventStoreTelemetry.SkippedUnknownEvent(
+						aggregateId,
+						_aggregateTypeFullName,
+						aggregate.AggregateType,
+						eventResult.eventType,
+						@event.Details.AggregateVersion
+					);
 				else
-					_eventStoreTelemetry.CannotApplyEvent(aggregateId, _aggregateTypeFullName, aggregate.AggregateType, eventResult.eventType, eventType.FullName ?? eventType.Name, @event.Details.AggregateVersion);
+					_eventStoreTelemetry.CannotApplyEvent(
+						aggregateId,
+						_aggregateTypeFullName,
+						aggregate.AggregateType,
+						eventResult.eventType,
+						eventType.FullName ?? eventType.Name,
+						@event.Details.AggregateVersion
+					);
 
 				aggregate.Details.CurrentVersion = @event.Details.AggregateVersion;
 			}
@@ -105,7 +147,13 @@ partial class SqlServerEventStore<T>
 			eventCount++;
 		}
 
-		_eventStoreTelemetry.ReconstitutedAggregateFromEvents(aggregateId, _aggregateTypeFullName, aggregate.AggregateType, eventCount, AggregateVersionData.Create(aggregate));
+		_eventStoreTelemetry.ReconstitutedAggregateFromEvents(
+			aggregateId,
+			_aggregateTypeFullName,
+			aggregate.AggregateType,
+			eventCount,
+			AggregateVersionData.Create(aggregate)
+		);
 
 		aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
 		aggregate.Details.Etag = streamVersion.Version.ToString(CultureInfo.InvariantCulture);
@@ -119,14 +167,22 @@ partial class SqlServerEventStore<T>
 		{
 			var snapshotId = CreateSnapshotId(aggregateId);
 			var row = await _client.GetByIdAsync(snapshotId, cancellationToken);
-			if (row == null || row.EntityType != SnapshotType || string.IsNullOrWhiteSpace(row.Payload))
+			if (
+				row == null
+				|| row.EntityType != SnapshotType
+				|| string.IsNullOrWhiteSpace(row.Payload)
+			)
 				return null;
 
 			return DeserializeSnapshot(row.Payload);
 		}
 		catch (Exception ex)
 		{
-			_eventStoreTelemetry.SnapshotDeserializationFailed(aggregateId, _aggregateTypeFullName, ex);
+			_eventStoreTelemetry.SnapshotDeserializationFailed(
+				aggregateId,
+				_aggregateTypeFullName,
+				ex
+			);
 
 			return null;
 		}

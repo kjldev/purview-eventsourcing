@@ -6,16 +6,39 @@ public interface ISqlServerEventStoreTests
 	Task DeleteAsync_GivenDelete_NotifiesChangeFeed();
 	Task DeleteAsync_GivenPreviouslySavedAggregate_MarksAsDeleted();
 	Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache();
-	Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount);
-	Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(int nonDeletedAggregateIdCount, int deletedAggregateIdCount);
-	Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(int nonDeletedAggregateIdCount, int deletedAggregateIdCount);
+	Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(
+		int aggregateCount
+	);
+	Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(
+		int nonDeletedAggregateIdCount,
+		int deletedAggregateIdCount
+	);
+	Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingOnlyNonDeleted_CorrectlyReturnsNonDeletedIdsOnly(
+		int nonDeletedAggregateIdCount,
+		int deletedAggregateIdCount
+	);
 	Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException();
-	Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(int eventsToCreate);
-	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(int eventsToCreate);
-	Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(int previousEventsToCreate);
+	Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(
+		int eventsToCreate
+	);
+	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
+		int eventsToCreate
+	);
+	Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(
+		int previousEventsToCreate
+	);
 	Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate();
-	Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(int eventsToCreate, int startEvent, int? endEvent);
-	Task GetEventRangeAsync_GivenARequestedRangeOfEvents_GetsEventsRequested(int eventsToCreate, int startEvent, int? endEvent, int expectedEventCount);
+	Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(
+		int eventsToCreate,
+		int startEvent,
+		int? endEvent
+	);
+	Task GetEventRangeAsync_GivenARequestedRangeOfEvents_GetsEventsRequested(
+		int eventsToCreate,
+		int startEvent,
+		int? endEvent,
+		int expectedEventCount
+	);
 	Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate();
 	Task IsDeletedAsync_GivenDeletedAggregates_ReturnsTrue();
 	Task IsDeletedAsync_GivenNonDeletedAggregates_ReturnsFalse();
@@ -26,6 +49,10 @@ public interface ISqlServerEventStoreTests
 	Task SaveAsync_GivenAggregateWithNoChanges_DoesNotSave();
 	Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate();
 	Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty();
-	Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(int eventsToGenerate);
-	Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedEventsInSaveOperation_ThrowsException(int eventsToGenerate);
+	Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(
+		int eventsToGenerate
+	);
+	Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedEventsInSaveOperation_ThrowsException(
+		int eventsToGenerate
+	);
 }

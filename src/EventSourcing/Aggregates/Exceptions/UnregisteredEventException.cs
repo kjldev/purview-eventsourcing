@@ -10,12 +10,16 @@ public sealed class UnregisteredEventException : Exception
 {
 	public UnregisteredEventException() { }
 
-	public UnregisteredEventException(string message) : base(message) { }
+	public UnregisteredEventException(string message)
+		: base(message) { }
 
-	public UnregisteredEventException(string message, Exception inner) : base(message, inner) { }
+	public UnregisteredEventException(string message, Exception inner)
+		: base(message, inner) { }
 
 	public UnregisteredEventException(Type eventType, IAggregate aggregate)
-		: base($"The event type '{eventType}' is not a registered event for aggregate type {aggregate}.")
+		: base(
+			$"The event type '{eventType}' is not a registered event for aggregate type {aggregate}."
+		)
 	{
 		EventType = eventType;
 		Aggregate = aggregate;

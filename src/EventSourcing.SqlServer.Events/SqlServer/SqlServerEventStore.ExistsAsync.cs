@@ -1,9 +1,11 @@
-﻿
-namespace Purview.EventSourcing.SqlServer;
+﻿namespace Purview.EventSourcing.SqlServer;
 
 partial class SqlServerEventStore<T>
 {
-	public async Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken cancellationToken = default)
+	public async Task<ExistsState> ExistsAsync(
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
@@ -16,7 +18,7 @@ partial class SqlServerEventStore<T>
 			Status = streamVersion.IsDeleted
 				? ExistsStatus.ExistsInDeletedState
 				: ExistsStatus.Exists,
-			Version = streamVersion.Version
+			Version = streamVersion.Version,
 		};
 	}
 }

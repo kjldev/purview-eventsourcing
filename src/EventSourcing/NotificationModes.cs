@@ -49,5 +49,5 @@ public enum NotificationModes
 	/// <summary>
 	/// Notifications are generated before saving and deleting, after saving or deleting and in the case of failure.
 	/// </summary>
-	All = BeforeSaveOrDelete | AfterSaveOrDelete | OnFailure
+	All = BeforeSaveOrDelete | AfterSaveOrDelete | OnFailure,
 }

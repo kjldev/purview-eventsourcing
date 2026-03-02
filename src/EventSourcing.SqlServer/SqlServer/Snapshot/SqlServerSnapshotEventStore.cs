@@ -4,7 +4,9 @@ using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
-public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotEventStore<T>, IDisposable
+public sealed partial class SqlServerSnapshotEventStore<T>
+	: ISqlServerSnapshotEventStore<T>,
+		IDisposable
 	where T : class, IAggregate, new()
 {
 	readonly IEventStore<T> _eventStore;
@@ -16,26 +18,32 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 	readonly Type _aggregateType = typeof(T);
 	readonly string _aggregateName;
 
-	static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, string> AggregateTypeNames = new();
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<
+		Type,
+		string
+	> AggregateTypeNames = new();
 
 	public SqlServerSnapshotEventStore(
 		// Explicitly request a non-queryable event store.
 		INonQueryableEventStore<T> eventStore,
 		IOptions<SqlServerEventStoreOptions> sqlServerEventStoreOptions,
-		ISqlServerSnapshotEventStoreTelemetry telemetry)
+		ISqlServerSnapshotEventStoreTelemetry telemetry
+	)
 	{
 		_eventStore = eventStore;
 		_sqlServerEventStoreOptions = sqlServerEventStoreOptions;
 		_telemetry = telemetry;
 
 		_aggregateName = TypeNameHelper.GetName(_aggregateType, "Aggregate");
-		_sqlServerClient = new SqlServerClient(new SqlServerClientOptions
-		{
-			ConnectionString = _sqlServerEventStoreOptions.Value.ConnectionString,
-			TableName = _sqlServerEventStoreOptions.Value.TableName,
-			SchemaName = _sqlServerEventStoreOptions.Value.SchemaName,
-			AutoCreateTable = _sqlServerEventStoreOptions.Value.AutoCreateTable
-		});
+		_sqlServerClient = new SqlServerClient(
+			new SqlServerClientOptions
+			{
+				ConnectionString = _sqlServerEventStoreOptions.Value.ConnectionString,
+				TableName = _sqlServerEventStoreOptions.Value.TableName,
+				SchemaName = _sqlServerEventStoreOptions.Value.SchemaName,
+				AutoCreateTable = _sqlServerEventStoreOptions.Value.AutoCreateTable,
+			}
+		);
 	}
 
 	/// <summary>
@@ -47,13 +55,18 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
 
-		var result = await _sqlServerClient.UpsertAsync(aggregate, aggregate.Details.Id, GetAggregateTypeName(), cancellationToken);
+		var result = await _sqlServerClient.UpsertAsync(
+			aggregate,
+			aggregate.Details.Id,
+			GetAggregateTypeName(),
+			cancellationToken
+		);
 		if (result)
 			_telemetry.SnapshotCreated(_aggregateName);
 	}
 
-	string GetAggregateTypeName()
-		=> AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);
+	string GetAggregateTypeName() =>
+		AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);
 
 	public void Dispose()
 	{

@@ -5,7 +5,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 	public async Task IsDeletedAsync_GivenDeletedAggregates_ReturnsTrue()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -20,13 +22,15 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var result = await eventStore.IsDeletedAsync(aggregateId, cancellationToken: tokenSource.Token);
 
 		// Assert
-		result.ShouldBeTrue();
+		await Assert.That(result).IsTrue();
 	}
 
 	public async Task IsDeletedAsync_GivenNonDeletedAggregates_ReturnsFalse()
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -40,6 +44,6 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var result = await eventStore.IsDeletedAsync(aggregateId, cancellationToken: tokenSource.Token);
 
 		// Assert
-		result.ShouldBeFalse();
+		await Assert.That(result).IsFalse();
 	}
 }

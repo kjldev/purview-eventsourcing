@@ -561,3 +561,4 @@ sketch
 
 src/EventSourcing.MongoDB.Events
 src/EventSourcing.MongoDB.Snapshot
+!scripts/*

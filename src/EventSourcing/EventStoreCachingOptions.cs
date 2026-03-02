@@ -25,5 +25,5 @@ public enum EventStoreCachingOptions
 	/// Enables the cache for both <see cref="GetFromCache"/> and <see cref="StoreInCache"/>
 	/// operations.
 	/// </summary>
-	GetAndStore = GetFromCache | StoreInCache
+	GetAndStore = GetFromCache | StoreInCache,
 }

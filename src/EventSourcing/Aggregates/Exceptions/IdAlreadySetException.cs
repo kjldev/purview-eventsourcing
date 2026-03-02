@@ -7,7 +7,9 @@ public sealed class IdAlreadySetException : Exception
 {
 	public IdAlreadySetException() { }
 
-	public IdAlreadySetException(string message) : base(message) { }
+	public IdAlreadySetException(string message)
+		: base(message) { }
 
-	public IdAlreadySetException(string message, Exception inner) : base(message, inner) { }
+	public IdAlreadySetException(string message, Exception inner)
+		: base(message, inner) { }
 }

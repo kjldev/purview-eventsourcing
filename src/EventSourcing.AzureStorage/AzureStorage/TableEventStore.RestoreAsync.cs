@@ -4,7 +4,11 @@ namespace Purview.EventSourcing.AzureStorage;
 
 partial class TableEventStore<T>
 {
-	public async Task<bool> RestoreAsync(T aggregate, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
+	public async Task<bool> RestoreAsync(
+		T aggregate,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
 	{
 		if (aggregate == null)
 			throw NullAggregate(aggregate);
@@ -19,15 +23,20 @@ partial class TableEventStore<T>
 			Details =
 			{
 				AggregateVersion = aggregate.Details.CurrentVersion + 1,
-				When = DateTimeOffset.UtcNow
-			}
+				When = DateTimeOffset.UtcNow,
+			},
 		};
 		aggregate.ApplyEvent(restoreAggregateEvent);
 
 		if (aggregate.IsNew())
 			return false;
 
-		var result = await SaveCoreAsync(aggregate, operationContext, cancellationToken, restoreAggregateEvent);
+		var result = await SaveCoreAsync(
+			aggregate,
+			operationContext,
+			cancellationToken,
+			restoreAggregateEvent
+		);
 		return result.Saved;
 	}
 }

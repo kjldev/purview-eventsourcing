@@ -37,7 +37,8 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		IAggregateRequirementsManager aggregateRequirementsManager,
 		IMongoDBEventStoreStorageNameBuilder? storageNameBuilder = null,
 		FluentValidation.IValidator<T>? validator = null,
-		IAggregateIdFactory? aggregateIdFactory = null)
+		IAggregateIdFactory? aggregateIdFactory = null
+	)
 	{
 		_eventNameMapper = eventNameMapper;
 		_eventStoreOptions = mongoDbOptions;
@@ -55,27 +56,37 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		if (!aggregateName.Contains('.', StringComparison.InvariantCulture))
 			_aggregateTypeShortName = aggregateName;
 
-		_eventClient = new(mongoDBClientTelemetry, new StorageClients.MongoDBConfiguration
-		{
-			ApplicationName = mongoDbOptions.Value.ApplicationName,
-			Database = storageNameBuilder?.GetDatabaseName<T>() ?? mongoDbOptions.Value.Database,
-			Collection = storageNameBuilder?.GetEventsCollectionName<T>()
-				?? mongoDbOptions.Value.EventCollection
-				?? $"es-{_aggregateTypeShortName}-events",
-			ConnectionString = mongoDbOptions.Value.ConnectionString,
-			ReplicaName = mongoDbOptions.Value.ReplicaName
-		});
+		_eventClient = new(
+			mongoDBClientTelemetry,
+			new StorageClients.MongoDBConfiguration
+			{
+				ApplicationName = mongoDbOptions.Value.ApplicationName,
+				Database =
+					storageNameBuilder?.GetDatabaseName<T>() ?? mongoDbOptions.Value.Database,
+				Collection =
+					storageNameBuilder?.GetEventsCollectionName<T>()
+					?? mongoDbOptions.Value.EventCollection
+					?? $"es-{_aggregateTypeShortName}-events",
+				ConnectionString = mongoDbOptions.Value.ConnectionString,
+				ReplicaName = mongoDbOptions.Value.ReplicaName,
+			}
+		);
 
-		_snapshotClient = new(mongoDBClientTelemetry, new StorageClients.MongoDBConfiguration
-		{
-			ApplicationName = mongoDbOptions.Value.ApplicationName,
-			Database = storageNameBuilder?.GetDatabaseName<T>() ?? mongoDbOptions.Value.Database,
-			Collection = storageNameBuilder?.GetSnapshotCollectionName<T>()
-				?? mongoDbOptions.Value.SnapshotCollection
-				?? $"es-{_aggregateTypeShortName}-snapshots",
-			ConnectionString = mongoDbOptions.Value.ConnectionString,
-			ReplicaName = mongoDbOptions.Value.ReplicaName
-		});
+		_snapshotClient = new(
+			mongoDBClientTelemetry,
+			new StorageClients.MongoDBConfiguration
+			{
+				ApplicationName = mongoDbOptions.Value.ApplicationName,
+				Database =
+					storageNameBuilder?.GetDatabaseName<T>() ?? mongoDbOptions.Value.Database,
+				Collection =
+					storageNameBuilder?.GetSnapshotCollectionName<T>()
+					?? mongoDbOptions.Value.SnapshotCollection
+					?? $"es-{_aggregateTypeShortName}-snapshots",
+				ConnectionString = mongoDbOptions.Value.ConnectionString,
+				ReplicaName = mongoDbOptions.Value.ReplicaName,
+			}
+		);
 	}
 
 	public T FulfilRequirements(T aggregate)
@@ -85,22 +96,38 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		return aggregate;
 	}
 
-	async Task UpdateCacheAsync(T aggregate, DistributedCacheEntryOptions? cacheEntryOptions, CancellationToken cancellationToken = default)
+	async Task UpdateCacheAsync(
+		T aggregate,
+		DistributedCacheEntryOptions? cacheEntryOptions,
+		CancellationToken cancellationToken = default
+	)
 	{
 		cacheEntryOptions = GetCacheEntryOptions(cacheEntryOptions);
 
 		try
 		{
 			var cacheKey = CreateCacheKey(aggregate.Id());
-			if (aggregate.Details.Locked || (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache))
+			if (
+				aggregate.Details.Locked
+				|| (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache)
+			)
 				await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
 			else
 			{
-				if (!_eventStoreOptions.Value.CacheMode.HasFlag(EventStoreCachingOptions.StoreInCache))
+				if (
+					!_eventStoreOptions.Value.CacheMode.HasFlag(
+						EventStoreCachingOptions.StoreInCache
+					)
+				)
 					return;
 
 				var data = SerializeSnapshot(aggregate);
-				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
+				await _distributedCache.SetStringAsync(
+					cacheKey,
+					data,
+					cacheEntryOptions,
+					cancellationToken
+				);
 			}
 		}
 		catch (Exception ex)
@@ -109,19 +136,28 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		}
 	}
 
-	DistributedCacheEntryOptions GetCacheEntryOptions(DistributedCacheEntryOptions? cacheEntryOptions)
-		=> cacheEntryOptions ?? new()
-		{
-			SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration,
-		};
+	DistributedCacheEntryOptions GetCacheEntryOptions(
+		DistributedCacheEntryOptions? cacheEntryOptions
+	) =>
+		cacheEntryOptions
+		?? new() { SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration };
 
-	public async IAsyncEnumerable<string> GetAggregateIdsAsync(bool includeDeleted, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+	public async IAsyncEnumerable<string> GetAggregateIdsAsync(
+		bool includeDeleted,
+		[EnumeratorCancellation] CancellationToken cancellationToken = default
+	)
 	{
-		var whereClause = PredicateBuilder.New<StreamVersionEntity>(m => m.AggregateType == _aggregateTypeShortName && m.EntityType == EntityTypes.StreamVersionType);
+		var whereClause = PredicateBuilder.New<StreamVersionEntity>(m =>
+			m.AggregateType == _aggregateTypeShortName
+			&& m.EntityType == EntityTypes.StreamVersionType
+		);
 		if (!includeDeleted)
 			whereClause = PredicateBuilder.And<StreamVersionEntity>(whereClause, m => !m.IsDeleted);
 
-		var query = _eventClient.QueryEnumerableAsync<StreamVersionEntity>(whereClause, cancellationToken: cancellationToken);
+		var query = _eventClient.QueryEnumerableAsync<StreamVersionEntity>(
+			whereClause,
+			cancellationToken: cancellationToken
+		);
 		await foreach (var entity in query)
 		{
 			if (includeDeleted || !entity.IsDeleted)
@@ -129,7 +165,11 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		}
 	}
 
-	async Task<StreamVersionEntity?> GetStreamVersionAsync(string aggregateId, bool expectedToExist, CancellationToken cancellationToken)
+	async Task<StreamVersionEntity?> GetStreamVersionAsync(
+		string aggregateId,
+		bool expectedToExist,
+		CancellationToken cancellationToken
+	)
 	{
 		_eventStoreTelemetry.GetStreamVersionStart(aggregateId);
 
@@ -139,7 +179,12 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		{
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 
-			result = await _eventClient.GetAsync<StreamVersionEntity>(m => m.Id == CreateStreamVersionId(aggregateId) && m.EntityType == EntityTypes.StreamVersionType, cancellationToken);
+			result = await _eventClient.GetAsync<StreamVersionEntity>(
+				m =>
+					m.Id == CreateStreamVersionId(aggregateId)
+					&& m.EntityType == EntityTypes.StreamVersionType,
+				cancellationToken
+			);
 			sw.Stop();
 
 			elapsedMilliseconds = sw.ElapsedMilliseconds;
@@ -152,7 +197,12 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 					_eventStoreTelemetry.StreamVersionNotFound(aggregateId);
 			}
 			else
-				_eventStoreTelemetry.StreamVersionFound(aggregateId, result.Version, result.AggregateType, result.IsDeleted);
+				_eventStoreTelemetry.StreamVersionFound(
+					aggregateId,
+					result.Version,
+					result.AggregateType,
+					result.IsDeleted
+				);
 		}
 		catch (Exception ex)
 		{
@@ -164,7 +214,11 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		return result;
 	}
 
-	static bool ReturnAggregate(bool isDeleted, string aggregateId, EventStoreOperationContext context)
+	static bool ReturnAggregate(
+		bool isDeleted,
+		string aggregateId,
+		EventStoreOperationContext context
+	)
 	{
 		if (isDeleted)
 		{
@@ -180,17 +234,17 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		return true;
 	}
 
-	string CreateStreamVersionId(string aggregateId)
-		=> $"s_{_aggregateTypeShortName}_{aggregateId}";
+	string CreateStreamVersionId(string aggregateId) =>
+		$"s_{_aggregateTypeShortName}_{aggregateId}";
 
-	string CreateEventId(string aggregateId, int version)
-		=> $"e_{_aggregateTypeShortName}_{aggregateId}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
+	string CreateEventId(string aggregateId, int version) =>
+		$"e_{_aggregateTypeShortName}_{aggregateId}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
 
-	string CreateIdempotencyCheckId(string aggregateId, string idempotencyId)
-		=> $"i_{_aggregateTypeShortName}_{aggregateId}_{idempotencyId}";
+	string CreateIdempotencyCheckId(string aggregateId, string idempotencyId) =>
+		$"i_{_aggregateTypeShortName}_{aggregateId}_{idempotencyId}";
 
-	public string CreateCacheKey(string aggregateId)
-		=> $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+	public string CreateCacheKey(string aggregateId) =>
+		$"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
 
 	public void Dispose()
 	{

@@ -5,6 +5,4 @@ namespace Purview.EventSourcing.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 public interface INonQueryableEventStore<T> : IEventStore<T>
-	where T : class, IAggregate, new()
-{
-}
+	where T : class, IAggregate, new() { }

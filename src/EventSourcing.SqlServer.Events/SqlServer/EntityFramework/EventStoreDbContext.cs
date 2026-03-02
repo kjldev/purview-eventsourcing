@@ -22,14 +22,16 @@ public class EventStoreDbContext : DbContext
 	/// Schema and table names default to "dbo" and "EventStore".
 	/// </summary>
 	public EventStoreDbContext(DbContextOptions<EventStoreDbContext> options)
-		: this(options, "dbo", "EventStore")
-	{
-	}
+		: this(options, "dbo", "EventStore") { }
 
 	/// <summary>
 	/// Creates a new <see cref="EventStoreDbContext"/> with explicit schema and table names.
 	/// </summary>
-	public EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName)
+	public EventStoreDbContext(
+		DbContextOptions<EventStoreDbContext> options,
+		string schemaName,
+		string tableName
+	)
 		: base(options)
 	{
 		_schemaName = schemaName;
@@ -57,18 +59,47 @@ public class EventStoreDbContext : DbContext
 			entity.Property(e => e.Timestamp).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
 
 			// Covers: GetByAggregateIdAndEntityType, GetIdempotencyMarkers, DeleteByAggregateId
-			entity.HasIndex(e => new { e.AggregateId, e.EntityType })
+			entity
+				.HasIndex(e => new { e.AggregateId, e.EntityType })
 				.HasDatabaseName($"IX_{_tableName}_AggregateId_EntityType")
-				.IncludeProperties(e => new { e.Version, e.IsDeleted, e.AggregateType, e.EventType, e.IdempotencyId, e.Timestamp });
+				.IncludeProperties(e => new
+				{
+					e.Version,
+					e.IsDeleted,
+					e.AggregateType,
+					e.EventType,
+					e.IdempotencyId,
+					e.Timestamp,
+				});
 
 			// Covers: GetEventRange (AggregateId + EntityType=1 + Version range, ORDER BY Version)
-			entity.HasIndex(e => new { e.AggregateId, e.EntityType, e.Version })
+			entity
+				.HasIndex(e => new
+				{
+					e.AggregateId,
+					e.EntityType,
+					e.Version,
+				})
 				.HasDatabaseName($"IX_{_tableName}_EventRange")
 				.HasFilter("[EntityType] = 1")
-				.IncludeProperties(e => new { e.Payload, e.EventType, e.IdempotencyId, e.IsDeleted, e.AggregateType, e.Timestamp });
+				.IncludeProperties(e => new
+				{
+					e.Payload,
+					e.EventType,
+					e.IdempotencyId,
+					e.IsDeleted,
+					e.AggregateType,
+					e.Timestamp,
+				});
 
 			// Covers: GetAggregateIdsAsync (AggregateType + EntityType + optional IsDeleted filter)
-			entity.HasIndex(e => new { e.AggregateType, e.EntityType, e.IsDeleted })
+			entity
+				.HasIndex(e => new
+				{
+					e.AggregateType,
+					e.EntityType,
+					e.IsDeleted,
+				})
 				.HasDatabaseName($"IX_{_tableName}_AggregateType_EntityType")
 				.IncludeProperties(e => new { e.AggregateId });
 		});

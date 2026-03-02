@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "Purview.EventSourcing.slnx",
+    "projects": [
+      "EventSourcing.IntegrationTests\\EventSourcing.IntegrationTests.csproj",
+      "EventSourcing.UnitTests\\EventSourcing.UnitTests.csproj"
+    ]
+  }
+}

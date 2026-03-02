@@ -1,14 +1,15 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.MongoDB.StorageClients;
 using Purview.EventSourcing.Services;
 using Testcontainers.MongoDb;
+using TUnit.Core.Interfaces;
 
 namespace Purview.EventSourcing.MongoDB;
 
-public sealed class MongoDBEventStoreFixture : IAsyncLifetime
+public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
 	readonly MongoDbContainer _mongoDBContainer;
 
@@ -31,11 +32,13 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
 		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1)
+		int snapshotRecalculationInterval = 1
+	)
 		where TAggregate : class, IAggregate, new()
 	{
 		var runId = Guid.NewGuid();
-		var runIds = Enumerable.Range(1, correlationIdsToGenerate)
+		var runIds = Enumerable
+			.Range(1, correlationIdsToGenerate)
 			.Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant())
 			.ToArray();
 
@@ -57,7 +60,7 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 			ReplicaName = "rs0",
 			TimeoutInSeconds = 60,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
-			SnapshotInterval = snapshotRecalculationInterval
+			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
 		var mongoDBClientTelemetry = Substitute.For<IMongoDBClientTelemetry>();
@@ -65,7 +68,8 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 			eventNameMapper: _eventNameMapper,
 			mongoDbOptions: Microsoft.Extensions.Options.Options.Create(mongoDBOptions),
 			distributedCache: Cache,
-			aggregateChangeNotifier: aggregateChangeNotifier ?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
+			aggregateChangeNotifier: aggregateChangeNotifier
+				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
 			eventStoreTelemetry: Telemetry,
 			mongoDBClientTelemetry: mongoDBClientTelemetry,
 			aggregateRequirementsManager: aggregateRequirementsManager
@@ -73,18 +77,16 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 
 		EventClient = new(
 			mongoDBClientTelemetry,
-			new()
-			{
-				ConnectionString = mongoDBOptions.ConnectionString,
-				ReplicaName = mongoDBOptions.ReplicaName
-			}, mongoDBOptions.Database, mongoDBOptions.EventCollection);
+			new() { ConnectionString = mongoDBOptions.ConnectionString, ReplicaName = mongoDBOptions.ReplicaName },
+			mongoDBOptions.Database,
+			mongoDBOptions.EventCollection
+		);
 		SnapshotClient = new(
 			mongoDBClientTelemetry,
-			new()
-			{
-				ConnectionString = mongoDBOptions.ConnectionString,
-				ReplicaName = mongoDBOptions.ReplicaName
-			}, mongoDBOptions.Database, mongoDBOptions.SnapshotCollection);
+			new() { ConnectionString = mongoDBOptions.ConnectionString, ReplicaName = mongoDBOptions.ReplicaName },
+			mongoDBOptions.Database,
+			mongoDBOptions.SnapshotCollection
+		);
 
 		return eventStore;
 	}
@@ -92,14 +94,12 @@ public sealed class MongoDBEventStoreFixture : IAsyncLifetime
 	public static IDistributedCache CreateDistributedCache()
 	{
 		var cache = Substitute.For<IDistributedCache>();
-		cache
-			.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-			.ReturnsNullForAnyArgs();
+		cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).ReturnsNullForAnyArgs();
 
 		return cache;
 	}
 
-	public async ValueTask InitializeAsync()
+	public async Task InitializeAsync()
 	{
 		await _mongoDBContainer.StartAsync();
 	}

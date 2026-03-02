@@ -89,7 +89,10 @@ public sealed class AggregateDetails : ICloneable
 		set
 		{
 			if (_locked && !value)
-				throw new LockedException(Id, "This aggregate is locked, changing the locked state is not permitted.");
+				throw new LockedException(
+					Id,
+					"This aggregate is locked, changing the locked state is not permitted."
+				);
 
 			_locked = value;
 		}
@@ -99,8 +102,8 @@ public sealed class AggregateDetails : ICloneable
 	/// Clones the <see cref="AggregateDetails"/> class to a new instance.
 	/// </summary>
 	/// <returns>A cloned instance of the current <see cref="AggregateDetails"/>.</returns>
-	public object Clone()
-		=> new AggregateDetails
+	public object Clone() =>
+		new AggregateDetails
 		{
 			_id = _id,
 			Created = Created,
@@ -109,14 +112,14 @@ public sealed class AggregateDetails : ICloneable
 			CurrentVersion = CurrentVersion,
 			IsDeleted = IsDeleted,
 			Etag = Etag,
-			Locked = Locked
+			Locked = Locked,
 		};
 
 	/// <summary>
 	/// Generates a hash-code based on the properties of the <see cref="AggregateDetails"/>.
 	/// </summary>
-	public override int GetHashCode()
-		=> HashCode.Combine(
+	public override int GetHashCode() =>
+		HashCode.Combine(
 			Id,
 			Created,
 			SnapshotVersion,

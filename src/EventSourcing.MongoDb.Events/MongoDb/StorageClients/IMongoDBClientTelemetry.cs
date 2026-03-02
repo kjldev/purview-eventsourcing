@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using Purview.Telemetry.Logging;
+using Purview.Telemetry;
 
 namespace Purview.EventSourcing.MongoDB.StorageClients;
 

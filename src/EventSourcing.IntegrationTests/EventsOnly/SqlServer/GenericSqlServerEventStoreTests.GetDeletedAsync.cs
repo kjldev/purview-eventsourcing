@@ -1,10 +1,12 @@
-namespace Purview.EventSourcing.SqlServer;
+﻿namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
 	public async Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate()
 	{
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
@@ -14,7 +16,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 
 		var result = await eventStore.GetDeletedAsync(aggregateId, cancellationToken: tokenSource.Token);
 
-		result.ShouldNotBeNull();
-		result.Details.IsDeleted.ShouldBeTrue();
+		await Assert.That(result).IsNotNull();
+		await Assert.That(result.Details.IsDeleted).IsTrue();
 	}
 }

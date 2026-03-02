@@ -11,17 +11,18 @@ sealed class MongoDBAggregateSerializationProvider : IBsonSerializationProvider
 
 	public IBsonSerializer GetSerializer(Type type)
 	{
-		return AggregateInterfaceType.IsAssignableFrom(type)
-			? GetOrCreateSerializer(type)
-			: null!;
+		return AggregateInterfaceType.IsAssignableFrom(type) ? GetOrCreateSerializer(type) : null!;
 	}
 
 	static IBsonSerializer GetOrCreateSerializer(Type type)
 	{
-		return Serializers.GetOrAdd(type, t =>
-		{
-			var serializerType = typeof(MongoDBAggregateSerializer<>).MakeGenericType(t);
-			return (IBsonSerializer)Activator.CreateInstance(serializerType)!;
-		});
+		return Serializers.GetOrAdd(
+			type,
+			t =>
+			{
+				var serializerType = typeof(MongoDBAggregateSerializer<>).MakeGenericType(t);
+				return (IBsonSerializer)Activator.CreateInstance(serializerType)!;
+			}
+		);
 	}
 }

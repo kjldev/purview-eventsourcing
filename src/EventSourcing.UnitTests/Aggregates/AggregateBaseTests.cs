@@ -5,17 +5,13 @@ namespace Purview.EventSourcing.Aggregates;
 
 public partial class AggregateBaseTests
 {
-	[Fact]
-	public void GetHashCode_GivenIdentificationEvents_GeneratesIdenticalHashCodes()
+	[Test]
+	public async Task GetHashCode_GivenIdentificationEvents_GeneratesIdenticalHashCodes()
 	{
 		// Arrange
 		static AppendToReadOnlyDictionaryEvent Generate()
 		{
-			AppendToReadOnlyDictionaryEvent @event = new()
-			{
-				Key = "a-key",
-				Values = ["a-value", "another-value"]
-			};
+			AppendToReadOnlyDictionaryEvent @event = new() { Key = "a-key", Values = ["a-value", "another-value"] };
 
 			return @event;
 		}
@@ -28,11 +24,11 @@ public partial class AggregateBaseTests
 		var event2HashCode = event2.GetHashCode();
 
 		// Assert
-		event1HashCode.ShouldBe(event2HashCode);
+		await Assert.That(event1HashCode).IsEqualTo(event2HashCode);
 	}
 
-	[Fact]
-	public void Register_GivenEventTypeNotEndingWithEvent_ThrowsInvalidOperationException()
+	[Test]
+	public async Task Register_GivenEventTypeNotEndingWithEvent_ThrowsInvalidOperationException()
 	{
 		// Arrange/ Act
 		var act = () =>
@@ -41,12 +37,12 @@ public partial class AggregateBaseTests
 		};
 
 		// Assert
-		var ex = act.ShouldThrow<InvalidOperationException>();
-		ex.Message.ShouldContain(typeof(InvalidEventType).FullName!);
+		var ex = await Assert.That(act).Throws<InvalidOperationException>();
+		await Assert.That(ex.Message).Contains(typeof(InvalidEventType).FullName!);
 	}
 
-	[Fact]
-	public void RecordEvent_GivenEvent_AppliesEvent()
+	[Test]
+	public async Task RecordEvent_GivenEvent_AppliesEvent()
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -55,11 +51,11 @@ public partial class AggregateBaseTests
 		aggregate.RecordEvent();
 
 		// Assert
-		aggregate.EventRecorded.ShouldBeTrue();
+		await Assert.That(aggregate.EventRecorded).IsTrue();
 	}
 
-	[Fact]
-	public void GetUnsavedEvents_GivenEvent_RecordsOneEventToBeRecorded()
+	[Test]
+	public async Task GetUnsavedEvents_GivenEvent_RecordsOneEventToBeRecorded()
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -70,14 +66,18 @@ public partial class AggregateBaseTests
 		var events = aggregate.GetUnsavedEvents();
 
 		// Assert
-		events.ShouldHaveSingleItem();
+		await Assert.That(events).HasSingleItem();
 	}
 
-	[Theory]
-	[InlineData(10, 5, 5)]
-	[InlineData(100, 50, 50)]
-	[InlineData(100, 100, 0)]
-	public void ClearUnsavedEvents_GivenEventsAndClearEventsCalledWithSpecificVersion_ClearEventsThatAreGreaterThanOrOrEqualToSpecifiedVersion(int eventsToCreate, int versionToClear, int expectedVersion)
+	[Test]
+	[Arguments(10, 5, 5)]
+	[Arguments(100, 50, 50)]
+	[Arguments(100, 100, 0)]
+	public async Task ClearUnsavedEvents_GivenEventsAndClearEventsCalledWithSpecificVersion_ClearEventsThatAreGreaterThanOrOrEqualToSpecifiedVersion(
+		int eventsToCreate,
+		int versionToClear,
+		int expectedVersion
+	)
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -88,12 +88,12 @@ public partial class AggregateBaseTests
 		aggregate.ClearUnsavedEvents(versionToClear);
 
 		// Assert
-		aggregate.Details.CurrentVersion.ShouldBe(expectedVersion);
-		aggregate.GetUnsavedEvents().ShouldHaveCount(expectedVersion);
+		await Assert.That(aggregate.Details.CurrentVersion).IsEqualTo(expectedVersion);
+		await Assert.That(aggregate.GetUnsavedEvents()).HasCount(expectedVersion);
 	}
 
-	[Fact]
-	public void ClearUnsavedEvents_GivenEventsAndClearEventsCalledWithNull_ClearEventsAllEvents()
+	[Test]
+	public async Task ClearUnsavedEvents_GivenEventsAndClearEventsCalledWithNull_ClearEventsAllEvents()
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -105,15 +105,18 @@ public partial class AggregateBaseTests
 		aggregate.ClearUnsavedEvents();
 
 		// Assert
-		aggregate.GetUnsavedEvents().ShouldBeEmpty();
+		await Assert.That(aggregate.GetUnsavedEvents()).IsEmpty();
 	}
 
-	[Theory]
-	[InlineData(4, 8)]
-	[InlineData(4, 100)]
-	[InlineData(100, 101)]
-	[InlineData(100, 1001)]
-	public void ClearUnsavedEvents_GivenClearValueIsGreaterThanEventDetailsAggregateVersion_SetsUpToSavedVersion(int eventsToCreate, int versionToClear)
+	[Test]
+	[Arguments(4, 8)]
+	[Arguments(4, 100)]
+	[Arguments(100, 101)]
+	[Arguments(100, 1001)]
+	public async Task ClearUnsavedEvents_GivenClearValueIsGreaterThanEventDetailsAggregateVersion_SetsUpToSavedVersion(
+		int eventsToCreate,
+		int versionToClear
+	)
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -124,15 +127,18 @@ public partial class AggregateBaseTests
 		aggregate.ClearUnsavedEvents(versionToClear);
 
 		// Assert
-		aggregate.Details.SavedVersion.ShouldBe(0);
+		await Assert.That(aggregate.Details.SavedVersion).IsEqualTo(0);
 	}
 
-	[Theory]
-	[InlineData(4, 8)]
-	[InlineData(4, 100)]
-	[InlineData(100, 101)]
-	[InlineData(100, 1001)]
-	public void ClearUnsavedEvents_GivenClearValueIsGreaterThanEventDetailsAggregateVersionAndValuesPreviousSaved_SetsCurrentVersionTo0(int eventsToCreate, int versionToClear)
+	[Test]
+	[Arguments(4, 8)]
+	[Arguments(4, 100)]
+	[Arguments(100, 101)]
+	[Arguments(100, 1001)]
+	public async Task ClearUnsavedEvents_GivenClearValueIsGreaterThanEventDetailsAggregateVersionAndValuesPreviousSaved_SetsCurrentVersionTo0(
+		int eventsToCreate,
+		int versionToClear
+	)
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -143,15 +149,15 @@ public partial class AggregateBaseTests
 		aggregate.ClearUnsavedEvents(versionToClear);
 
 		// Assert
-		aggregate.Details.CurrentVersion.ShouldBe(0);
-		aggregate.HasUnsavedEvents().ShouldBeFalse();
+		await Assert.That(aggregate.Details.CurrentVersion).IsEqualTo(0);
+		await Assert.That(aggregate.HasUnsavedEvents()).IsFalse();
 	}
 
-	[Theory]
-	[InlineData(0)]
-	[InlineData(10)]
-	[InlineData(100)]
-	public void DetailsCurrentVersion_GivenEvents_IncrementsCurrentVersion(int eventCount)
+	[Test]
+	[Arguments(0)]
+	[Arguments(10)]
+	[Arguments(100)]
+	public async Task DetailsCurrentVersion_GivenEvents_IncrementsCurrentVersion(int eventCount)
 	{
 		// Arrange
 		var aggregate = CreateTestAggregate();
@@ -161,18 +167,12 @@ public partial class AggregateBaseTests
 			aggregate.Increment();
 
 		// Assert
-		aggregate.Details.CurrentVersion.ShouldBe(eventCount);
+		await Assert.That(aggregate.Details.CurrentVersion).IsEqualTo(eventCount);
 	}
 
 	static TestAggregate CreateTestAggregate(string? id = null)
 	{
-		TestAggregate aggregate = new()
-		{
-			Details =
-			{
-				Id = id ?? Guid.NewGuid().ToString()
-			}
-		};
+		TestAggregate aggregate = new() { Details = { Id = id ?? Guid.NewGuid().ToString() } };
 
 		return aggregate;
 	}

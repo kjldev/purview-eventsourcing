@@ -18,5 +18,5 @@ public enum ExistsStatus
 	/// <summary>
 	/// The aggregate exists, but is in a deleted state.
 	/// </summary>
-	ExistsInDeletedState
+	ExistsInDeletedState,
 }

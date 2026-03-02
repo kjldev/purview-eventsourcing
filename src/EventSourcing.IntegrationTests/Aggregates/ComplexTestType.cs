@@ -10,7 +10,8 @@ public class ComplexTestType
 
 	public string StringProperty { get; set; } = $"{Guid.NewGuid()}";
 
-	public DateTimeOffset DateTimeOffsetProperty { get; set; } = DateTimeOffset.UtcNow.AddYears(1000);
+	public DateTimeOffset DateTimeOffsetProperty { get; set; } =
+		DateTimeOffset.UtcNow.AddYears(1000);
 
 	public ComplexNestedTestType ComplexNestedTestTypeProperty { get; set; } = new();
 

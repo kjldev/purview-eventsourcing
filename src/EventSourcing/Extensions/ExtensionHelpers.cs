@@ -28,9 +28,7 @@ static class ExtensionHelpers
 	{
 		@default.Guard();
 
-		return string.IsNullOrWhiteSpace(value)
-			? $"{@default}"
-			: value;
+		return string.IsNullOrWhiteSpace(value) ? $"{@default}" : value;
 	}
 
 	/// <summary>
@@ -42,7 +40,10 @@ static class ExtensionHelpers
 	/// <param name="paramName">The name of the parameter.</param>
 	[StackTraceHidden]
 	[return: NotNull]
-	public static T Guard<T>([NotNull] this T? value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
+	public static T Guard<T>(
+		[NotNull] this T? value,
+		[CallerArgumentExpression(nameof(value))] string? paramName = null
+	)
 	{
 		ArgumentNullException.ThrowIfNull(value, paramName);
 
@@ -58,7 +59,11 @@ static class ExtensionHelpers
 	/// <param name="paramName">The name of the parameter.</param>
 	/// <param name="trimWhitespaceToNull">If true, trims the value to null if it's empty or whitespace.</param>
 	[StackTraceHidden]
-	public static string Guard(this string? value, [CallerArgumentExpression(nameof(value))] string? paramName = null, bool trimWhitespaceToNull = true)
+	public static string Guard(
+		this string? value,
+		[CallerArgumentExpression(nameof(value))] string? paramName = null,
+		bool trimWhitespaceToNull = true
+	)
 	{
 		if (trimWhitespaceToNull)
 			value = value.OrNull();
@@ -74,8 +79,6 @@ static class ExtensionHelpers
 	/// </summary>
 	/// <param name="item">The item to check.</param>
 	/// <returns>The string value, or null.</returns>
-	public static string? OrNull(this string? item)
-		=> string.IsNullOrWhiteSpace(item)
-			? null
-			: item;
+	public static string? OrNull(this string? item) =>
+		string.IsNullOrWhiteSpace(item) ? null : item;
 }

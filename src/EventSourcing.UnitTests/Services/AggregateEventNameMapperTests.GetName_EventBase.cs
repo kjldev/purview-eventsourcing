@@ -2,8 +2,8 @@
 
 partial class AggregateEventNameMapperTests
 {
-	[Fact]
-	public void GetName_GivenEventInstanceWithDefinedName_ReturnsFullTypeName()
+	[Test]
+	public async Task GetName_GivenEventInstanceWithDefinedName_ReturnsFullTypeName()
 	{
 		// Arrange
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
@@ -13,11 +13,11 @@ partial class AggregateEventNameMapperTests
 		var result = mapper.GetName<CorrectlyNamedAggregate>(@event);
 
 		// Assert
-		result.ShouldBe($"{CorrectlyNamedAggregateName}.event-type-ending-in");
+		await Assert.That(result).IsEqualTo($"{CorrectlyNamedAggregateName}.event-type-ending-in");
 	}
 
-	[Fact]
-	public void GetName_GivenEventInstanceWithNoDefinedName_ReturnsFullTypeName()
+	[Test]
+	public async Task GetName_GivenEventInstanceWithNoDefinedName_ReturnsFullTypeName()
 	{
 		// Arrange
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
@@ -27,24 +27,30 @@ partial class AggregateEventNameMapperTests
 		var result = mapper.GetName<CorrectlyNamedAggregate>(@event);
 
 		// Assert
-		result.ShouldBe(typeof(EventTypeNotEndingInEvent2).FullName);
+		await Assert.That(result).IsEqualTo(typeof(EventTypeNotEndingInEvent2).FullName);
 	}
 
-	[Theory]
-	[InlineData("Purview.Services.UserProfile.Aggregates.UserProfile.Events.ClearProfileAttributesEvent, EventSourcing.UnitTests", "clear-profile-attributes")]
-	[InlineData("Purview.Services.UserProfile.Aggregates.UserProfile.Events.ClearRolesEvent, EventSourcing.UnitTests", "clear-roles")]
-	public void GetName_GivenEventName_MatchesExpectation(string eventType, string expectation)
+	[Test]
+	[Arguments(
+		"Purview.Services.UserProfile.Aggregates.UserProfile.Events.ClearProfileAttributesEvent, EventSourcing.UnitTests",
+		"clear-profile-attributes"
+	)]
+	[Arguments(
+		"Purview.Services.UserProfile.Aggregates.UserProfile.Events.ClearRolesEvent, EventSourcing.UnitTests",
+		"clear-roles"
+	)]
+	public async Task GetName_GivenEventName_MatchesExpectation(string eventType, string expectation)
 	{
 		// Arrange
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
 
 		// Act
 		var aggregateEventType = Type.GetType(eventType, true);
-		aggregateEventType.ShouldNotBeNull();
+		await Assert.That(aggregateEventType).IsNotNull();
 
 		var result = mapper.GetName<CorrectlyNamedAggregate>(aggregateEventType!);
 
 		// Assert
-		result.ShouldBe($"{CorrectlyNamedAggregateName}.{expectation}");
+		await Assert.That(result).IsEqualTo($"{CorrectlyNamedAggregateName}.{expectation}");
 	}
 }

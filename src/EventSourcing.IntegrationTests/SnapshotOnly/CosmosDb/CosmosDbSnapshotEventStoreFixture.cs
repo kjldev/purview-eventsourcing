@@ -1,6 +1,8 @@
-﻿namespace Purview.EventSourcing.SnapshotOnly.CosmosDb;
+using TUnit.Core.Interfaces;
 
-public class CosmosDbSnapshotEventStoreFixture : IAsyncLifetime
+namespace Purview.EventSourcing.SnapshotOnly.CosmosDb;
+
+public class CosmosDbSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
 	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer;
 	readonly Testcontainers.CosmosDb.CosmosDbContainer _cosmosDbContainer;
@@ -16,7 +18,8 @@ public class CosmosDbSnapshotEventStoreFixture : IAsyncLifetime
 		CosmosDbSnapshotEventStoreContext eventStoreContext = new(
 			_cosmosDbContainer.GetConnectionString(),
 			_cosmosDbContainer.HttpClient,
-			_azuriteContainer.GetConnectionString());
+			_azuriteContainer.GetConnectionString()
+		);
 
 		eventStoreContext.CreateCosmosDbEventStore(correlationIdsToGenerate: correlationIdsToGenerate);
 
@@ -31,7 +34,7 @@ public class CosmosDbSnapshotEventStoreFixture : IAsyncLifetime
 		await _cosmosDbContainer.DisposeAsync().AsTask();
 	}
 
-	public async ValueTask InitializeAsync()
+	public async Task InitializeAsync()
 	{
 		await _azuriteContainer.StartAsync();
 		await _cosmosDbContainer.StartAsync();

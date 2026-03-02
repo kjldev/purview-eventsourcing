@@ -6,7 +6,12 @@ namespace Purview.EventSourcing.MongoDB.StorageClients;
 
 partial class MongoDBClient
 {
-	public async Task<ContinuationResponse<T>> QueryAsync<T>(Expression<Func<T, bool>> whereClause, Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> QueryAsync<T>(
+		Expression<Func<T, bool>> whereClause,
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
@@ -25,15 +30,18 @@ partial class MongoDBClient
 		{
 			Results = itemResults,
 			RequestedCount = request.MaxRecords,
-			ContinuationToken = itemResults.Length == 0 ?
-				null :
-				$"{skipCount + request.MaxRecords}"
+			ContinuationToken =
+				itemResults.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
 		};
 
 		return response;
 	}
 
-	public async Task<ContinuationResponse<T>> ListAsync<T>(Func<IQueryable<T>, IQueryable<T>>? orderByClause, ContinuationRequest request, CancellationToken cancellationToken = default)
+	public async Task<ContinuationResponse<T>> ListAsync<T>(
+		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
+		ContinuationRequest request,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
@@ -52,15 +60,17 @@ partial class MongoDBClient
 		{
 			Results = itemResults,
 			RequestedCount = request.MaxRecords,
-			ContinuationToken = itemResults.Length == 0 ?
-				null :
-				$"{skipCount + request.MaxRecords}"
+			ContinuationToken =
+				itemResults.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
 		};
 
 		return response;
 	}
 
-	public Task<long> CountAsync<T>(Expression<Func<T, bool>>? whereClause, CancellationToken cancellationToken = default)
+	public Task<long> CountAsync<T>(
+		Expression<Func<T, bool>>? whereClause,
+		CancellationToken cancellationToken = default
+	)
 		where T : class
 	{
 		var queryable = GetCollection<T>().AsQueryable();

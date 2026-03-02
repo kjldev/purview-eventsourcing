@@ -21,19 +21,16 @@ public static class IEventStoreExtensions
 	/// <param name="aggregateId">The id to use, or null with either the specified or a generated id.</param>
 	/// <returns>A new aggregate of <typeparamref name="T"/>.</returns>
 	/// <remarks>Calls <see cref="IEventStore{T}.FulfilRequirements(T)"/> to apply any requirements.</remarks>
-	public static T QuickCreate<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId = null)
+	public static T QuickCreate<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId = null
+	)
 		where T : class, IAggregate, new()
 	{
 		if (string.IsNullOrWhiteSpace(aggregateId))
 			aggregateId = $"{Guid.NewGuid()}".ToLowerSafe();
 
-		var aggregate = new T
-		{
-			Details = new()
-			{
-				Id = aggregateId
-			}
-		};
+		var aggregate = new T { Details = new() { Id = aggregateId } };
 
 		eventStore.FulfilRequirements(aggregate);
 
@@ -41,10 +38,13 @@ public static class IEventStoreExtensions
 	}
 
 	public static T QuickCreate<T>(this IEventStore<T> eventStore, object? aggregateId)
-		where T : class, IAggregate, new()
-		=> eventStore.QuickCreate(aggregateId?.ToString());
+		where T : class, IAggregate, new() => eventStore.QuickCreate(aggregateId?.ToString());
 
-	public static T QuickCreate<T>(this IEventStore<T> eventStore, string? aggregateId, [NotNull] Action<T> creator)
+	public static T QuickCreate<T>(
+		this IEventStore<T> eventStore,
+		string? aggregateId,
+		[NotNull] Action<T> creator
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = eventStore.QuickCreate(aggregateId);
@@ -54,11 +54,20 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static T QuickCreate<T>(this IEventStore<T> eventStore, object? aggregateId, Action<T> creator)
-		where T : class, IAggregate, new()
-		=> eventStore.QuickCreate(aggregateId?.ToString(), creator);
+	public static T QuickCreate<T>(
+		this IEventStore<T> eventStore,
+		object? aggregateId,
+		Action<T> creator
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.QuickCreate(aggregateId?.ToString(), creator);
 
-	public static async Task<T> QuickCreateAsync<T>(this IEventStore<T> eventStore, string? aggregateId, [NotNull] Func<T, CancellationToken, Task> creator, CancellationToken cancellationToken = default)
+	public static async Task<T> QuickCreateAsync<T>(
+		this IEventStore<T> eventStore,
+		string? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = eventStore.QuickCreate(aggregateId);
@@ -68,7 +77,12 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static async Task<T> QuickCreateAsync<T>(this IEventStore<T> eventStore, object? aggregateId, [NotNull] Func<T, CancellationToken, Task> creator, CancellationToken cancellationToken = default)
+	public static async Task<T> QuickCreateAsync<T>(
+		this IEventStore<T> eventStore,
+		object? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = eventStore.QuickCreate(aggregateId?.ToString());
@@ -84,7 +98,13 @@ public static class IEventStoreExtensions
 
 	#region id: string, with context.
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId, [NotNull] Func<T, CancellationToken, Task> creator, EventStoreOperationContext? context, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.GetOrCreateAsync(aggregateId, context, cancellationToken);
@@ -94,7 +114,13 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId, [NotNull] Action<T> creator, EventStoreOperationContext? context, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId,
+		[NotNull] Action<T> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.GetOrCreateAsync(aggregateId, context, cancellationToken);
@@ -108,11 +134,20 @@ public static class IEventStoreExtensions
 
 	#region id: string, without context.
 
-	public static Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.GetOrCreateAsync(aggregateId, null, cancellationToken);
+	public static Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetOrCreateAsync(aggregateId, null, cancellationToken);
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId, [NotNull] Func<T, CancellationToken, Task> creator, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.GetOrCreateAsync(aggregateId, null, cancellationToken);
@@ -122,7 +157,12 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId, [NotNull] Action<T> creator, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId,
+		[NotNull] Action<T> creator,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.GetOrCreateAsync(aggregateId, null, cancellationToken);
@@ -136,24 +176,49 @@ public static class IEventStoreExtensions
 
 	#region id: object, with context.
 
-	public static Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.GetOrCreateAsync(aggregateId?.ToString(), operationContext, cancellationToken);
+	public static Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetOrCreateAsync(aggregateId?.ToString(), operationContext, cancellationToken);
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId, [NotNull] Func<T, CancellationToken, Task> creator, EventStoreOperationContext? context, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
-		var aggregate = await eventStore.GetOrCreateAsync(aggregateId?.ToString(), context, cancellationToken);
+		var aggregate = await eventStore.GetOrCreateAsync(
+			aggregateId?.ToString(),
+			context,
+			cancellationToken
+		);
 		if (aggregate?.IsNew() == true)
 			await creator(aggregate, cancellationToken);
 
 		return aggregate;
 	}
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId, [NotNull] Action<T> creator, EventStoreOperationContext? context, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId,
+		[NotNull] Action<T> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
-		var aggregate = await eventStore.GetOrCreateAsync(aggregateId?.ToString(), context, cancellationToken);
+		var aggregate = await eventStore.GetOrCreateAsync(
+			aggregateId?.ToString(),
+			context,
+			cancellationToken
+		);
 		if (aggregate != null)
 			creator(aggregate);
 
@@ -164,21 +229,39 @@ public static class IEventStoreExtensions
 
 	#region id: object, no context.
 
-	public static Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.GetOrCreateAsync(aggregateId?.ToString(), null, cancellationToken);
+	public static Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetOrCreateAsync(aggregateId?.ToString(), null, cancellationToken);
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId, [NotNull] Func<T, CancellationToken, Task> creator, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
-		var aggregate = await eventStore.GetOrCreateAsync(aggregateId?.ToString(), null, cancellationToken);
+		var aggregate = await eventStore.GetOrCreateAsync(
+			aggregateId?.ToString(),
+			null,
+			cancellationToken
+		);
 		if (aggregate?.IsNew() == true)
 			await creator(aggregate, cancellationToken);
 
 		return aggregate;
 	}
 
-	public static async Task<T?> GetOrCreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? id, [NotNull] Action<T> creator, CancellationToken cancellationToken = default)
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? id,
+		[NotNull] Action<T> creator,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.GetOrCreateAsync(id?.ToString(), null, cancellationToken);
@@ -194,7 +277,12 @@ public static class IEventStoreExtensions
 
 	#region CreateAsync
 
-	public static async Task<T> CreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId = null, Func<T, CancellationToken, Task>? creator = null, CancellationToken cancellationToken = default)
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId = null,
+		Func<T, CancellationToken, Task>? creator = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
@@ -204,7 +292,12 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static async Task<T> CreateAsync<T>([NotNull] this IEventStore<T> eventStore, string? aggregateId = null, Action<T>? creator = null, CancellationToken cancellationToken = default)
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? aggregateId = null,
+		Action<T>? creator = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
@@ -213,11 +306,20 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static Task<T> CreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId = null, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.CreateAsync(aggregateId?.ToString(), cancellationToken);
+	public static Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId = null,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.CreateAsync(aggregateId?.ToString(), cancellationToken);
 
-	public static async Task<T> CreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId = null, Func<T, CancellationToken, Task>? creator = null, CancellationToken cancellationToken = default)
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId = null,
+		Func<T, CancellationToken, Task>? creator = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.CreateAsync(aggregateId?.ToString(), cancellationToken);
@@ -227,7 +329,12 @@ public static class IEventStoreExtensions
 		return aggregate;
 	}
 
-	public static async Task<T> CreateAsync<T>([NotNull] this IEventStore<T> eventStore, object? aggregateId = null, Action<T>? creator = null, CancellationToken cancellationToken = default)
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object? aggregateId = null,
+		Action<T>? creator = null,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var aggregate = await eventStore.CreateAsync(aggregateId?.ToString(), cancellationToken);
@@ -240,11 +347,19 @@ public static class IEventStoreExtensions
 
 	#region GetAsync
 
-	public static Task<T?> GetAsync<T>([NotNull] this IEventStore<T> eventStore, string aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.GetAsync(aggregateId, null, cancellationToken);
+	public static Task<T?> GetAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetAsync(aggregateId, null, cancellationToken);
 
-	public static Task<T?> GetAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, CancellationToken cancellationToken = default)
+	public static Task<T?> GetAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -253,7 +368,12 @@ public static class IEventStoreExtensions
 		return eventStore.GetAsync(idAsString, null, cancellationToken);
 	}
 
-	public static Task<T?> GetAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, EventStoreOperationContext? context, CancellationToken cancellationToken = default)
+	public static Task<T?> GetAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -266,15 +386,31 @@ public static class IEventStoreExtensions
 
 	#region GetAtAsync
 
-	public static Task<T?> GetAtAsync<T>([NotNull] this IEventStore<T> eventStore, string aggregateId, int version, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.GetAtAsync(aggregateId, version, null, cancellationToken);
+	public static Task<T?> GetAtAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string aggregateId,
+		int version,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetAtAsync(aggregateId, version, null, cancellationToken);
 
-	public static Task<T?> GetAtAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, int version, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.GetAtAsync(aggregateId, version, null, cancellationToken);
+	public static Task<T?> GetAtAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		int version,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetAtAsync(aggregateId, version, null, cancellationToken);
 
-	public static Task<T?> GetAtAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, int version, EventStoreOperationContext? context, CancellationToken cancellationToken = default)
+	public static Task<T?> GetAtAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		int version,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -287,7 +423,11 @@ public static class IEventStoreExtensions
 
 	#region IsDeletedAsync
 
-	public static Task<bool> IsDeletedAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, CancellationToken cancellationToken = default)
+	public static Task<bool> IsDeletedAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -300,7 +440,11 @@ public static class IEventStoreExtensions
 
 	#region GetDeletedAsync
 
-	public static Task<T?> GetDeletedAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, CancellationToken cancellationToken = default)
+	public static Task<T?> GetDeletedAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -313,7 +457,11 @@ public static class IEventStoreExtensions
 
 	#region ExistsAsync
 
-	public static Task<ExistsState> ExistsAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, CancellationToken cancellationToken = default)
+	public static Task<ExistsState> ExistsAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -322,7 +470,11 @@ public static class IEventStoreExtensions
 		return eventStore.ExistsAsync(idAsString, cancellationToken);
 	}
 
-	public static Task<ExistsState> ExistsWithNullCheckAsync<T>([NotNull] this IEventStore<T> eventStore, object aggregateId, CancellationToken cancellationToken = default)
+	public static Task<ExistsState> ExistsWithNullCheckAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		var idAsString = aggregateId?.ToString();
@@ -331,7 +483,11 @@ public static class IEventStoreExtensions
 		return eventStore.ExistsWithNullCheckAsync(idAsString, cancellationToken);
 	}
 
-	public static Task<ExistsState> ExistsWithNullCheckAsync<T>([NotNull] this IEventStore<T> eventStore, string aggregateId, CancellationToken cancellationToken = default)
+	public static Task<ExistsState> ExistsWithNullCheckAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		return string.IsNullOrWhiteSpace(aggregateId)
@@ -343,38 +499,60 @@ public static class IEventStoreExtensions
 
 	#region SaveAsync
 
-	public static Task<SaveResult<T>> SaveAsync<T>([NotNull] this IEventStore<T> eventStore, T aggregate, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.SaveAsync(aggregate, null, cancellationToken);
+	public static Task<SaveResult<T>> SaveAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.SaveAsync(aggregate, null, cancellationToken);
 
 	#endregion SaveAsync
 
 	#region DeleteAsync
 
-	public static Task<bool> DeleteAsync<T>([NotNull] this IEventStore<T> eventStore, T aggregate, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.DeleteAsync(aggregate, null, cancellationToken);
+	public static Task<bool> DeleteAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.DeleteAsync(aggregate, null, cancellationToken);
 
-	public static Task<bool> DeleteAsync<T>([NotNull] this IEventStore<T> eventStore, string aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.DeleteAsync(aggregateId, null, cancellationToken);
+	public static Task<bool> DeleteAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.DeleteAsync(aggregateId, null, cancellationToken);
 
-	public static async Task<bool> DeleteAsync<T>([NotNull] this IEventStore<T> eventStore, string aggregateId, EventStoreOperationContext? operationContext, CancellationToken cancellationToken = default)
+	public static async Task<bool> DeleteAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
 		where T : class, IAggregate, new()
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
 		var aggregate = await eventStore.GetAsync(aggregateId, operationContext, cancellationToken);
-		return aggregate != null && await eventStore.DeleteAsync(aggregate, operationContext, cancellationToken);
+		return aggregate != null
+			&& await eventStore.DeleteAsync(aggregate, operationContext, cancellationToken);
 	}
 
 	#endregion DeleteAsync
 
 	#region RestoreAsync
 
-	public static Task<bool> RestoreAsync<T>([NotNull] this IEventStore<T> eventStore, T aggregate, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new()
-		=> eventStore.RestoreAsync(aggregate, null, cancellationToken);
+	public static Task<bool> RestoreAsync<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.RestoreAsync(aggregate, null, cancellationToken);
 
 	#endregion RestoreAsync
 }

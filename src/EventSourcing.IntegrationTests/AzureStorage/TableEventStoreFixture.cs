@@ -1,14 +1,15 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
+using TUnit.Core.Interfaces;
 
 namespace Purview.EventSourcing.AzureStorage;
 
-public sealed class TableEventStoreFixture : IAsyncLifetime
+public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
 	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer;
 
@@ -35,11 +36,13 @@ public sealed class TableEventStoreFixture : IAsyncLifetime
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
 		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1)
+		int snapshotRecalculationInterval = 1
+	)
 		where TAggregate : class, IAggregate, new()
 	{
 		var runId = Guid.NewGuid();
-		var runIds = Enumerable.Range(1, correlationIdsToGenerate)
+		var runIds = Enumerable
+			.Range(1, correlationIdsToGenerate)
 			.Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant())
 			.ToArray();
 
@@ -58,14 +61,15 @@ public sealed class TableEventStoreFixture : IAsyncLifetime
 			Container = _containerName,
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
-			SnapshotInterval = snapshotRecalculationInterval
+			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
 		TableEventStore<TAggregate> eventStore = new(
 			eventNameMapper: _eventNameMapper,
 			azureStorageOptions: Microsoft.Extensions.Options.Options.Create(azureStorageOptions),
 			distributedCache: Cache,
-			aggregateChangeNotifier: aggregateChangeNotifier ?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
+			aggregateChangeNotifier: aggregateChangeNotifier
+				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
 			eventStoreTelemetry: Telemetry,
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
@@ -81,14 +85,12 @@ public sealed class TableEventStoreFixture : IAsyncLifetime
 	public static IDistributedCache CreateDistributedCache()
 	{
 		var cache = Substitute.For<IDistributedCache>();
-		cache
-			.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-			.ReturnsNullForAnyArgs();
+		cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).ReturnsNullForAnyArgs();
 
 		return cache;
 	}
 
-	public async ValueTask InitializeAsync() => await _azuriteContainer.StartAsync();
+	public async Task InitializeAsync() => await _azuriteContainer.StartAsync();
 
 	public async ValueTask DisposeAsync()
 	{

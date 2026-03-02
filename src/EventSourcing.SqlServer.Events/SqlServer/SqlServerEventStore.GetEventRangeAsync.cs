@@ -13,18 +13,36 @@ partial class SqlServerEventStore<T>
 	/// <param name="versionTo">Optional, the inclusive event number to finish the range at.</param>
 	/// <param name="cancellationToken">The stopping token.</param>
 	/// <returns>If no <paramref name="versionTo"/> is specified all available events greater than <paramref name="versionFrom"/> are returned.</returns>
-	public async IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(string aggregateId, int versionFrom, int? versionTo, [EnumeratorCancellation] CancellationToken cancellationToken)
+	public async IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		[EnumeratorCancellation] CancellationToken cancellationToken
+	)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 		if (versionFrom < 1)
-			throw new ArgumentOutOfRangeException(nameof(versionFrom), versionFrom, $"{nameof(versionFrom)} must be greater than 0.");
+			throw new ArgumentOutOfRangeException(
+				nameof(versionFrom),
+				versionFrom,
+				$"{nameof(versionFrom)} must be greater than 0."
+			);
 
 		if (versionTo < versionFrom)
-			throw new ArgumentOutOfRangeException(nameof(versionTo), versionTo.Value, $"{nameof(versionTo)} ({versionTo}) must be greater than or equal to {nameof(versionFrom)} ({versionFrom}).");
+			throw new ArgumentOutOfRangeException(
+				nameof(versionTo),
+				versionTo.Value,
+				$"{nameof(versionTo)} ({versionTo}) must be greater than or equal to {nameof(versionFrom)} ({versionFrom})."
+			);
 
 		var aggregateVersion = versionFrom;
 		var effectiveVersionTo = versionTo ?? int.MaxValue;
-		var entities = _client.GetEventRangeAsync(aggregateId, versionFrom, effectiveVersionTo, cancellationToken);
+		var entities = _client.GetEventRangeAsync(
+			aggregateId,
+			versionFrom,
+			effectiveVersionTo,
+			cancellationToken
+		);
 		await foreach (var entity in entities)
 		{
 			var item = DeserializeEvent(entity, aggregateVersion);
@@ -38,16 +56,20 @@ partial class SqlServerEventStore<T>
 	/// <param name="aggregateVersion">Only used when an unknown event is found.</param>
 	IEvent? DeserializeEvent(SqlServerEventStoreClient.RowData eventRow, int aggregateVersion)
 	{
-		static UnknownEvent ReturnUnknownEvent(SqlServerEventStoreClient.RowData eventRow, int aggregateVersion)
+		static UnknownEvent ReturnUnknownEvent(
+			SqlServerEventStoreClient.RowData eventRow,
+			int aggregateVersion
+		)
 		{
 			return new UnknownEvent
 			{
-				Details = {
+				Details =
+				{
 					When = eventRow.Timestamp,
 					AggregateVersion = aggregateVersion,
-					IdempotencyId = eventRow.IdempotencyId
+					IdempotencyId = eventRow.IdempotencyId,
 				},
-				Payload = eventRow.Payload
+				Payload = eventRow.Payload,
 			};
 		}
 
@@ -61,14 +83,20 @@ partial class SqlServerEventStore<T>
 				return ReturnUnknownEvent(eventRow, aggregateVersion);
 			}
 
-			var runtimeEventType = Type.GetType(eventType, throwOnError: false) ?? throw new ApplicationException($"Unable to load event type: {eventType}");
+			var runtimeEventType =
+				Type.GetType(eventType, throwOnError: false)
+				?? throw new ApplicationException($"Unable to load event type: {eventType}");
 			var @event = DeserializeEvent(eventRow.Payload!, runtimeEventType);
 
 			return @event;
 		}
 		catch (Exception ex)
 		{
-			_eventStoreTelemetry.EventDeserializationFailed(eventRow.AggregateId, _aggregateTypeFullName, ex);
+			_eventStoreTelemetry.EventDeserializationFailed(
+				eventRow.AggregateId,
+				_aggregateTypeFullName,
+				ex
+			);
 
 			return ReturnUnknownEvent(eventRow, aggregateVersion);
 		}

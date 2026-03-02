@@ -2,15 +2,18 @@
 
 partial class AggregateBaseTests
 {
-	[Theory]
-	[InlineData(10, 10)]
-	[InlineData(10, 20)]
-	[InlineData(10, 0)]
-	[InlineData(10, 100)]
-	[InlineData(0, 1)]
-	[InlineData(0, 10)]
-	[InlineData(0, 100)]
-	public void ClearUnsavedEvents_GivenNoUpperBoundVersionIsSpecifiedAndHasEvents_ReturnsToPreUnSavedAndAppliedEventVersion(int savedEventCount, int unSavedEventCount)
+	[Test]
+	[Arguments(10, 10)]
+	[Arguments(10, 20)]
+	[Arguments(10, 0)]
+	[Arguments(10, 100)]
+	[Arguments(0, 1)]
+	[Arguments(0, 10)]
+	[Arguments(0, 100)]
+	public async Task ClearUnsavedEvents_GivenNoUpperBoundVersionIsSpecifiedAndHasEvents_ReturnsToPreUnSavedAndAppliedEventVersion(
+		int savedEventCount,
+		int unSavedEventCount
+	)
 	{
 		// Arrange
 		var testAggregate = CreateTestAggregate();
@@ -19,25 +22,28 @@ partial class AggregateBaseTests
 		for (var i = 0; i < unSavedEventCount; i++)
 			testAggregate.Increment();
 
-		testAggregate.Details.CurrentVersion.ShouldBe(savedEventCount + unSavedEventCount);
+		await Assert.That(testAggregate.Details.CurrentVersion).IsEqualTo(savedEventCount + unSavedEventCount);
 
 		// Act
 		testAggregate.ClearUnsavedEvents(upToVersion: null);
 
 		// Assert
-		testAggregate.Details.CurrentVersion.ShouldBe(savedEventCount);
-		testAggregate.HasUnsavedEvents().ShouldBeFalse();
+		await Assert.That(testAggregate.Details.CurrentVersion).IsEqualTo(savedEventCount);
+		await Assert.That(testAggregate.HasUnsavedEvents()).IsFalse();
 	}
 
-	[Theory]
-	[InlineData(100, 10)]
-	[InlineData(21, 20)]
-	[InlineData(10, 1)]
-	[InlineData(10, 9)]
-	[InlineData(2, 1)]
-	[InlineData(11, 10)]
-	[InlineData(111, 100)]
-	public void ClearUnsavedEvents_GivenUpperBoundVersionIsSpecifiedAndIsLessThanEventsUnsaved_ReturnsToPreUnSavedUpToSpecifiedBound(int unSavedEventCount, int eventsToRemove)
+	[Test]
+	[Arguments(100, 10)]
+	[Arguments(21, 20)]
+	[Arguments(10, 1)]
+	[Arguments(10, 9)]
+	[Arguments(2, 1)]
+	[Arguments(11, 10)]
+	[Arguments(111, 100)]
+	public async Task ClearUnsavedEvents_GivenUpperBoundVersionIsSpecifiedAndIsLessThanEventsUnsaved_ReturnsToPreUnSavedUpToSpecifiedBound(
+		int unSavedEventCount,
+		int eventsToRemove
+	)
 	{
 		// Arrange
 		var testAggregate = CreateTestAggregate();
@@ -49,6 +55,6 @@ partial class AggregateBaseTests
 		testAggregate.ClearUnsavedEvents(upToVersion: eventsToRemove);
 
 		// Assert
-		testAggregate.Details.CurrentVersion.ShouldBe(unSavedEventCount - eventsToRemove);
+		await Assert.That(testAggregate.Details.CurrentVersion).IsEqualTo(unSavedEventCount - eventsToRemove);
 	}
 }

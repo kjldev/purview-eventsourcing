@@ -2,10 +2,14 @@
 
 partial class GenericMongoDBEventStoreTests<TAggregate>
 {
-	public async Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(int previousEventsToCreate)
+	public async Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(
+		int previousEventsToCreate
+	)
 	{
 		// Arrange
-		using var tokenSource = TestHelpers.CancellationTokenSource(cancellationToken: TestContext.Current.CancellationToken);
+		using var tokenSource = TestHelpers.CancellationTokenSource(
+			cancellationToken: TestContext.Current.Execution.CancellationToken
+		);
 
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -22,15 +26,19 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		aggregate.IncrementInt32Value();
 		await eventStore.SaveAsync(aggregate, cancellationToken: tokenSource.Token);
 
-		aggregate.IncrementInt32.ShouldBe(previousEventsToCreate + 1);
+		await Assert.That(aggregate.IncrementInt32).IsEqualTo(previousEventsToCreate + 1);
 
 		// Assert
-		var result = await eventStore.GetAtAsync(aggregateId, version: previousEventsToCreate, cancellationToken: tokenSource.Token);
+		var result = await eventStore.GetAtAsync(
+			aggregateId,
+			version: previousEventsToCreate,
+			cancellationToken: tokenSource.Token
+		);
 
-		result.ShouldNotBeNull();
-		result.IncrementInt32.ShouldBe(previousEventsToCreate);
-		result.Details.SavedVersion.ShouldBe(previousEventsToCreate);
-		result.Details.CurrentVersion.ShouldBe(previousEventsToCreate);
-		result.Details.Locked.ShouldBeTrue();
+		await Assert.That(result).IsNotNull();
+		await Assert.That(result.IncrementInt32).IsEqualTo(previousEventsToCreate);
+		await Assert.That(result.Details.SavedVersion).IsEqualTo(previousEventsToCreate);
+		await Assert.That(result.Details.CurrentVersion).IsEqualTo(previousEventsToCreate);
+		await Assert.That(result.Details.Locked).IsTrue();
 	}
 }

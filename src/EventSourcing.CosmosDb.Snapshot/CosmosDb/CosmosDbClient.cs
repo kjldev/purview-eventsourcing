@@ -22,10 +22,12 @@ sealed partial class CosmosDbClient
 	static readonly ConcurrentDictionary<string, AsyncLazy<Database>> CreatedDatabases = new();
 	static readonly ConcurrentDictionary<string, AsyncLazy<Container>> CreatedContainers = new();
 
-	public CosmosDbClient([NotNull] CosmosDbEventStoreOptions cosmosDbOptions,
+	public CosmosDbClient(
+		[NotNull] CosmosDbEventStoreOptions cosmosDbOptions,
 		string? partitionKeyOverride = null,
 		string? containerNameOverride = null,
-		CosmosClient? cosmosClient = null)
+		CosmosClient? cosmosClient = null
+	)
 	{
 		_cosmosDbOptions = cosmosDbOptions;
 
@@ -38,13 +40,17 @@ sealed partial class CosmosDbClient
 		_container = new AsyncLazy<Container>(() => InitializeAsync(cosmosClient));
 	}
 
-	async Task<ContainerResponse?> GetOrCreateContainerAsync(CancellationToken cancellationToken = default)
+	async Task<ContainerResponse?> GetOrCreateContainerAsync(
+		CancellationToken cancellationToken = default
+	)
 	{
 		var client = GetOrCreateClient();
 		var database = await InitializeDatabase(client, cancellationToken);
 		var container = database.GetContainer(_containerName);
 
-		var response = await container.ReadContainerStreamAsync(cancellationToken: cancellationToken);
+		var response = await container.ReadContainerStreamAsync(
+			cancellationToken: cancellationToken
+		);
 		var containerExists = response.StatusCode == System.Net.HttpStatusCode.OK;
 
 		var indexOptions = _cosmosDbOptions.IndexOptions;
@@ -52,7 +58,9 @@ sealed partial class CosmosDbClient
 		{
 			// Attempt to modify the container...
 			var containerRequiresUpdate = false;
-			var containerResponse = await container.ReadContainerAsync(cancellationToken: cancellationToken);
+			var containerResponse = await container.ReadContainerAsync(
+				cancellationToken: cancellationToken
+			);
 
 			#region Update existing resource
 
@@ -62,7 +70,9 @@ sealed partial class CosmosDbClient
 				containerRequiresUpdate = true;
 			}
 
-			if (indexOptions.IndexingModel != containerResponse.Resource.IndexingPolicy.IndexingMode)
+			if (
+				indexOptions.IndexingModel != containerResponse.Resource.IndexingPolicy.IndexingMode
+			)
 			{
 				containerResponse.Resource.IndexingPolicy.IndexingMode = indexOptions.IndexingModel;
 				containerRequiresUpdate = true;
@@ -70,25 +80,41 @@ sealed partial class CosmosDbClient
 
 			foreach (var includePath in indexOptions.IncludedPaths)
 			{
-				if (!containerResponse.Resource.IndexingPolicy.IncludedPaths.Any(m => m.Path == includePath))
+				if (
+					!containerResponse.Resource.IndexingPolicy.IncludedPaths.Any(m =>
+						m.Path == includePath
+					)
+				)
 				{
-					containerResponse.Resource.IndexingPolicy.IncludedPaths.Add(new IncludedPath { Path = includePath });
+					containerResponse.Resource.IndexingPolicy.IncludedPaths.Add(
+						new IncludedPath { Path = includePath }
+					);
 					containerRequiresUpdate = true;
 				}
 			}
 
 			foreach (var excludePath in indexOptions.ExcludedPaths)
 			{
-				if (!containerResponse.Resource.IndexingPolicy.ExcludedPaths.Any(m => m.Path == excludePath))
+				if (
+					!containerResponse.Resource.IndexingPolicy.ExcludedPaths.Any(m =>
+						m.Path == excludePath
+					)
+				)
 				{
-					containerResponse.Resource.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath { Path = excludePath });
+					containerResponse.Resource.IndexingPolicy.ExcludedPaths.Add(
+						new ExcludedPath { Path = excludePath }
+					);
 					containerRequiresUpdate = true;
 				}
 			}
 
 			foreach (var spatialIndex in indexOptions.SpatialIndices)
 			{
-				if (!containerResponse.Resource.IndexingPolicy.SpatialIndexes.Any(m => m.Path == spatialIndex.Path))
+				if (
+					!containerResponse.Resource.IndexingPolicy.SpatialIndexes.Any(m =>
+						m.Path == spatialIndex.Path
+					)
+				)
 				{
 					containerResponse.Resource.IndexingPolicy.SpatialIndexes.Add(spatialIndex);
 					containerRequiresUpdate = true;
@@ -97,13 +123,23 @@ sealed partial class CosmosDbClient
 
 			foreach (var compositeIndexSetFromConfig in indexOptions.CompositeIndices)
 			{
-				var existingSet = containerResponse.Resource.IndexingPolicy.CompositeIndexes.Any(existingCompositeIndexSet =>
-					existingCompositeIndexSet.All(existingCompositeIndex =>
-						compositeIndexSetFromConfig.Any(compositeIndexFromConfig => compositeIndexFromConfig.Path == existingCompositeIndex.Path && compositeIndexFromConfig.Order == existingCompositeIndex.Order)));
+				var existingSet = containerResponse.Resource.IndexingPolicy.CompositeIndexes.Any(
+					existingCompositeIndexSet =>
+						existingCompositeIndexSet.All(existingCompositeIndex =>
+							compositeIndexSetFromConfig.Any(compositeIndexFromConfig =>
+								compositeIndexFromConfig.Path == existingCompositeIndex.Path
+								&& compositeIndexFromConfig.Order == existingCompositeIndex.Order
+							)
+						)
+				);
 
 				if (!existingSet)
 				{
-					containerResponse.Resource.IndexingPolicy.CompositeIndexes.Add(new System.Collections.ObjectModel.Collection<CompositePath>([.. compositeIndexSetFromConfig]));
+					containerResponse.Resource.IndexingPolicy.CompositeIndexes.Add(
+						new System.Collections.ObjectModel.Collection<CompositePath>([
+							.. compositeIndexSetFromConfig,
+						])
+					);
 					containerRequiresUpdate = true;
 				}
 			}
@@ -114,7 +150,10 @@ sealed partial class CosmosDbClient
 			{
 				try
 				{
-					await container.ReplaceContainerStreamAsync(containerResponse.Resource, cancellationToken: cancellationToken);
+					await container.ReplaceContainerStreamAsync(
+						containerResponse.Resource,
+						cancellationToken: cancellationToken
+					);
 					return await container.ReadContainerAsync(cancellationToken: cancellationToken);
 				}
 				catch
@@ -135,8 +174,8 @@ sealed partial class CosmosDbClient
 
 			var indexingPolicyBuilder = containerBuilder
 				.WithIndexingPolicy()
-					.WithAutomaticIndexing(indexOptions.Automatic)
-					.WithIndexingMode(indexOptions.IndexingModel);
+				.WithAutomaticIndexing(indexOptions.Automatic)
+				.WithIndexingMode(indexOptions.IndexingModel);
 
 			var includedPathBuilder = indexingPolicyBuilder.WithIncludedPaths();
 			foreach (var includedPath in indexOptions.IncludedPaths)
@@ -163,8 +202,14 @@ sealed partial class CosmosDbClient
 
 			#endregion Attempt to create the container
 
-			var containerResponse = await containerBuilder.CreateIfNotExistsAsync(_cosmosDbOptions.ContainerThroughput, cancellationToken);
-			if (containerResponse.StatusCode == System.Net.HttpStatusCode.OK || containerResponse.StatusCode == System.Net.HttpStatusCode.Accepted)
+			var containerResponse = await containerBuilder.CreateIfNotExistsAsync(
+				_cosmosDbOptions.ContainerThroughput,
+				cancellationToken
+			);
+			if (
+				containerResponse.StatusCode == System.Net.HttpStatusCode.OK
+				|| containerResponse.StatusCode == System.Net.HttpStatusCode.Accepted
+			)
 				return containerResponse;
 
 			// Hoping that someone came in between and created it while we were waiting.
@@ -172,7 +217,10 @@ sealed partial class CosmosDbClient
 		}
 	}
 
-	async Task<Container> InitializeAsync(CosmosClient? cosmosClient, CancellationToken cancellationToken = default)
+	async Task<Container> InitializeAsync(
+		CosmosClient? cosmosClient,
+		CancellationToken cancellationToken = default
+	)
 	{
 		var client = cosmosClient ?? GetOrCreateClient();
 		await InitializeDatabase(client, cancellationToken);
@@ -182,56 +230,94 @@ sealed partial class CosmosDbClient
 
 	async Task<Container> InitializeContainerAsync(CancellationToken cancellationToken)
 	{
-		return await CreatedContainers.GetOrAdd(_containerCreatedKey, _ => new AsyncLazy<Container>(async () =>
-		{
-			var response = await GetOrCreateContainerAsync(cancellationToken) ?? throw new NullReferenceException($"Unable to get the container response for '{_containerName}'");
-			if (!(response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Accepted))
-				throw new InvalidOperationException($"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}");
+		return await CreatedContainers.GetOrAdd(
+			_containerCreatedKey,
+			_ => new AsyncLazy<Container>(async () =>
+			{
+				var response =
+					await GetOrCreateContainerAsync(cancellationToken)
+					?? throw new NullReferenceException(
+						$"Unable to get the container response for '{_containerName}'"
+					);
+				if (
+					!(
+						response.StatusCode == System.Net.HttpStatusCode.OK
+						|| response.StatusCode == System.Net.HttpStatusCode.Accepted
+					)
+				)
+					throw new InvalidOperationException(
+						$"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}"
+					);
 
-			return response.Container;
-		}));
+				return response.Container;
+			})
+		);
 	}
 
-	async Task<Database> InitializeDatabase(CosmosClient client, CancellationToken cancellationToken)
+	async Task<Database> InitializeDatabase(
+		CosmosClient client,
+		CancellationToken cancellationToken
+	)
 	{
-		return _database = await CreatedDatabases.GetOrAdd(_databaseCreatedKey, _ => new AsyncLazy<Database>(async () =>
-		{
-			var response = await client.CreateDatabaseIfNotExistsAsync(_cosmosDbOptions.Database, throughput: _cosmosDbOptions.DatabaseThroughput, cancellationToken: cancellationToken);
-			if (!(response.StatusCode == System.Net.HttpStatusCode.OK || response.StatusCode == System.Net.HttpStatusCode.Accepted || response.StatusCode == System.Net.HttpStatusCode.Created))
-				throw new InvalidOperationException($"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}");
+		return _database = await CreatedDatabases.GetOrAdd(
+			_databaseCreatedKey,
+			_ => new AsyncLazy<Database>(async () =>
+			{
+				var response = await client.CreateDatabaseIfNotExistsAsync(
+					_cosmosDbOptions.Database,
+					throughput: _cosmosDbOptions.DatabaseThroughput,
+					cancellationToken: cancellationToken
+				);
+				if (
+					!(
+						response.StatusCode == System.Net.HttpStatusCode.OK
+						|| response.StatusCode == System.Net.HttpStatusCode.Accepted
+						|| response.StatusCode == System.Net.HttpStatusCode.Created
+					)
+				)
+					throw new InvalidOperationException(
+						$"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}"
+					);
 
-			return response.Database;
-		}));
+				return response.Database;
+			})
+		);
 	}
 
-	CosmosClient GetOrCreateClient()
-		=> GetOrCreateClient(_cosmosDbOptions);
+	CosmosClient GetOrCreateClient() => GetOrCreateClient(_cosmosDbOptions);
 
 	static CosmosClient GetOrCreateClient(CosmosDbEventStoreOptions configuration)
 	{
-		return CosmosDbClients.GetOrAdd($"{configuration.ConnectionString}".ToUpperInvariant(), _ =>
-		{
-			CosmosClientOptions clientOptions = new()
+		return CosmosDbClients.GetOrAdd(
+			$"{configuration.ConnectionString}".ToUpperInvariant(),
+			_ =>
 			{
-				ConnectionMode = configuration.ConnectionMode,
-				RequestTimeout = TimeSpan.FromSeconds(configuration.RequestTimeoutInSeconds ?? CosmosDbOptions.DefaultRequestTimeout),
-				Serializer = new CosmosJsonNetSerializer(JsonHelpers.JsonSerializerSettings)
-			};
-
-			if (configuration.IgnoreSSLWarnings)
-			{
-				clientOptions.HttpClientFactory = () =>
+				CosmosClientOptions clientOptions = new()
 				{
-					HttpMessageHandler httpMessageHandler = new HttpClientHandler
-					{
-						ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-					};
-
-					return new(httpMessageHandler);
+					ConnectionMode = configuration.ConnectionMode,
+					RequestTimeout = TimeSpan.FromSeconds(
+						configuration.RequestTimeoutInSeconds
+							?? CosmosDbOptions.DefaultRequestTimeout
+					),
+					Serializer = new CosmosJsonNetSerializer(JsonHelpers.JsonSerializerSettings),
 				};
-			}
 
-			return new(configuration.ConnectionString, clientOptions);
-		});
+				if (configuration.IgnoreSSLWarnings)
+				{
+					clientOptions.HttpClientFactory = () =>
+					{
+						HttpMessageHandler httpMessageHandler = new HttpClientHandler
+						{
+							ServerCertificateCustomValidationCallback =
+								HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+						};
+
+						return new(httpMessageHandler);
+					};
+				}
+
+				return new(configuration.ConnectionString, clientOptions);
+			}
+		);
 	}
 }

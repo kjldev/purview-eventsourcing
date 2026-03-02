@@ -2,8 +2,8 @@
 
 partial class AggregateEventNameMapperTests
 {
-	[Fact]
-	public void GetName_GivenEventTypeEndingWithEvent_ReturnsMappedName()
+	[Test]
+	public async Task GetName_GivenEventTypeEndingWithEvent_ReturnsMappedName()
 	{
 		// Arrange
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
@@ -13,11 +13,11 @@ partial class AggregateEventNameMapperTests
 		var result = mapper.GetName<CorrectlyNamedAggregate>(eventType);
 
 		// Assert
-		result.ShouldBe($"{CorrectlyNamedAggregateName}.event-type-ending-in");
+		await Assert.That(result).IsEqualTo($"{CorrectlyNamedAggregateName}.event-type-ending-in");
 	}
 
-	[Fact]
-	public void GetName_GivenEventTypeNotEndingInEvent_ReturnsTypeName()
+	[Test]
+	public async Task GetName_GivenEventTypeNotEndingInEvent_ReturnsTypeName()
 	{
 		// Arrange
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
@@ -27,6 +27,6 @@ partial class AggregateEventNameMapperTests
 		var result = mapper.GetName<CorrectlyNamedAggregate>(eventType);
 
 		// Assert
-		result.ShouldBe(typeof(EventTypeNotEndingInEvent2).FullName);
+		await Assert.That(result).IsEqualTo(typeof(EventTypeNotEndingInEvent2).FullName);
 	}
 }
