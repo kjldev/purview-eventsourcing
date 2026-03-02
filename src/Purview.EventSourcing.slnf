@@ -2,8 +2,8 @@
   "solution": {
     "path": "Purview.EventSourcing.slnx",
     "projects": [
-      "EventSourcing.IntegrationTests\\EventSourcing.IntegrationTests.csproj",
-      "EventSourcing.UnitTests\\EventSourcing.UnitTests.csproj"
+      "tests\\EventSourcing.IntegrationTests\\EventSourcing.IntegrationTests.csproj",
+      "tests\\EventSourcing.UnitTests\\EventSourcing.UnitTests.csproj"
     ]
   }
 }

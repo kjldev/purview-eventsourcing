@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing\EventSourcing.csproj" />
+	</ItemGroup>
+</Project>

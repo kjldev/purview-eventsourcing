@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 		<MSCodeAnalysisCSharpVersion>5.0.0</MSCodeAnalysisCSharpVersion>
-		<TUnitVersion>1.17.36</TUnitVersion>
+		<TUnitVersion>1.17.54</TUnitVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageVersion Include="Bogus" Version="35.6.5" />
@@ -44,7 +44,8 @@
 		<PackageVersion Include="Microsoft.Testing.Platform.MSBuild" Version="2.1.0" />
 		<PackageVersion Include="NSubstitute" Version="5.3.0" />
 		<PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
-		<PackageVersion Include="TUnit" Version="1.17.54" />
+		<PackageVersion Include="TUnit" Version="$(TUnitVersion)" />
+		<PackageVersion Include="TUnit.Core" Version="$(TUnitVersion)" />
 		<PackageVersion Include="Azure.Storage.Blobs" Version="12.27.0" />
 		<PackageVersion Include="Azure.Data.Tables" Version="12.11.0" />
 		<PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.57.1" />

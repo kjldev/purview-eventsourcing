@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<DefineConstants>EventsBasedStore</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Update="Resources/**/*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+</Project>
