@@ -32,7 +32,9 @@ namespace Purview.EventSourcing.Aggregates.Events
 	static string GetAggregateGeneratedSource(GeneratorDriverRunResult result)
 	{
 		var aggregateTree = result.GeneratedTrees
-			.FirstOrDefault(t => !t.FilePath.Contains("Attribute", StringComparison.Ordinal));
+			.FirstOrDefault(t =>
+				!t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal) &&
+				!t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal));
 
 		return aggregateTree?.GetText().ToString() ?? string.Empty;
 	}
@@ -575,7 +577,9 @@ namespace Testing
 
 		// Assert — attribute files are generated
 		var attributeSources = result.GeneratedTrees
-			.Where(t => t.FilePath.Contains("Attribute", StringComparison.Ordinal))
+			.Where(t =>
+				t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal) ||
+				t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal))
 			.Select(t => t.GetText().ToString())
 			.ToList();
 
