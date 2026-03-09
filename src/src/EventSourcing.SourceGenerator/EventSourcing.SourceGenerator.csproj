@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>12</LangVersion>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<NoPackageAnalysis>true</NoPackageAnalysis>
+		<IsPackable>true</IsPackable>
+		<PackageId>Purview.EventSourcing.SourceGenerator</PackageId>
+		<Title>Purview Event Sourcing Source Generator</Title>
+		<Description>Source generator for event-sourced aggregates. Generates RegisterEvents(), event classes, and typed command methods from attributed partial classes.</Description>
+		<Authors>Kieron Lanning</Authors>
+		<DevelopmentDependency>true</DevelopmentDependency>
+		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+		<IsRoslynComponent>true</IsRoslynComponent>
+		<RootNamespace>Purview.EventSourcing.SourceGenerator</RootNamespace>
+		<Nullable>enable</Nullable>
+		<!-- Exclude Purview.Telemetry.SourceGenerator since this is a netstandard2.0 analyzer project -->
+		<ExcludePurviewTelemetry>true</ExcludePurviewTelemetry>
+		<NoWarn>$(NoWarn);CS8632;RS1035;RS1036</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Templates\Sources\**\*.cs" />
+		<EmbeddedResource Include="Templates\Sources\**\*.cs" />
+	</ItemGroup>
+	<!-- Package the build output into the "analyzer" slot in the NuGet package -->
+	<ItemGroup>
+		<None
+			Include="$(OutputPath)\$(AssemblyName).dll"
+			Pack="true"
+			PackagePath="analyzers/dotnet/cs"
+			Visible="false"
+		/>
+	</ItemGroup>
+</Project>
