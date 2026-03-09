@@ -35,7 +35,7 @@ public sealed class SqlServerEventStoreOptions
 	/// <para>Available on SQL Server Enterprise Edition and all Azure SQL tiers.</para>
 	/// </summary>
 	/// <remarks>Only applies when <see cref="AutoCreateTable"/> is true and the table is being created for the first time.</remarks>
-	public bool UseDataCompression { get; set; }
+	public bool UseDataCompression { get; set; } = true;
 
 	[Range(1, 120000)]
 	public int? TimeoutInSeconds { get; set; } = 60;
