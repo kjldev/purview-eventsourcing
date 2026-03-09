@@ -37,6 +37,7 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 				TableName = _sqlServerEventStoreOptions.Value.TableName,
 				SchemaName = _sqlServerEventStoreOptions.Value.SchemaName,
 				AutoCreateTable = _sqlServerEventStoreOptions.Value.AutoCreateTable,
+				UseDataCompression = _sqlServerEventStoreOptions.Value.UseDataCompression,
 			}
 		);
 	}

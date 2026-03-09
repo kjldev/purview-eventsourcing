@@ -26,6 +26,7 @@ sealed partial class SqlServerClient : IDisposable
 		var quotedSchema = QuoteIdentifier(options.SchemaName);
 		var quotedTable = QuoteIdentifier(options.TableName);
 		var quotedFullName = $"{quotedSchema}.{quotedTable}";
+		var compression = options.UseDataCompression ? " WITH (DATA_COMPRESSION = PAGE)" : "";
 
 		_ensureTableSql = $"""
 			IF NOT EXISTS (SELECT * FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id WHERE t.name = @TableName AND s.name = @SchemaName)
@@ -35,12 +36,12 @@ sealed partial class SqlServerClient : IDisposable
 					[AggregateType] NVARCHAR(450) NOT NULL,
 					[Payload] NVARCHAR(MAX) NOT NULL,
 					CONSTRAINT {QuoteIdentifier($"PK_{options.TableName}")} PRIMARY KEY ([Id])
-				);
+				){compression};
 
 				-- Covers: QueryByAggregateType (returns Payload via INCLUDE, avoids key lookup)
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_AggregateType")}
 					ON {quotedFullName} ([AggregateType])
-					INCLUDE ([Payload]);
+					INCLUDE ([Payload]){compression};
 			END
 			""";
 
@@ -212,4 +213,6 @@ sealed class SqlServerClientOptions
 	public string SchemaName { get; init; } = "dbo";
 
 	public bool AutoCreateTable { get; init; } = true;
+
+	public bool UseDataCompression { get; init; }
 }

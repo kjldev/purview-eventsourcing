@@ -29,6 +29,7 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		var quotedSchema = QuoteIdentifier(options.SchemaName);
 		var quotedTable = QuoteIdentifier(options.TableName);
 		var quotedFullName = $"{quotedSchema}.{quotedTable}";
+		var compression = options.UseDataCompression ? " WITH (DATA_COMPRESSION = PAGE)" : "";
 
 		_ensureTableSql = $"""
 			IF NOT EXISTS (SELECT * FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id WHERE t.name = @TableName AND s.name = @SchemaName)
@@ -45,14 +46,14 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 					[IdempotencyId] NVARCHAR(450) NULL,
 					[Timestamp] DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
 					CONSTRAINT {QuoteIdentifier($"PK_{options.TableName}")} PRIMARY KEY ([Id])
-				);
+				){compression};
 
 				-- Covers: GetByAggregateIdAndEntityType, GetIdempotencyMarkers, DeleteByAggregateId
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier(
 				$"IX_{options.TableName}_AggregateId_EntityType"
 			)}
 					ON {quotedFullName} ([AggregateId], [EntityType])
-					INCLUDE ([Version], [IsDeleted], [AggregateType], [EventType], [IdempotencyId], [Timestamp]);
+					INCLUDE ([Version], [IsDeleted], [AggregateType], [EventType], [IdempotencyId], [Timestamp]){compression};
 
 				-- Covers: GetEventRange (AggregateId + EntityType=1 + Version range, ORDER BY Version)
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_EventRange")}
@@ -65,7 +66,7 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 				$"IX_{options.TableName}_AggregateType_EntityType"
 			)}
 					ON {quotedFullName} ([AggregateType], [EntityType], [IsDeleted])
-					INCLUDE ([AggregateId]);
+					INCLUDE ([AggregateId]){compression};
 			END
 			""";
 
@@ -171,11 +172,13 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
 		try
 		{
+			await using var command = connection.CreateCommand();
+			command.Transaction = transaction;
+			command.CommandText = _insertSql;
+
 			foreach (var row in rows)
 			{
-				await using var command = connection.CreateCommand();
-				command.Transaction = transaction;
-				command.CommandText = _insertSql;
+				command.Parameters.Clear();
 				AddRowParameters(
 					command,
 					row.Id,
@@ -284,12 +287,14 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 				await upsertCommand.ExecuteNonQueryAsync(cancellationToken);
 			}
 
-			// Insert additional rows (events, idempotency markers)
+			// Insert additional rows (events, idempotency markers) — reuse single command
+			await using var insertCommand = connection.CreateCommand();
+			insertCommand.Transaction = transaction;
+			insertCommand.CommandText = _insertSql;
+
 			foreach (var row in additionalInserts)
 			{
-				await using var insertCommand = connection.CreateCommand();
-				insertCommand.Transaction = transaction;
-				insertCommand.CommandText = _insertSql;
+				insertCommand.Parameters.Clear();
 				AddRowParameters(
 					insertCommand,
 					row.Id,
