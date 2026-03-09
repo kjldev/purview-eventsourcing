@@ -59,7 +59,7 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_EventRange")}
 					ON {quotedFullName} ([AggregateId], [EntityType], [Version])
 					INCLUDE ([Payload], [EventType], [IdempotencyId], [IsDeleted], [AggregateType], [Timestamp])
-					WHERE [EntityType] = 1;
+					WHERE [EntityType] = 1{(options.UseDataCompression ? " WITH (DATA_COMPRESSION = PAGE)" : "")};
 
 				-- Covers: GetAggregateIdsAsync (AggregateType + EntityType + optional IsDeleted filter)
 				CREATE NONCLUSTERED INDEX {QuoteIdentifier(
