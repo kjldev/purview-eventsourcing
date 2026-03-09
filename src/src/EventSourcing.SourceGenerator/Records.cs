@@ -42,7 +42,9 @@ sealed class EventPropertyInfo
 	public EventPropertyInfo(string parameterName, string typeName)
 	{
 		ParameterName = parameterName;
-		PropertyName = char.ToUpperInvariant(parameterName[0]) + parameterName.Substring(1);
+		PropertyName = string.IsNullOrEmpty(parameterName)
+			? parameterName
+			: char.ToUpperInvariant(parameterName[0]) + parameterName.Substring(1);
 		TypeName = typeName;
 	}
 
