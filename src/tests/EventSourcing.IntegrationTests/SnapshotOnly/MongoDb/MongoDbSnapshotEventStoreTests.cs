@@ -1,6 +1,6 @@
 ﻿using MongoDB.Driver;
 using Purview.EventSourcing.Aggregates.Persistence;
-using Purview.EventSourcing.SnapshotOnly.MongoDB;
+using Purview.EventSourcing.Fixtures;
 
 namespace Purview.EventSourcing.MongoDB.Snapshot;
 

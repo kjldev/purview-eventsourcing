@@ -2,7 +2,7 @@
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
-public sealed class SqlServerEventStoreOptions
+public sealed class SqlServerSnapshotEventStoreOptions
 {
 	public const string SqlServerEventStore = "EventStore:SqlServerSnapshot";
 

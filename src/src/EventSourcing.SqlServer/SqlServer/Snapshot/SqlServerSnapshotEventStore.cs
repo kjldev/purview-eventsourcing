@@ -8,7 +8,7 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 	where T : class, IAggregate, new()
 {
 	readonly IEventStore<T> _eventStore;
-	readonly IOptions<SqlServerEventStoreOptions> _sqlServerEventStoreOptions;
+	readonly IOptions<SqlServerSnapshotEventStoreOptions> _sqlServerEventStoreOptions;
 	readonly ISqlServerSnapshotEventStoreTelemetry _telemetry;
 
 	readonly SqlServerClient _sqlServerClient;
@@ -21,7 +21,7 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 	public SqlServerSnapshotEventStore(
 		// Explicitly request a non-queryable event store.
 		INonQueryableEventStore<T> eventStore,
-		IOptions<SqlServerEventStoreOptions> sqlServerEventStoreOptions,
+		IOptions<SqlServerSnapshotEventStoreOptions> sqlServerEventStoreOptions,
 		ISqlServerSnapshotEventStoreTelemetry telemetry
 	)
 	{

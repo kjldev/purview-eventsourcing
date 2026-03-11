@@ -1,5 +1,5 @@
 ﻿using Purview.EventSourcing.Aggregates.Persistence;
-using Purview.EventSourcing.SnapshotOnly.SqlServer;
+using Purview.EventSourcing.Fixtures;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 

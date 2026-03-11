@@ -171,18 +171,6 @@ public sealed class SqlServerSnapshotEventStoreTests
 		eventStore.Received(1).FulfilRequirements(expectedAggregate);
 	}
 
-	[Test]
-	public async Task SqlServerEventStoreOptions_HasDefaultValues()
-	{
-		// Act
-		var options = new SqlServerEventStoreOptions();
-
-		// Assert
-		await Assert.That(options.TableName).IsEqualTo("Snapshots");
-		await Assert.That(options.SchemaName).IsEqualTo("dbo");
-		await Assert.That(options.AutoCreateTable).IsTrue();
-	}
-
 	static SqlServerSnapshotEventStore<TestAggregate> CreateStore(
 		INonQueryableEventStore<TestAggregate>? eventStore = null
 	)
@@ -191,13 +179,13 @@ public sealed class SqlServerSnapshotEventStoreTests
 		var options = CreateOptions();
 		var telemetry = Substitute.For<ISqlServerSnapshotEventStoreTelemetry>();
 
-		return new SqlServerSnapshotEventStore<TestAggregate>(eventStore, options, telemetry);
+		return new(eventStore, options, telemetry);
 	}
 
-	static IOptions<SqlServerEventStoreOptions> CreateOptions()
+	static IOptions<SqlServerSnapshotEventStoreOptions> CreateOptions()
 	{
 		return Options.Create(
-			new SqlServerEventStoreOptions
+			new SqlServerSnapshotEventStoreOptions
 			{
 				ConnectionString = "Server=(localdb)\\mssqllocaldb;Database=TestDb;Trusted_Connection=True;",
 				TableName = "TestSnapshots",

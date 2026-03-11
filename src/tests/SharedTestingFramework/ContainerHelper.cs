@@ -9,7 +9,7 @@ public static class ContainerHelper
 {
 	public static AzuriteContainer CreateAzurite(Action<AzuriteBuilder>? config = null)
 	{
-		var builder = new AzuriteBuilder().WithImage("mcr.microsoft.com/azure-storage/azurite:3.33.0")
+		var builder = new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:3.35.0");
 		//.WithWaitStrategy(Wait.ForUnixContainer()
 		//	.UntilPortIsAvailable(10000) // Blob
 		//	.UntilPortIsAvailable(10001) // Queue
@@ -24,7 +24,7 @@ public static class ContainerHelper
 
 	public static CosmosDbContainer CreateCosmosDB(Action<CosmosDbBuilder>? config = null)
 	{
-		var builder = new CosmosDbBuilder()
+		var builder = new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
 		//.WithAutoRemove(true)
 		//.WithCleanUp(true)
 		//.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "5")
@@ -40,7 +40,7 @@ public static class ContainerHelper
 
 	public static MongoDbContainer CreateMongoDB(Action<MongoDbBuilder>? config = null)
 	{
-		var builder = new MongoDbBuilder().WithImage("mongo:7.0").WithReplicaSet()
+		var builder = new MongoDbBuilder("mongo:7.0").WithReplicaSet()
 		//.WithAutoRemove(true)
 		//.WithCleanUp(true)
 		//.WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(27017))
@@ -53,7 +53,7 @@ public static class ContainerHelper
 
 	public static MsSqlContainer CreateMsSql(Action<MsSqlBuilder>? config = null)
 	{
-		var builder = new MsSqlBuilder();
+		var builder = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest");
 
 		config?.Invoke(builder);
 

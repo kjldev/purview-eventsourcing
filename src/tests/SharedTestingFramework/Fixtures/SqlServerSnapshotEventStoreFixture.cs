@@ -1,6 +1,6 @@
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.SnapshotOnly.SqlServer;
+namespace Purview.EventSourcing.Fixtures;
 
 public class SqlServerSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

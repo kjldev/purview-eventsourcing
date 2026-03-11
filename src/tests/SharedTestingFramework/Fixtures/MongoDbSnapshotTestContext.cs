@@ -1,18 +1,19 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
+﻿extern alias MongoDBSnapshots;
+
+using Microsoft.Extensions.Caching.Distributed;
 using Purview.EventSourcing.Aggregates.Persistence;
 using Purview.EventSourcing.AzureStorage;
 using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
 using Purview.EventSourcing.ChangeFeed;
+using Purview.EventSourcing.MongoDB.StorageClients;
 using Purview.EventSourcing.Services;
-using Purview.EventSourcing.SqlServer;
-using Purview.EventSourcing.SqlServer.Snapshot;
 
-namespace Purview.EventSourcing.SnapshotOnly.SqlServer;
+namespace Purview.EventSourcing.Fixtures;
 
-public sealed class SqlServerSnapshotTestContext
+public sealed class MongoDBSnapshotTestContext
 {
-	readonly string _sqlServerConnectionString;
+	readonly string _mongoDbConnectionString;
 	readonly string _azuriteConnectionString;
 
 	ITableEventStoreTelemetry _telemetry = default!;
@@ -20,57 +21,58 @@ public sealed class SqlServerSnapshotTestContext
 
 	public Guid RunId { get; } = Guid.NewGuid();
 
-	internal SqlServerClient SqlServerClient { get; private set; } = default!;
+	internal MongoDBClient MongoDBClient { get; private set; } = default!;
 
 	internal AzureTableClient TableClient { get; private set; } = default!;
 
 	internal AzureBlobClient BlobClient { get; private set; } = default!;
 
-	public SqlServerSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
+	public MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
 
-	public SqlServerSnapshotTestContext(
-		string sqlServerConnectionString,
+	public MongoDBSnapshotTestContext(
+		string mongoDbConnectionString,
 		string azuriteConnectionString,
 		int correlationIdsToGenerate = 1,
-		string? tableName = null
+		string? collectionName = null
 	)
 	{
-		_sqlServerConnectionString = sqlServerConnectionString;
+		_mongoDbConnectionString = mongoDbConnectionString;
 		_azuriteConnectionString = azuriteConnectionString;
 
-		EventStore = CreateSqlServerEventStore(correlationIdsToGenerate, tableName);
+		EventStore = CreateMongoDBEventStore(correlationIdsToGenerate, collectionName);
 	}
 
-	SqlServerSnapshotEventStore<PersistenceAggregate> CreateSqlServerEventStore(
+	public MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> CreateMongoDBEventStore(
 		int correlationIdsToGenerate = 1,
-		string? tableName = null
+		string? collectionName = null
 	)
 	{
 		var tableEventStore = CreateTableEventStore(correlationIdsToGenerate);
 
-		var resolvedTableName = tableName ?? $"Snapshots_{RunId:N}";
-
-		Purview.EventSourcing.SqlServer.Snapshot.SqlServerEventStoreOptions config = new()
+		MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBEventStoreOptions config = new()
 		{
-			ConnectionString = _sqlServerConnectionString,
-			TableName = resolvedTableName,
-			SchemaName = "dbo",
-			AutoCreateTable = true,
+			ConnectionString = _mongoDbConnectionString,
+			Database = GetType().Name,
+			Collection = collectionName ?? TestHelpers.GenMongoDBCollectionName(),
 		};
 
-		SqlServerSnapshotEventStore<PersistenceAggregate> eventStore = new(
-			tableEventStore,
-			Microsoft.Extensions.Options.Options.Create(config),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
+		MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.MongoDBSnapshotEventStore<PersistenceAggregate> eventStore =
+			new(
+				tableEventStore,
+				Microsoft.Extensions.Options.Options.Create(config),
+				Substitute.For<MongoDBSnapshots::Purview.EventSourcing.MongoDB.Snapshot.IMongoDBSnapshotEventStoreTelemetry>(),
+				Substitute.For<MongoDBSnapshots::Purview.EventSourcing.MongoDB.StorageClients.IMongoDBClientTelemetry>()
+			);
 
-		SqlServerClient = new(
-			new SqlServerClientOptions
+		MongoDBClient = new(
+			Substitute.For<IMongoDBClientTelemetry>(),
+			new()
 			{
 				ConnectionString = config.ConnectionString,
-				TableName = config.TableName,
-				SchemaName = config.SchemaName,
-				AutoCreateTable = config.AutoCreateTable,
+				ApplicationName = "purview-integration-tests",
+				Database = config.Database,
+				Collection = config.Collection,
+				ReplicaName = "rs0",
 			}
 		);
 

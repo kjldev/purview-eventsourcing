@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Purview.EventSourcing.SqlServer.Snapshot;
 
-namespace Purview;
+namespace Purview.EventSourcing;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class SqlServerSnapshotIEventStoreServiceCollectionExtensions
@@ -24,11 +24,11 @@ public static class SqlServerSnapshotIEventStoreServiceCollectionExtensions
 			services.AddTransient(typeof(IEventStore<>), typeof(SqlServerSnapshotEventStore<>));
 
 		services
-			.AddOptions<SqlServerEventStoreOptions>()
+			.AddOptions<SqlServerSnapshotEventStoreOptions>()
 			.Configure<IConfiguration>(
 				(options, configuration) =>
 				{
-					configuration.GetSection(SqlServerEventStoreOptions.SqlServerEventStore).Bind(options);
+					configuration.GetSection(SqlServerSnapshotEventStoreOptions.SqlServerEventStore).Bind(options);
 
 					options.ConnectionString ??=
 						configuration.GetConnectionString("EventStore_SqlServer")
