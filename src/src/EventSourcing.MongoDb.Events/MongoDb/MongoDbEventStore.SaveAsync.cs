@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
@@ -81,7 +81,8 @@ partial class MongoDBEventStore<T>
 			var exists =
 				(
 					await _eventClient.GetAsync<IdempotencyMarkerEntity>(
-						idempotencyMarkerOperation.AggregateId,
+						idempotencyMarkerOperation.Id,
+						EntityTypes.IdempotencyMarkerType,
 						cancellationToken
 					)
 				) != null;
@@ -156,7 +157,8 @@ partial class MongoDBEventStore<T>
 				batchOperation.Insert(eventEntity);
 			}
 
-			batchOperation.Insert(idempotencyMarkerOperation);
+			if (operationContext.UseIdempotencyMarker)
+				batchOperation.Insert(idempotencyMarkerOperation);
 
 			await SubmitBatchOperationsAsync(aggregate, idempotencyId, batchOperation, cancellationToken);
 

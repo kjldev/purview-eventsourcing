@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.ChangeFeed;
+using Purview.EventSourcing.ChangeFeed;
 
 namespace Purview.EventSourcing.SqlServer;
 
@@ -27,10 +27,12 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>(
+		var ctx = fixture.CreateEventStoreContext<TAggregate>(
 			correlationIdsToGenerate: 2,
 			removeFromCacheOnDelete: true
 		);
+		using var eventStore = ctx.EventStore;
+		var cache = ctx.Cache;
 		var cacheKey = eventStore.CreateCacheKey(aggregateId);
 		await eventStore.SaveAsync(aggregate, cancellationToken);
 		var aggregateResult =
@@ -40,7 +42,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var result = await eventStore.DeleteAsync(aggregateResult, cancellationToken: cancellationToken);
 
 		await Assert.That(result).IsTrue();
-		await fixture.Cache.Received(1).RemoveAsync(cacheKey, Arg.Any<CancellationToken>());
+		await cache.Received(1).RemoveAsync(cacheKey, Arg.Any<CancellationToken>());
 	}
 
 	public async Task DeleteAsync_GivenDelete_NotifiesChangeFeed(CancellationToken cancellationToken)

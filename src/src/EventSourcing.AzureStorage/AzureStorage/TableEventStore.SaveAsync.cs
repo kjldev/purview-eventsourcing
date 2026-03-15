@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Claims;
@@ -174,9 +174,10 @@ partial class TableEventStore<T>
 					batchOperation.Add(eventEntity);
 			}
 
-			batchOperation.Add(idempotencyMarkerOperation, recordAt: 0);
+			if (operationContext.UseIdempotencyMarker)
+				batchOperation.Add(idempotencyMarkerOperation, recordAt: 0);
 
-			await SubmitBatchOperationsAsync(aggregate, idempotencyId, batchOperation, cancellationToken);
+			await SubmitBatchOperationsAsync(aggregate, idempotencyId, batchOperation, operationContext.UseIdempotencyMarker, cancellationToken);
 
 			if (largeChangeEvents.Count > 0)
 			{
@@ -345,6 +346,7 @@ partial class TableEventStore<T>
 		T aggregate,
 		string idempotencyId,
 		BatchOperation batchOperation,
+		bool useIdempotencyMarker,
 		CancellationToken cancellationToken
 	)
 	{
@@ -356,7 +358,7 @@ partial class TableEventStore<T>
 
 			var batchResults = await _tableClient.SubmitBatchAsync(batchOperation, cancellationToken);
 
-			aggregate.Details.Etag = batchResults.Responses[1].Headers.ETag?.ToString();
+			aggregate.Details.Etag = batchResults.Responses[useIdempotencyMarker ? 1 : 0].Headers.ETag?.ToString();
 
 			var currentVersion = aggregate.Details.CurrentVersion;
 

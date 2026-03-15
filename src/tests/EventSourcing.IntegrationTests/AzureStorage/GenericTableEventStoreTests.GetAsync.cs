@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates.Persistence.Events;
+using Purview.EventSourcing.Aggregates.Persistence.Events;
 using Purview.EventSourcing.AzureStorage.Exceptions;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
 
@@ -38,19 +38,21 @@ partial class GenericTableEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx.EventStore;
+		var blobClient = ctx.BlobClient;
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Act
 		var blobName = eventStore.GenerateSnapshotBlobName(aggregateId);
-		var exists = await fixture.BlobClient.ExistsAsync(blobName, cancellationToken: cancellationToken);
+		var exists = await blobClient.ExistsAsync(blobName, cancellationToken: cancellationToken);
 
 		await Assert.That(exists).IsTrue();
 
-		await fixture.BlobClient.DeleteBlobIfExistsAsync(blobName, cancellationToken: cancellationToken);
+		await blobClient.DeleteBlobIfExistsAsync(blobName, cancellationToken: cancellationToken);
 
-		exists = await fixture.BlobClient.ExistsAsync(blobName, cancellationToken: cancellationToken);
+		exists = await blobClient.ExistsAsync(blobName, cancellationToken: cancellationToken);
 
 		await Assert.That(exists).IsFalse();
 
@@ -129,7 +131,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 		for (var i = 0; i < numberOfOldEventsToCreate; i++)
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx.EventStore;
+		var telemetry = ctx.Telemetry;
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -142,8 +146,8 @@ partial class GenericTableEventStoreTests<TAggregate>
 		);
 
 		// Assert
-		fixture
-			.Telemetry.Received(numberOfOldEventsToCreate)
+		telemetry
+			.Received(numberOfOldEventsToCreate)
 			.CannotApplyEvent(
 				aggregateId,
 				Arg.Any<string>(),
@@ -187,7 +191,10 @@ partial class GenericTableEventStoreTests<TAggregate>
 		for (var i = 0; i < numberOfOldEventsToCreate; i++)
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx.EventStore;
+		var telemetry = ctx.Telemetry;
+		var tableClient = ctx.TableClient;
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -209,7 +216,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 			batch.Update(eventToUpdate, merge: false);
 		}
 
-		await fixture.TableClient.SubmitBatchAsync(batch, cancellationToken);
+		await tableClient.SubmitBatchAsync(batch, cancellationToken);
 
 		// Get without using the snapshot, just from the event record.
 		var result = await eventStore.GetAsync(
@@ -219,8 +226,8 @@ partial class GenericTableEventStoreTests<TAggregate>
 		);
 
 		// Assert
-		fixture
-			.Telemetry.Received(numberOfOldEventsToCreate)
+		telemetry
+			.Received(numberOfOldEventsToCreate)
 			.SkippedUnknownEvent(aggregateId, Arg.Any<string>(), Arg.Any<string>(), unknownEventType, Arg.Any<int>());
 
 		await Assert.That(result).IsNotNull();

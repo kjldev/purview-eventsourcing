@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
@@ -162,17 +162,18 @@ partial class SqlServerEventStore<T>
 			}
 
 			// Idempotency marker row
-			insertRows.Add(
-				new SqlServerEventStoreClient.RowData
-				{
-					Id = idempotencyMarkerId,
-					EntityType = IdempotencyMarkerType,
-					AggregateId = aggregate.Id(),
-					AggregateType = aggregate.AggregateType,
-					Version = 0,
-					Timestamp = now,
-				}
-			);
+			if (operationContext.UseIdempotencyMarker)
+				insertRows.Add(
+					new SqlServerEventStoreClient.RowData
+					{
+						Id = idempotencyMarkerId,
+						EntityType = IdempotencyMarkerType,
+						AggregateId = aggregate.Id(),
+						AggregateType = aggregate.AggregateType,
+						Version = 0,
+						Timestamp = now,
+					}
+				);
 
 			await SubmitBatchOperationsAsync(aggregate, idempotencyId, streamVersionRow, insertRows, cancellationToken);
 

@@ -84,3 +84,31 @@ dotnet test src/Purview.EventSourcing.slnx
 
 Integration tests use [Testcontainers](https://dotnet.testcontainers.org/) and require Docker.
 
+### Filtering Tests
+
+Tests use [TUnit](https://tunit.dev). To filter by test name, class, or namespace, use `--treenode-filter` passed after `--`:
+
+```bash
+# Run a specific test by name
+dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/*/*/MyTestName*"
+
+# Run all tests in a class
+dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/*/MyClassName/*"
+
+# Run all tests in a namespace
+dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/My.Namespace.Tests/*/*"
+
+# Filter by test property (e.g. category)
+dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/*/*/*[Category=Smoke]"
+```
+
+Filter format: `/<Assembly>/<Namespace>/<ClassName>/<TestName>`. Use `*` as a wildcard at any segment.
+
+### Running Tests Serially
+
+To disable parallelism (useful for debugging flaky tests):
+
+```bash
+dotnet test src/Purview.EventSourcing.slnx -- --maximum-parallel-tests 1
+```
+

@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.MongoDB.Entities;
 
 namespace Purview.EventSourcing.MongoDB;
@@ -50,8 +50,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
-
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
+		var eventClient = ctx.EventClient;
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
@@ -59,11 +60,11 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Act
-		var results = eventStore
-			.GetEventRangeAsync(aggregateId, startEvent, endEvent, cancellationToken: cancellationToken)
-			.ToBlockingEnumerable(cancellationToken: cancellationToken)
-			.ToArray();
-		var continuationResult = await fixture.EventClient.QueryAsync<EventEntity>(
+		List<(IEvent @event, string eventType)> resultsList = [];
+		await foreach (var item in eventStore.GetEventRangeAsync(aggregateId, startEvent, endEvent, cancellationToken: cancellationToken))
+			resultsList.Add(item);
+		var results = resultsList.ToArray();
+		var continuationResult = await eventClient.QueryAsync<EventEntity>(
 			m => m.AggregateId == aggregateId && m.EntityType == EntityTypes.EventType,
 			e => e.OrderBy(m => m.Version),
 			eventsToCreate,

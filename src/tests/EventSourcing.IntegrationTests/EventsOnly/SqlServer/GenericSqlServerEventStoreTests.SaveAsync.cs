@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.SqlServer;
 
@@ -40,12 +40,14 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
+		var telemetry = ctx.Telemetry;
 
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		await Assert.That(result).IsFalse();
-		fixture.Telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
+		telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
 	}
 
 	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(CancellationToken cancellationToken)

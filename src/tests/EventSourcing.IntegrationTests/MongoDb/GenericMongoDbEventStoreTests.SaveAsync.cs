@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.MongoDB.Entities;
 
@@ -55,7 +55,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
+		var telemetry = ctx.Telemetry;
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -63,7 +65,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		// Assert
 		await Assert.That(result).IsFalse();
 
-		fixture.Telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
+		telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
 	}
 
 	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(CancellationToken cancellationToken)
@@ -158,6 +160,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		aggregate.AppendString(value);
 
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var snapshotClient = fixture.SnapshotClient;
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -167,7 +170,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await Assert.That(aggregate.IsNew()).IsFalse();
 
 		// Delete the snapshot to ensure the events are replayed.
-		await fixture.SnapshotClient.DeleteAsync<SnapshotEntity>(
+		await snapshotClient.DeleteAsync<SnapshotEntity>(
 			m => m.Id == aggregateId,
 			cancellationToken: cancellationToken
 		);

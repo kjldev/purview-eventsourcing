@@ -1,5 +1,7 @@
-﻿using System.Text;
+using System.Text;
 using Azure.Data.Tables;
+using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
+using Purview.EventSourcing.AzureStorage.StorageClients.Table;
 
 namespace Purview.EventSourcing.AzureStorage;
 
@@ -13,6 +15,8 @@ partial class GenericTableEventStoreTests<TAggregate>
 		aggregate.IncrementInt32Value();
 
 		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var tableClient = fixture.TableClient;
+		var blobClient = fixture.BlobClient;
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
@@ -32,7 +36,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await Assert.That(aggregate.Details.IsDeleted).IsTrue();
 		await Assert.That(aggregate.Details.Locked).IsTrue();
 
-		await ValidateEntitiesDeletedAsync(aggregate, eventStore, cancellationToken);
+		await ValidateEntitiesDeletedAsync(aggregate, eventStore, tableClient, blobClient, cancellationToken);
 	}
 
 	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(CancellationToken cancellationToken)
@@ -56,6 +60,8 @@ partial class GenericTableEventStoreTests<TAggregate>
 		aggregate.AppendString(value);
 
 		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var tableClient = fixture.TableClient;
+		var blobClient = fixture.BlobClient;
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
@@ -74,16 +80,18 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await Assert.That(aggregate.Details.IsDeleted).IsTrue();
 		await Assert.That(aggregate.Details.Locked).IsTrue();
 
-		await ValidateEntitiesDeletedAsync(aggregate, eventStore, cancellationToken);
+		await ValidateEntitiesDeletedAsync(aggregate, eventStore, tableClient, blobClient, cancellationToken);
 	}
 
 	async Task ValidateEntitiesDeletedAsync(
 		TAggregate aggregate,
 		TableEventStore<TAggregate> eventStore,
+		AzureTableClient tableClient,
+		AzureBlobClient blobClient,
 		CancellationToken cancellationToken
 	)
 	{
-		var results = await fixture.TableClient.QueryAsync<TableEntity>(
+		var results = await tableClient.QueryAsync<TableEntity>(
 			m => m.PartitionKey == aggregate.Details.Id,
 			cancellationToken: cancellationToken
 		);
@@ -91,7 +99,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await Assert.That(results.Results).IsEmpty();
 
 		var prefix = eventStore.GenerateSnapshotBlobPath(aggregate.Id());
-		var blobResults = await fixture.BlobClient.GetBlobsAsync(prefix, cancellationToken: cancellationToken);
+		var blobResults = await blobClient.GetBlobsAsync(prefix, cancellationToken: cancellationToken);
 		var blobsToDelete = blobResults.ToBlockingEnumerable(cancellationToken: cancellationToken);
 
 		await Assert.That(blobsToDelete).IsEmpty();

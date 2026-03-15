@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Azure.Data.Tables;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.AzureStorage.Entities;
@@ -54,7 +54,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx.EventStore;
+		var telemetry = ctx.Telemetry;
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -62,7 +64,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 		// Assert
 		await Assert.That(result).IsFalse();
 
-		fixture.Telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
+		telemetry.Received(1).SaveContainedNoChanges(aggregateId, Arg.Any<string>(), Arg.Any<string>());
 	}
 
 	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(CancellationToken cancellationToken)
@@ -104,14 +106,16 @@ partial class GenericTableEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToGenerate; i++)
 			aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx.EventStore;
+		var tableClient = ctx.TableClient;
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Get and update stream version to remove the Version property.
 		var streamVersion =
-			await fixture.TableClient.GetAsync<TableEntity>(
+			await tableClient.GetAsync<TableEntity>(
 				aggregateId,
 				TableEventStoreConstants.StreamVersionRowKey,
 				cancellationToken: cancellationToken
@@ -120,7 +124,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		streamVersion.Remove(nameof(StreamVersionEntity.Version));
 
-		await fixture.TableClient.OperationAsync(
+		await tableClient.OperationAsync(
 			TableTransactionActionType.UpdateReplace,
 			streamVersion,
 			cancellationToken: cancellationToken
@@ -204,7 +208,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx2 = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx2.EventStore;
+		var blobClient = ctx2.BlobClient;
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -215,7 +221,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		// Delete the snapshot to ensure the events are replayed.
 		var blobName = eventStore.GenerateSnapshotBlobName(aggregateId);
-		var deleteResult = await fixture.BlobClient.DeleteBlobIfExistsAsync(
+		var deleteResult = await blobClient.DeleteBlobIfExistsAsync(
 			blobName,
 			cancellationToken: cancellationToken
 		);
@@ -255,13 +261,15 @@ partial class GenericTableEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToGenerate; i++)
 			aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx3 = fixture.CreateEventStoreContext<TAggregate>();
+		var eventStore = ctx3.EventStore;
+		var tableClient = ctx3.TableClient;
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Get and update stream version to remove the Version property.
-		var streamVersion = await fixture.TableClient.GetAsync<TableEntity>(
+		var streamVersion = await tableClient.GetAsync<TableEntity>(
 			aggregateId,
 			TableEventStoreConstants.StreamVersionRowKey,
 			cancellationToken: cancellationToken

@@ -151,6 +151,7 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(SteppedCountTestData))]
+	[NotInParallel("MongoDBGetAsyncNoSnapshot")]
 	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
 		Type aggregateType,
 		int eventsToCreate,

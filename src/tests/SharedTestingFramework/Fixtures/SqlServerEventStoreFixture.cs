@@ -29,10 +29,31 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 		int snapshotRecalculationInterval = 1
 	)
 		where TAggregate : class, IAggregate, new()
+		=> CreateEventStoreContext<TAggregate>(
+			aggregateChangeNotifier,
+			correlationIdsToGenerate,
+			removeFromCacheOnDelete,
+			snapshotRecalculationInterval
+		).EventStore;
+
+	internal (
+		SqlServerEventStore<TAggregate> EventStore,
+		SqlServerEventStoreClient Client,
+		IDistributedCache Cache,
+		ISqlServerEventStoreTelemetry Telemetry
+	) CreateEventStoreContext<TAggregate>(
+		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
+		int correlationIdsToGenerate = 1,
+		bool removeFromCacheOnDelete = false,
+		int snapshotRecalculationInterval = 1
+	)
+		where TAggregate : class, IAggregate, new()
 	{
 		var runId = Guid.NewGuid();
-		Cache = CreateDistributedCache();
-		Telemetry = Substitute.For<ISqlServerEventStoreTelemetry>();
+		var cache = CreateDistributedCache();
+		Cache = cache;
+		var telemetry = Substitute.For<ISqlServerEventStoreTelemetry>();
+		Telemetry = telemetry;
 		_eventNameMapper = new AggregateEventNameMapper();
 
 		var connectionString = _msSqlContainer.GetConnectionString();
@@ -49,19 +70,20 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
-		Client = new SqlServerEventStoreClient(options);
+		var client = new SqlServerEventStoreClient(options);
+		Client = client;
 
 		SqlServerEventStore<TAggregate> eventStore = new(
 			eventNameMapper: _eventNameMapper,
 			sqlServerOptions: Microsoft.Extensions.Options.Options.Create(options),
-			distributedCache: Cache,
-			eventStoreTelemetry: Telemetry,
+			distributedCache: cache,
+			eventStoreTelemetry: telemetry,
 			aggregateChangeNotifier: aggregateChangeNotifier
 				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
 
-		return eventStore;
+		return (eventStore, client, cache, telemetry);
 	}
 
 	public static IDistributedCache CreateDistributedCache()

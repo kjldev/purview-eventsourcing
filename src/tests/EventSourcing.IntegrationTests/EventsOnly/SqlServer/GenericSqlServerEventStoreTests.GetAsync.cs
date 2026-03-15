@@ -29,12 +29,13 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Delete the snapshot directly from SQL Server
 		var snapshotId = $"snap_{aggregate.AggregateType}_{aggregateId}";
-		await fixture.Client.DeleteByIdAsync(snapshotId, cancellationToken: cancellationToken);
+		await ctx.Client.DeleteByIdAsync(snapshotId, cancellationToken: cancellationToken);
 
 		var result = await eventStore.GetAsync(aggregateId, cancellationToken: cancellationToken);
 

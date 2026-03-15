@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates.Persistence.Events;
+using Purview.EventSourcing.Aggregates.Persistence.Events;
 using Purview.EventSourcing.MongoDB.Entities;
 using Purview.EventSourcing.MongoDB.Exceptions;
 using Purview.EventSourcing.MongoDB.StorageClients;
@@ -39,12 +39,14 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
+		var snapshotClient = ctx.SnapshotClient;
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Act
-		var snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(
+		var snapshotEntity = await snapshotClient.GetAsync<SnapshotEntity>(
 			aggregateId,
 			EntityTypes.SnapshotType,
 			cancellationToken: cancellationToken
@@ -52,12 +54,12 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		await Assert.That(snapshotEntity).IsNotNull();
 
-		await fixture.SnapshotClient.DeleteAsync<SnapshotEntity>(
+		await snapshotClient.DeleteAsync<SnapshotEntity>(
 			m => m.Id == aggregateId,
 			cancellationToken: cancellationToken
 		);
 
-		snapshotEntity = await fixture.SnapshotClient.GetAsync<SnapshotEntity>(
+		snapshotEntity = await snapshotClient.GetAsync<SnapshotEntity>(
 			aggregateId,
 			EntityTypes.SnapshotType,
 			cancellationToken: cancellationToken
@@ -140,7 +142,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < numberOfOldEventsToCreate; i++)
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
+		var telemetry = ctx.Telemetry;
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -153,8 +157,8 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		);
 
 		// Assert
-		fixture
-			.Telemetry.Received(numberOfOldEventsToCreate)
+		telemetry
+			.Received(numberOfOldEventsToCreate)
 			.CannotApplyEvent(
 				aggregateId,
 				Arg.Any<string>(),
@@ -198,7 +202,10 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < numberOfOldEventsToCreate; i++)
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var ctx = fixture.CreateEventStoreContext<TAggregate>();
+		using var eventStore = ctx.EventStore;
+		var eventClient = ctx.EventClient;
+		var telemetry = ctx.Telemetry;
 
 		// Act
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -220,7 +227,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			batch.Update(eventToUpdate);
 		}
 
-		await fixture.EventClient.SubmitBatchAsync(batch, cancellationToken);
+		await eventClient.SubmitBatchAsync(batch, cancellationToken);
 
 		// Get without using the snapshot, just from the event record.
 		var result = await eventStore.GetAsync(
@@ -230,8 +237,8 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		);
 
 		// Assert
-		fixture
-			.Telemetry.Received(numberOfOldEventsToCreate)
+		telemetry
+			.Received(numberOfOldEventsToCreate)
 			.SkippedUnknownEvent(aggregateId, Arg.Any<string>(), Arg.Any<string>(), unknownEventType, Arg.Any<int>());
 
 		await Assert.That(result).IsNotNull();

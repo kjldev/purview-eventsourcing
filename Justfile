@@ -25,6 +25,14 @@ build:
 test:
     dotnet test --solution {{ test_project }} --configuration {{ configuration }}
 
+# Run tests with a TUnit treenode filter (e.g.: just test-filter "/*/*/*/MyTest*")
+test-filter filter:
+    dotnet test --solution {{ test_project }} --configuration {{ configuration }} -- --treenode-filter "{{ filter }}"
+
+# Run tests serially (useful for debugging)
+test-serial:
+    dotnet test --solution {{ test_project }} --configuration {{ configuration }} -- --maximum-parallel-tests 1
+
 # Pack the solution
 pack:
     dotnet pack -c {{ configuration }} -o {{ artifact_folder }} {{ solution_file }} --property:Version={{ pack_version }} --include-symbols

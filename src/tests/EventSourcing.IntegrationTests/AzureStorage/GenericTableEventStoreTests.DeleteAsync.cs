@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.ChangeFeed;
+using Purview.EventSourcing.ChangeFeed;
 
 namespace Purview.EventSourcing.AzureStorage;
 
@@ -36,10 +36,12 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(
+		var ctx = fixture.CreateEventStoreContext<TAggregate>(
 			correlationIdsToGenerate: 2,
 			removeFromCacheOnDelete: true
 		);
+		var eventStore = ctx.EventStore;
+		var cache = ctx.Cache;
 
 		var cacheKey = eventStore.CreateCacheKey(aggregateId);
 
@@ -55,7 +57,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 		// Assert
 		await Assert.That(result).IsTrue();
 
-		await fixture.Cache.Received(1).RemoveAsync(cacheKey, Arg.Any<CancellationToken>());
+		await cache.Received(1).RemoveAsync(cacheKey, Arg.Any<CancellationToken>());
 	}
 
 	public async Task DeleteAsync_GivenDelete_NotifiesChangeFeed(CancellationToken cancellationToken)

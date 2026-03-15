@@ -39,26 +39,49 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 		int snapshotRecalculationInterval = 1
 	)
 		where TAggregate : class, IAggregate, new()
+		=> CreateEventStoreContext<TAggregate>(
+			aggregateChangeNotifier,
+			correlationIdsToGenerate,
+			removeFromCacheOnDelete,
+			snapshotRecalculationInterval
+		).EventStore;
+
+	internal (
+		TableEventStore<TAggregate> EventStore,
+		ITableEventStoreTelemetry Telemetry,
+		IDistributedCache Cache,
+		AzureTableClient TableClient,
+		AzureBlobClient BlobClient
+	) CreateEventStoreContext<TAggregate>(
+		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
+		int correlationIdsToGenerate = 1,
+		bool removeFromCacheOnDelete = false,
+		int snapshotRecalculationInterval = 1
+	)
+		where TAggregate : class, IAggregate, new()
 	{
 		var runId = Guid.NewGuid();
-		var runIds = Enumerable
-			.Range(1, correlationIdsToGenerate)
-			.Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant())
-			.ToArray();
 
-		_tableName = TestHelpers.GenAzureTableName(runId);
-		_containerName = TestHelpers.GenAzureBlobContainerName(runId);
+		var tableName = TestHelpers.GenAzureTableName(runId);
+		var containerName = TestHelpers.GenAzureBlobContainerName(runId);
 
-		Cache = CreateDistributedCache();
-		Telemetry = Substitute.For<ITableEventStoreTelemetry>();
+		_tableName = tableName;
+		_containerName = containerName;
+
+		var cache = CreateDistributedCache();
+		Cache = cache;
+
+		var telemetry = Substitute.For<ITableEventStoreTelemetry>();
+		Telemetry = telemetry;
+
 		_eventNameMapper = new AggregateEventNameMapper();
 
 		var aggregateRequirementsManager = Substitute.For<IAggregateRequirementsManager>();
 		AzureStorageEventStoreOptions azureStorageOptions = new()
 		{
 			ConnectionString = _azuriteContainer.GetConnectionString(),
-			Table = _tableName,
-			Container = _containerName,
+			Table = tableName,
+			Container = containerName,
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
 			SnapshotInterval = snapshotRecalculationInterval,
@@ -67,19 +90,22 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 		TableEventStore<TAggregate> eventStore = new(
 			eventNameMapper: _eventNameMapper,
 			azureStorageOptions: Microsoft.Extensions.Options.Options.Create(azureStorageOptions),
-			distributedCache: Cache,
+			distributedCache: cache,
 			aggregateChangeNotifier: aggregateChangeNotifier
 				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
-			eventStoreTelemetry: Telemetry,
+			eventStoreTelemetry: telemetry,
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
 
-		TableClient = new(azureStorageOptions, eventStore.TableName);
-		BlobClient = new(azureStorageOptions, eventStore.ContainerName);
+		var tableClient = new AzureTableClient(azureStorageOptions, eventStore.TableName);
+		TableClient = tableClient;
+
+		var blobClient = new AzureBlobClient(azureStorageOptions, eventStore.ContainerName);
+		BlobClient = blobClient;
 
 		_eventStoreAsDisposable = eventStore as IDisposable;
 
-		return eventStore;
+		return (eventStore, telemetry, cache, tableClient, blobClient);
 	}
 
 	public static IDistributedCache CreateDistributedCache()

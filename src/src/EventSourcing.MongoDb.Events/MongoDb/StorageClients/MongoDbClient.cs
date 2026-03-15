@@ -96,15 +96,12 @@ sealed partial class MongoDBClient : IDisposable
 
 	static FilterDefinition<T> BuildPredicate<T>(string id, int? entityType)
 	{
-		var predicate = new FilterDefinitionBuilder<T>();
-		predicate.Eq("_id", id);
+		var builder = new FilterDefinitionBuilder<T>();
 
 		if (entityType == null)
-			return predicate.Eq("_id", id);
+			return builder.Eq("_id", id);
 
-		predicate.Eq("_id", id);
-
-		return predicate.And(predicate.Eq(nameof(IEntity.EntityType), entityType));
+		return builder.And(builder.Eq("_id", id), builder.Eq(nameof(IEntity.EntityType), entityType));
 	}
 
 	sealed class StringObjectIdIdGeneratorConventionThatWorks : ConventionBase, IPostProcessingConvention

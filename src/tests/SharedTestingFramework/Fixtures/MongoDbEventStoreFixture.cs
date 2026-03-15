@@ -35,15 +35,34 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 		int snapshotRecalculationInterval = 1
 	)
 		where TAggregate : class, IAggregate, new()
+		=> CreateEventStoreContext<TAggregate>(
+			aggregateChangeNotifier,
+			correlationIdsToGenerate,
+			removeFromCacheOnDelete,
+			snapshotRecalculationInterval
+		).EventStore;
+
+	internal (
+		MongoDBEventStore<TAggregate> EventStore,
+		IMongoDBEventStoreTelemetry Telemetry,
+		IDistributedCache Cache,
+		MongoDBClient EventClient,
+		MongoDBClient SnapshotClient
+	) CreateEventStoreContext<TAggregate>(
+		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
+		int correlationIdsToGenerate = 1,
+		bool removeFromCacheOnDelete = false,
+		int snapshotRecalculationInterval = 1
+	)
+		where TAggregate : class, IAggregate, new()
 	{
 		var runId = Guid.NewGuid();
-		var runIds = Enumerable
-			.Range(1, correlationIdsToGenerate)
-			.Select(_ => $"{Guid.NewGuid()}".ToUpperInvariant())
-			.ToArray();
 
-		Cache = CreateDistributedCache();
-		Telemetry = Substitute.For<IMongoDBEventStoreTelemetry>();
+		var cache = CreateDistributedCache();
+		Cache = cache;
+
+		var telemetry = Substitute.For<IMongoDBEventStoreTelemetry>();
+		Telemetry = telemetry;
 
 		_eventNameMapper = new AggregateEventNameMapper();
 
@@ -67,28 +86,31 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 		MongoDBEventStore<TAggregate> eventStore = new(
 			eventNameMapper: _eventNameMapper,
 			mongoDbOptions: Microsoft.Extensions.Options.Options.Create(mongoDBOptions),
-			distributedCache: Cache,
+			distributedCache: cache,
 			aggregateChangeNotifier: aggregateChangeNotifier
 				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
-			eventStoreTelemetry: Telemetry,
+			eventStoreTelemetry: telemetry,
 			mongoDBClientTelemetry: mongoDBClientTelemetry,
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
 
-		EventClient = new(
+		var eventClient = new MongoDBClient(
 			mongoDBClientTelemetry,
 			new() { ConnectionString = mongoDBOptions.ConnectionString, ReplicaName = mongoDBOptions.ReplicaName },
 			mongoDBOptions.Database,
 			mongoDBOptions.EventCollection
 		);
-		SnapshotClient = new(
+		EventClient = eventClient;
+
+		var snapshotClient = new MongoDBClient(
 			mongoDBClientTelemetry,
 			new() { ConnectionString = mongoDBOptions.ConnectionString, ReplicaName = mongoDBOptions.ReplicaName },
 			mongoDBOptions.Database,
 			mongoDBOptions.SnapshotCollection
 		);
+		SnapshotClient = snapshotClient;
 
-		return eventStore;
+		return (eventStore, telemetry, cache, eventClient, snapshotClient);
 	}
 
 	public static IDistributedCache CreateDistributedCache()

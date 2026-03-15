@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using LinqKit;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
@@ -133,11 +133,9 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 		[EnumeratorCancellation] CancellationToken cancellationToken = default
 	)
 	{
-		var whereClause = PredicateBuilder.New<StreamVersionEntity>(m =>
-			m.AggregateType == _aggregateTypeShortName && m.EntityType == EntityTypes.StreamVersionType
-		);
-		if (!includeDeleted)
-			whereClause = PredicateBuilder.And<StreamVersionEntity>(whereClause, m => !m.IsDeleted);
+		Expression<Func<StreamVersionEntity, bool>> whereClause = includeDeleted
+			? m => m.AggregateType == _aggregateTypeShortName && m.EntityType == EntityTypes.StreamVersionType
+			: m => m.AggregateType == _aggregateTypeShortName && m.EntityType == EntityTypes.StreamVersionType && !m.IsDeleted;
 
 		var query = _eventClient.QueryEnumerableAsync<StreamVersionEntity>(
 			whereClause,
