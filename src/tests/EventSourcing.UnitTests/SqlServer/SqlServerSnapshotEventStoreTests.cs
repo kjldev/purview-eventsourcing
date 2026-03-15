@@ -172,26 +172,58 @@ public sealed class SqlServerSnapshotEventStoreTests
 	}
 
 	static SqlServerSnapshotEventStore<TestAggregate> CreateStore(
-		INonQueryableEventStore<TestAggregate>? eventStore = null
+		INonQueryableEventStore<TestAggregate>? eventStore = null,
+		SqlServerSnapshotEventStoreOptions? options = null
 	)
 	{
 		eventStore ??= Substitute.For<INonQueryableEventStore<TestAggregate>>();
-		var options = CreateOptions();
+		var wrappedOptions = Options.Create(options ?? CreateDefaultOptions());
 		var telemetry = Substitute.For<ISqlServerSnapshotEventStoreTelemetry>();
 
-		return new(eventStore, options, telemetry);
+		return new(eventStore, wrappedOptions, telemetry);
 	}
 
-	static IOptions<SqlServerSnapshotEventStoreOptions> CreateOptions()
+	static IOptions<SqlServerSnapshotEventStoreOptions> CreateOptions() =>
+		Options.Create(CreateDefaultOptions());
+
+	static SqlServerSnapshotEventStoreOptions CreateDefaultOptions() =>
+		new()
+		{
+			ConnectionString = "Server=(localdb)\\mssqllocaldb;Database=TestDb;Trusted_Connection=True;",
+			TableName = "TestSnapshots",
+			SchemaName = "dbo",
+			AutoCreateTable = false,
+		};
+
+	[Test]
+	public async Task Constructor_GivenOptionsWithAggregateTableOverride_CreatesStoreWithoutThrowing()
 	{
-		return Options.Create(
-			new SqlServerSnapshotEventStoreOptions
-			{
-				ConnectionString = "Server=(localdb)\\mssqllocaldb;Database=TestDb;Trusted_Connection=True;",
-				TableName = "TestSnapshots",
-				SchemaName = "dbo",
-				AutoCreateTable = false,
-			}
-		);
+		// Arrange
+		var options = CreateDefaultOptions();
+		options.AggregateTableOverrides["Test"] = new SqlServerSnapshotAggregateTableOverride
+		{
+			SchemaName = "custom",
+			TableName = "CustomSnapshots",
+		};
+
+		// Act & Assert — should not throw
+		using var store = CreateStore(options: options);
+		await Assert.That(store).IsNotNull();
+	}
+
+	[Test]
+	public async Task Constructor_GivenOptionsWithPartialAggregateTableOverride_FallsBackToGlobalDefaults()
+	{
+		// Arrange — only schema override, table should fall back to global default
+		var options = CreateDefaultOptions();
+		options.AggregateTableOverrides["Test"] = new SqlServerSnapshotAggregateTableOverride
+		{
+			SchemaName = "custom",
+			// TableName not set → falls back to global "TestSnapshots"
+		};
+
+		// Act & Assert — should not throw
+		using var store = CreateStore(options: options);
+		await Assert.That(store).IsNotNull();
 	}
 }

@@ -25,16 +25,23 @@ sealed class AggregateInfo
 
 sealed class AggregateEventMethodInfo
 {
-	public AggregateEventMethodInfo(string methodName, List<EventPropertyInfo> parameters)
+	public AggregateEventMethodInfo(string methodName, List<EventPropertyInfo> parameters, int version = 1)
 	{
 		MethodName = methodName;
 		EventName = methodName + "Event";
 		Parameters = parameters;
+		Version = version;
 	}
 
 	public string MethodName { get; }
 	public string EventName { get; }
 	public List<EventPropertyInfo> Parameters { get; }
+
+	/// <summary>
+	/// The schema version declared via <c>[GenerateAggregateEvent(Version = N)]</c>.
+	/// Defaults to 1.
+	/// </summary>
+	public int Version { get; }
 }
 
 sealed class EventPropertyInfo

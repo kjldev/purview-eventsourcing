@@ -83,6 +83,12 @@ static class EmitHelper
 		}
 
 		sb.AppendLine();
+
+		// Emit SchemaVersion override only when it differs from the default (1),
+		// but always emit it so consumers can rely on it being present.
+		sb.AppendLine($"\t\tpublic override int SchemaVersion => {method.Version};");
+		sb.AppendLine();
+
 		sb.AppendLine("\t\tprotected override void BuildEventHash(ref global::System.HashCode hash)");
 		sb.AppendLine("\t\t{");
 

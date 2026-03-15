@@ -130,9 +130,30 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 				));
 			}
 
+			// Read Version from the [GenerateAggregateEvent] attribute (default 1)
+			var version = 1;
+			foreach (var attr in methodSymbol.GetAttributes())
+			{
+				var attrClass = attr.AttributeClass;
+				if (attrClass is null || attrClass.ToDisplayString() != GenerateAggregateEventAttributeName)
+					continue;
+
+				foreach (var namedArg in attr.NamedArguments)
+				{
+					if (namedArg.Key == "Version" && namedArg.Value.Value is int v)
+					{
+						version = v;
+						break;
+					}
+				}
+
+				break;
+			}
+
 			methods.Add(new AggregateEventMethodInfo(
 				methodSymbol.Name,
-				parameters
+				parameters,
+				version
 			));
 		}
 

@@ -30,16 +30,33 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 		_telemetry = telemetry;
 
 		_aggregateName = TypeNameHelper.GetName(_aggregateType, "Aggregate");
-		_sqlServerClient = new SqlServerClient(
-			new SqlServerClientOptions
-			{
-				ConnectionString = _sqlServerEventStoreOptions.Value.ConnectionString,
-				TableName = _sqlServerEventStoreOptions.Value.TableName,
-				SchemaName = _sqlServerEventStoreOptions.Value.SchemaName,
-				AutoCreateTable = _sqlServerEventStoreOptions.Value.AutoCreateTable,
-				UseDataCompression = _sqlServerEventStoreOptions.Value.UseDataCompression,
-			}
-		);
+
+		var clientOptions = ResolveClientOptions(_sqlServerEventStoreOptions.Value, _aggregateName);
+		_sqlServerClient = new SqlServerClient(clientOptions);
+	}
+
+	/// <summary>
+	/// Merges global options with any per-aggregate-type table override.
+	/// </summary>
+	static SqlServerClientOptions ResolveClientOptions(SqlServerSnapshotEventStoreOptions options, string aggregateName)
+	{
+		var schema = options.SchemaName;
+		var table = options.TableName;
+
+		if (options.AggregateTableOverrides.TryGetValue(aggregateName, out var ovr) && ovr is not null)
+		{
+			schema = ovr.SchemaName ?? schema;
+			table = ovr.TableName ?? table;
+		}
+
+		return new SqlServerClientOptions
+		{
+			ConnectionString = options.ConnectionString,
+			TableName = table,
+			SchemaName = schema,
+			AutoCreateTable = options.AutoCreateTable,
+			UseDataCompression = options.UseDataCompression,
+		};
 	}
 
 	/// <summary>

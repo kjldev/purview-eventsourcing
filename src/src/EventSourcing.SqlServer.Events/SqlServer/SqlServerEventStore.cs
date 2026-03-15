@@ -31,6 +31,8 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 
 	readonly string _aggregateTypeFullName;
 	readonly string _aggregateTypeShortName;
+	readonly string _effectiveSchemaName;
+	readonly string _effectiveTableName;
 
 	public SqlServerEventStore(
 		IAggregateEventNameMapper eventNameMapper,
@@ -59,7 +61,11 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		if (!aggregateName.Contains('.', StringComparison.InvariantCulture))
 			_aggregateTypeShortName = aggregateName;
 
-		_client = new SqlServerEventStoreClient(sqlServerOptions.Value);
+		var clientOptions = ResolveClientOptions(sqlServerOptions.Value, _aggregateTypeShortName);
+		_effectiveSchemaName = clientOptions.SchemaName;
+		_effectiveTableName = clientOptions.TableName;
+
+		_client = new SqlServerEventStoreClient(clientOptions);
 	}
 
 	public T FulfilRequirements(T aggregate)
@@ -108,7 +114,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		[EnumeratorCancellation] CancellationToken cancellationToken = default
 	)
 	{
-		var streamVersionId = CreateStreamVersionId(string.Empty);
 		// We query all stream versions from the client by aggregate id pattern.
 		// Since SQL doesn't easily support this as a single query like MongoDB,
 		// we get stream version rows by entity type and aggregate type.
@@ -119,8 +124,8 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		);
 		await connection.OpenAsync(cancellationToken);
 
-		var quotedSchema = QuoteIdentifierForQuery(_eventStoreOptions.Value.SchemaName);
-		var quotedTable = QuoteIdentifierForQuery(_eventStoreOptions.Value.TableName);
+		var quotedSchema = QuoteIdentifierForQuery(_effectiveSchemaName);
+		var quotedTable = QuoteIdentifierForQuery(_effectiveTableName);
 
 		var sql = includeDeleted
 			? $"SELECT [AggregateId] FROM {quotedSchema}.{quotedTable} WHERE [AggregateType] = @AggregateType AND [EntityType] = @EntityType"
@@ -236,6 +241,36 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 
 	static string QuoteIdentifierForQuery(string identifier) =>
 		$"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
+
+	/// <summary>
+	/// Merges global options with any per-aggregate-type table override.
+	/// Returns an options instance with the effective schema and table name.
+	/// </summary>
+	static SqlServerEventStoreOptions ResolveClientOptions(SqlServerEventStoreOptions options, string aggregateTypeName)
+	{
+		if (!options.AggregateTableOverrides.TryGetValue(aggregateTypeName, out var ovr) || ovr is null)
+			return options;
+
+		if (ovr.SchemaName is null && ovr.TableName is null)
+			return options;
+
+		return new SqlServerEventStoreOptions
+		{
+			ConnectionString = options.ConnectionString,
+			SchemaName = ovr.SchemaName ?? options.SchemaName,
+			TableName = ovr.TableName ?? options.TableName,
+			AutoCreateTable = options.AutoCreateTable,
+			UseDataCompression = options.UseDataCompression,
+			TimeoutInSeconds = options.TimeoutInSeconds,
+			MaxEventCountOnSave = options.MaxEventCountOnSave,
+			SnapshotInterval = options.SnapshotInterval,
+			RemoveDeletedFromCache = options.RemoveDeletedFromCache,
+			EventSuffixLength = options.EventSuffixLength,
+			CacheMode = options.CacheMode,
+			DefaultCacheSlidingDuration = options.DefaultCacheSlidingDuration,
+			RequiresValidPrincipalIdentifier = options.RequiresValidPrincipalIdentifier,
+		};
+	}
 
 	public void Dispose()
 	{

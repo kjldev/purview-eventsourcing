@@ -9,6 +9,18 @@ public abstract class EventBase : IEvent
 	public EventDetails Details { get; internal set; } = new EventDetails();
 
 	/// <summary>
+	/// Gets the schema version of this event type. Increment this when the event's
+	/// properties change in a breaking way so that consumers can perform version-aware
+	/// deserialization or up-casting.
+	/// </summary>
+	/// <remarks>
+	/// Defaults to 1. Override in a derived class to declare a higher version.
+	/// The source generator will emit the correct override when
+	/// <c>[GenerateAggregateEvent(Version = N)]</c> is used.
+	/// </remarks>
+	public virtual int SchemaVersion => 1;
+
+	/// <summary>
 	/// Gets a hash of the <see cref="EventBase"/>.
 	/// </summary>
 	/// <returns>A hash based on the name of the type, and the data.</returns>

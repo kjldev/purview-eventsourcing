@@ -3,6 +3,29 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Purview.EventSourcing.SqlServer;
 
+/// <summary>
+/// Defines a schema and/or table name override for a specific aggregate type.
+/// </summary>
+/// <remarks>
+/// The key in <see cref="SqlServerEventStoreOptions.AggregateTableOverrides"/> should match
+/// the aggregate's <c>AggregateType</c> value (i.e., the class name with any trailing
+/// "Aggregate" suffix removed, e.g. <c>"Order"</c> for <c>OrderAggregate</c>).
+/// </remarks>
+public sealed class SqlServerAggregateTableOverride
+{
+	/// <summary>
+	/// Overrides the schema name for this aggregate type.
+	/// When null, the global <see cref="SqlServerEventStoreOptions.SchemaName"/> is used.
+	/// </summary>
+	public string? SchemaName { get; set; }
+
+	/// <summary>
+	/// Overrides the table name for this aggregate type.
+	/// When null, the global <see cref="SqlServerEventStoreOptions.TableName"/> is used.
+	/// </summary>
+	public string? TableName { get; set; }
+}
+
 public sealed class SqlServerEventStoreOptions
 {
 	public const string SqlServerEventStore = "EventStore:SqlServer";
@@ -100,4 +123,33 @@ public sealed class SqlServerEventStoreOptions
 	/// <remarks>If true and <see cref="IPrincipalService.Identifier()"/> returns null or empty string, an exception is thrown.</remarks>
 	[DefaultValue(true)]
 	public bool RequiresValidPrincipalIdentifier { get; set; } = true;
+
+	/// <summary>
+	/// Per-aggregate-type schema and/or table name overrides.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The key is the aggregate's <c>AggregateType</c> short name — typically the class name
+	/// with any trailing <c>"Aggregate"</c> suffix removed (e.g. <c>"Order"</c> for
+	/// <c>OrderAggregate</c>).
+	/// </para>
+	/// <para>
+	/// Keys are matched case-insensitively. Null override values fall back to the
+	/// global <see cref="SchemaName"/> / <see cref="TableName"/>.
+	/// </para>
+	/// <example>
+	/// <code>
+	/// // appsettings.json
+	/// "EventStore:SqlServer": {
+	///   "ConnectionString": "...",
+	///   "AggregateTableOverrides": {
+	///     "Order": { "SchemaName": "orders", "TableName": "EventStore" },
+	///     "Inventory": { "SchemaName": "inventory" }
+	///   }
+	/// }
+	/// </code>
+	/// </example>
+	/// </remarks>
+	public Dictionary<string, SqlServerAggregateTableOverride> AggregateTableOverrides { get; init; }
+		= new(StringComparer.OrdinalIgnoreCase);
 }
