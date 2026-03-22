@@ -151,10 +151,10 @@ public class ContinuationTests
 		};
 
 		// Act
-		var converted = response.Convert(i => i.ToString());
+		var converted = response.Convert(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
 		// Assert
-		await Assert.That(converted.Results).HasCount().EqualTo(3);
+		await Assert.That(converted.Results).Count().IsEqualTo(3);
 		await Assert.That(converted.ContinuationToken).IsEqualTo("token");
 		await Assert.That(converted.RequestedCount).IsEqualTo(10);
 	}
