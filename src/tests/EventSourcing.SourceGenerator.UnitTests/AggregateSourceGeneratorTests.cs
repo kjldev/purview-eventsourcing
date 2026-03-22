@@ -767,4 +767,302 @@ namespace Testing
 	}
 
 	#endregion
+
+	#region Complex Scenario Tests
+
+	[Test]
+	public async Task Generate_GivenAggregateWithManyEvents_GeneratesAllEventsAndRegistrations(CancellationToken cancellationToken)
+	{
+		// Arrange — aggregate with 5 events covering full lifecycle
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; }
+		public decimal Total { get; private set; }
+		public string Status { get; private set; }
+		public string ShippingAddress { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void UpdateTotal(decimal total);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetShippingAddress(string shippingAddress);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void ConfirmOrder();
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CancelOrder();
+	}
+}
+";
+
+		// Act
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert — all 5 event classes
+		await Assert.That(generatedSource).Contains("public sealed class CreateOrderEvent");
+		await Assert.That(generatedSource).Contains("public sealed class UpdateTotalEvent");
+		await Assert.That(generatedSource).Contains("public sealed class SetShippingAddressEvent");
+		await Assert.That(generatedSource).Contains("public sealed class ConfirmOrderEvent");
+		await Assert.That(generatedSource).Contains("public sealed class CancelOrderEvent");
+
+		// Assert — all 5 Register calls
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CreateOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.UpdateTotalEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.SetShippingAddressEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.ConfirmOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CancelOrderEvent>(Apply);");
+
+		// Assert — compiles without errors
+		var errors = outputCompilation.GetDiagnostics(cancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenEventWithMultipleParameterTypes_GeneratesCorrectProperties(CancellationToken cancellationToken)
+	{
+		// Arrange — event with int, decimal, string, bool parameters
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ProductAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Name { get; private set; }
+		public decimal Price { get; private set; }
+		public int Quantity { get; private set; }
+		public bool IsAvailable { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void UpdateProduct(string name, decimal price, int quantity, bool isAvailable);
+	}
+}
+";
+
+		// Act
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert — all parameter types are represented as properties
+		await Assert.That(generatedSource).Contains("public string Name { get; set; }");
+		await Assert.That(generatedSource).Contains("public decimal Price { get; set; }");
+		await Assert.That(generatedSource).Contains("public int Quantity { get; set; }");
+		await Assert.That(generatedSource).Contains("public bool IsAvailable { get; set; }");
+
+		// Assert — Apply method sets all properties
+		await Assert.That(generatedSource).Contains("Name = @event.Name;");
+		await Assert.That(generatedSource).Contains("Price = @event.Price;");
+		await Assert.That(generatedSource).Contains("Quantity = @event.Quantity;");
+		await Assert.That(generatedSource).Contains("IsAvailable = @event.IsAvailable;");
+
+		// Assert — BuildEventHash includes all properties
+		await Assert.That(generatedSource).Contains("hash.Add(Name);");
+		await Assert.That(generatedSource).Contains("hash.Add(Price);");
+		await Assert.That(generatedSource).Contains("hash.Add(Quantity);");
+		await Assert.That(generatedSource).Contains("hash.Add(IsAvailable);");
+	}
+
+	[Test]
+	public async Task Generate_GivenAggregateWithTransitiveInheritance_GeneratesCode(CancellationToken cancellationToken)
+	{
+		// Arrange — aggregate inherits through an intermediate base class
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	public abstract class DomainAggregateBase : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class AccountAggregate : DomainAggregateBase
+	{
+		public string AccountName { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateAccount(string accountName);
+	}
+}
+";
+
+		// Act
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		// Assert — 3 trees: 2 attributes + 1 generated aggregate
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
+
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert.That(generatedSource).Contains("public sealed class CreateAccountEvent");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CreateAccountEvent>(Apply);");
+	}
+
+	[Test]
+	public async Task Generate_GivenNestedNamespace_GeneratesCorrectEventsNamespace(CancellationToken cancellationToken)
+	{
+		// Arrange — deeply nested namespace
+		var source = AggregateBaseStub + @"
+namespace Company.Domain.Orders
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		// Act
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert — events namespace follows the pattern
+		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders.Events");
+		await Assert.That(generatedSource).Contains("Register<global::Company.Domain.Orders.Events.CreateOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders");
+	}
+
+	[Test]
+	public async Task Generate_GivenParameterlessAndParameterizedEvents_GeneratesBothCorrectly(CancellationToken cancellationToken)
+	{
+		// Arrange — mix of parameterless and parameterized events
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class CounterAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public int Count { get; private set; }
+		public string Label { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Increment();
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Decrement();
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetLabel(string label);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Reset();
+	}
+}
+";
+
+		// Act
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert — parameterless use () constructor, parameterized use { } initializer
+		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.IncrementEvent());");
+		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.DecrementEvent());");
+		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.ResetEvent());");
+		await Assert.That(generatedSource).Contains("Label = label,");
+
+		// Assert — all 4 Register calls
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.IncrementEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.DecrementEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.SetLabelEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.ResetEvent>(Apply);");
+
+		// Assert — compiles without errors
+		var errors = outputCompilation.GetDiagnostics(cancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenNullableParameter_GeneratesNullableProperty(CancellationToken cancellationToken)
+	{
+		// Arrange
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ProfileAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string? Bio { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void UpdateBio(string? bio);
+	}
+}
+";
+
+		// Act
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert — nullable parameter generates property and Apply method
+		await Assert.That(generatedSource).Contains("Bio");
+		await Assert.That(generatedSource).Contains("Bio = @event.Bio;");
+		await Assert.That(generatedSource).Contains("public sealed class UpdateBioEvent");
+	}
+
+	[Test]
+	public async Task Generate_GivenPublicAccessibility_GeneratesPublicPartialClass(CancellationToken cancellationToken)
+	{
+		// Arrange
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class PublicAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void DoAction();
+	}
+}
+";
+
+		// Act
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert
+		await Assert.That(generatedSource).Contains("public partial class PublicAggregate");
+	}
+
+	[Test]
+	public async Task Generate_GivenEventWithSingleParameter_CommandMethodHasCorrectSignature(CancellationToken cancellationToken)
+	{
+		// Arrange
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class NoteAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Content { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetContent(string content);
+	}
+}
+";
+
+		// Act
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		// Assert — command method matches partial declaration
+		await Assert.That(generatedSource).Contains("public partial void SetContent(string content)");
+		// Assert — RecordAndApply creates event with property
+		await Assert.That(generatedSource).Contains("Content = content,");
+	}
+
+	#endregion
 }
