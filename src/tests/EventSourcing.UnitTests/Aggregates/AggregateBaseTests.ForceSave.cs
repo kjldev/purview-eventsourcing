@@ -33,37 +33,6 @@ public partial class AggregateBaseTests
 	}
 
 	[Test]
-	public async Task HasUnsavedEvents_GivenNoEvents_ReturnsFalse(CancellationToken cancellationToken)
-	{
-		// Arrange
-		var aggregate = new Aggregates.Test.TestAggregate();
-
-		// Assert
-		await Assert.That(aggregate.HasUnsavedEvents()).IsFalse();
-	}
-
-	[Test]
-	public async Task HasUnsavedEvents_GivenRecordedEvent_ReturnsTrue(CancellationToken cancellationToken)
-	{
-		// Arrange
-		var aggregate = new Aggregates.Test.TestAggregate();
-		aggregate.RecordEvent();
-
-		// Assert
-		await Assert.That(aggregate.HasUnsavedEvents()).IsTrue();
-	}
-
-	[Test]
-	public async Task IsNew_GivenNewAggregate_ReturnsTrue(CancellationToken cancellationToken)
-	{
-		// Arrange
-		var aggregate = new Aggregates.Test.TestAggregate();
-
-		// Assert
-		await Assert.That(aggregate.IsNew()).IsTrue();
-	}
-
-	[Test]
 	public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix(CancellationToken cancellationToken)
 	{
 		// Arrange

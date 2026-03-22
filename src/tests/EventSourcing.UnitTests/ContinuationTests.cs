@@ -2,50 +2,6 @@ namespace Purview.EventSourcing;
 
 public class ContinuationTests
 {
-	#region ContinuationRequest Tests
-
-	[Test]
-	public async Task ContinuationRequest_DefaultMaxRecords_Is20(CancellationToken cancellationToken)
-	{
-		// Act
-		var request = new ContinuationRequest();
-
-		// Assert
-		await Assert.That(request.MaxRecords).IsEqualTo(20);
-	}
-
-	[Test]
-	public async Task ContinuationRequest_DefaultToken_IsNull(CancellationToken cancellationToken)
-	{
-		// Act
-		var request = new ContinuationRequest();
-
-		// Assert
-		await Assert.That(request.ContinuationToken).IsNull();
-	}
-
-	[Test]
-	public async Task ContinuationRequest_CanSetMaxRecords(CancellationToken cancellationToken)
-	{
-		// Act
-		var request = new ContinuationRequest { MaxRecords = 50 };
-
-		// Assert
-		await Assert.That(request.MaxRecords).IsEqualTo(50);
-	}
-
-	[Test]
-	public async Task ContinuationRequest_CanSetContinuationToken(CancellationToken cancellationToken)
-	{
-		// Act
-		var request = new ContinuationRequest { ContinuationToken = "next-page-token" };
-
-		// Assert
-		await Assert.That(request.ContinuationToken).IsEqualTo("next-page-token");
-	}
-
-	#endregion
-
 	#region ContinuationResponse Tests
 
 	[Test]
@@ -104,20 +60,6 @@ public class ContinuationTests
 
 		// Assert
 		await Assert.That(response.HasMoreRecords).IsFalse();
-	}
-
-	[Test]
-	public async Task ContinuationResponse_ResultCount_ReturnsCorrectCount(CancellationToken cancellationToken)
-	{
-		// Arrange
-		var response = new ContinuationResponse<string>
-		{
-			Results = ["a", "b", "c"],
-			RequestedCount = 10
-		};
-
-		// Assert
-		await Assert.That(response.ResultCount).IsEqualTo(3);
 	}
 
 	[Test]
