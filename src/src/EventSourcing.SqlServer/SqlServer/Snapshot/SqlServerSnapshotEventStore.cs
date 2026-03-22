@@ -68,14 +68,28 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
 
-		var result = await _sqlServerClient.UpsertAsync(
-			aggregate,
-			aggregate.Details.Id,
-			GetAggregateTypeName(),
-			cancellationToken
-		);
-		if (result)
-			_telemetry.SnapshotCreated(_aggregateName);
+		_telemetry.SnapshotSaveStart(aggregate.Details.Id, _aggregateName);
+		using var activity = _telemetry.SnapshotSave(aggregate.Details.Id, _aggregateName);
+
+		try
+		{
+			var result = await _sqlServerClient.UpsertAsync(
+				aggregate,
+				aggregate.Details.Id,
+				GetAggregateTypeName(),
+				cancellationToken
+			);
+			if (result)
+			{
+				_telemetry.SnapshotCreated(_aggregateName);
+				_telemetry.SnapshotSaveComplete(aggregate.Details.Id, _aggregateName);
+			}
+		}
+		catch (Exception ex)
+		{
+			_telemetry.SnapshotSaveFailed(aggregate.Details.Id, _aggregateName, ex);
+			throw;
+		}
 	}
 
 	string GetAggregateTypeName() => AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);

@@ -1,11 +1,47 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Purview.Telemetry;
 
 namespace Purview.EventSourcing.SqlServer;
 
+[ActivitySource]
 [Logger]
+[Meter]
 public interface ISqlServerEventStoreTelemetry
 {
+	// Activities (distributed tracing)
+
+	[Activity]
+	Activity? GetAggregate(string aggregateId, [Baggage] string aggregateTypeFullName);
+
+	[Activity]
+	Activity? GetAggregateAtVersion(string aggregateId, int version, [Baggage] string aggregateTypeFullName);
+
+	[Activity]
+	Activity? SaveAggregate(string aggregateId, [Baggage] string aggregateTypeFullName);
+
+	[Activity]
+	Activity? DeleteAggregate(string aggregateId, [Baggage] string aggregateTypeFullName);
+
+	[Event]
+	void EventsReconstituted(Activity? activity, int eventCount, int version);
+
+	[Event]
+	void SaveCompleted(Activity? activity, int eventCount);
+
+	// Metrics (counters)
+
+	[AutoCounter]
+	void AggregateLoaded(string aggregateType);
+
+	[AutoCounter]
+	void AggregateSaved(string aggregateType);
+
+	[AutoCounter]
+	void AggregateDeletedCounter(string aggregateType);
+
+	// Logging
+
 	[Log(LogLevel.Debug)]
 	void AggregateRetrievedFromCache(string aggregateId, string aggregateTypeFullName);
 

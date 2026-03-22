@@ -55,11 +55,26 @@ partial class SqlServerSnapshotEventStore<T>
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
 
-		var result = await _eventStore.DeleteAsync(aggregate, operationContext, cancellationToken);
-		if (result)
-			await _sqlServerClient.DeleteAsync(aggregate.Details.Id, cancellationToken);
+		_telemetry.SnapshotDeleteStart(aggregate.Details.Id, _aggregateName);
+		using var activity = _telemetry.SnapshotDelete(aggregate.Details.Id, _aggregateName);
 
-		return result;
+		try
+		{
+			var result = await _eventStore.DeleteAsync(aggregate, operationContext, cancellationToken);
+			if (result)
+			{
+				await _sqlServerClient.DeleteAsync(aggregate.Details.Id, cancellationToken);
+				_telemetry.SnapshotDeleted(_aggregateName);
+				_telemetry.SnapshotDeleteComplete(aggregate.Details.Id, _aggregateName);
+			}
+
+			return result;
+		}
+		catch (Exception ex)
+		{
+			_telemetry.SnapshotDeleteFailed(aggregate.Details.Id, _aggregateName, ex);
+			throw;
+		}
 	}
 
 	public async Task<bool> RestoreAsync(

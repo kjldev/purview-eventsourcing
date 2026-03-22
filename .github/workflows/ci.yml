@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
 
       - name: Restore dependencies
         working-directory: src
@@ -39,9 +38,9 @@ jobs:
       - name: Unit Tests
         working-directory: src
         run: |
-          dotnet test tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj --configuration Release --no-build
-          dotnet test tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj --configuration Release --no-build
-          dotnet test tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj --configuration Release --no-build
+          dotnet test --project tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj --configuration Release --no-build
+          dotnet test --project tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj --configuration Release --no-build
+          dotnet test --project tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj --configuration Release --no-build
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -53,7 +52,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
 
       - name: Restore dependencies
         working-directory: src
@@ -65,4 +63,4 @@ jobs:
 
       - name: Integration Tests
         working-directory: src
-        run: dotnet test tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-build
+        run: dotnet test --project tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-build

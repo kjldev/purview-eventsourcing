@@ -53,6 +53,7 @@ partial class SqlServerEventStore<T>
 			throw new Exceptions.MissingAggregateIdException(idempotencyId);
 
 		_eventStoreTelemetry.SaveCalled(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
+		using var activity = _eventStoreTelemetry.SaveAggregate(aggregate.Id(), _aggregateTypeFullName);
 		if (!aggregate.HasUnsavedEvents() && (additionalEvents?.Length ?? 0) == 0)
 		{
 			_eventStoreTelemetry.SaveContainedNoChanges(
@@ -191,6 +192,9 @@ partial class SqlServerEventStore<T>
 				changeEvents.Length,
 				aggregate.AggregateType
 			);
+
+			_eventStoreTelemetry.AggregateSaved(aggregate.AggregateType);
+			_eventStoreTelemetry.SaveCompleted(activity, changeEvents.Length);
 
 			// Do not pass in the cancellation token. We want this to carry on as long as possible.
 			await UpdateCacheAsync(aggregate, operationContext.CacheOptions);

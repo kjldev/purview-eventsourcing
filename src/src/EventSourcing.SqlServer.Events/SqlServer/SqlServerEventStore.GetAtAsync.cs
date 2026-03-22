@@ -16,6 +16,7 @@ partial class SqlServerEventStore<T>
 		operationContext ??= EventStoreOperationContext.DefaultContext;
 
 		_eventStoreTelemetry.GetAggregateAtSpecificVersionStart(aggregateId, version, _aggregateTypeFullName);
+		using var activity = _eventStoreTelemetry.GetAggregateAtVersion(aggregateId, version, _aggregateTypeFullName);
 		var getStopwatch = Stopwatch.StartNew();
 		try
 		{

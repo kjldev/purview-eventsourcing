@@ -24,6 +24,7 @@ partial class SqlServerEventStore<T>
 		operationContext ??= EventStoreOperationContext.DefaultContext;
 
 		_eventStoreTelemetry.GetAggregateStart(aggregateId, _aggregateTypeFullName);
+		using var activity = _eventStoreTelemetry.GetAggregate(aggregateId, _aggregateTypeFullName);
 		var getStopwatch = System.Diagnostics.Stopwatch.StartNew();
 		try
 		{
@@ -55,6 +56,8 @@ partial class SqlServerEventStore<T>
 
 			await GetAndApplyEventsAsync(aggregate, streamVersion, streamVersionIdentifier, cancellationToken);
 			await UpdateCacheAsync(aggregate, operationContext.CacheOptions, cancellationToken);
+
+			_eventStoreTelemetry.AggregateLoaded(aggregate.AggregateType);
 
 			return PrepareAggregateForReturn(aggregate, _aggregateRequirementsManager);
 		}

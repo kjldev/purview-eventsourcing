@@ -124,26 +124,44 @@ partial class SqlServerSnapshotEventStore<T>
 		CancellationToken cancellationToken
 	)
 	{
-		if (!int.TryParse(request.ContinuationToken, out var skipCount))
-			skipCount = 0;
+		var aggregateTypeName = GetAggregateTypeName();
+		var sw = System.Diagnostics.Stopwatch.StartNew();
+		_telemetry.SnapshotQueryStart(aggregateTypeName, request.MaxRecords);
+		using var activity = _telemetry.SnapshotQuery(aggregateTypeName);
 
-		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(GetAggregateTypeName(), cancellationToken);
-
-		IQueryable<T> query = allItems.AsQueryable().Where(whereClause);
-
-		if (orderByClause != null)
-			query = orderByClause(query);
-
-		var results = query.Skip(skipCount).Take(request.MaxRecords).ToArray();
-
-		results = [.. results.Select(FulfilRequirements)];
-
-		return new ContinuationResponse<T>
+		try
 		{
-			Results = results,
-			RequestedCount = request.MaxRecords,
-			ContinuationToken = results.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
-		};
+			if (!int.TryParse(request.ContinuationToken, out var skipCount))
+				skipCount = 0;
+
+			var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(aggregateTypeName, cancellationToken);
+
+			IQueryable<T> query = allItems.AsQueryable().Where(whereClause);
+
+			if (orderByClause != null)
+				query = orderByClause(query);
+
+			var results = query.Skip(skipCount).Take(request.MaxRecords).ToArray();
+
+			results = [.. results.Select(FulfilRequirements)];
+
+			sw.Stop();
+			_telemetry.SnapshotQueried(aggregateTypeName);
+			_telemetry.QueryCompleted(activity, results.Length);
+			_telemetry.SnapshotQueryComplete(aggregateTypeName, results.Length, sw.ElapsedMilliseconds);
+
+			return new ContinuationResponse<T>
+			{
+				Results = results,
+				RequestedCount = request.MaxRecords,
+				ContinuationToken = results.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
+			};
+		}
+		catch (Exception ex)
+		{
+			_telemetry.SnapshotQueryFailed(aggregateTypeName, ex);
+			throw;
+		}
 	}
 
 	Expression<Func<T, bool>> BuildQueryExpression(Expression<Func<T, bool>>? whereClause = null)
