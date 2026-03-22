@@ -12,7 +12,7 @@
 
 	<ItemGroup>
 		<Compile
-			Include="../EventSourcing.MongoDB.Events/MongoDB/StorageClients/**/*"
+			Include="../EventSourcing.MongoDb.Events/MongoDb/StorageClients/**/*"
 			LinkBase="MongoDB/StorageClients/"
 		/>
 	</ItemGroup>
