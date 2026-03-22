@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<RootNamespace>Purview.EventSourcing</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup Label="NuGet Package Values">
+		<IsPackable>true</IsPackable>
+		<Title>Purview Event Store based on MongoDB</Title>
+		<Description>Event Store using MongoDB for event information.</Description>
+		<PackageTags>$(PackageTags);events;event-sourcing;event-store;mongodb</PackageTags>
+		<DefineConstants>EventsBasedStore</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>EventSourcing.IntegrationTests</_Parameter1>
+		</AssemblyAttribute>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>SharedTestingFramework</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing.Shared\EventSourcing.Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="LinqKit" />
+		<PackageReference Include="MongoDB.Driver" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+		<PackageReference Include="Microsoft.Extensions.Options" />
+	</ItemGroup>
+</Project>

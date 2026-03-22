@@ -1,7 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-	  <RootNamespace>Purview.EventSourcing</RootNamespace>
-	  <IsTestProject>true</IsTestProject>
-	  <NoWarn>$(NoWarn);CA1515;</NoWarn>
-  </PropertyGroup>
-</Project>

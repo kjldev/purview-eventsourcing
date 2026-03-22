@@ -559,3 +559,6 @@ sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/openframeworks+visualstudio,nextjs,react,web,visualstudiocode,node,aspnetcore,ncrunch
 
+src/EventSourcing.MongoDB.Events
+src/EventSourcing.MongoDB.Snapshot
+!scripts/*
