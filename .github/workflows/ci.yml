@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: t-x-kjldev
 
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
           dotnet test --project tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj --configuration Release --no-build
 
   integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: t-x-kjldev
 
     steps:
       - uses: actions/checkout@v4
