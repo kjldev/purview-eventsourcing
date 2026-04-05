@@ -468,6 +468,77 @@ public static class IEventStoreExtensions
 
 	#endregion ExistsAsync
 
+	#region Enlist
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> and enlists all <paramref name="aggregates"/>
+	/// against this event store, using an auto-generated correlation ID.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
+	/// <param name="aggregates">The aggregates to include in the transaction.</param>
+	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
+	/// <remarks>Call <see cref="IEventStoreTransaction.CommitAsync"/> to persist all enlisted aggregates.</remarks>
+	public static IEventStoreTransaction Enlist<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		params T[] aggregates
+	)
+		where T : class, IAggregate, new() => eventStore.Enlist(correlationId: null, aggregates);
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="correlationId"/>
+	/// and enlists all <paramref name="aggregates"/> against this event store.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
+	/// <param name="correlationId">
+	/// Optional correlation ID to bind all events together. When <see langword="null"/>, a new GUID is generated.
+	/// </param>
+	/// <param name="aggregates">The aggregates to include in the transaction.</param>
+	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
+	public static IEventStoreTransaction Enlist<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		string? correlationId,
+		params T[] aggregates
+	)
+		where T : class, IAggregate, new()
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		var transaction = new EventStoreTransaction(correlationId);
+		foreach (var aggregate in aggregates)
+			transaction.Enlist(aggregate, eventStore);
+
+		return transaction;
+	}
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> and enlists all <paramref name="aggregates"/>
+	/// against this event store, applying a shared <paramref name="operationContext"/> to each.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
+	/// <param name="operationContext">
+	/// Optional <see cref="EventStoreOperationContext"/> applied to every aggregate save.
+	/// When <see langword="null"/>, the default context is used.
+	/// </param>
+	/// <param name="aggregates">The aggregates to include in the transaction.</param>
+	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
+	public static IEventStoreTransaction Enlist<T>(
+		[NotNull] this IEventStore<T> eventStore,
+		EventStoreOperationContext? operationContext,
+		params T[] aggregates
+	)
+		where T : class, IAggregate, new()
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		var transaction = new EventStoreTransaction(operationContext?.CorrelationId);
+		foreach (var aggregate in aggregates)
+			transaction.Enlist(aggregate, eventStore, operationContext);
+
+		return transaction;
+	}
+
+	#endregion Enlist
+
 	#region SaveAsync
 
 	public static Task<SaveResult<T>> SaveAsync<T>(
