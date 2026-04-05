@@ -37,10 +37,10 @@ public sealed class IntervalSnapshotStrategy<T> : ISnapshotStrategy<T>
 		Interval = interval;
 	}
 
-/// <inheritdoc/>
-public bool ShouldSnapshot(T aggregate, int eventsApplied)
-{
-	ArgumentNullException.ThrowIfNull(aggregate);
-	return eventsApplied > 0 && aggregate.Details.SavedVersion % Interval == 0;
-}
+	/// <inheritdoc/>
+	public bool ShouldSnapshot(T aggregate, int eventsApplied)
+	{
+		ArgumentNullException.ThrowIfNull(aggregate);
+		return eventsApplied > 0 && aggregate.Details.SavedVersion % Interval == 0;
+	}
 }

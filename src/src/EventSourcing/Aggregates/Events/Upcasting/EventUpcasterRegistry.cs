@@ -28,7 +28,9 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 		ArgumentNullException.ThrowIfNull(descriptors);
 
 		// Last-registered wins when the same source type appears more than once.
-		_upcastersBySourceType = descriptors.ToDictionary(d => d.SourceType);
+		_upcastersBySourceType = new Dictionary<Type, IEventUpcasterDescriptor>();
+		foreach (var descriptor in descriptors)
+			_upcastersBySourceType[descriptor.SourceType] = descriptor;
 	}
 
 	/// <inheritdoc/>
@@ -44,9 +46,18 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 		ArgumentNullException.ThrowIfNull(aggregateEvent);
 
 		var current = aggregateEvent;
+		var visitedTypes = new HashSet<Type> { current.GetType() };
+
 		// Follow the chain: v1 → v2 → v3 …
 		while (_upcastersBySourceType.TryGetValue(current.GetType(), out var descriptor))
+		{
 			current = descriptor.Upcast(current);
+
+			var currentType = current.GetType();
+			if (!visitedTypes.Add(currentType))
+				throw new InvalidOperationException(
+					$"Detected a cycle or degenerate upcast chain involving event type '{currentType.FullName}'.");
+		}
 
 		return current;
 	}

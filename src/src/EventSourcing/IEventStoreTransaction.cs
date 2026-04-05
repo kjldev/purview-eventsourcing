@@ -7,7 +7,7 @@ namespace Purview.EventSourcing;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Use <see cref="EnlistAsync{T}"/> to register aggregates that should be saved together.
+/// Use <see cref="Enlist{T}"/> to register aggregates that should be saved together.
 /// Call <see cref="CommitAsync"/> to persist all enlisted aggregates in a single logical operation.
 /// </para>
 /// <para>
@@ -64,7 +64,7 @@ public interface IEventStoreTransaction : IAsyncDisposable
 	/// A <see cref="TransactionResult"/> summarising the outcome of each aggregate save.
 	/// </returns>
 	/// <exception cref="InvalidOperationException">
-	/// Thrown if <see cref="CommitAsync"/> has already been called, or if no aggregates have been enlisted.
+	/// Thrown if <see cref="CommitAsync"/> has already been called.
 	/// </exception>
 	Task<TransactionResult> CommitAsync(CancellationToken cancellationToken = default);
 }

@@ -239,7 +239,18 @@ partial class SqlServerEventStore<T>
 		if (aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any())
 			return true;
 
-		return _snapshotStrategy.ShouldSnapshot(aggregate, events.Length);
+		var savedVersion = aggregate.Details.SavedVersion;
+
+		try
+		{
+			aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
+
+			return _snapshotStrategy.ShouldSnapshot(aggregate, events.Length);
+		}
+		finally
+		{
+			aggregate.Details.SavedVersion = savedVersion;
+		}
 	}
 
 	async Task SubmitBatchOperationsAsync(
