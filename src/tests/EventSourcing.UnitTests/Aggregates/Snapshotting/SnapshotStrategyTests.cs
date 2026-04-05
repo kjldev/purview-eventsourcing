@@ -1,4 +1,3 @@
-using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Aggregates.Test;
 
 namespace Purview.EventSourcing.Aggregates.Snapshotting;

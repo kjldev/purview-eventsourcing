@@ -1,5 +1,4 @@
 using Purview.EventSourcing.Aggregates.Events;
-using Purview.EventSourcing.Aggregates.Events.Upcasting;
 
 namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 
