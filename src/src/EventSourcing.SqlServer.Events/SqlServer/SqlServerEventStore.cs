@@ -1,8 +1,10 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events.Upcasting;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.SqlServer;
@@ -28,6 +30,8 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 	readonly ISqlServerEventStoreTelemetry _eventStoreTelemetry;
 	readonly ChangeFeed.IAggregateChangeFeedNotifier<T> _aggregateChangeNotifier;
 	readonly IAggregateRequirementsManager _aggregateRequirementsManager;
+	readonly IEventUpcasterRegistry? _eventUpcasterRegistry;
+	readonly ISnapshotStrategy<T> _snapshotStrategy;
 
 	readonly string _aggregateTypeFullName;
 	readonly string _aggregateTypeShortName;
@@ -42,7 +46,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		ChangeFeed.IAggregateChangeFeedNotifier<T> aggregateChangeNotifier,
 		IAggregateRequirementsManager aggregateRequirementsManager,
 		FluentValidation.IValidator<T>? validator = null,
-		IAggregateIdFactory? aggregateIdFactory = null
+		IAggregateIdFactory? aggregateIdFactory = null,
+		IEventUpcasterRegistry? eventUpcasterRegistry = null,
+		ISnapshotStrategy<T>? snapshotStrategy = null
 	)
 	{
 		_eventNameMapper = eventNameMapper;
@@ -53,6 +59,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		_eventStoreTelemetry = eventStoreTelemetry;
 		_aggregateChangeNotifier = aggregateChangeNotifier;
 		_aggregateRequirementsManager = aggregateRequirementsManager;
+		_eventUpcasterRegistry = eventUpcasterRegistry;
+		_snapshotStrategy = snapshotStrategy
+			?? new IntervalSnapshotStrategy<T>(sqlServerOptions.Value.SnapshotInterval);
 
 		_aggregateTypeShortName = typeof(T).Name;
 		_aggregateTypeFullName = typeof(T).FullName ?? _aggregateTypeShortName;

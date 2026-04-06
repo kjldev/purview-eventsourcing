@@ -15,6 +15,7 @@ sealed partial class SqlServerClient : IDisposable
 	readonly string _upsertSql;
 	readonly string _deleteSql;
 	readonly string _querySql;
+	readonly string _countByAggregateTypeSql;
 	readonly string _getByIdSql;
 
 	volatile bool _tableCreated;
@@ -59,6 +60,8 @@ sealed partial class SqlServerClient : IDisposable
 		_deleteSql = $"DELETE FROM {quotedFullName} WHERE [Id] = @Id";
 
 		_querySql = $"SELECT [Payload] FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
+
+		_countByAggregateTypeSql = $"SELECT COUNT_BIG(*) FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
 
 		_getByIdSql = $"SELECT [Payload] FROM {quotedFullName} WHERE [Id] = @Id";
 	}
@@ -120,6 +123,24 @@ sealed partial class SqlServerClient : IDisposable
 
 		var result = await command.ExecuteNonQueryAsync(cancellationToken);
 		return result > 0;
+	}
+
+	public async Task<long> CountByAggregateTypeAsync(
+		string aggregateType,
+		CancellationToken cancellationToken = default
+	)
+	{
+		await EnsureConfiguredAsync(cancellationToken);
+
+		await using var connection = CreateConnection();
+		await connection.OpenAsync(cancellationToken);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = _countByAggregateTypeSql;
+		command.Parameters.Add(new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType });
+
+		var result = await command.ExecuteScalarAsync(cancellationToken);
+		return Convert.ToInt64(result, System.Globalization.CultureInfo.InvariantCulture);
 	}
 
 	public async Task<List<T>> QueryByAggregateTypeAsync<T>(

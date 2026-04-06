@@ -144,6 +144,7 @@ partial class TableEventStore<T>
 
 				changeEvent.Details.IdempotencyId = idempotencyIdAsString;
 				changeEvent.Details.UserId = userId;
+				changeEvent.Details.CorrelationId ??= operationContext.CorrelationId;
 
 				var serializedEvent = SerializeEvent(changeEvent);
 				var eventEntity = CreateSerializedEvent(
