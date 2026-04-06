@@ -502,6 +502,7 @@ public static class IEventStoreExtensions
 		where T : class, IAggregate, new()
 	{
 		ArgumentNullException.ThrowIfNull(eventStore);
+		ArgumentNullException.ThrowIfNull(aggregates);
 
 		var transaction = new EventStoreTransaction(correlationId);
 		foreach (var aggregate in aggregates)
@@ -529,6 +530,7 @@ public static class IEventStoreExtensions
 		where T : class, IAggregate, new()
 	{
 		ArgumentNullException.ThrowIfNull(eventStore);
+		ArgumentNullException.ThrowIfNull(aggregates);
 
 		var transaction = new EventStoreTransaction(operationContext?.CorrelationId);
 		foreach (var aggregate in aggregates)

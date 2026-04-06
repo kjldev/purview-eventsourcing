@@ -61,7 +61,7 @@ sealed partial class SqlServerClient : IDisposable
 
 		_querySql = $"SELECT [Payload] FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
 
-		_countByAggregateTypeSql = $"SELECT COUNT(*) FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
+		_countByAggregateTypeSql = $"SELECT COUNT_BIG(*) FROM {quotedFullName} WHERE [AggregateType] = @AggregateType";
 
 		_getByIdSql = $"SELECT [Payload] FROM {quotedFullName} WHERE [Id] = @Id";
 	}

@@ -20,9 +20,16 @@ public sealed class TransactionResult
 	public IReadOnlyList<AggregateResult> Results => _results;
 
 	/// <summary>
-	/// <see langword="true"/> when every enlisted aggregate saved successfully.
+	/// <see langword="true"/> when at least one aggregate was enlisted and every enlisted aggregate was persisted.
+	/// Returns <see langword="false"/> for empty transactions and when any aggregate was skipped or failed.
 	/// </summary>
 	public bool Success => _results.Count > 0 && _results.TrueForAll(r => r.Saved);
+
+	/// <summary>
+	/// <see langword="true"/> when the transaction completed without any save failures.
+	/// This includes empty transactions and transactions where aggregates were skipped rather than persisted.
+	/// </summary>
+	public bool CompletedWithoutError => _results.TrueForAll(r => r.Saved || r.Skipped);
 
 	/// <summary>
 	/// Represents the outcome of saving a single aggregate within a transaction.

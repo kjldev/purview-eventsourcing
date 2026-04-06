@@ -136,8 +136,11 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 			CancellationToken cancellationToken
 		)
 		{
-			var context = _operationContext ?? new EventStoreOperationContext();
-			context.CorrelationId ??= correlationId;
+			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext;
+			var context = baseContext with
+			{
+				CorrelationId = baseContext.CorrelationId ?? correlationId
+			};
 
 			var result = await _eventStore.SaveAsync(_aggregate, context, cancellationToken);
 			return (result.Saved, result.Skipped);

@@ -161,6 +161,29 @@ public sealed class IEventStoreExtensionsEnlistTests
 	}
 
 	[Test]
+	public async Task Enlist_WithCorrelationIdAndNullAggregatesArray_ThrowsArgumentNullException(CancellationToken cancellationToken)
+	{
+		// Arrange
+		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+
+		// Act & Assert
+		await Assert.That(() => eventStore.Enlist(correlationId: "corr", aggregates: null!))
+			.Throws<ArgumentNullException>();
+	}
+
+	[Test]
+	public async Task Enlist_WithOperationContextAndNullAggregatesArray_ThrowsArgumentNullException(CancellationToken cancellationToken)
+	{
+		// Arrange
+		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var context = new EventStoreOperationContext();
+
+		// Act & Assert
+		await Assert.That(() => eventStore.Enlist(context, aggregates: null!))
+			.Throws<ArgumentNullException>();
+	}
+
+	[Test]
 	public async Task Enlist_WithNoAggregates_ReturnsEmptyTransactionThatCommitsSuccessfully(CancellationToken cancellationToken)
 	{
 		// Arrange

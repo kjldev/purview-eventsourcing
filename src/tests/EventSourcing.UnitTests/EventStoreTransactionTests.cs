@@ -352,11 +352,70 @@ public sealed class EventStoreTransactionTests
 		await Assert.That(result.Results).Count().IsEqualTo(2);
 		await Assert.That(result.Results[0].Skipped).IsTrue();
 		await Assert.That(result.Results[1].Saved).IsTrue();
+		await Assert.That(result.Success).IsFalse();
+		await Assert.That(result.CompletedWithoutError).IsTrue();
 		await store2.Received(1).SaveAsync(
 			agg2,
 			Arg.Any<EventStoreOperationContext?>(),
 			Arg.Any<CancellationToken>()
 		);
+	}
+
+	[Test]
+	public async Task CommitAsync_GivenCustomOperationContext_ClonesContextRatherThanMutatingShared(CancellationToken cancellationToken)
+	{
+		// Arrange — no custom context, so DefaultContext is cloned
+		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
+		aggregate.Increment();
+
+		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		eventStore
+			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
+			.Returns(new SaveResult<TestAggregate>(aggregate, new FluentValidation.Results.ValidationResult(), true, false));
+
+		var originalDefaultCorrelationId = EventStoreOperationContext.DefaultContext.CorrelationId;
+
+		await using var transaction = new EventStoreTransaction("my-correlation");
+		transaction.Enlist(aggregate, eventStore);
+
+		// Act
+		await transaction.CommitAsync(cancellationToken);
+
+		// Assert — DefaultContext was not mutated
+		await Assert.That(EventStoreOperationContext.DefaultContext.CorrelationId).IsEqualTo(originalDefaultCorrelationId);
+	}
+
+	[Test]
+	public async Task TransactionResult_CompletedWithoutError_ReturnsTrueForEmptyTransaction(CancellationToken cancellationToken)
+	{
+		// An empty transaction has no failures, so CompletedWithoutError should be true
+		await using var transaction = new EventStoreTransaction();
+		var result = await transaction.CommitAsync(cancellationToken);
+
+		await Assert.That(result.Success).IsFalse();
+		await Assert.That(result.CompletedWithoutError).IsTrue();
+	}
+
+	[Test]
+	public async Task TransactionResult_CompletedWithoutError_ReturnsFalseWhenAggregateFailedToSave(CancellationToken cancellationToken)
+	{
+		// Arrange — first aggregate save returns Saved=false, Skipped=false (failure)
+		var agg = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
+		agg.Increment();
+
+		var store = Substitute.For<IEventStore<TestAggregate>>();
+		store
+			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
+			.Returns(new SaveResult<TestAggregate>(agg, new FluentValidation.Results.ValidationResult(), false, false));
+
+		await using var transaction = new EventStoreTransaction();
+		transaction.Enlist(agg, store);
+
+		// Act
+		var result = await transaction.CommitAsync(cancellationToken);
+
+		await Assert.That(result.Success).IsFalse();
+		await Assert.That(result.CompletedWithoutError).IsFalse();
 	}
 
 	[Test]
