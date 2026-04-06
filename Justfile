@@ -1,4 +1,5 @@
 set quiet := true
+set windows-shell := ["pwsh", "-NoProfile", "-Command"]
 
 # Variables
 
@@ -10,8 +11,9 @@ pack_version := "1.1.0"
 artifact_folder := "p:/sync-projects/.local-nuget/"
 
 # Default recipe - list available recipes
+[private]
 default:
-    @just --list
+    just --list
 
 # Open the solution in Visual Studio
 vs:
@@ -40,7 +42,3 @@ pack:
 # Format the code
 format:
     dotnet format {{ root_folder }}
-
-# Run act
-act:
-    act -P ubuntu-latest=-self-hosted
