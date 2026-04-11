@@ -415,12 +415,18 @@ namespace Testing
 ";
 
 		// Act
-		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetAggregateGeneratedSource(result);
+		var warnings = outputCompilation.GetDiagnostics(cancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Warning)
+			.ToArray();
 
 		// Assert — parameterless event uses () constructor
 		await Assert.That(generatedSource).Contains("public partial void Increment()");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.Events.IncrementEvent _)");
+		await Assert.That(generatedSource).Contains("protected override void BuildEventHash(ref global::System.HashCode _)");
 		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.IncrementEvent());");
+		await Assert.That(warnings).IsEmpty();
 	}
 
 	[Test]

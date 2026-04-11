@@ -5,7 +5,7 @@ using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.CosmosDb.Snapshot;
 
-public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEventStore<T>
+public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEventStore<T>, IAsyncDisposable
 	where T : class, IAggregate, new()
 {
 	readonly IEventStore<T> _eventStore;
@@ -54,4 +54,9 @@ public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEve
 	}
 
 	string GetAggregateTypeName() => AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);
+
+	public async ValueTask DisposeAsync()
+	{
+		await _cosmosDbClient.DisposeAsync();
+	}
 }

@@ -5,7 +5,7 @@ using Azure.Data.Tables;
 
 namespace Purview.EventSourcing.AzureStorage.StorageClients.Table;
 
-sealed class AzureTableClient
+sealed class AzureTableClient : IAsyncDisposable
 {
 	public const int MaximumBatchSize = 100;
 
@@ -20,7 +20,7 @@ sealed class AzureTableClient
 		_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
 		_tableName = tableOverride ?? _configuration.Table;
-		_tableClient = new AsyncLazy<TableClient>(InitializeAsync);
+		_tableClient = new(InitializeAsync);
 	}
 
 	public async Task<T?> OperationAsync<T>(
@@ -32,7 +32,7 @@ sealed class AzureTableClient
 	{
 		ArgumentNullException.ThrowIfNull(entity, nameof(entity));
 
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 		Azure.Response response;
 		switch (action)
 		{
@@ -64,10 +64,9 @@ sealed class AzureTableClient
 		}
 
 		var status = response.Status;
-		if (status >= 400)
-			throw new TableOperationException(entity, action, response);
-
-		return action == TableTransactionActionType.Delete ? null : entity;
+		return status >= 400 ? throw new TableOperationException(entity, action, response)
+			: action == TableTransactionActionType.Delete ? null
+			: entity;
 	}
 
 	public async Task<BatchOperationResult> SubmitBatchAsync(
@@ -79,7 +78,7 @@ sealed class AzureTableClient
 		if (!batchOperation.Any())
 			throw new InvalidOperationException("No entities in batch.");
 
-		var tableClient = await _tableClient;
+		var tableClient = await _tableClient.GetValueAsync(cancellationToken);
 		var sets = batchOperation.GetActions().Chunk(size: MaximumBatchSize);
 
 		Dictionary<int, Azure.Response[]> responses = [];
@@ -104,7 +103,7 @@ sealed class AzureTableClient
 	)
 		where T : class, ITableEntity, new()
 	{
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 
 		var results = table.QueryAsync(whereClause, maxPerPage, fields, cancellationToken);
 		string? continuationToken = null;
@@ -125,7 +124,7 @@ sealed class AzureTableClient
 	)
 		where T : class, ITableEntity, new()
 	{
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 
 		var results = table.QueryAsync<T>(filter, maxPerPage, fields, cancellationToken);
 		string? continuationToken = null;
@@ -147,7 +146,7 @@ sealed class AzureTableClient
 	)
 		where T : class, ITableEntity, new()
 	{
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 
 		var results = table.QueryAsync(whereClause, maxPerPage, fields, cancellationToken);
 		await foreach (var result in results.AsPages(continuationToken, maxPerPage))
@@ -167,7 +166,7 @@ sealed class AzureTableClient
 	)
 		where T : class, ITableEntity, new()
 	{
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 
 		var results = table.QueryAsync<T>(filter, maxPerPage, fields, cancellationToken);
 		await foreach (var result in results.AsPages(continuationToken, maxPerPage))
@@ -192,7 +191,7 @@ sealed class AzureTableClient
 		ArgumentNullException.ThrowIfNull(partitionKey, nameof(partitionKey));
 		ArgumentNullException.ThrowIfNull(rowKey, nameof(rowKey));
 
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 		try
 		{
 			var pagedResults = table.QueryAsync<T>(
@@ -216,7 +215,7 @@ sealed class AzureTableClient
 
 	public async Task DeleteTableAsync(CancellationToken cancellationToken = default)
 	{
-		var table = await _tableClient;
+		var table = await _tableClient.GetValueAsync(cancellationToken);
 		await table.DeleteAsync(cancellationToken);
 	}
 
@@ -239,7 +238,7 @@ sealed class AzureTableClient
 		return entity != null;
 	}
 
-	async Task<TableClient> InitializeAsync(CancellationToken cancellationToken = default)
+	async Task<TableClient> InitializeAsync(CancellationToken cancellationToken)
 	{
 		var tableClient = CreateTableServiceClient().GetTableClient(_tableName);
 		await tableClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
@@ -254,5 +253,13 @@ sealed class AzureTableClient
 			clientOptions.Retry.NetworkTimeout = TimeSpan.FromSeconds(_configuration.TimeoutInSeconds.Value);
 
 		return new(_configuration.ConnectionString, clientOptions);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_tableClient.IsValueCreated)
+		{
+			await _tableClient.DisposeAsync();
+		}
 	}
 }

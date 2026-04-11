@@ -9,7 +9,7 @@ using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.AzureStorage;
 
-public sealed partial class TableEventStore<T> : ITableEventStore<T>
+public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisposable
 	where T : class, IAggregate, new()
 {
 	const int SerializationBufferSize = 4096;
@@ -218,4 +218,10 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		$"{_aggregateTypeShortName}/{aggregateId}".ToLowerSafe();
 
 	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+
+	public async ValueTask DisposeAsync()
+	{
+		await _tableClient.DisposeAsync();
+		await _blobClient.DisposeAsync();
+	}
 }

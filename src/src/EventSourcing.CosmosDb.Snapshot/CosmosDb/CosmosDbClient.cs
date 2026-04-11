@@ -5,7 +5,7 @@ using Purview.EventSourcing.CosmosDb.Snapshot;
 
 namespace Purview.EventSourcing.CosmosDb;
 
-sealed partial class CosmosDbClient
+sealed partial class CosmosDbClient : IAsyncDisposable
 {
 	Database _database = default!;
 
@@ -37,10 +37,10 @@ sealed partial class CosmosDbClient
 		_databaseCreatedKey = $"{cosmosDbOptions.ConnectionString}-{cosmosDbOptions.Database}";
 		_containerCreatedKey = $"{cosmosDbOptions.ConnectionString}-{_containerName}";
 
-		_container = new AsyncLazy<Container>(() => InitializeAsync(cosmosClient));
+		_container = new AsyncLazy<Container>(token => InitializeAsync(cosmosClient, token));
 	}
 
-	async Task<ContainerResponse?> GetOrCreateContainerAsync(CancellationToken cancellationToken = default)
+	async Task<ContainerResponse?> GetOrCreateContainerAsync(CancellationToken cancellationToken)
 	{
 		var client = GetOrCreateClient();
 		var database = await InitializeDatabase(client, cancellationToken);
@@ -195,7 +195,7 @@ sealed partial class CosmosDbClient
 		}
 	}
 
-	async Task<Container> InitializeAsync(CosmosClient? cosmosClient, CancellationToken cancellationToken = default)
+	async Task<Container> InitializeAsync(CosmosClient? cosmosClient, CancellationToken cancellationToken)
 	{
 		var client = cosmosClient ?? GetOrCreateClient();
 		await InitializeDatabase(client, cancellationToken);
@@ -288,5 +288,11 @@ sealed partial class CosmosDbClient
 				return new(configuration.ConnectionString, clientOptions);
 			}
 		);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_container.IsValueCreated)
+			await _container.DisposeAsync();
 	}
 }

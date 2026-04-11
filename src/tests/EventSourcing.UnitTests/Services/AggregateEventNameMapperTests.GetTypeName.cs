@@ -32,7 +32,6 @@ partial class AggregateEventNameMapperTests
 		var action = () => mapper.GetTypeName<CorrectlyNamedAggregate>(eventTypeName!);
 
 		// Assert
-		var ex = await Assert.That(action).Throws<ArgumentNullException>();
-		await Assert.That(ex.ParamName).IsEqualTo(nameof(eventTypeName));
+		await Assert.That(action).Throws<ArgumentNullException>().WithParameterName(nameof(eventTypeName));
 	}
 }

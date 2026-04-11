@@ -74,6 +74,10 @@ static class EmitHelper
 
 	static void GenerateEventClass(StringBuilder sb, AggregateEventMethodInfo method)
 	{
+		var hashParameterName = method.Parameters.Count == 0
+			? "_"
+			: "hash";
+
 		sb.AppendLine($"\tpublic sealed class {method.EventName} : global::Purview.EventSourcing.Aggregates.Events.EventBase");
 		sb.AppendLine("\t{");
 
@@ -89,12 +93,12 @@ static class EmitHelper
 		sb.AppendLine($"\t\tpublic override int SchemaVersion => {method.Version};");
 		sb.AppendLine();
 
-		sb.AppendLine("\t\tprotected override void BuildEventHash(ref global::System.HashCode hash)");
+		sb.AppendLine($"\t\tprotected override void BuildEventHash(ref global::System.HashCode {hashParameterName})");
 		sb.AppendLine("\t\t{");
 
 		foreach (var prop in method.Parameters)
 		{
-			sb.AppendLine($"\t\t\thash.Add({prop.PropertyName});");
+			sb.AppendLine($"\t\t\t{hashParameterName}.Add({prop.PropertyName});");
 		}
 
 		sb.AppendLine("\t\t}");
@@ -125,13 +129,16 @@ static class EmitHelper
 		var eventsNamespace = info.Namespace is not null
 			? $"{info.Namespace}.Events"
 			: "Events";
+		var eventParameterName = method.Parameters.Count == 0
+			? "_"
+			: "@event";
 
-		sb.AppendLine($"{indent}\tvoid Apply(global::{eventsNamespace}.{method.EventName} @event)");
+		sb.AppendLine($"{indent}\tvoid Apply(global::{eventsNamespace}.{method.EventName} {eventParameterName})");
 		sb.AppendLine($"{indent}\t{{");
 
 		foreach (var prop in method.Parameters)
 		{
-			sb.AppendLine($"{indent}\t\t{prop.PropertyName} = @event.{prop.PropertyName};");
+			sb.AppendLine($"{indent}\t\t{prop.PropertyName} = {eventParameterName}.{prop.PropertyName};");
 		}
 
 		sb.AppendLine($"{indent}\t}}");
