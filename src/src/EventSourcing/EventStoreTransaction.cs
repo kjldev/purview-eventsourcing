@@ -80,7 +80,9 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 				if (!saveResult.saved && !saveResult.skipped)
 					break;
 			}
+#pragma warning disable CA1031
 			catch (Exception ex)
+#pragma warning restore CA1031
 			{
 				results.Add(new TransactionResult.AggregateResult(
 					enlisted.Aggregate,

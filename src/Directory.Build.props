@@ -9,7 +9,6 @@
 	<Import Project="../.dotnet/Directory.Build.props" />
 
 	<PropertyGroup>
-		<NoWarn>$(NoWarn);CA1031;</NoWarn>
 		<NoWarn>$(NoWarn);CS0436;</NoWarn>
 	</PropertyGroup>
 </Project>

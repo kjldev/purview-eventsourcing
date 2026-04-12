@@ -165,7 +165,9 @@ partial class SqlServerEventStore<T>
 
 			return DeserializeSnapshot(row.Payload);
 		}
+		#pragma warning disable CA1031
 		catch (Exception ex)
+		#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.SnapshotDeserializationFailed(aggregateId, _aggregateTypeFullName, ex);
 
@@ -186,7 +188,9 @@ partial class SqlServerEventStore<T>
 				aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
 			}
 		}
+		#pragma warning disable CA1031
 		catch (Exception ex)
+		#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheGetFailure(aggregateId, _aggregateTypeFullName, ex);
 		}

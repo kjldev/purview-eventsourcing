@@ -104,7 +104,9 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
 			}
 		}
+		#pragma warning disable CA1031
 		catch (Exception ex)
+		#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 		}
@@ -172,7 +174,9 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 					result.IsDeleted
 				);
 		}
+		#pragma warning disable CA1031
 		catch (Exception ex)
+		#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, TableEventStoreConstants.StreamVersionRowKey, ex);
 		}

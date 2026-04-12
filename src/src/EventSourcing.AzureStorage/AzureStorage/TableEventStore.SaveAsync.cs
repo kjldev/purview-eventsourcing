@@ -474,7 +474,9 @@ partial class TableEventStore<T>
 				// Do not pass in the cancellation token. We want this to carry on as long as possible.
 				await _distributedCache.RemoveAsync(cacheKey);
 			}
+			#pragma warning disable CA1031
 			catch (Exception ex)
+			#pragma warning restore CA1031
 			{
 				_eventStoreTelemetry.CacheRemovalFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 			}

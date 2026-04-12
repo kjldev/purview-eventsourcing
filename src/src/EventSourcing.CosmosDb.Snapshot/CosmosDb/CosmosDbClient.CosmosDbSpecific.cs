@@ -358,7 +358,7 @@ partial class CosmosDbClient
 
 	public async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)
 	{
-		await _container;
+		await _container.GetValueAsync(cancellationToken);
 		await _database.DeleteAsync(cancellationToken: cancellationToken);
 
 		_ = CreatedDatabases.TryRemove(_databaseCreatedKey, out _);

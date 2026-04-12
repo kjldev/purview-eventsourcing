@@ -134,7 +134,9 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 					);
 					return await container.ReadContainerAsync(cancellationToken: cancellationToken);
 				}
+#pragma warning disable CA1031
 				catch
+#pragma warning restore CA1031
 				{
 					// Hopefully this is just because it was already created, perhaps when running in a multi-instance environment...
 					// Should we do something with this?
@@ -207,10 +209,10 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 	{
 		return await CreatedContainers.GetOrAdd(
 			_containerCreatedKey,
-			_ => new AsyncLazy<Container>(async () =>
+			_ => new AsyncLazy<Container>(async ct =>
 			{
 				var response =
-					await GetOrCreateContainerAsync(cancellationToken)
+					await GetOrCreateContainerAsync(ct)
 					?? throw new NullReferenceException($"Unable to get the container response for '{_containerName}'");
 				if (
 					!(
@@ -224,19 +226,19 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 
 				return response.Container;
 			})
-		);
+		).GetValueAsync(cancellationToken);
 	}
 
 	async Task<Database> InitializeDatabase(CosmosClient client, CancellationToken cancellationToken)
 	{
 		return _database = await CreatedDatabases.GetOrAdd(
 			_databaseCreatedKey,
-			_ => new AsyncLazy<Database>(async () =>
+			_ => new AsyncLazy<Database>(async ct =>
 			{
 				var response = await client.CreateDatabaseIfNotExistsAsync(
 					_cosmosDbOptions.Database,
 					throughput: _cosmosDbOptions.DatabaseThroughput,
-					cancellationToken: cancellationToken
+					cancellationToken: ct
 				);
 				if (
 					!(
@@ -251,7 +253,7 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 
 				return response.Database;
 			})
-		);
+		).GetValueAsync(cancellationToken);
 	}
 
 	CosmosClient GetOrCreateClient() => GetOrCreateClient(_cosmosDbOptions);

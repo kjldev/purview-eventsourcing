@@ -1,4 +1,4 @@
-using DotNet.Testcontainers.Builders;
+﻿using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Testcontainers.Azurite;
@@ -59,7 +59,9 @@ public static class ContainerHelper
 				using var httpResponse = await httpClient.GetAsync(requestUri).ConfigureAwait(false);
 				return httpResponse.StatusCode != System.Net.HttpStatusCode.ServiceUnavailable;
 			}
+#pragma warning disable CA1031
 			catch
+#pragma warning restore CA1031
 			{
 				return false;
 			}

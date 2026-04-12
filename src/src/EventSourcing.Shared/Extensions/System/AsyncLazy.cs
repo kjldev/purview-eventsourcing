@@ -71,7 +71,9 @@ sealed class AsyncLazy<T> : IDisposable, IAsyncDisposable
 				{
 					_lock.Release();
 				}
+#pragma warning disable CA1031
 				catch { }
+#pragma warning restore CA1031
 
 				_lock.Dispose();
 			}
@@ -104,7 +106,9 @@ sealed class AsyncLazy<T> : IDisposable, IAsyncDisposable
 			{
 				_lock.Release();
 			}
+#pragma warning disable CA1031
 			catch { }
+#pragma warning restore CA1031
 
 			_lock.Dispose();
 			_disposedValue = true;

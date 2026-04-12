@@ -109,7 +109,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
 			}
 		}
+		#pragma warning disable CA1031
 		catch (Exception ex)
+		#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 		}
@@ -204,7 +206,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 				);
 			}
 		}
+		#pragma warning disable CA1031
 		catch (Exception ex)
+		#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, ex);
 		}
