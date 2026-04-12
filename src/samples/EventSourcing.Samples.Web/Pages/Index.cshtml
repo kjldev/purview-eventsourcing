@@ -1,47 +1,32 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Portal Home";
+    Layout = "_Layout";
 }
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
-        <div class="text-4xl">👤</div>
-        <div>
-            <p class="text-3xl font-bold text-slate-800">@Model.CustomerCount</p>
-            <p class="text-sm text-gray-500 mt-1">Customers</p>
-        </div>
+<div class="min-h-full flex flex-col items-center justify-center py-12">
+    <div class="text-center mb-10">
+        <p class="text-5xl mb-4">🗃</p>
+        <h1 class="text-3xl font-bold text-gray-900">Event Sourcing Sample</h1>
+        <p class="mt-2 text-gray-500 text-sm">Choose your experience to get started</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
-        <div class="text-4xl">📦</div>
-        <div>
-            <p class="text-3xl font-bold text-slate-800">@Model.OrderCount</p>
-            <p class="text-sm text-gray-500 mt-1">Orders</p>
-        </div>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
-        <div class="text-4xl">🏭</div>
-        <div>
-            <p class="text-3xl font-bold text-slate-800">@Model.InventoryCount</p>
-            <p class="text-sm text-gray-500 mt-1">Inventory Items</p>
-        </div>
-    </div>
-</div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-base font-semibold text-gray-700 mb-3">Customers</h2>
-        <p class="text-sm text-gray-500 mb-4">Manage customer profiles with email, phone, and active status.</p>
-        <a asp-page="/Customers/Index" class="inline-block px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">View Customers →</a>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-base font-semibold text-gray-700 mb-3">Orders</h2>
-        <p class="text-sm text-gray-500 mb-4">Full order lifecycle: Draft → Confirmed → Shipped → Completed.</p>
-        <a asp-page="/Orders/Index" class="inline-block px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">View Orders →</a>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 class="text-base font-semibold text-gray-700 mb-3">Inventory</h2>
-        <p class="text-sm text-gray-500 mb-4">Track stock levels, reservations, and shipments per product.</p>
-        <a asp-page="/Inventory/Index" class="inline-block px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">View Inventory →</a>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+        <!-- Customer Portal -->
+        <a href="/Customer" class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-8 hover:shadow-md hover:border-blue-200 transition-all flex flex-col items-center text-center">
+            <div class="text-5xl mb-4">🛒</div>
+            <h2 class="text-xl font-semibold text-gray-900 group-hover:text-blue-700 mb-2">Customer Experience</h2>
+            <p class="text-sm text-gray-500">Browse the product catalog, place orders, and manage your profile.</p>
+            <span class="mt-6 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg group-hover:bg-blue-700 transition-colors">Enter →</span>
+        </a>
+
+        <!-- Back Office Portal -->
+        <a href="/BackOffice" class="group bg-white rounded-2xl shadow-sm border border-gray-100 p-8 hover:shadow-md hover:border-slate-300 transition-all flex flex-col items-center text-center">
+            <div class="text-5xl mb-4">🏢</div>
+            <h2 class="text-xl font-semibold text-gray-900 group-hover:text-slate-800 mb-2">Back Office</h2>
+            <p class="text-sm text-gray-500">Manage customers, the product catalog, stock levels, and inventory locations.</p>
+            <span class="mt-6 px-4 py-2 bg-slate-700 text-white text-sm rounded-lg group-hover:bg-slate-600 transition-colors">Enter →</span>
+        </a>
     </div>
 </div>

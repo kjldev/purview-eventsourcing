@@ -7,11 +7,11 @@ namespace Purview.EventSourcing.Samples.UnitTests.Services;
 
 public sealed class StockTransferServiceTests
 {
-	static InventoryAggregate StockedItem(string id, string name, int qty)
+	static InventoryAggregate StockedItem(string id, string locationName, int qty, string productId = "SKU-001")
 	{
 		var item = new InventoryAggregate();
 		item.Details.Id = id;
-		item.Initialize($"SKU-{id}", name, initialQuantity: qty);
+		item.Initialize(productId, "Widget", id, locationName, initialQuantity: qty);
 		return item;
 	}
 
@@ -48,7 +48,7 @@ public sealed class StockTransferServiceTests
 	[Test]
 	public async Task TransferAsync_GivenNullDestination_ReturnsFail(CancellationToken cancellationToken)
 	{
-		var source = StockedItem("inv-1", "Widgets", 100);
+		var source = StockedItem("inv-1", "Warehouse North", 100);
 		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
 		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
@@ -60,10 +60,26 @@ public sealed class StockTransferServiceTests
 	}
 
 	[Test]
+	public async Task TransferAsync_GivenDifferentProducts_ReturnsFail(CancellationToken cancellationToken)
+	{
+		var source = StockedItem("inv-1", "Warehouse North", 100, productId: "SKU-001");
+		var dest = StockedItem("inv-2", "Warehouse South", 0, productId: "SKU-002");
+
+		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
+		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
+
+		var result = await CreateService(store).TransferAsync("inv-1", "inv-2", 5, "test", cancellationToken);
+
+		await Assert.That(result.Succeeded).IsFalse();
+		await Assert.That(result.ErrorMessage).Contains("different products");
+	}
+
+	[Test]
 	public async Task TransferAsync_GivenInsufficientStock_ReturnsFail(CancellationToken cancellationToken)
 	{
-		var source = StockedItem("inv-1", "Widgets", 3);
-		var dest = StockedItem("inv-2", "Gadgets", 0);
+		var source = StockedItem("inv-1", "Warehouse North", 3);
+		var dest = StockedItem("inv-2", "Warehouse South", 0);
 
 		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
 		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
@@ -78,8 +94,8 @@ public sealed class StockTransferServiceTests
 	[Test]
 	public async Task TransferAsync_GivenValidData_ReturnsSuccess(CancellationToken cancellationToken)
 	{
-		var source = StockedItem("inv-1", "Widgets", 100);
-		var dest = StockedItem("inv-2", "Gadgets", 20);
+		var source = StockedItem("inv-1", "Warehouse North", 100);
+		var dest = StockedItem("inv-2", "Warehouse South", 20);
 
 		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
 		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
@@ -96,8 +112,8 @@ public sealed class StockTransferServiceTests
 	[Test]
 	public async Task TransferAsync_GivenValidData_AdjustsSourceAndDestinationCorrectly(CancellationToken cancellationToken)
 	{
-		var source = StockedItem("inv-1", "Widgets", 100);
-		var dest = StockedItem("inv-2", "Gadgets", 20);
+		var source = StockedItem("inv-1", "Warehouse North", 100);
+		var dest = StockedItem("inv-2", "Warehouse South", 20);
 
 		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
 		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
@@ -114,8 +130,8 @@ public sealed class StockTransferServiceTests
 	[Test]
 	public async Task TransferAsync_WhenSourceSaveFails_ReturnsFail(CancellationToken cancellationToken)
 	{
-		var source = StockedItem("inv-1", "Widgets", 100);
-		var dest = StockedItem("inv-2", "Gadgets", 0);
+		var source = StockedItem("inv-1", "Warehouse North", 100);
+		var dest = StockedItem("inv-2", "Warehouse South", 0);
 
 		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
 		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
@@ -133,8 +149,8 @@ public sealed class StockTransferServiceTests
 	[Test]
 	public async Task TransferAsync_WhenDestinationSaveFails_CompensatesSourceStock(CancellationToken cancellationToken)
 	{
-		var source = StockedItem("inv-1", "Widgets", 100);
-		var dest = StockedItem("inv-2", "Gadgets", 0);
+		var source = StockedItem("inv-1", "Warehouse North", 100);
+		var dest = StockedItem("inv-2", "Warehouse South", 0);
 		var callCount = 0;
 
 		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();

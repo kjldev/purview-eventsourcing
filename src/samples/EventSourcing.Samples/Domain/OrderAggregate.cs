@@ -80,6 +80,24 @@ public sealed partial class OrderAggregate : AggregateBase
 
 	public void UpdateNotes(string? notes) => OrderNotesUpdated(notes);
 
+	/// <summary>
+	/// Updates one or more order details in a single operation, raising a granular event
+	/// for each field that has actually changed. Pass <see langword="null"/> for any field
+	/// that should remain unchanged. To clear notes, use <see cref="UpdateNotes"/> directly.
+	/// </summary>
+	public void UpdateDetails(string? shippingAddress = null, string? notes = null)
+	{
+		if (shippingAddress is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(shippingAddress);
+			if (shippingAddress != ShippingAddress)
+				OrderShippingAddressSet(shippingAddress);
+		}
+
+		if (notes is not null && notes != Notes)
+			OrderNotesUpdated(notes);
+	}
+
 	public void ConfirmOrder()
 	{
 		if (Status != OrderStatus.Draft)

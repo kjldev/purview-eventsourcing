@@ -41,6 +41,31 @@ public sealed partial class CustomerAggregate : AggregateBase
 
 	public void ChangePhoneNumber(string? phoneNumber) => CustomerPhoneChanged(phoneNumber);
 
+	/// <summary>
+	/// Updates one or more customer details in a single operation, raising a granular event
+	/// for each field that has actually changed. Pass <see langword="null"/> for any field
+	/// that should remain unchanged. To clear the phone number, use <see cref="ChangePhoneNumber"/> directly.
+	/// </summary>
+	public void UpdateDetails(string? name = null, string? email = null, string? phoneNumber = null)
+	{
+		if (name is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(name);
+			if (name != Name)
+				CustomerNameChanged(name);
+		}
+
+		if (email is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(email);
+			if (email != Email)
+				CustomerEmailChanged(email);
+		}
+
+		if (phoneNumber is not null && phoneNumber != PhoneNumber)
+			CustomerPhoneChanged(phoneNumber);
+	}
+
 	public void Deactivate()
 	{
 		if (!IsActive) return;

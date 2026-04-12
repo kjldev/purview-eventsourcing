@@ -10,7 +10,7 @@ public class InventoryAggregateTests
 		var inv = new InventoryAggregate();
 		if (id is not null)
 			inv.Details.Id = id;
-		inv.Initialize("prod-1", "Widget A", initialQty);
+		inv.Initialize("prod-1", "Widget A", "loc-1", "Main Warehouse", initialQty);
 		return inv;
 	}
 
@@ -25,6 +25,8 @@ public class InventoryAggregateTests
 		// Assert
 		await Assert.That(inv.ProductId).IsEqualTo("prod-1");
 		await Assert.That(inv.ProductName).IsEqualTo("Widget A");
+		await Assert.That(inv.LocationId).IsEqualTo("loc-1");
+		await Assert.That(inv.LocationName).IsEqualTo("Main Warehouse");
 		await Assert.That(inv.QuantityOnHand).IsEqualTo(50);
 		await Assert.That(inv.ReservedQuantity).IsEqualTo(0);
 		await Assert.That(inv.AvailableQuantity).IsEqualTo(50);
@@ -34,14 +36,21 @@ public class InventoryAggregateTests
 	public void Initialize_GivenNullProductId_ThrowsArgumentException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentException>(() => inv.Initialize(null!, "name"));
+		Assert.Throws<ArgumentException>(() => inv.Initialize(null!, "name", "loc-1", "Main Warehouse"));
+	}
+
+	[Test]
+	public void Initialize_GivenNullLocationId_ThrowsArgumentException()
+	{
+		var inv = new InventoryAggregate();
+		Assert.Throws<ArgumentException>(() => inv.Initialize("p1", "name", null!, "Main Warehouse"));
 	}
 
 	[Test]
 	public void Initialize_GivenNegativeQuantity_ThrowsArgumentOutOfRangeException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Initialize("p1", "name", -1));
+		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Initialize("p1", "name", "loc-1", "Main Warehouse", -1));
 	}
 
 	#endregion
@@ -167,6 +176,55 @@ public class InventoryAggregateTests
 		await Assert.That(inv.QuantityOnHand).IsEqualTo(10);
 		await Assert.That(inv.ReservedQuantity).IsEqualTo(10); // capped
 		await Assert.That(inv.AvailableQuantity).IsEqualTo(0);
+	}
+
+	#endregion
+
+	#region UpdateDetails Tests
+
+	[Test]
+	public async Task UpdateDetails_GivenProductNameAndLocationName_RaisesTwoEvents(CancellationToken cancellationToken)
+	{
+		var inv = CreateInventory("inv-1");
+		var countBefore = inv.GetUnsavedEvents().Count();
+
+		inv.UpdateDetails(productName: "Widget A Pro", locationName: "Warehouse East");
+
+		await Assert.That(inv.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 2);
+		await Assert.That(inv.ProductName).IsEqualTo("Widget A Pro");
+		await Assert.That(inv.LocationName).IsEqualTo("Warehouse East");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenOnlyProductName_UpdatesProductNameOnly(CancellationToken cancellationToken)
+	{
+		var inv = CreateInventory("inv-1");
+		var countBefore = inv.GetUnsavedEvents().Count();
+
+		inv.UpdateDetails(productName: "Widget A Pro");
+
+		await Assert.That(inv.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 1);
+		await Assert.That(inv.ProductName).IsEqualTo("Widget A Pro");
+		await Assert.That(inv.LocationName).IsEqualTo("Main Warehouse");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents(CancellationToken cancellationToken)
+	{
+		var inv = CreateInventory("inv-1");
+		var countBefore = inv.GetUnsavedEvents().Count();
+
+		inv.UpdateDetails(productName: "Widget A", locationName: "Main Warehouse");
+
+		await Assert.That(inv.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+	}
+
+	[Test]
+	public void UpdateDetails_GivenWhitespaceProductName_ThrowsArgumentException()
+	{
+		var inv = CreateInventory("inv-1");
+
+		Assert.Throws<ArgumentException>(() => inv.UpdateDetails(productName: "  "));
 	}
 
 	#endregion

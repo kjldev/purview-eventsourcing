@@ -10,86 +10,83 @@ public sealed class OrderPageTests(WebAppFactory factory)
 	);
 
 	[Test]
-	public async Task OrdersIndex_Returns200(CancellationToken cancellationToken)
+	public async Task BackOfficeIndex_Returns200(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync("/Orders", cancellationToken);
+		var response = await _client.GetAsync("/BackOffice", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	[Test]
-	public async Task OrdersCreate_Get_Returns200(CancellationToken cancellationToken)
+	public async Task CustomerOrders_WithoutSession_RedirectsOrReturns200(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync("/Orders/Create", cancellationToken);
+		var response = await _client.GetAsync("/Customer/Orders", cancellationToken);
+
+		await Assert.That((int)response.StatusCode is 200 or 302).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeStockTransfer_Get_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/BackOffice/Stock/Transfer", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	[Test]
-	public async Task OrdersCreate_Post_RedirectsToEdit(CancellationToken cancellationToken)
+	public async Task BackOfficeStockTransfer_Post_WithValidData_Redirects(CancellationToken cancellationToken)
 	{
-		var antiForgery = await GetAntiForgeryTokenAsync("/Orders/Create", cancellationToken);
-		var form = new Dictionary<string, string>
-		{
-			["CustomerId"] = "customer-123",
-			["__RequestVerificationToken"] = antiForgery
-		};
+		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Stock/Transfer", cancellationToken);
 
-		using var content = new FormUrlEncodedContent(form);
-		var response = await _client.PostAsync("/Orders/Create", content, cancellationToken);
-
-		await Assert.That((int)response.StatusCode).IsEqualTo(302);
-		await Assert.That(response.Headers.Location?.ToString()).Contains("/Orders/Edit");
-	}
-
-	[Test]
-	public async Task OrdersFulfil_Get_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Orders/Fulfil", cancellationToken);
-
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
-
-	[Test]
-	public async Task OrdersFulfil_Post_WithValidData_Redirects(CancellationToken cancellationToken)
-	{
-		// Pre-populate: create a customer and inventory item via their Create pages
-		// Then attempt to place an order through the Fulfil form.
-		// Since seed data is populated on startup, there should be active customers + inventory.
-
-		// Get the form with anti-forgery token
-		var antiForgery = await GetAntiForgeryTokenAsync("/Orders/Fulfil", cancellationToken);
-
-		// Get the fulfil page to discover available customers and inventory from the rendered HTML
-		var pageResponse = await _client.GetAsync("/Orders/Fulfil", cancellationToken);
+		var pageResponse = await _client.GetAsync("/BackOffice/Stock/Transfer", cancellationToken);
 		var html = await pageResponse.Content.ReadAsStringAsync(cancellationToken);
 
-		// Extract the first customer and inventory option values from the select elements
-		var customerId = ExtractFirstSelectValue(html, "CustomerId");
-		var inventoryId = ExtractFirstSelectValue(html, "InventoryId");
+		var sourceId = ExtractFirstSelectValue(html, "SourceId");
+		var destId = ExtractSecondSelectValue(html, "DestinationId", sourceId);
 
-		if (string.IsNullOrEmpty(customerId) || string.IsNullOrEmpty(inventoryId))
+		if (string.IsNullOrEmpty(sourceId) || string.IsNullOrEmpty(destId) || sourceId == destId)
 		{
-			// Seed data not available — skip meaningful assertion
 			await Assert.That(pageResponse.IsSuccessStatusCode).IsTrue();
 			return;
 		}
 
 		var form = new Dictionary<string, string>
 		{
-			["CustomerId"] = customerId,
-			["InventoryId"] = inventoryId,
+			["SourceId"] = sourceId,
+			["DestinationId"] = destId,
 			["Quantity"] = "1",
-			["ShippingAddress"] = "123 Test Street",
+			["Reason"] = "Integration test transfer",
 			["__RequestVerificationToken"] = antiForgery
 		};
 
 		using var content = new FormUrlEncodedContent(form);
-		var response = await _client.PostAsync("/Orders/Fulfil", content, cancellationToken);
+		var response = await _client.PostAsync("/BackOffice/Stock/Transfer", content, cancellationToken);
 
-		// Successful order creation redirects to the order details page
 		await Assert.That((int)response.StatusCode).IsEqualTo(302);
-		await Assert.That(response.Headers.Location?.ToString()).Contains("/Orders/");
+	}
+
+	[Test]
+	public async Task BackOfficeCatalogIndex_WithPaging_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/BackOffice/Catalog?page=1&pageSize=10", cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeCatalogIndex_WithSorting_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/BackOffice/Catalog?sortBy=name&sortDir=asc", cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeCatalogDeleted_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/BackOffice/Catalog/Deleted", cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	static string ExtractFirstSelectValue(string html, string selectName)
@@ -98,7 +95,6 @@ public sealed class OrderPageTests(WebAppFactory factory)
 		var selectStart = html.IndexOf(marker, StringComparison.Ordinal);
 		if (selectStart == -1) return string.Empty;
 
-		// Find the first non-empty <option value="..."> after the marker
 		var searchFrom = selectStart;
 		while (true)
 		{
@@ -117,36 +113,28 @@ public sealed class OrderPageTests(WebAppFactory factory)
 		}
 	}
 
-	[Test]
-	public async Task OrdersIndex_WithPaging_Returns200(CancellationToken cancellationToken)
+	static string ExtractSecondSelectValue(string html, string selectName, string excludeValue)
 	{
-		var response = await _client.GetAsync("/Orders?page=1&pageSize=10", cancellationToken);
+		var marker = $"name=\"{selectName}\"";
+		var selectStart = html.IndexOf(marker, StringComparison.Ordinal);
+		if (selectStart == -1) return string.Empty;
 
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
+		var searchFrom = selectStart;
+		while (true)
+		{
+			var optionStart = html.IndexOf("<option value=\"", searchFrom, StringComparison.Ordinal);
+			if (optionStart == -1) return string.Empty;
 
-	[Test]
-	public async Task OrdersIndex_WithSorting_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Orders?sortBy=status&sortDir=asc", cancellationToken);
+			var valueStart = optionStart + 15;
+			var valueEnd = html.IndexOf('"', valueStart);
+			if (valueEnd == -1) return string.Empty;
 
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
+			var value = html[valueStart..valueEnd];
+			if (!string.IsNullOrEmpty(value) && value != excludeValue)
+				return value;
 
-	[Test]
-	public async Task OrdersIndex_WithStatusFilter_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Orders?statusFilter=Confirmed", cancellationToken);
-
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
-
-	[Test]
-	public async Task OrdersDeleted_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Orders/Deleted", cancellationToken);
-
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+			searchFrom = valueEnd + 1;
+		}
 	}
 
 	async Task<string> GetAntiForgeryTokenAsync(string url, CancellationToken cancellationToken)

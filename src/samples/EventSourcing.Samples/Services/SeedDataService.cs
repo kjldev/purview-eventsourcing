@@ -45,6 +45,14 @@ public sealed class SeedDataService(
 		("SKU-015", "Smart LED Desk Lamp", 90, 20)
 	];
 
+	static readonly (string LocationId, string LocationName)[] _locations =
+	[
+		("LOC-001", "Warehouse North"),
+		("LOC-002", "Warehouse South"),
+		("LOC-003", "Distribution Centre East"),
+		("LOC-004", "Fulfilment Hub West"),
+	];
+
 	static readonly decimal[] _unitPrices =
 	[
 		49.99m, 39.99m, 399.99m, 129.99m, 29.99m,
@@ -112,9 +120,10 @@ public sealed class SeedDataService(
 		for (var i = 0; i < _products.Length; i++)
 		{
 			var (productId, productName, initialQty, _) = _products[i];
+			var (locationId, locationName) = _locations[i % _locations.Length];
 
 			var item = await inventoryStore.CreateAsync(null, cancellationToken);
-			item.Initialize(productId, productName, initialQty);
+			item.Initialize(productId, productName, locationId, locationName, initialQty);
 
 			var result = await inventoryStore.SaveAsync(item, null, cancellationToken);
 			ids.Add((result.Aggregate.Id(), i));

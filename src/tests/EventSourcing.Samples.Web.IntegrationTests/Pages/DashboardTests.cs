@@ -16,13 +16,12 @@ public sealed class DashboardTests(WebAppFactory factory)
 	}
 
 	[Test]
-	public async Task Dashboard_ContainsAggregateCounts(CancellationToken cancellationToken)
+	public async Task Dashboard_ContainsPortalOptions(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/", cancellationToken);
 		var html = await response.Content.ReadAsStringAsync(cancellationToken);
 
-		await Assert.That(html).Contains("Customers");
-		await Assert.That(html).Contains("Orders");
-		await Assert.That(html).Contains("Inventory");
+		await Assert.That(html).Contains("Customer Experience");
+		await Assert.That(html).Contains("Back Office");
 	}
 }

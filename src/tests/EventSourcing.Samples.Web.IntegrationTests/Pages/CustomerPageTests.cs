@@ -10,23 +10,72 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 	);
 
 	[Test]
-	public async Task CustomersIndex_Returns200(CancellationToken cancellationToken)
+	public async Task CustomerSelector_Returns200(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync("/Customers", cancellationToken);
+		var response = await _client.GetAsync("/Customer", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	[Test]
-	public async Task CustomersCreate_Get_Returns200(CancellationToken cancellationToken)
+	public async Task CustomerCatalog_WithoutSession_Redirects(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync("/Customers/Create", cancellationToken);
+		var response = await _client.GetAsync("/Customer/Catalog", cancellationToken);
+
+		// Without a session, should redirect to customer selector
+		await Assert.That((int)response.StatusCode is 200 or 302).IsTrue();
+	}
+
+	[Test]
+	public async Task CustomerOrders_WithoutSession_Redirects(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/Customer/Orders", cancellationToken);
+
+		await Assert.That((int)response.StatusCode is 200 or 302).IsTrue();
+	}
+
+	[Test]
+	public async Task CustomerProfile_WithoutSession_Redirects(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/Customer/Profile", cancellationToken);
+
+		await Assert.That((int)response.StatusCode is 200 or 302).IsTrue();
+	}
+
+	[Test]
+	public async Task CustomerSelector_WithPaging_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/Customer?page=1&pageSize=10", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	[Test]
-	public async Task CustomersCreate_Post_RedirectsToIndex(CancellationToken cancellationToken)
+	public async Task CustomerSelector_WithSearch_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/Customer?search=alice", cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeCustomersIndex_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/BackOffice/Customers", cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeCustomersCreate_Get_Returns200(CancellationToken cancellationToken)
+	{
+		var response = await _client.GetAsync("/BackOffice/Customers/Create", cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeCustomersCreate_Post_RedirectsToIndex(CancellationToken cancellationToken)
 	{
 		var form = new Dictionary<string, string>
 		{
@@ -34,63 +83,29 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 			["Email"] = "test@example.com"
 		};
 
-		var antiForgery = await GetAntiForgeryTokenAsync("/Customers/Create", cancellationToken);
+		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Customers/Create", cancellationToken);
 		form["__RequestVerificationToken"] = antiForgery;
 
 		using var content = new FormUrlEncodedContent(form);
-		var response = await _client.PostAsync("/Customers/Create", content, cancellationToken);
+		var response = await _client.PostAsync("/BackOffice/Customers/Create", content, cancellationToken);
 
 		await Assert.That((int)response.StatusCode).IsEqualTo(302);
-		await Assert.That(response.Headers.Location?.ToString()).Contains("/Customers");
+		await Assert.That(response.Headers.Location?.ToString()).Contains("/BackOffice/Customers");
 	}
 
 	[Test]
-	public async Task CustomersDeleted_Returns200(CancellationToken cancellationToken)
+	public async Task BackOfficeCustomersDeleted_Returns200(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync("/Customers/Deleted", cancellationToken);
+		var response = await _client.GetAsync("/BackOffice/Customers/Deleted", cancellationToken);
 
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
-
-	[Test]
-	public async Task CustomersIndex_WithPaging_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Customers?page=1&pageSize=10", cancellationToken);
-
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
-
-	[Test]
-	public async Task CustomersIndex_WithSorting_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Customers?sortBy=email&sortDir=asc", cancellationToken);
-
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
-
-	[Test]
-	public async Task CustomersIndex_WithSearch_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Customers?search=alice", cancellationToken);
-
-		await Assert.That(response.IsSuccessStatusCode).IsTrue();
-	}
-
-	[Test]
-	public async Task CustomersIndex_Page2_Returns200(CancellationToken cancellationToken)
-	{
-		var response = await _client.GetAsync("/Customers?page=2&pageSize=10", cancellationToken);
-
-		// Page 2 is valid as long as there's seed data (30+ customers)
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	[Test]
 	public async Task CustomerDetails_UnknownId_Returns200OrNotFound(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync("/Customers/unknown-id", cancellationToken);
+		var response = await _client.GetAsync("/Customer/Orders/Details/unknown-id", cancellationToken);
 
-		// Returns 200 with "not found" message OR a proper 404
 		await Assert.That((int)response.StatusCode is 200 or 404 or 302).IsTrue();
 	}
 

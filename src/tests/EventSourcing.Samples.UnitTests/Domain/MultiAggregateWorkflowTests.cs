@@ -17,7 +17,7 @@ public class MultiAggregateWorkflowTests
 
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = "inv-widget";
-		inventory.Initialize("widget-1", "Premium Widget", initialQuantity: 100);
+		inventory.Initialize("widget-1", "Premium Widget", "warehouse-1", "Main Warehouse", initialQuantity: 100);
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-1";
@@ -52,7 +52,7 @@ public class MultiAggregateWorkflowTests
 		// Arrange
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = "inv-gadget";
-		inventory.Initialize("gadget-1", "Gadget", initialQuantity: 50);
+		inventory.Initialize("gadget-1", "Gadget", "warehouse-1", "Main Warehouse", initialQuantity: 50);
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-cancel";

@@ -49,6 +49,7 @@
 		<!-- Aspire -->
 		<PackageVersion Include="Aspire.Hosting" Version="13.2.2" />
 
+		<PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.2.2" />
 		<PackageVersion Include="Aspire.Hosting.Redis" Version="13.2.2" />
 		<PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.2.2" />
 		<PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="13.2.2" />

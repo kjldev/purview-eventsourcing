@@ -2,10 +2,11 @@
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing.Samples.Web</RootNamespace>
 		<ExcludePurviewTelemetry>true</ExcludePurviewTelemetry>
-		<NoWarn>$(NoWarn);CA1515;CA1062;CA1303;CA1304;CA1305;CA1307;CA1308;CA1311;CA1849;CA1862;</NoWarn>
+		<NoWarn>$(NoWarn);CA1515;CA1062;CA1303;CA1304;CA1305;CA1307;CA1308;CA1311;CA1849;CA1862;CA1002;CA1054;CA1056;IDE2003;</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+		<PackageReference Include="Azure.Storage.Blobs" />
 		<ProjectReference Include="..\EventSourcing.Samples\EventSourcing.Samples.csproj" />
 		<ProjectReference Include="..\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
 		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
