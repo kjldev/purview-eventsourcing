@@ -93,6 +93,13 @@ partial class SqlServerSnapshotEventStore<T>
 		CancellationToken cancellationToken = default
 	)
 	{
+		if (whereClause == null)
+		{
+			// Fast path: push COUNT(*) down to the database — no payload deserialization needed.
+			return await _sqlServerClient.CountByAggregateTypeAsync(GetAggregateTypeName(), cancellationToken);
+		}
+
+		// Filtered path: load items and apply predicate in memory.
 		var expressionToRun = BuildQueryExpression(whereClause);
 		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(GetAggregateTypeName(), cancellationToken);
 

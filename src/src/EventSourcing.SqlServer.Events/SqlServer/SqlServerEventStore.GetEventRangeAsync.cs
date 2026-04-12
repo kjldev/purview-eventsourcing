@@ -80,6 +80,10 @@ partial class SqlServerEventStore<T>
 				?? throw new ApplicationException($"Unable to load event type: {eventType}");
 			var @event = DeserializeEvent(eventRow.Payload!, runtimeEventType);
 
+			// Apply upcasting chain when a registry is available.
+			if (@event != null && _eventUpcasterRegistry?.CanUpcast(@event) == true)
+				@event = _eventUpcasterRegistry.Upcast(@event);
+
 			return @event;
 		}
 		catch (Exception ex)

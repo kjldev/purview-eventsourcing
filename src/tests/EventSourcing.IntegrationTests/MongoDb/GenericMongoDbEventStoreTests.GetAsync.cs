@@ -86,11 +86,16 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	public async Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken)
 	{
 		// Arrange
+		// eventsToCreate is a multiple of snapshotInterval (10, 20, 50, 80, 100).
+		// First save triggers a snapshot at CurrentVersion == eventsToCreate.
+		// Second save adds eventCountOffset more events (not reaching the next interval),
+		// so no new snapshot is taken and the aggregate must be reconstructed from
+		// the snapshot plus the trailing events.
 		const int snapshotInterval = 5;
 		const int eventCountOffset = snapshotInterval - 1;
 
-		var expectedSnapshotVersion = eventsToCreate - eventCountOffset;
-		var initialEventsToCreate = eventsToCreate - eventCountOffset;
+		var expectedSnapshotVersion = eventsToCreate;
+		var totalEventsToCreate = eventsToCreate + eventCountOffset;
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
@@ -98,7 +103,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		// Act
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
-		for (var i = 0; i < initialEventsToCreate; i++)
+		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -113,8 +118,8 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		await Assert.That(result).IsNotNull();
 		await Assert.That(result.IsNew()).IsFalse();
-		await Assert.That(result.IncrementInt32).IsEqualTo(eventsToCreate);
-		await Assert.That(result.Details.SavedVersion).IsEqualTo(eventsToCreate);
+		await Assert.That(result.IncrementInt32).IsEqualTo(totalEventsToCreate);
+		await Assert.That(result.Details.SavedVersion).IsEqualTo(totalEventsToCreate);
 		await Assert.That(result.Details.SnapshotVersion).IsEqualTo(expectedSnapshotVersion);
 	}
 

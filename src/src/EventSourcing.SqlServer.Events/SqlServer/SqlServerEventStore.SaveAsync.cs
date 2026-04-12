@@ -144,6 +144,7 @@ partial class SqlServerEventStore<T>
 
 				changeEvent.Details.IdempotencyId = idempotencyIdAsString;
 				changeEvent.Details.UserId = userId;
+				changeEvent.Details.CorrelationId ??= operationContext.CorrelationId;
 
 				var serializedEvent = SerializeEvent(changeEvent);
 				insertRows.Add(
@@ -238,8 +239,18 @@ partial class SqlServerEventStore<T>
 		if (aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any())
 			return true;
 
-		return (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
-			>= _eventStoreOptions.Value.SnapshotInterval;
+		var savedVersion = aggregate.Details.SavedVersion;
+
+		try
+		{
+			aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
+
+			return _snapshotStrategy.ShouldSnapshot(aggregate, events.Length);
+		}
+		finally
+		{
+			aggregate.Details.SavedVersion = savedVersion;
+		}
 	}
 
 	async Task SubmitBatchOperationsAsync(
