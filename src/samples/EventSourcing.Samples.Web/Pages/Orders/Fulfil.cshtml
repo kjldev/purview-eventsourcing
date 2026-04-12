@@ -1,0 +1,95 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.Orders.FulfilModel
+@{
+    ViewData["Title"] = "Place Order";
+}
+
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a asp-page="Index" class="text-sm text-slate-600 hover:underline">← Back to Orders</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-900">Place Order</h2>
+            <p class="mt-1 text-sm text-gray-500">
+                Demonstrates a cross-aggregate transactional saga: creates an order and reserves inventory atomically,
+                with compensation (order cancellation) if the inventory reservation fails.
+            </p>
+        </div>
+
+        <div asp-validation-summary="ModelOnly" class="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm"></div>
+
+        <form method="post">
+            <div class="space-y-5">
+                <!-- Customer -->
+                <div>
+                    <label asp-for="CustomerId" class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    @if (Model.Customers.Count == 0)
+                    {
+                        <p class="text-sm text-red-500">No active customers available. <a asp-page="/Customers/Create" class="underline">Add one first.</a></p>
+                    }
+                    else
+                    {
+                        <select asp-for="CustomerId" asp-items="Model.Customers"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                            <option value="">— Select a customer —</option>
+                        </select>
+                        <span asp-validation-for="CustomerId" class="text-red-500 text-xs mt-1"></span>
+                    }
+                </div>
+
+                <!-- Inventory Item -->
+                <div>
+                    <label asp-for="InventoryId" class="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                    @if (Model.InventoryItems.Count == 0)
+                    {
+                        <p class="text-sm text-red-500">No inventory items with available stock. <a asp-page="/Inventory/Create" class="underline">Add stock first.</a></p>
+                    }
+                    else
+                    {
+                        <select asp-for="InventoryId" asp-items="Model.InventoryItems"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+                            <option value="">— Select a product —</option>
+                        </select>
+                        <span asp-validation-for="InventoryId" class="text-red-500 text-xs mt-1"></span>
+                    }
+                </div>
+
+                <!-- Quantity -->
+                <div>
+                    <label asp-for="Quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                    <input asp-for="Quantity" type="number" min="1"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
+                    <span asp-validation-for="Quantity" class="text-red-500 text-xs mt-1"></span>
+                </div>
+
+                <!-- Shipping Address -->
+                <div>
+                    <label asp-for="ShippingAddress" class="block text-sm font-medium text-gray-700 mb-1">
+                        Shipping Address <span class="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <textarea asp-for="ShippingAddress" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                              placeholder="123 Main St, Anytown, USA"></textarea>
+                </div>
+
+                <!-- Saga explanation -->
+                <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
+                    <strong>Saga pattern:</strong> On submit, this creates a confirmed order and reserves the requested stock quantity.
+                    If the inventory reservation fails, the order is automatically cancelled as compensation —
+                    demonstrating eventual consistency and cross-aggregate coordination.
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button type="submit"
+                        class="px-6 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                        @(Model.Customers.Count == 0 || Model.InventoryItems.Count == 0 ? "disabled" : "")>
+                    ⚡ Place Order
+                </button>
+                <a asp-page="Index" class="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

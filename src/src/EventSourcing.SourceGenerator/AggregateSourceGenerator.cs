@@ -126,7 +126,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			{
 				parameters.Add(new EventPropertyInfo(
 					param.Name,
-					param.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+					param.Type.ToDisplayString(
+						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+							| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier))
 				));
 			}
 

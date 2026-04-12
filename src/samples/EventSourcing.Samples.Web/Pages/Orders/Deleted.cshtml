@@ -1,0 +1,54 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.Orders.DeletedModel
+@{
+    ViewData["Title"] = "Archived Orders";
+}
+@using Purview.EventSourcing.Samples.Domain
+
+<div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-gray-500">@Model.DeletedOrders.Count archived order(s)</p>
+    <a asp-page="Index" class="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">← Active Orders</a>
+</div>
+
+@if (Model.DeletedOrders.Count == 0)
+{
+    <div class="text-center py-16 text-gray-400">
+        <p class="text-5xl mb-3">📂</p>
+        <p class="text-lg font-medium">No archived orders</p>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">ID</th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Customer</th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Status</th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Total</th>
+                    <th class="px-5 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach (var order in Model.DeletedOrders)
+                {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-3 font-mono text-xs text-gray-400">@order.Id()[..8]…</td>
+                        <td class="px-5 py-3 font-mono text-xs">@order.CustomerId</td>
+                        <td class="px-5 py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">@order.Status</span>
+                        </td>
+                        <td class="px-5 py-3">@order.TotalAmount.ToString("C")</td>
+                        <td class="px-5 py-3 text-right">
+                            <form method="post" asp-page-handler="Restore" asp-route-id="@order.Id()" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="text-green-600 hover:underline">Restore</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -27,6 +27,7 @@ jobs:
           dotnet restore tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj
           dotnet restore tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj
           dotnet restore tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj
+          dotnet restore samples/EventSourcing.Samples.Web/EventSourcing.Samples.Web.csproj
 
       - name: Build
         working-directory: src
@@ -34,6 +35,7 @@ jobs:
           dotnet build tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj --configuration Release --no-restore
           dotnet build tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj --configuration Release --no-restore
           dotnet build tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj --configuration Release --no-restore
+          dotnet build samples/EventSourcing.Samples.Web/EventSourcing.Samples.Web.csproj --configuration Release --no-restore
 
       - name: Unit Tests
         working-directory: src
@@ -55,12 +57,21 @@ jobs:
 
       - name: Restore dependencies
         working-directory: src
-        run: dotnet restore tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj
+        run: |
+          dotnet restore tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj
+          dotnet restore tests/EventSourcing.Samples.IntegrationTests/EventSourcing.Samples.IntegrationTests.csproj
+          dotnet restore tests/EventSourcing.Samples.Web.IntegrationTests/EventSourcing.Samples.Web.IntegrationTests.csproj
 
       - name: Build
         working-directory: src
-        run: dotnet build tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-restore
+        run: |
+          dotnet build tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-restore
+          dotnet build tests/EventSourcing.Samples.IntegrationTests/EventSourcing.Samples.IntegrationTests.csproj --configuration Release --no-restore
+          dotnet build tests/EventSourcing.Samples.Web.IntegrationTests/EventSourcing.Samples.Web.IntegrationTests.csproj --configuration Release --no-restore
 
       - name: Integration Tests
         working-directory: src
-        run: dotnet test --project tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-build
+        run: |
+          dotnet test --project tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-build
+          dotnet test --project tests/EventSourcing.Samples.IntegrationTests/EventSourcing.Samples.IntegrationTests.csproj --configuration Release --no-build
+          dotnet test --project tests/EventSourcing.Samples.Web.IntegrationTests/EventSourcing.Samples.Web.IntegrationTests.csproj --configuration Release --no-build

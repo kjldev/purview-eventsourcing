@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<!-- Web project not auto-discovered (lives in samples/ not the standard tests/ path) -->
+		<ProjectReference Include="..\..\samples\EventSourcing.Samples.Web\EventSourcing.Samples.Web.csproj" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+		<PackageReference Include="Testcontainers.MsSql" />
+	</ItemGroup>
+</Project>

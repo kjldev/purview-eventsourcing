@@ -45,7 +45,7 @@ public class SnapshotStoreDbContext : DbContext
 			entity.HasKey(e => e.Id);
 			entity.Property(e => e.Id).HasMaxLength(450).IsRequired();
 			entity.Property(e => e.AggregateType).HasMaxLength(450).IsRequired();
-			entity.Property(e => e.Payload).HasColumnType("NVARCHAR(MAX)").IsRequired();
+			entity.Property(e => e.Payload).HasColumnType("json").IsRequired();
 
 			// Covers: QueryByAggregateType (returns Payload via INCLUDE, avoids key lookup)
 			entity

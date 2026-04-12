@@ -280,6 +280,16 @@ partial class SqlServerEventStore<T>
 
 			ClearCacheFireAndForget(aggregate);
 
+			// SQL errors 2627 (PK violation) and 2601 (unique index violation) indicate a concurrent
+			// writer already saved events at the same version — surface this as a typed concurrency error.
+			if (ex.Number is 2627 or 2601)
+				throw new Exceptions.ConcurrencyException(
+					aggregate.Id(),
+					idempotencyId,
+					aggregate.Details.CurrentVersion,
+					aggregate.Details.SavedVersion
+				);
+
 			throw new Exceptions.CommitException(
 				aggregate.Id(),
 				idempotencyId,

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -24,7 +24,7 @@ namespace Purview.EventSourcing.SqlServer.EntityFramework.Migrations
 					AggregateType = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
 					Version = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
 					IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-					Payload = table.Column<string>(type: "NVARCHAR(MAX)", nullable: true),
+					Payload = table.Column<string>(type: "json", nullable: true),
 					EventType = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
 					IdempotencyId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
 					Timestamp = table.Column<DateTimeOffset>(

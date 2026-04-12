@@ -1,0 +1,133 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.Customers.IndexModel
+@{
+    ViewData["Title"] = "Customers";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-gray-500">
+        @Model.TotalCount customer(s) &mdash; page @Model.Page of @Model.TotalPages
+    </p>
+    <div class="flex gap-3">
+        <a asp-page="Deleted" class="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+            🗄 Archived
+        </a>
+        <a asp-page="Create" class="px-4 py-2 text-sm bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors">
+            + New Customer
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<form method="get" class="mb-6 flex gap-3">
+    <input type="hidden" name="sortBy" value="@Model.SortBy" />
+    <input type="hidden" name="sortDir" value="@Model.SortDir" />
+    <input type="hidden" name="pageSize" value="@Model.PageSize" />
+    <input type="text" name="search" value="@Model.Search" placeholder="Search by name or email..."
+           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
+    <select name="activeFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+        <option value="" selected="@(Model.ActiveFilter == null)">All Status</option>
+        <option value="true" selected="@(Model.ActiveFilter == true)">Active</option>
+        <option value="false" selected="@(Model.ActiveFilter == false)">Inactive</option>
+    </select>
+    <button type="submit" class="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">Search</button>
+    @if (!string.IsNullOrEmpty(Model.Search) || Model.ActiveFilter != null)
+    {
+        <a asp-page="Index" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 underline self-center">Clear</a>
+    }
+</form>
+
+@if (Model.Customers.Count == 0)
+{
+    <div class="text-center py-16 text-gray-400">
+        <p class="text-5xl mb-3">👤</p>
+        <p class="text-lg font-medium">No customers found</p>
+        <p class="text-sm mt-1">Try a different search or <a asp-page="Create" class="underline text-slate-600">create one</a>.</p>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">
+                        <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["activeFilter"]=Model.ActiveFilter?.ToString()??"",["sortBy"]="name",["sortDir"]=Model.SortLink("name"),["pageSize"]=Model.PageSize.ToString()})' class="hover:text-slate-800">
+                            Name @Model.SortIcon("name")
+                        </a>
+                    </th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">
+                        <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["activeFilter"]=Model.ActiveFilter?.ToString()??"",["sortBy"]="email",["sortDir"]=Model.SortLink("email"),["pageSize"]=Model.PageSize.ToString()})' class="hover:text-slate-800">
+                            Email @Model.SortIcon("email")
+                        </a>
+                    </th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Phone</th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">
+                        <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["activeFilter"]=Model.ActiveFilter?.ToString()??"",["sortBy"]="status",["sortDir"]=Model.SortLink("status"),["pageSize"]=Model.PageSize.ToString()})' class="hover:text-slate-800">
+                            Status @Model.SortIcon("status")
+                        </a>
+                    </th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Ver</th>
+                    <th class="px-5 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach (var customer in Model.Customers)
+                {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-3 font-medium">@customer.Name</td>
+                        <td class="px-5 py-3 text-gray-600">@customer.Email</td>
+                        <td class="px-5 py-3 text-gray-500">@(customer.PhoneNumber ?? "—")</td>
+                        <td class="px-5 py-3">
+                            @if (customer.IsActive)
+                            {
+                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                            }
+                            else
+                            {
+                                <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Inactive</span>
+                            }
+                        </td>
+                        <td class="px-5 py-3 text-gray-400 font-mono text-xs">v@customer.Details.SavedVersion</td>
+                        <td class="px-5 py-3 text-right whitespace-nowrap">
+                            <a asp-page="Details" asp-route-id="@customer.Id()" class="text-slate-600 hover:underline mr-3">View</a>
+                            <a asp-page="Edit" asp-route-id="@customer.Id()" class="text-slate-600 hover:underline mr-3">Edit</a>
+                            <form method="post" asp-page-handler="Archive" asp-route-id="@customer.Id()" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="text-red-400 hover:text-red-600 hover:underline"
+                                        onclick="return confirm('Archive this customer?')">Archive</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
+        <span>Showing @((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, (int)Model.TotalCount)) of @Model.TotalCount</span>
+        <div class="flex gap-2">
+            @if (Model.HasPrevPage)
+            {
+                <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["activeFilter"]=Model.ActiveFilter?.ToString()??"",["sortBy"]=Model.SortBy,["sortDir"]=Model.SortDir,["page"]=(Model.Page-1).ToString(),["pageSize"]=Model.PageSize.ToString()})' class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">← Prev</a>
+            }
+            @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+            {
+                var pageNum = p;
+                <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["activeFilter"]=Model.ActiveFilter?.ToString()??"",["sortBy"]=Model.SortBy,["sortDir"]=Model.SortDir,["page"]=pageNum.ToString(),["pageSize"]=Model.PageSize.ToString()})' class="px-3 py-1 border rounded @(pageNum == Model.Page ? "bg-slate-700 text-white border-slate-700" : "border-gray-300 hover:bg-gray-50")">@pageNum</a>
+            }
+            @if (Model.HasNextPage)
+            {
+                <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["activeFilter"]=Model.ActiveFilter?.ToString()??"",["sortBy"]=Model.SortBy,["sortDir"]=Model.SortDir,["page"]=(Model.Page+1).ToString(),["pageSize"]=Model.PageSize.ToString()})' class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next →</a>
+            }
+        </div>
+        <select onchange="window.location=this.value" class="px-2 py-1 border border-gray-300 rounded text-sm">
+            @foreach (var size in new[]{10,15,25,50})
+            {
+                var url = Url.Page("Index", new { search = Model.Search, activeFilter = Model.ActiveFilter, sortBy = Model.SortBy, sortDir = Model.SortDir, page = 1, pageSize = size });
+                <option value="@url" selected="@(Model.PageSize == size)">@size per page</option>
+            }
+        </select>
+    </div>
+}

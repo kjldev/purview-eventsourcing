@@ -49,7 +49,7 @@ public class EventStoreDbContext : DbContext
 			entity.Property(e => e.AggregateType).HasMaxLength(450).IsRequired();
 			entity.Property(e => e.Version).HasDefaultValue(0).IsRequired();
 			entity.Property(e => e.IsDeleted).HasDefaultValue(false).IsRequired();
-			entity.Property(e => e.Payload).HasColumnType("NVARCHAR(MAX)");
+			entity.Property(e => e.Payload).HasColumnType("json");
 			entity.Property(e => e.EventType).HasMaxLength(450);
 			entity.Property(e => e.IdempotencyId).HasMaxLength(450);
 			entity.Property(e => e.Timestamp).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();

@@ -1,0 +1,129 @@
+@page "{id}"
+@model Purview.EventSourcing.Samples.Web.Pages.Inventory.EditModel
+@{
+    ViewData["Title"] = $"Edit — {Model.Item?.ProductName}";
+}
+
+@if (Model.Item == null)
+{
+    <p class="text-gray-500">Inventory item not found.</p>
+    return;
+}
+
+<a asp-page="Index" class="text-sm text-slate-500 hover:underline mb-4 inline-block">← Back to Inventory</a>
+
+<!-- Stock summary -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-gray-50 rounded-lg p-4 text-center">
+        <p class="text-2xl font-bold text-slate-700">@Model.Item.QuantityOnHand</p>
+        <p class="text-xs text-gray-500 mt-1">On Hand</p>
+    </div>
+    <div class="bg-amber-50 rounded-lg p-4 text-center">
+        <p class="text-2xl font-bold text-amber-600">@Model.Item.ReservedQuantity</p>
+        <p class="text-xs text-gray-500 mt-1">Reserved</p>
+    </div>
+    <div class="@(Model.Item.AvailableQuantity <= 0 ? "bg-red-50" : "bg-green-50") rounded-lg p-4 text-center">
+        <p class="text-2xl font-bold @(Model.Item.AvailableQuantity <= 0 ? "text-red-600" : "text-green-700")">@Model.Item.AvailableQuantity</p>
+        <p class="text-xs text-gray-500 mt-1">Available</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Receive Stock -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-semibold mb-4">Receive Stock</h2>
+        <form method="post" asp-page-handler="ReceiveStock">
+            <input type="hidden" name="id" value="@Model.Item.Id()" />
+            <div class="mb-3">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
+                <input name="quantity" type="number" min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+            </div>
+            <button type="submit" class="w-full px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">+ Receive</button>
+        </form>
+    </div>
+
+    <!-- Reserve Stock -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-semibold mb-4">Reserve Stock</h2>
+        <form method="post" asp-page-handler="ReserveStock">
+            <input type="hidden" name="id" value="@Model.Item.Id()" />
+            <div class="space-y-3 mb-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Quantity * (max: @Model.Item.AvailableQuantity)</label>
+                    <input name="quantity" type="number" min="1" max="@Model.Item.AvailableQuantity" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Order ID *</label>
+                    <input name="orderId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                </div>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors">Reserve</button>
+        </form>
+    </div>
+
+    <!-- Release Reservation -->
+    @if (Model.Item.ReservedQuantity > 0)
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-base font-semibold mb-4">Release Reservation</h2>
+            <form method="post" asp-page-handler="ReleaseReservation">
+                <input type="hidden" name="id" value="@Model.Item.Id()" />
+                <div class="space-y-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Quantity * (max: @Model.Item.ReservedQuantity)</label>
+                        <input name="quantity" type="number" min="1" max="@Model.Item.ReservedQuantity" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Order ID *</label>
+                        <input name="orderId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                    </div>
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-slate-200 text-slate-700 text-sm rounded-lg hover:bg-slate-300 transition-colors">Release</button>
+            </form>
+        </div>
+
+        <!-- Ship Stock -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-base font-semibold mb-4">Ship Stock</h2>
+            <form method="post" asp-page-handler="ShipStock">
+                <input type="hidden" name="id" value="@Model.Item.Id()" />
+                <div class="space-y-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Quantity * (max: @Model.Item.ReservedQuantity)</label>
+                        <input name="quantity" type="number" min="1" max="@Model.Item.ReservedQuantity" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Order ID *</label>
+                        <input name="orderId" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                    </div>
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">🚚 Ship</button>
+            </form>
+        </div>
+    }
+
+    <!-- Adjust Stock -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-base font-semibold mb-4">Adjust Stock</h2>
+        <form method="post" asp-page-handler="AdjustStock">
+            <input type="hidden" name="id" value="@Model.Item.Id()" />
+            <div class="space-y-3 mb-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">New Quantity (absolute) *</label>
+                    <input name="newQuantity" type="number" min="0" value="@Model.Item.QuantityOnHand" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" required />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Reason *</label>
+                    <input name="reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" placeholder="e.g. stocktake correction" required />
+                </div>
+            </div>
+            <button type="submit" class="w-full px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">Adjust</button>
+        </form>
+    </div>
+</div>
+
+<div class="mt-6 bg-gray-50 rounded-xl border border-gray-100 p-4 text-sm text-gray-600">
+    <span class="font-medium">@Model.Item.ProductName</span> ·
+    <span class="font-mono text-xs">@Model.Item.ProductId</span> ·
+    <span class="font-mono text-xs text-gray-400">v@Model.Item.Details.SavedVersion</span>
+</div>

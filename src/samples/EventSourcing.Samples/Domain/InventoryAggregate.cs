@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Purview.EventSourcing.Aggregates;
-using Purview.EventSourcing.Samples.Domain.Events;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -8,7 +7,8 @@ namespace Purview.EventSourcing.Samples.Domain;
 /// Demonstrates inventory management with stock tracking.
 /// Shows: validation guards, computed state, concurrency-safe operations.
 /// </summary>
-public sealed class InventoryAggregate : AggregateBase
+[GenerateAggregate]
+public sealed partial class InventoryAggregate : AggregateBase
 {
 	public string ProductId { get; private set; } = default!;
 	public string ProductName { get; private set; } = default!;
@@ -21,16 +21,6 @@ public sealed class InventoryAggregate : AggregateBase
 
 	public int AvailableQuantity => QuantityOnHand - ReservedQuantity;
 
-	protected override void RegisterEvents()
-	{
-		Register<InventoryInitializedEvent>(Apply);
-		Register<StockReceivedEvent>(Apply);
-		Register<StockReservedEvent>(Apply);
-		Register<StockReservationReleasedEvent>(Apply);
-		Register<StockShippedEvent>(Apply);
-		Register<StockAdjustedEvent>(Apply);
-	}
-
 	// Commands
 	public void Initialize(string productId, string productName, int initialQuantity = 0)
 	{
@@ -38,18 +28,14 @@ public sealed class InventoryAggregate : AggregateBase
 		ArgumentException.ThrowIfNullOrWhiteSpace(productName);
 		ArgumentOutOfRangeException.ThrowIfNegative(initialQuantity);
 
-		RecordAndApply(new InventoryInitializedEvent
-		{
-			ProductId = productId,
-			ProductName = productName,
-			InitialQuantity = initialQuantity
-		});
+		InventoryInitialized(productId, productName, quantityOnHand: initialQuantity, reservedQuantity: 0);
 	}
 
 	public void ReceiveStock(int quantity)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-		RecordAndApply(new StockReceivedEvent { Quantity = quantity });
+
+		StockReceived(quantityOnHand: QuantityOnHand + quantity, reservedQuantity: ReservedQuantity);
 	}
 
 	public void ReserveStock(int quantity, string orderId)
@@ -61,7 +47,7 @@ public sealed class InventoryAggregate : AggregateBase
 			throw new InvalidOperationException(
 				$"Cannot reserve {quantity} units. Only {AvailableQuantity} available.");
 
-		RecordAndApply(new StockReservedEvent { Quantity = quantity, OrderId = orderId });
+		StockReserved(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
 	}
 
 	public void ReleaseReservation(int quantity, string orderId)
@@ -73,7 +59,7 @@ public sealed class InventoryAggregate : AggregateBase
 			throw new InvalidOperationException(
 				$"Cannot release {quantity} units. Only {ReservedQuantity} reserved.");
 
-		RecordAndApply(new StockReservationReleasedEvent { Quantity = quantity, OrderId = orderId });
+		StockReservationReleased(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
 	}
 
 	public void ShipStock(int quantity, string orderId)
@@ -85,7 +71,7 @@ public sealed class InventoryAggregate : AggregateBase
 			throw new InvalidOperationException(
 				$"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.");
 
-		RecordAndApply(new StockShippedEvent { Quantity = quantity, OrderId = orderId });
+		StockShipped(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
 	}
 
 	public void AdjustStock(int newQuantity, string reason)
@@ -93,33 +79,26 @@ public sealed class InventoryAggregate : AggregateBase
 		ArgumentOutOfRangeException.ThrowIfNegative(newQuantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
-		RecordAndApply(new StockAdjustedEvent { NewQuantity = newQuantity, Reason = reason });
+		StockAdjusted(
+			quantityOnHand: newQuantity,
+			reservedQuantity: Math.Min(ReservedQuantity, newQuantity));
 	}
 
-	// Apply methods
-	void Apply(InventoryInitializedEvent @event)
-	{
-		ProductId = @event.ProductId;
-		ProductName = @event.ProductName;
-		QuantityOnHand = @event.InitialQuantity;
-	}
+	[GenerateAggregateEvent]
+	public partial void InventoryInitialized(string productId, string productName, int quantityOnHand, int reservedQuantity);
 
-	void Apply(StockReceivedEvent @event) => QuantityOnHand += @event.Quantity;
+	[GenerateAggregateEvent]
+	public partial void StockReceived(int quantityOnHand, int reservedQuantity);
 
-	void Apply(StockReservedEvent @event) => ReservedQuantity += @event.Quantity;
+	[GenerateAggregateEvent]
+	public partial void StockReserved(int quantityOnHand, int reservedQuantity);
 
-	void Apply(StockReservationReleasedEvent @event) => ReservedQuantity -= @event.Quantity;
+	[GenerateAggregateEvent]
+	public partial void StockReservationReleased(int quantityOnHand, int reservedQuantity);
 
-	void Apply(StockShippedEvent @event)
-	{
-		QuantityOnHand -= @event.Quantity;
-		ReservedQuantity -= @event.Quantity;
-	}
+	[GenerateAggregateEvent]
+	public partial void StockShipped(int quantityOnHand, int reservedQuantity);
 
-	void Apply(StockAdjustedEvent @event)
-	{
-		QuantityOnHand = @event.NewQuantity;
-		if (ReservedQuantity > QuantityOnHand)
-			ReservedQuantity = QuantityOnHand;
-	}
+	[GenerateAggregateEvent]
+	public partial void StockAdjusted(int quantityOnHand, int reservedQuantity);
 }

@@ -1,0 +1,62 @@
+@page "{id}"
+@model Purview.EventSourcing.Samples.Web.Pages.Customers.DetailsModel
+@{
+    ViewData["Title"] = Model.Customer?.Name ?? "Customer Details";
+}
+
+@if (Model.Customer == null)
+{
+    <p class="text-gray-500">Customer not found.</p>
+    return;
+}
+
+<a asp-page="Index" class="text-sm text-slate-500 hover:underline mb-4 inline-block">← Back to Customers</a>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        <div class="flex items-start justify-between mb-6">
+            <h2 class="text-xl font-semibold">@Model.Customer.Name</h2>
+            <a asp-page="Edit" asp-route-id="@Model.Customer.Id()" class="px-4 py-2 text-sm bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors">Edit</a>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+                <dt class="font-medium text-gray-500">Email</dt>
+                <dd class="mt-1">@Model.Customer.Email</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Phone</dt>
+                <dd class="mt-1">@(Model.Customer.PhoneNumber ?? "—")</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Status</dt>
+                <dd class="mt-1">
+                    @if (Model.Customer.IsActive)
+                    {
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                    }
+                    else
+                    {
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Inactive</span>
+                    }
+                </dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">ID</dt>
+                <dd class="mt-1 font-mono text-xs text-gray-400">@Model.Customer.Id()</dd>
+            </div>
+        </dl>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-sm font-semibold text-gray-600 mb-4">Event Store Info</h3>
+        <dl class="space-y-3 text-sm">
+            <div>
+                <dt class="text-gray-500 text-xs">Saved Version</dt>
+                <dd class="font-mono font-medium">v@Model.Customer.Details.SavedVersion</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500 text-xs">Aggregate Type</dt>
+                <dd class="font-mono text-xs text-gray-400">@Model.Customer.AggregateType</dd>
+            </div>
+        </dl>
+    </div>
+</div>

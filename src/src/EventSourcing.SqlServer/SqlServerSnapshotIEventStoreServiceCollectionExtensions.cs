@@ -31,7 +31,8 @@ public static class SqlServerSnapshotIEventStoreServiceCollectionExtensions
 					configuration.GetSection(SqlServerSnapshotEventStoreOptions.SqlServerEventStore).Bind(options);
 
 					options.ConnectionString ??=
-						configuration.GetConnectionString("EventStore_SqlServer")
+						configuration.GetConnectionString("eventstore-sqlserver")
+						?? configuration.GetConnectionString("EventStore_SqlServer")
 						?? configuration.GetConnectionString("SqlServer")
 						// This will get picked up by the validation.
 						?? default!;

@@ -1016,6 +1016,8 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("Bio");
 		await Assert.That(generatedSource).Contains("Bio = @event.Bio;");
 		await Assert.That(generatedSource).Contains("public sealed class UpdateBioEvent");
+		await Assert.That(generatedSource).Contains("public string? Bio { get; set; } = default!;");
+		await Assert.That(generatedSource).Contains("public partial void UpdateBio(string? bio)");
 	}
 
 	[Test]

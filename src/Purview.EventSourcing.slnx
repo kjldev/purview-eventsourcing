@@ -18,6 +18,9 @@
 	</Folder>
 	<Folder Name="/samples/">
 		<Project Path="samples\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+		<Project Path="samples\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
+		<Project Path="samples\EventSourcing.Samples.Web\EventSourcing.Samples.Web.csproj" />
+		<Project Path="samples\EventSourcing.Samples.AppHost\EventSourcing.Samples.AppHost.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
 		<Project Path="tests\EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
@@ -25,5 +28,7 @@
 		<Project Path="tests\SharedTestingFramework\SharedTestingFramework.csproj" />
 		<Project Path="tests\EventSourcing.SourceGenerator.UnitTests\EventSourcing.SourceGenerator.UnitTests.csproj" />
 		<Project Path="tests\EventSourcing.Samples.UnitTests\EventSourcing.Samples.UnitTests.csproj" />
+		<Project Path="tests\EventSourcing.Samples.IntegrationTests\EventSourcing.Samples.IntegrationTests.csproj" />
+		<Project Path="tests\EventSourcing.Samples.Web.IntegrationTests\EventSourcing.Samples.Web.IntegrationTests.csproj" />
 	</Folder>
 </Solution>

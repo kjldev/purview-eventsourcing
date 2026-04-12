@@ -1,0 +1,51 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.Inventory.DeletedModel
+@{
+    ViewData["Title"] = "Archived Inventory";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <p class="text-sm text-gray-500">@Model.DeletedItems.Count archived item(s)</p>
+    <a asp-page="Index" class="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">← Active Inventory</a>
+</div>
+
+@if (Model.DeletedItems.Count == 0)
+{
+    <div class="text-center py-16 text-gray-400">
+        <p class="text-5xl mb-3">📂</p>
+        <p class="text-lg font-medium">No archived inventory items</p>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Product</th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Product ID</th>
+                    <th class="text-right px-5 py-3 font-medium text-gray-600">On Hand</th>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Version</th>
+                    <th class="px-5 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach (var item in Model.DeletedItems)
+                {
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-5 py-3 font-medium text-gray-500">@item.ProductName</td>
+                        <td class="px-5 py-3 font-mono text-xs text-gray-400">@item.ProductId</td>
+                        <td class="px-5 py-3 text-right font-mono text-gray-400">@item.QuantityOnHand</td>
+                        <td class="px-5 py-3 font-mono text-xs text-gray-400">v@item.Details.SavedVersion</td>
+                        <td class="px-5 py-3 text-right">
+                            <form method="post" asp-page-handler="Restore" asp-route-id="@item.Id()" class="inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="text-green-600 hover:underline">Restore</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

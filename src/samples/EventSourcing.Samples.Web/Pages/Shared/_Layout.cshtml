@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — Event Sourcing Sample</title>
+    <script src="https://unpkg.com/@@tailwindcss/browser@@4"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-800 text-white flex flex-col min-h-screen">
+        <div class="px-6 py-5 border-b border-slate-700">
+            <a asp-page="/Index" class="text-xl font-bold tracking-tight text-white hover:text-slate-200">
+                🗃 Event Sourcing
+            </a>
+            <p class="text-xs text-slate-400 mt-1">Sample Application</p>
+        </div>
+        <nav class="flex-1 px-4 py-4 space-y-1">
+            <p class="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-2">Aggregates</p>
+            <a asp-page="/Customers/Index"
+               class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Customers") == true ? "bg-slate-700 text-white" : "")">
+                👤 Customers
+            </a>
+            <a asp-page="/Orders/Index"
+               class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Orders") == true ? "bg-slate-700 text-white" : "")">
+                📦 Orders
+            </a>
+            <a asp-page="/Inventory/Index"
+               class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Inventory") == true ? "bg-slate-700 text-white" : "")">
+                🏭 Inventory
+            </a>
+        </nav>
+        <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-500">
+            .NET 10 · Event Sourcing
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 flex flex-col">
+        <!-- Top bar -->
+        <header class="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+            <h1 class="text-lg font-semibold text-gray-800">@ViewData["Title"]</h1>
+        </header>
+
+        <!-- Flash messages -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="mx-8 mt-4 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
+                ✅ @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="mx-8 mt-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+                ❌ @TempData["Error"]
+            </div>
+        }
+
+        <!-- Page body -->
+        <div class="flex-1 px-8 py-6">
+            @RenderBody()
+        </div>
+    </main>
+</body>
+</html>

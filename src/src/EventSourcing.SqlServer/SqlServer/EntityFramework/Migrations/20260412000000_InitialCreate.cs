@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -19,7 +19,7 @@ namespace Purview.EventSourcing.SqlServer.EntityFramework.Migrations
 				{
 					Id = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
 					AggregateType = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
-					Payload = table.Column<string>(type: "NVARCHAR(MAX)", nullable: false),
+					Payload = table.Column<string>(type: "json", nullable: false),
 				},
 				constraints: table =>
 				{

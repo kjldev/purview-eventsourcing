@@ -9,6 +9,9 @@ namespace Purview.EventSourcing.SqlServer;
 
 sealed partial class SqlServerEventStoreClient : IDisposable
 {
+	const int MinimumSqlServerMajorVersion = 16; // SQL Server 2022
+	const string MinimumSqlServerVersionName = "SQL Server 2022";
+
 	readonly SqlServerEventStoreOptions _options;
 	readonly string _ensureTableSql;
 	readonly string _insertSql;
@@ -41,7 +44,7 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 					[AggregateType] NVARCHAR(450) NOT NULL,
 					[Version] INT NOT NULL DEFAULT 0,
 					[IsDeleted] BIT NOT NULL DEFAULT 0,
-					[Payload] NVARCHAR(MAX) NULL,
+					[Payload] json NULL,
 					[EventType] NVARCHAR(450) NULL,
 					[IdempotencyId] NVARCHAR(450) NULL,
 					[Timestamp] DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
@@ -113,6 +116,8 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await using var connection = CreateConnection();
 		await connection.OpenAsync(cancellationToken);
 
+		await CheckServerVersionAsync(connection, cancellationToken);
+
 		await using var command = connection.CreateCommand();
 		command.CommandText = _ensureTableSql;
 		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
@@ -122,6 +127,21 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 
 		await command.ExecuteNonQueryAsync(cancellationToken);
 		_tableCreated = true;
+	}
+
+	static async Task CheckServerVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
+	{
+		await using var command = connection.CreateCommand();
+		command.CommandText = "SELECT CAST(SERVERPROPERTY('ProductMajorVersion') AS INT)";
+
+		var result = await command.ExecuteScalarAsync(cancellationToken);
+		var majorVersion = result is int v ? v : 0;
+
+		if (majorVersion < MinimumSqlServerMajorVersion)
+			throw new InvalidOperationException(
+				$"SQL Server {MinimumSqlServerVersionName} ({MinimumSqlServerMajorVersion}.x) or later is required " +
+				$"for native JSON column support. The connected server reports major version {majorVersion}."
+			);
 	}
 
 	public async Task InsertAsync(
