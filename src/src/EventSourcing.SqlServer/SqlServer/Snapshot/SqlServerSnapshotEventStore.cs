@@ -4,7 +4,7 @@ using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
-public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotEventStore<T>, IDisposable
+public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotEventStore<T>, ITransactionalEventStore<T>, IDisposable
 	where T : class, IAggregate, new()
 {
 	readonly IEventStore<T> _eventStore;

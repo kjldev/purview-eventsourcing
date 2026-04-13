@@ -129,6 +129,26 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		_tableCreated = true;
 	}
 
+	public async Task EnsureTableExistsAsync(SqlConnection connection, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		if (_tableCreated)
+			return;
+
+		await CheckServerVersionAsync(connection, cancellationToken);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = _ensureTableSql;
+		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
+		command.Parameters.Add(
+			new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName }
+		);
+
+		await command.ExecuteNonQueryAsync(cancellationToken);
+		_tableCreated = true;
+	}
+
 	static async Task CheckServerVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
 	{
 		await using var command = connection.CreateCommand();
@@ -263,6 +283,45 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await command.ExecuteNonQueryAsync(cancellationToken);
 	}
 
+	public async Task UpsertAsync(
+		string id,
+		int entityType,
+		string aggregateId,
+		string aggregateType,
+		int version,
+		bool isDeleted,
+		string? payload,
+		string? eventType,
+		string? idempotencyId,
+		DateTimeOffset timestamp,
+		SqlConnection connection,
+		SqlTransaction transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+		ArgumentNullException.ThrowIfNull(transaction);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
+		command.CommandText = _upsertSql;
+		AddRowParameters(
+			command,
+			id,
+			entityType,
+			aggregateId,
+			aggregateType,
+			version,
+			isDeleted,
+			payload,
+			eventType,
+			idempotencyId,
+			timestamp
+		);
+
+		await command.ExecuteNonQueryAsync(cancellationToken);
+	}
+
 	public async Task UpsertWithBatchAsync(
 		string id,
 		int entityType,
@@ -340,6 +399,70 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		}
 	}
 
+	public async Task UpsertWithBatchAsync(
+		string id,
+		int entityType,
+		string aggregateId,
+		string aggregateType,
+		int version,
+		bool isDeleted,
+		string? payload,
+		string? eventType,
+		string? idempotencyId,
+		DateTimeOffset timestamp,
+		List<RowData> additionalInserts,
+		SqlConnection connection,
+		SqlTransaction transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+		ArgumentNullException.ThrowIfNull(transaction);
+
+		await using (var upsertCommand = connection.CreateCommand())
+		{
+			upsertCommand.Transaction = transaction;
+			upsertCommand.CommandText = _upsertSql;
+			AddRowParameters(
+				upsertCommand,
+				id,
+				entityType,
+				aggregateId,
+				aggregateType,
+				version,
+				isDeleted,
+				payload,
+				eventType,
+				idempotencyId,
+				timestamp
+			);
+			await upsertCommand.ExecuteNonQueryAsync(cancellationToken);
+		}
+
+		await using var insertCommand = connection.CreateCommand();
+		insertCommand.Transaction = transaction;
+		insertCommand.CommandText = _insertSql;
+
+		foreach (var row in additionalInserts)
+		{
+			insertCommand.Parameters.Clear();
+			AddRowParameters(
+				insertCommand,
+				row.Id,
+				row.EntityType,
+				row.AggregateId,
+				row.AggregateType,
+				row.Version,
+				row.IsDeleted,
+				row.Payload,
+				row.EventType,
+				row.IdempotencyId,
+				row.Timestamp
+			);
+			await insertCommand.ExecuteNonQueryAsync(cancellationToken);
+		}
+	}
+
 	public async Task<bool> DeleteByIdAsync(string id, CancellationToken cancellationToken = default)
 	{
 		await EnsureConfiguredAsync(cancellationToken);
@@ -384,6 +507,24 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
 	}
 
+	public async Task<RowData?> GetByIdAsync(
+		string id,
+		SqlConnection connection,
+		SqlTransaction? transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
+		command.CommandText = _getByIdSql;
+		command.Parameters.Add(new SqlParameter("@Id", SqlDbType.NVarChar, 450) { Value = id });
+
+		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+		return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
+	}
+
 	public async Task<RowData?> GetByAggregateIdAndEntityTypeAsync(
 		string aggregateId,
 		int entityType,
@@ -396,6 +537,26 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await connection.OpenAsync(cancellationToken);
 
 		await using var command = connection.CreateCommand();
+		command.CommandText = _getByAggregateIdAndEntityTypeSql;
+		command.Parameters.Add(new SqlParameter("@AggregateId", SqlDbType.NVarChar, 450) { Value = aggregateId });
+		command.Parameters.Add(new SqlParameter("@EntityType", SqlDbType.Int) { Value = entityType });
+
+		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+		return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
+	}
+
+	public async Task<RowData?> GetByAggregateIdAndEntityTypeAsync(
+		string aggregateId,
+		int entityType,
+		SqlConnection connection,
+		SqlTransaction? transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
 		command.CommandText = _getByAggregateIdAndEntityTypeSql;
 		command.Parameters.Add(new SqlParameter("@AggregateId", SqlDbType.NVarChar, 450) { Value = aggregateId });
 		command.Parameters.Add(new SqlParameter("@EntityType", SqlDbType.Int) { Value = entityType });

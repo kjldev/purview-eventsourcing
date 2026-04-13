@@ -10,7 +10,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	{
 		var inv = new InventoryAggregate();
 		inv.Details.Id = id;
-		inv.Initialize(productId, productName, initialQuantity: qty);
+		inv.Initialize(productId, productName, "loc-1", "Main Warehouse", initialQuantity: qty);
 		return inv;
 	}
 

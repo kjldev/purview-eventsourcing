@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
 public sealed class CartCheckoutService(
+	IEventStoreTransactionFactory transactionFactory,
 	IQueryableEventStore<OrderAggregate> orderStore,
 	IQueryableEventStore<InventoryAggregate> inventoryStore,
 	IQueryableEventStore<CustomerAggregate> customerStore
@@ -28,25 +28,39 @@ public sealed class CartCheckoutService(
 		if (!customer.IsActive)
 			return CartCheckoutResult.Fail($"Customer '{customer.Name}' is not active.");
 
-		var inventoryItems = new List<InventoryAggregate>();
+		var inventoryReservations = new Dictionary<string, InventoryReservation>(StringComparer.OrdinalIgnoreCase);
 		foreach (var item in items)
 		{
-			var inv = await inventoryStore.GetAsync(item.InventoryId, null, cancellationToken);
-			if (inv is null || inv.Details.IsDeleted)
-				return CartCheckoutResult.Fail($"Product '{item.ProductName}' is no longer available.");
-			if (inv.AvailableQuantity < item.Quantity)
+			if (!inventoryReservations.TryGetValue(item.InventoryId, out var reservation))
+			{
+				var inventory = await inventoryStore.GetAsync(item.InventoryId, null, cancellationToken);
+				if (inventory is null || inventory.Details.IsDeleted)
+					return CartCheckoutResult.Fail($"Product '{item.ProductName}' is no longer available.");
+
+				reservation = new InventoryReservation(inventory);
+				inventoryReservations.Add(item.InventoryId, reservation);
+			}
+
+			reservation.Add(item.Quantity);
+		}
+
+		foreach (var reservation in inventoryReservations.Values)
+		{
+			if (reservation.Aggregate.AvailableQuantity < reservation.Quantity)
+			{
 				return CartCheckoutResult.Fail(
-					$"Insufficient stock for '{inv.ProductName}'. Available: {inv.AvailableQuantity}, requested: {item.Quantity}.");
-			inventoryItems.Add(inv);
+					$"Insufficient stock for '{reservation.Aggregate.ProductName}'. Available: {reservation.Aggregate.AvailableQuantity}, requested: {reservation.Quantity}.");
+			}
 		}
 
 		var order = await orderStore.CreateAsync(null, cancellationToken);
 		order.CreateOrder(customerId);
 
-		foreach (var (cartItem, invItem) in items.Zip(inventoryItems))
+		foreach (var item in items)
 		{
-			var unitPrice = GetUnitPrice(invItem.ProductId);
-			order.AddLineItem(invItem.ProductId, invItem.ProductName, cartItem.Quantity, unitPrice);
+			var inventory = inventoryReservations[item.InventoryId].Aggregate;
+			var unitPrice = GetUnitPrice(inventory.ProductId);
+			order.AddLineItem(inventory.ProductId, inventory.ProductName, item.Quantity, unitPrice);
 		}
 
 		if (!string.IsNullOrWhiteSpace(shippingAddress))
@@ -54,25 +68,20 @@ public sealed class CartCheckoutService(
 
 		order.ConfirmOrder();
 
-		var orderSave = await orderStore.SaveAsync(order, null, cancellationToken);
-		if (!orderSave)
-			return CartCheckoutResult.Fail("Failed to save order.");
+		foreach (var reservation in inventoryReservations.Values)
+			reservation.Aggregate.ReserveStock(reservation.Quantity, order.Id());
 
-		var savedOrder = orderSave.Aggregate;
+		await using var transaction = transactionFactory.Create();
+		transaction.Enlist(order, orderStore);
 
-		foreach (var (cartItem, invItem) in items.Zip(inventoryItems))
-		{
-			invItem.ReserveStock(cartItem.Quantity, savedOrder.Id());
-			var invSave = await inventoryStore.SaveAsync(invItem, null, cancellationToken);
-			if (!invSave)
-			{
-				savedOrder.CancelOrder();
-				await orderStore.SaveAsync(savedOrder, null, cancellationToken);
-				return CartCheckoutResult.Fail($"Failed to reserve stock for '{cartItem.ProductName}'. Order has been cancelled.");
-			}
-		}
+		foreach (var reservation in inventoryReservations.Values)
+			transaction.Enlist(reservation.Aggregate, inventoryStore);
 
-		return CartCheckoutResult.Success(savedOrder);
+		var transactionResult = await transaction.CommitAsync(cancellationToken);
+		if (!transactionResult.Success)
+			return CartCheckoutResult.Fail("Unable to complete checkout. Nothing was saved. Please review your cart and try again.");
+
+		return CartCheckoutResult.Success(order);
 	}
 
 	static decimal GetUnitPrice(string productId)
@@ -83,5 +92,13 @@ public sealed class CartCheckoutService(
 		var hash = Math.Abs(productId.GetHashCode());
 		var price = Math.Round(9.99m + (hash % 9000) / 100m, 2);
 		return _unitPrices.GetOrAdd(productId, price);
+	}
+
+	sealed class InventoryReservation(InventoryAggregate aggregate)
+	{
+		public InventoryAggregate Aggregate { get; } = aggregate;
+		public int Quantity { get; private set; }
+
+		public void Add(int quantity) => Quantity += quantity;
 	}
 }

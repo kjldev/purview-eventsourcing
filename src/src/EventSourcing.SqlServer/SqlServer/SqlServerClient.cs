@@ -90,6 +90,26 @@ sealed partial class SqlServerClient : IDisposable
 		_tableCreated = true;
 	}
 
+	public async Task EnsureTableExistsAsync(SqlConnection connection, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		if (_tableCreated)
+			return;
+
+		await CheckServerVersionAsync(connection, cancellationToken);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = _ensureTableSql;
+		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
+		command.Parameters.Add(
+			new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName }
+		);
+
+		await command.ExecuteNonQueryAsync(cancellationToken);
+		_tableCreated = true;
+	}
+
 	static async Task CheckServerVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
 	{
 		await using var command = connection.CreateCommand();
@@ -121,6 +141,32 @@ sealed partial class SqlServerClient : IDisposable
 		await connection.OpenAsync(cancellationToken);
 
 		await using var command = connection.CreateCommand();
+		command.CommandText = _upsertSql;
+		command.Parameters.Add(new SqlParameter("@Id", SqlDbType.NVarChar, 450) { Value = id });
+		command.Parameters.Add(new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType });
+		command.Parameters.Add(new SqlParameter("@Payload", SqlDbType.NVarChar, -1) { Value = json });
+
+		var result = await command.ExecuteNonQueryAsync(cancellationToken);
+		return result > 0;
+	}
+
+	public async Task<bool> UpsertAsync<T>(
+		T aggregate,
+		string id,
+		string aggregateType,
+		SqlConnection connection,
+		SqlTransaction transaction,
+		CancellationToken cancellationToken = default
+	)
+		where T : class
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+		ArgumentNullException.ThrowIfNull(transaction);
+
+		var json = JsonConvert.SerializeObject(aggregate, JsonHelpers.JsonSerializerSettings);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
 		command.CommandText = _upsertSql;
 		command.Parameters.Add(new SqlParameter("@Id", SqlDbType.NVarChar, 450) { Value = id });
 		command.Parameters.Add(new SqlParameter("@AggregateType", SqlDbType.NVarChar, 450) { Value = aggregateType });

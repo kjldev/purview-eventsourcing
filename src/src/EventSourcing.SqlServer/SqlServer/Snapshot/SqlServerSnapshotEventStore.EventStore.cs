@@ -1,4 +1,7 @@
-﻿using Purview.EventSourcing.Aggregates;
+using System.Data.Common;
+using Microsoft.Data.SqlClient;
+using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
@@ -39,6 +42,77 @@ partial class SqlServerSnapshotEventStore<T>
 			await SnapshotAsync(aggregate, cancellationToken);
 
 		return result;
+	}
+
+	DbConnection ITransactionalEventStore<T>.CreateTransactionConnection()
+	{
+		if (_eventStore is ITransactionalEventStore<T> transactionalEventStore)
+			return transactionalEventStore.CreateTransactionConnection();
+
+		return new SqlConnection(_sqlServerEventStoreOptions.Value.ConnectionString);
+	}
+
+	async Task ITransactionalEventStore<T>.EnsureTransactionConfiguredAsync(
+		DbConnection connection,
+		CancellationToken cancellationToken
+	)
+	{
+		if (_eventStore is not ITransactionalEventStore<T> transactionalEventStore)
+			throw new InvalidOperationException("The inner event store does not support transactional saves.");
+
+		await transactionalEventStore.EnsureTransactionConfiguredAsync(connection, cancellationToken);
+		await _sqlServerClient.EnsureTableExistsAsync(GetSqlConnection(connection), cancellationToken);
+	}
+
+	async Task<TransactionalSaveOperation<T>> ITransactionalEventStore<T>.SaveInTransactionAsync(
+		T aggregate,
+		EventStoreOperationContext? operationContext,
+		DbConnection connection,
+		DbTransaction transaction,
+		CancellationToken cancellationToken
+	)
+	{
+		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
+
+		if (_eventStore is not ITransactionalEventStore<T> transactionalEventStore)
+			throw new InvalidOperationException("The inner event store does not support transactional saves.");
+
+		var innerOperation = await transactionalEventStore.SaveInTransactionAsync(
+			aggregate,
+			operationContext,
+			connection,
+			transaction,
+			cancellationToken
+		);
+
+		try
+		{
+			if (innerOperation.Result.Saved)
+			{
+				var snapshotSaved = await _sqlServerClient.UpsertAsync(
+					aggregate,
+					aggregate.Details.Id,
+					GetAggregateTypeName(),
+					GetSqlConnection(connection),
+					GetSqlTransaction(transaction),
+					cancellationToken
+				);
+
+				if (!snapshotSaved)
+					throw new InvalidOperationException("Failed to persist the SQL Server query snapshot.");
+			}
+
+			return new TransactionalSaveOperation<T>(
+				innerOperation.Result,
+				innerOperation.AfterCommitAsync,
+				innerOperation.AfterRollbackAsync
+			);
+		}
+		catch
+		{
+			await innerOperation.AfterRollbackAsync(cancellationToken);
+			throw;
+		}
 	}
 
 	public Task<bool> IsDeletedAsync(string aggregateId, CancellationToken cancellationToken = default) =>
@@ -101,4 +175,12 @@ partial class SqlServerSnapshotEventStore<T>
 		_eventStore.ExistsAsync(aggregateId, cancellationToken);
 
 	public T FulfilRequirements(T aggregate) => _eventStore.FulfilRequirements(aggregate);
+
+	static SqlConnection GetSqlConnection(DbConnection connection) =>
+		connection as SqlConnection
+		?? throw new InvalidOperationException("SQL Server transactions require a SqlConnection.");
+
+	static SqlTransaction GetSqlTransaction(DbTransaction transaction) =>
+		transaction as SqlTransaction
+		?? throw new InvalidOperationException("SQL Server transactions require a SqlTransaction.");
 }

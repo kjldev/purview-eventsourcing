@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events.Upcasting;
 using Purview.EventSourcing.Aggregates.Snapshotting;
+using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.SqlServer;
@@ -12,7 +13,7 @@ namespace Purview.EventSourcing.SqlServer;
 // SQL strings are built from validated identifiers at construction time, not from user input.
 #pragma warning disable CA2100
 
-public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IDisposable
+public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ITransactionalEventStore<T>, IDisposable
 	where T : class, IAggregate, new()
 {
 	const int StreamVersionType = 0;
@@ -162,9 +163,17 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 			yield return reader.GetString(0);
 	}
 
+	Task<StreamVersionData?> GetStreamVersionAsync(
+		string aggregateId,
+		bool expectedToExist,
+		CancellationToken cancellationToken
+	) => GetStreamVersionAsync(aggregateId, expectedToExist, null, null, cancellationToken);
+
 	async Task<StreamVersionData?> GetStreamVersionAsync(
 		string aggregateId,
 		bool expectedToExist,
+		Microsoft.Data.SqlClient.SqlConnection? connection,
+		Microsoft.Data.SqlClient.SqlTransaction? transaction,
 		CancellationToken cancellationToken
 	)
 	{
@@ -176,7 +185,14 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 		{
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 
-			var row = await _client.GetByIdAsync(CreateStreamVersionId(aggregateId), cancellationToken);
+			var row = connection is null
+				? await _client.GetByIdAsync(CreateStreamVersionId(aggregateId), cancellationToken)
+				: await _client.GetByIdAsync(
+					CreateStreamVersionId(aggregateId),
+					connection,
+					transaction,
+					cancellationToken
+				);
 			sw.Stop();
 
 			elapsedMilliseconds = sw.ElapsedMilliseconds;
@@ -244,7 +260,7 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ID
 
 	string CreateSnapshotId(string aggregateId) => $"snap_{_aggregateTypeShortName}_{aggregateId}";
 
-	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerInvariant();
 
 	async Task EnsureConfiguredAsync(CancellationToken cancellationToken)
 	{

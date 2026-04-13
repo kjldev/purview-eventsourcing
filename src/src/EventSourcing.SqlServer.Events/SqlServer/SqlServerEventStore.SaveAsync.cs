@@ -1,10 +1,13 @@
+using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Security.Claims;
 using FluentValidation.Results;
+using Microsoft.Data.SqlClient;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.SqlServer;
@@ -12,15 +15,44 @@ namespace Purview.EventSourcing.SqlServer;
 partial class SqlServerEventStore<T>
 {
 	[DebuggerStepThrough]
-	public Task<SaveResult<T>> SaveAsync(
+	public async Task<SaveResult<T>> SaveAsync(
 		[NotNull] T aggregate,
 		EventStoreOperationContext? operationContext,
 		CancellationToken cancellationToken = default
-	) => SaveCoreAsync(aggregate, operationContext, cancellationToken);
+	)
+	{
+		var operation = await SaveCoreAsync(aggregate, operationContext, null, null, cancellationToken);
+		await operation.AfterCommitAsync(cancellationToken);
+		return operation.Result;
+	}
 
-	async Task<SaveResult<T>> SaveCoreAsync(
+	DbConnection ITransactionalEventStore<T>.CreateTransactionConnection() =>
+		new SqlConnection(_eventStoreOptions.Value.ConnectionString);
+
+	Task ITransactionalEventStore<T>.EnsureTransactionConfiguredAsync(
+		DbConnection connection,
+		CancellationToken cancellationToken
+	) => _client.EnsureTableExistsAsync(GetSqlConnection(connection), cancellationToken);
+
+	Task<TransactionalSaveOperation<T>> ITransactionalEventStore<T>.SaveInTransactionAsync(
 		T aggregate,
 		EventStoreOperationContext? operationContext,
+		DbConnection connection,
+		DbTransaction transaction,
+		CancellationToken cancellationToken
+	) => SaveCoreAsync(
+		aggregate,
+		operationContext,
+		GetSqlConnection(connection),
+		GetSqlTransaction(transaction),
+		cancellationToken
+	);
+
+	async Task<TransactionalSaveOperation<T>> SaveCoreAsync(
+		T aggregate,
+		EventStoreOperationContext? operationContext,
+		SqlConnection? connection,
+		SqlTransaction? transaction,
 		CancellationToken cancellationToken,
 		params IEvent[] additionalEvents
 	)
@@ -33,27 +65,32 @@ partial class SqlServerEventStore<T>
 		var validationResult = await GuardAsync(aggregate, cancellationToken);
 
 		static SaveResult<T> ReturnSaveResult(
-			T a,
+			T aggregate,
 			bool success,
 			bool skipped,
 			ValidationResult? validationResult = null
-		) => new(a, validationResult ?? new ValidationResult(), success, skipped);
+		) => new(aggregate, validationResult ?? new ValidationResult(), success, skipped);
 
 		if (!validationResult.IsValid)
-			return ReturnSaveResult(aggregate, false, false, validationResult);
+		{
+			return new TransactionalSaveOperation<T>(
+				ReturnSaveResult(aggregate, false, false, validationResult)
+			);
+		}
 
 		if (aggregate.Details.Locked)
 		{
 			return operationContext.LockMode is LockHandlingMode.ThrowsException
 				? throw new Exceptions.AggregateLockedException(idempotencyId)
-				: ReturnSaveResult(aggregate, false, false);
+				: new TransactionalSaveOperation<T>(ReturnSaveResult(aggregate, false, false));
 		}
 
 		if (string.IsNullOrWhiteSpace(aggregate.Details.Id))
 			throw new Exceptions.MissingAggregateIdException(idempotencyId);
 
 		_eventStoreTelemetry.SaveCalled(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
-		using var activity = _eventStoreTelemetry.SaveAggregate(aggregate.Id(), _aggregateTypeFullName);
+		var activity = _eventStoreTelemetry.SaveAggregate(aggregate.Id(), _aggregateTypeFullName);
+
 		if (!aggregate.HasUnsavedEvents() && (additionalEvents?.Length ?? 0) == 0)
 		{
 			_eventStoreTelemetry.SaveContainedNoChanges(
@@ -61,17 +98,21 @@ partial class SqlServerEventStore<T>
 				_aggregateTypeFullName,
 				aggregate.AggregateType
 			);
+			activity?.Dispose();
 
-			return ReturnSaveResult(aggregate, false, true);
+			return new TransactionalSaveOperation<T>(ReturnSaveResult(aggregate, false, true));
 		}
 
 		var isNew = aggregate.IsNew();
 		var changeEvents = aggregate.GetUnsavedEvents().Concat((additionalEvents ?? []).AsEnumerable()).ToArray();
 
 		if (changeEvents.Length > _eventStoreOptions.Value.MaxEventCountOnSave)
+		{
+					activity?.Dispose();
 			throw new ArgumentOutOfRangeException(
 				$"The maximum amount of events to save was exceeded. Attempted: {changeEvents.Length}, Maximum: {_eventStoreOptions.Value.MaxEventCountOnSave}"
 			);
+		}
 
 		var idempotencyIdAsString = idempotencyId.ToUpperInvariant();
 		var idempotencyMarkerId = CreateIdempotencyCheckId(aggregate.Id(), idempotencyIdAsString);
@@ -80,11 +121,15 @@ partial class SqlServerEventStore<T>
 		{
 			try
 			{
-				var existing = await _client.GetByIdAsync(idempotencyMarkerId, cancellationToken);
+				var existing = connection is null
+					? await _client.GetByIdAsync(idempotencyMarkerId, cancellationToken)
+					: await _client.GetByIdAsync(idempotencyMarkerId, connection, transaction, cancellationToken);
+
 				if (existing != null)
 				{
 					_eventStoreTelemetry.EventsAlreadyApplied(aggregate.Id(), idempotencyId);
-					return ReturnSaveResult(aggregate, true, true);
+					activity?.Dispose();
+					return new TransactionalSaveOperation<T>(ReturnSaveResult(aggregate, true, true));
 				}
 			}
 #pragma warning disable CA1031
@@ -103,23 +148,30 @@ partial class SqlServerEventStore<T>
 		else if (operationContext.NotificationMode.HasFlag(NotificationModes.BeforeSave))
 			await _aggregateChangeNotifier.BeforeSaveAsync(aggregate, isNew, cancellationToken);
 
-		var streamEntity = await GetStreamVersionAsync(aggregate.Id(), !isNew, cancellationToken);
-		var hasStreamEntity = streamEntity != null;
+		var streamEntity = await GetStreamVersionAsync(
+			aggregate.Id(),
+			!isNew,
+			connection,
+			transaction,
+			cancellationToken
+		);
+
 		if (streamEntity?.IsDeleted == true)
 		{
 			var throwIfDeleted = !changeEvents.OfType<RestoreEvent>().Any();
 			if (throwIfDeleted)
+			{
+				activity?.Dispose();
 				throw new Exceptions.AggregateDeletedException(aggregate.Id(), idempotencyId);
+			}
 		}
 
 		try
 		{
 			var previousAggregateVersion = aggregate.Details.SavedVersion;
 			var shouldSnapshot = ShouldSnapShot(aggregate, changeEvents);
-
 			var now = DateTimeOffset.UtcNow;
 
-			// Build stream version row
 			var streamVersionId = streamEntity?.Id ?? CreateStreamVersionId(aggregate.Id());
 			var streamVersionRow = new SqlServerEventStoreClient.RowData
 			{
@@ -138,7 +190,6 @@ partial class SqlServerEventStore<T>
 					$"Missing ClaimsPrincipal identifier '{operationContext.ClaimIdentifier}'. Unable to save aggregate."
 				);
 
-			// Build event rows and idempotency marker
 			List<SqlServerEventStoreClient.RowData> insertRows = [];
 			for (var i = 0; i < changeEvents.Length; i++)
 			{
@@ -165,8 +216,8 @@ partial class SqlServerEventStore<T>
 				);
 			}
 
-			// Idempotency marker row
 			if (operationContext.UseIdempotencyMarker)
+			{
 				insertRows.Add(
 					new SqlServerEventStoreClient.RowData
 					{
@@ -178,38 +229,77 @@ partial class SqlServerEventStore<T>
 						Timestamp = now,
 					}
 				);
+			}
 
-			await SubmitBatchOperationsAsync(aggregate, idempotencyId, streamVersionRow, insertRows, cancellationToken);
-
-			if (shouldSnapshot)
-				await CreateSnapshotAsync(aggregate, cancellationToken);
-
-			if (changeEvents.OfType<DeleteEvent>().Any())
-				_eventStoreTelemetry.AggregateDeleted(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
-			else if (changeEvents.OfType<RestoreEvent>().Any())
-				_eventStoreTelemetry.AggregateRestored(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
-
-			_eventStoreTelemetry.SavedAggregate(
-				aggregate.Id(),
-				_aggregateTypeFullName,
-				changeEvents.Length,
-				aggregate.AggregateType
+			await SubmitBatchOperationsAsync(
+				aggregate,
+				idempotencyId,
+				streamVersionRow,
+				insertRows,
+				connection,
+				transaction,
+				cancellationToken
 			);
 
-			_eventStoreTelemetry.AggregateSaved(aggregate.AggregateType);
-			_eventStoreTelemetry.SaveCompleted(activity, changeEvents.Length);
+			if (shouldSnapshot)
+				await CreateSnapshotAsync(aggregate, connection, transaction, cancellationToken);
 
-			// Do not pass in the cancellation token. We want this to carry on as long as possible.
-			await UpdateCacheAsync(aggregate, operationContext.CacheOptions);
+			var result = ReturnSaveResult(aggregate, true, false);
 
-			// ...or here.
-			if (aggregate.Details.IsDeleted && operationContext.NotificationMode.HasFlag(NotificationModes.AfterDelete))
-				await _aggregateChangeNotifier.AfterDeleteAsync(aggregate);
-			else if (operationContext.NotificationMode.HasFlag(NotificationModes.AfterSave))
-				await _aggregateChangeNotifier.AfterSaveAsync(aggregate, previousAggregateVersion, isNew, changeEvents);
+			return new TransactionalSaveOperation<T>(
+				result,
+				async afterCommitCancellationToken =>
+				{
+					try
+					{
+						FinalizeSuccessfulSave(aggregate, shouldSnapshot);
+
+						if (changeEvents.OfType<DeleteEvent>().Any())
+							_eventStoreTelemetry.AggregateDeleted(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
+						else if (changeEvents.OfType<RestoreEvent>().Any())
+							_eventStoreTelemetry.AggregateRestored(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
+
+						_eventStoreTelemetry.SavedAggregate(
+							aggregate.Id(),
+							_aggregateTypeFullName,
+							changeEvents.Length,
+							aggregate.AggregateType
+						);
+
+						_eventStoreTelemetry.AggregateSaved(aggregate.AggregateType);
+						_eventStoreTelemetry.SaveCompleted(activity, changeEvents.Length);
+
+						await UpdateCacheAsync(aggregate, operationContext.CacheOptions);
+
+						if (
+							aggregate.Details.IsDeleted
+							&& operationContext.NotificationMode.HasFlag(NotificationModes.AfterDelete)
+						)
+							await _aggregateChangeNotifier.AfterDeleteAsync(aggregate);
+						else if (operationContext.NotificationMode.HasFlag(NotificationModes.AfterSave))
+							await _aggregateChangeNotifier.AfterSaveAsync(
+								aggregate,
+								previousAggregateVersion,
+								isNew,
+								changeEvents,
+								afterCommitCancellationToken
+							);
+					}
+					finally
+					{
+						activity?.Dispose();
+					}
+				},
+				_ =>
+				{
+					activity?.Dispose();
+					return Task.CompletedTask;
+				}
+			);
 		}
 		catch (Exception ex)
 		{
+			activity?.Dispose();
 			ClearCacheFireAndForget(aggregate);
 
 			if (operationContext.NotificationMode.HasFlag(NotificationModes.OnFailure))
@@ -220,8 +310,6 @@ partial class SqlServerEventStore<T>
 
 			throw;
 		}
-
-		return ReturnSaveResult(aggregate, true, false);
 	}
 
 	async Task<ValidationResult> GuardAsync(T aggregate, CancellationToken cancellationToken = default)
@@ -260,48 +348,65 @@ partial class SqlServerEventStore<T>
 		string idempotencyId,
 		SqlServerEventStoreClient.RowData streamVersionRow,
 		List<SqlServerEventStoreClient.RowData> insertRows,
+		SqlConnection? connection,
+		SqlTransaction? transaction,
 		CancellationToken cancellationToken
 	)
 	{
 		try
 		{
-			await _client.UpsertWithBatchAsync(
-				streamVersionRow.Id,
-				streamVersionRow.EntityType,
-				streamVersionRow.AggregateId,
-				streamVersionRow.AggregateType,
-				streamVersionRow.Version,
-				streamVersionRow.IsDeleted,
-				streamVersionRow.Payload,
-				streamVersionRow.EventType,
-				streamVersionRow.IdempotencyId,
-				streamVersionRow.Timestamp,
-				insertRows,
-				cancellationToken
-			);
-
-			var currentVersion = aggregate.Details.CurrentVersion;
-
-			aggregate.ClearUnsavedEvents();
-
-			aggregate.Details.CurrentVersion = aggregate.Details.SavedVersion = currentVersion;
-			aggregate.Details.Etag = currentVersion.ToString(CultureInfo.InvariantCulture);
+			if (connection is null)
+			{
+				await _client.UpsertWithBatchAsync(
+					streamVersionRow.Id,
+					streamVersionRow.EntityType,
+					streamVersionRow.AggregateId,
+					streamVersionRow.AggregateType,
+					streamVersionRow.Version,
+					streamVersionRow.IsDeleted,
+					streamVersionRow.Payload,
+					streamVersionRow.EventType,
+					streamVersionRow.IdempotencyId,
+					streamVersionRow.Timestamp,
+					insertRows,
+					cancellationToken
+				);
+			}
+			else
+			{
+				await _client.UpsertWithBatchAsync(
+					streamVersionRow.Id,
+					streamVersionRow.EntityType,
+					streamVersionRow.AggregateId,
+					streamVersionRow.AggregateType,
+					streamVersionRow.Version,
+					streamVersionRow.IsDeleted,
+					streamVersionRow.Payload,
+					streamVersionRow.EventType,
+					streamVersionRow.IdempotencyId,
+					streamVersionRow.Timestamp,
+					insertRows,
+					connection,
+					transaction!,
+					cancellationToken
+				);
+			}
 		}
-		catch (Microsoft.Data.SqlClient.SqlException ex)
+		catch (SqlException ex)
 		{
 			_eventStoreTelemetry.SaveFailedAtStorage(aggregate.Id(), _aggregateTypeFullName, ex);
 
 			ClearCacheFireAndForget(aggregate);
 
-			// SQL errors 2627 (PK violation) and 2601 (unique index violation) indicate a concurrent
-			// writer already saved events at the same version — surface this as a typed concurrency error.
 			if (ex.Number is 2627 or 2601)
+			{
 				throw new Exceptions.ConcurrencyException(
 					aggregate.Id(),
 					idempotencyId,
 					aggregate.Details.CurrentVersion,
 					aggregate.Details.SavedVersion
 				);
+			}
 
 			throw new Exceptions.CommitException(
 				aggregate.Id(),
@@ -321,26 +426,73 @@ partial class SqlServerEventStore<T>
 		}
 	}
 
-	async Task CreateSnapshotAsync(T aggregate, CancellationToken cancellationToken)
+	async Task CreateSnapshotAsync(
+		T aggregate,
+		SqlConnection? connection,
+		SqlTransaction? transaction,
+		CancellationToken cancellationToken
+	)
 	{
-		aggregate.Details.SnapshotVersion = aggregate.Details.CurrentVersion;
+		var previousSnapshotVersion = aggregate.Details.SnapshotVersion;
 
-		var snapshot = SerializeSnapshot(aggregate);
-		var snapshotId = CreateSnapshotId(aggregate.Id());
+		try
+		{
+			aggregate.Details.SnapshotVersion = aggregate.Details.CurrentVersion;
 
-		await _client.UpsertAsync(
-			snapshotId,
-			SnapshotType,
-			aggregate.Id(),
-			_aggregateTypeShortName,
-			aggregate.Details.CurrentVersion,
-			aggregate.Details.IsDeleted,
-			snapshot,
-			null,
-			null,
-			DateTimeOffset.UtcNow,
-			cancellationToken
-		);
+			var snapshot = SerializeSnapshot(aggregate);
+			var snapshotId = CreateSnapshotId(aggregate.Id());
+
+			if (connection is null)
+			{
+				await _client.UpsertAsync(
+					snapshotId,
+					SnapshotType,
+					aggregate.Id(),
+					_aggregateTypeShortName,
+					aggregate.Details.CurrentVersion,
+					aggregate.Details.IsDeleted,
+					snapshot,
+					null,
+					null,
+					DateTimeOffset.UtcNow,
+					cancellationToken
+				);
+			}
+			else
+			{
+				await _client.UpsertAsync(
+					snapshotId,
+					SnapshotType,
+					aggregate.Id(),
+					_aggregateTypeShortName,
+					aggregate.Details.CurrentVersion,
+					aggregate.Details.IsDeleted,
+					snapshot,
+					null,
+					null,
+					DateTimeOffset.UtcNow,
+					connection,
+					transaction!,
+					cancellationToken
+				);
+			}
+		}
+		finally
+		{
+			aggregate.Details.SnapshotVersion = previousSnapshotVersion;
+		}
+	}
+
+	void FinalizeSuccessfulSave(T aggregate, bool shouldSnapshot)
+	{
+		var currentVersion = aggregate.Details.CurrentVersion;
+		aggregate.ClearUnsavedEvents();
+		aggregate.Details.CurrentVersion = currentVersion;
+		aggregate.Details.SavedVersion = currentVersion;
+		aggregate.Details.Etag = currentVersion.ToString(CultureInfo.InvariantCulture);
+
+		if (shouldSnapshot)
+			aggregate.Details.SnapshotVersion = currentVersion;
 	}
 
 	void ClearCacheFireAndForget(T aggregate)
@@ -350,7 +502,6 @@ partial class SqlServerEventStore<T>
 			try
 			{
 				var cacheKey = CreateCacheKey(aggregate.Id());
-				// Do not pass in the cancellation token. We want this to carry on as long as possible.
 				await _distributedCache.RemoveAsync(cacheKey);
 			}
 #pragma warning disable CA1031
@@ -361,4 +512,12 @@ partial class SqlServerEventStore<T>
 			}
 		});
 	}
+
+	static SqlConnection GetSqlConnection(DbConnection connection) =>
+		connection as SqlConnection
+		?? throw new InvalidOperationException("SQL Server transactions require a SqlConnection.");
+
+	static SqlTransaction GetSqlTransaction(DbTransaction transaction) =>
+		transaction as SqlTransaction
+		?? throw new InvalidOperationException("SQL Server transactions require a SqlTransaction.");
 }

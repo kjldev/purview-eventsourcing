@@ -1,5 +1,6 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Events.Upcasting;
 using Purview.EventSourcing.ChangeFeed;
@@ -25,6 +26,8 @@ public static class EventStoreServiceICollectionExtensions
 			.AddScoped<IAggregateRequirementsManager, AggregateRequiredServiceManager>()
 			.AddScoped(typeof(IAggregateChangeFeedNotifier<>), typeof(AggregateChangeFeedNotifier<>))
 			.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
+
+		services.TryAddSingleton<IEventStoreTransactionFactory, EventStoreTransactionFactory>();
 
 		return services;
 	}
