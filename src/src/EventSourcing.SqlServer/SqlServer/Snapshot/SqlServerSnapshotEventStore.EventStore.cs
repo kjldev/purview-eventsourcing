@@ -44,6 +44,11 @@ partial class SqlServerSnapshotEventStore<T>
 		return result;
 	}
 
+	string ITransactionalEventStore<T>.TransactionBoundaryKey =>
+		_eventStore is ITransactionalEventStore<T> transactionalEventStore
+			? transactionalEventStore.TransactionBoundaryKey
+			: string.Empty;
+
 	DbConnection ITransactionalEventStore<T>.CreateTransactionConnection()
 	{
 		if (_eventStore is ITransactionalEventStore<T> transactionalEventStore)

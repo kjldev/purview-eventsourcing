@@ -8,6 +8,8 @@ namespace Purview.EventSourcing.Internal;
 public interface ITransactionalEventStore<T> : IEventStore<T>
 	where T : class, IAggregate, new()
 {
+	string TransactionBoundaryKey { get; }
+
 	DbConnection CreateTransactionConnection();
 
 	Task EnsureTransactionConfiguredAsync(

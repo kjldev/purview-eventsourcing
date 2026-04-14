@@ -26,6 +26,9 @@ partial class SqlServerEventStore<T>
 		return operation.Result;
 	}
 
+	string ITransactionalEventStore<T>.TransactionBoundaryKey =>
+		new SqlConnectionStringBuilder(_eventStoreOptions.Value.ConnectionString).ConnectionString;
+
 	DbConnection ITransactionalEventStore<T>.CreateTransactionConnection() =>
 		new SqlConnection(_eventStoreOptions.Value.ConnectionString);
 
@@ -40,13 +43,14 @@ partial class SqlServerEventStore<T>
 		DbConnection connection,
 		DbTransaction transaction,
 		CancellationToken cancellationToken
-	) => SaveCoreAsync(
-		aggregate,
-		operationContext,
-		GetSqlConnection(connection),
-		GetSqlTransaction(transaction),
-		cancellationToken
-	);
+	) =>
+		SaveCoreAsync(
+			aggregate,
+			operationContext,
+			GetSqlConnection(connection),
+			GetSqlTransaction(transaction),
+			cancellationToken
+		);
 
 	async Task<TransactionalSaveOperation<T>> SaveCoreAsync(
 		T aggregate,
@@ -73,9 +77,7 @@ partial class SqlServerEventStore<T>
 
 		if (!validationResult.IsValid)
 		{
-			return new TransactionalSaveOperation<T>(
-				ReturnSaveResult(aggregate, false, false, validationResult)
-			);
+			return new TransactionalSaveOperation<T>(ReturnSaveResult(aggregate, false, false, validationResult));
 		}
 
 		if (aggregate.Details.Locked)
@@ -108,7 +110,7 @@ partial class SqlServerEventStore<T>
 
 		if (changeEvents.Length > _eventStoreOptions.Value.MaxEventCountOnSave)
 		{
-					activity?.Dispose();
+			activity?.Dispose();
 			throw new ArgumentOutOfRangeException(
 				$"The maximum amount of events to save was exceeded. Attempted: {changeEvents.Length}, Maximum: {_eventStoreOptions.Value.MaxEventCountOnSave}"
 			);
@@ -255,9 +257,17 @@ partial class SqlServerEventStore<T>
 						FinalizeSuccessfulSave(aggregate, shouldSnapshot);
 
 						if (changeEvents.OfType<DeleteEvent>().Any())
-							_eventStoreTelemetry.AggregateDeleted(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
+							_eventStoreTelemetry.AggregateDeleted(
+								aggregate.Id(),
+								_aggregateTypeFullName,
+								aggregate.AggregateType
+							);
 						else if (changeEvents.OfType<RestoreEvent>().Any())
-							_eventStoreTelemetry.AggregateRestored(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
+							_eventStoreTelemetry.AggregateRestored(
+								aggregate.Id(),
+								_aggregateTypeFullName,
+								aggregate.AggregateType
+							);
 
 						_eventStoreTelemetry.SavedAggregate(
 							aggregate.Id(),
@@ -269,13 +279,13 @@ partial class SqlServerEventStore<T>
 						_eventStoreTelemetry.AggregateSaved(aggregate.AggregateType);
 						_eventStoreTelemetry.SaveCompleted(activity, changeEvents.Length);
 
-						await UpdateCacheAsync(aggregate, operationContext.CacheOptions);
+						await UpdateCacheAsync(aggregate, operationContext.CacheOptions, afterCommitCancellationToken);
 
 						if (
 							aggregate.Details.IsDeleted
 							&& operationContext.NotificationMode.HasFlag(NotificationModes.AfterDelete)
 						)
-							await _aggregateChangeNotifier.AfterDeleteAsync(aggregate);
+							await _aggregateChangeNotifier.AfterDeleteAsync(aggregate, afterCommitCancellationToken);
 						else if (operationContext.NotificationMode.HasFlag(NotificationModes.AfterSave))
 							await _aggregateChangeNotifier.AfterSaveAsync(
 								aggregate,
@@ -483,7 +493,7 @@ partial class SqlServerEventStore<T>
 		}
 	}
 
-	void FinalizeSuccessfulSave(T aggregate, bool shouldSnapshot)
+	static void FinalizeSuccessfulSave(T aggregate, bool shouldSnapshot)
 	{
 		var currentVersion = aggregate.Details.CurrentVersion;
 		aggregate.ClearUnsavedEvents();

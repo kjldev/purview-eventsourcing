@@ -66,6 +66,27 @@ public class OrderService(IEventStore<OrderAggregate> store)
 }
 ```
 
+### 4. Coordinate a transaction
+
+```csharp
+public class CheckoutService(
+    IEventStoreTransactionFactory transactionFactory,
+    IEventStore<OrderAggregate> orderStore,
+    IEventStore<InventoryAggregate> inventoryStore)
+{
+    public async Task CheckoutAsync(OrderAggregate order, InventoryAggregate inventory)
+    {
+        await using var transaction = transactionFactory.Create();
+        transaction.Enlist(order, orderStore);
+        transaction.Enlist(inventory, inventoryStore);
+
+        await transaction.CommitAsync();
+    }
+}
+```
+
+`EventStoreTransaction` keeps the client API stable while automatically choosing the strongest compatible coordinator underneath. When all enlisted stores share the same native transaction boundary, the framework uses the provider-specific transaction layer; otherwise it falls back to the shared-correlation logical transaction model.
+
 ## Documentation
 
 - [SQL Server — setup, permissions, schema routing, versioning](docs/sql-server.md)
@@ -111,4 +132,3 @@ To disable parallelism (useful for debugging flaky tests):
 ```bash
 dotnet test src/Purview.EventSourcing.slnx -- --maximum-parallel-tests 1
 ```
-
