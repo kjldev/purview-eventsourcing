@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace Purview.EventSourcing;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-static class ExtensionHelpers
+public static class ExtensionHelpers
 {
 	[SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
 	public static string ToLowerSafe(this string value)
@@ -24,7 +24,7 @@ static class ExtensionHelpers
 	/// <param name="default">The default value to return.</param>
 	/// <returns>Either <paramref name="value"/>, or <paramref name="default"/> if it's null, empty or whitespace.</returns>
 	[return: NotNull]
-	public static string OrDefault(this string? value, object @default)
+	internal static string OrDefault(this string? value, object @default)
 	{
 		@default.Guard();
 
@@ -40,7 +40,7 @@ static class ExtensionHelpers
 	/// <param name="paramName">The name of the parameter.</param>
 	[StackTraceHidden]
 	[return: NotNull]
-	public static T Guard<T>(
+	internal static T Guard<T>(
 		[NotNull] this T? value,
 		[CallerArgumentExpression(nameof(value))] string? paramName = null
 	)
@@ -59,7 +59,7 @@ static class ExtensionHelpers
 	/// <param name="paramName">The name of the parameter.</param>
 	/// <param name="trimWhitespaceToNull">If true, trims the value to null if it's empty or whitespace.</param>
 	[StackTraceHidden]
-	public static string Guard(
+	internal static string Guard(
 		this string? value,
 		[CallerArgumentExpression(nameof(value))] string? paramName = null,
 		bool trimWhitespaceToNull = true
@@ -79,5 +79,5 @@ static class ExtensionHelpers
 	/// </summary>
 	/// <param name="item">The item to check.</param>
 	/// <returns>The string value, or null.</returns>
-	public static string? OrNull(this string? item) => string.IsNullOrWhiteSpace(item) ? null : item;
+	internal static string? OrNull(this string? item) => string.IsNullOrWhiteSpace(item) ? null : item;
 }

@@ -17,7 +17,7 @@ partial class SqlServerEventStore<T>
 					);
 			}
 			else
-				aggregateId = $"{Guid.NewGuid()}".ToLowerInvariant();
+				aggregateId = $"{Guid.NewGuid()}".ToLowerSafe();
 		}
 
 		var aggregate = new T { Details = { Id = aggregateId } };

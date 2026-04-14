@@ -513,10 +513,7 @@ public static class IEventStoreExtensions
 	/// <param name="aggregates">The aggregates to include in the transaction.</param>
 	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
 	/// <remarks>Call <see cref="IEventStoreTransaction.CommitAsync"/> to persist all enlisted aggregates.</remarks>
-	public static IEventStoreTransaction Enlist<T>(
-		[NotNull] this IEventStore eventStore,
-		params T[] aggregates
-	)
+	public static IEventStoreTransaction Enlist<T>([NotNull] this IEventStore eventStore, params T[] aggregates)
 		where T : class, IAggregate, new() => eventStore.Enlist(correlationId: null, aggregates);
 
 	/// <summary>
@@ -630,5 +627,3 @@ public static class IEventStoreExtensions
 
 	#endregion RestoreAsync
 }
-
-

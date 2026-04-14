@@ -196,5 +196,3 @@ public static class IQueryableEventStoreImplExtensions
 
 	#endregion FirstOrDefaultAsync
 }
-
-

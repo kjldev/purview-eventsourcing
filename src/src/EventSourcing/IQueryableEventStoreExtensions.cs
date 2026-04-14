@@ -54,7 +54,11 @@ public static class IQueryableEventStoreExtensions
 		CancellationToken cancellationToken = default
 	)
 		where T : class, IAggregate, new() =>
-		eventStore.GetListEnumerableAsync<T>(m => m.OrderBy(orderByAscending), maxRecordsPerOperation, cancellationToken);
+		eventStore.GetListEnumerableAsync<T>(
+			m => m.OrderBy(orderByAscending),
+			maxRecordsPerOperation,
+			cancellationToken
+		);
 
 	#endregion GetListEnumerableAsync
 
@@ -129,7 +133,11 @@ public static class IQueryableEventStoreExtensions
 		CancellationToken cancellationToken = default
 	)
 		where T : class, IAggregate, new() =>
-		eventStore.ListAsync<T>(orderByClause, new ContinuationRequest { MaxRecords = maxRecordCount }, cancellationToken);
+		eventStore.ListAsync<T>(
+			orderByClause,
+			new ContinuationRequest { MaxRecords = maxRecordCount },
+			cancellationToken
+		);
 
 	public static Task<ContinuationResponse<T>> ListAsync<T>(
 		[NotNull] this IQueryableEventStore eventStore,
@@ -196,5 +204,3 @@ public static class IQueryableEventStoreExtensions
 
 	#endregion FirstOrDefaultAsync
 }
-
-
