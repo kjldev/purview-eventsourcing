@@ -14,9 +14,10 @@ public static class AzureStorageEventStoreIServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IEventStore<>), typeof(TableEventStore<>))
+			.AddTransient(typeof(IEventStoreImpl<>), typeof(TableEventStore<>))
 			.AddTransient(typeof(INonQueryableEventStore<>), typeof(TableEventStore<>))
 			.AddTransient(typeof(ITableEventStore<>), typeof(TableEventStore<>))
+			.AddTransient<IEventStore, EventStoreFacade>()
 			.AddTableEventStoreTelemetry();
 
 		services

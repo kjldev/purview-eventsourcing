@@ -5,7 +5,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
-public sealed class CreateModel(IQueryableEventStore<CustomerAggregate> store) : PageModel
+public sealed class CreateModel(IQueryableEventStore store) : PageModel
 {
 	[BindProperty, Required, MaxLength(200)]
 	public string Name { get; set; } = string.Empty;
@@ -18,7 +18,7 @@ public sealed class CreateModel(IQueryableEventStore<CustomerAggregate> store) :
 		if (!ModelState.IsValid)
 			return Page();
 
-		var customer = await store.CreateAsync(cancellationToken: HttpContext.RequestAborted);
+		var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: HttpContext.RequestAborted);
 		customer.RegisterCustomer(Name.Trim(), Email.Trim().ToLowerInvariant());
 		await store.SaveAsync(customer, null, HttpContext.RequestAborted);
 
@@ -26,3 +26,4 @@ public sealed class CreateModel(IQueryableEventStore<CustomerAggregate> store) :
 		return RedirectToPage("Index");
 	}
 }
+

@@ -6,7 +6,7 @@ A comprehensive, production-ready event sourcing framework for .NET with support
 
 | Package | Description |
 |---------|-------------|
-| `Purview.EventSourcing` | Core abstractions: `IEventStore<T>`, `AggregateBase`, `EventBase` |
+| `Purview.EventSourcing` | Core abstractions: `IEventStore`, `AggregateBase`, `EventBase` |
 | `Purview.EventSourcing.SourceGenerator` | Roslyn source generator for boilerplate-free aggregate definitions |
 | `Purview.EventSourcing.SqlServer.Events` | SQL Server / Azure SQL event store |
 | `Purview.EventSourcing.SqlServer` | SQL Server / Azure SQL queryable snapshot store |
@@ -55,11 +55,11 @@ builder.Services.AddSqlServerEventStore();
 ### 3. Use the store
 
 ```csharp
-public class OrderService(IEventStore<OrderAggregate> store)
+public class OrderService(IEventStore store)
 {
     public async Task PlaceOrderAsync(string orderId, string customerId, decimal total)
     {
-        var order = await store.GetOrCreateAsync(orderId);
+        var order = await store.GetOrCreateAsync<OrderAggregate>(orderId);
         order.CreateOrder(customerId, total);
         await store.SaveAsync(order);
     }
@@ -71,14 +71,13 @@ public class OrderService(IEventStore<OrderAggregate> store)
 ```csharp
 public class CheckoutService(
     IEventStoreTransactionFactory transactionFactory,
-    IEventStore<OrderAggregate> orderStore,
-    IEventStore<InventoryAggregate> inventoryStore)
+    IEventStore store)
 {
     public async Task CheckoutAsync(OrderAggregate order, InventoryAggregate inventory)
     {
         await using var transaction = transactionFactory.Create();
-        transaction.Enlist(order, orderStore);
-        transaction.Enlist(inventory, inventoryStore);
+        transaction.Enlist(order, store);
+        transaction.Enlist(inventory, store);
 
         await transaction.CommitAsync();
     }

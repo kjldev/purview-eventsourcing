@@ -1,56 +1,50 @@
+using System.ComponentModel;
 using System.Linq.Expressions;
 using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing;
 
 /// <summary>
-/// Provides querying and sorting operations to an <see cref="IEventStore"/>.
+/// Provider-facing typed queryable event-store contract used by concrete implementations and internal infrastructure.
 /// </summary>
-public interface IQueryableEventStore : IEventStore
+/// <typeparam name="T">An <see cref="IAggregate"/> implementation.</typeparam>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public interface IQueryableEventStoreImpl<T> : IEventStoreImpl<T>
+	where T : class, IAggregate, new()
 {
-	IAsyncEnumerable<T> GetQueryEnumerableAsync<T>(
+	IAsyncEnumerable<T> GetQueryEnumerableAsync(
 		Expression<Func<T, bool>> whereClause,
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords,
 		CancellationToken cancellationToken = default
-	)
-		where T : class, IAggregate, new();
+	);
 
-	IAsyncEnumerable<T> GetListEnumerableAsync<T>(
+	IAsyncEnumerable<T> GetListEnumerableAsync(
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords,
 		CancellationToken cancellationToken = default
-	)
-		where T : class, IAggregate, new();
+	);
 
-	Task<ContinuationResponse<T>> QueryAsync<T>(
+	Task<ContinuationResponse<T>> QueryAsync(
 		Expression<Func<T, bool>> whereClause,
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		ContinuationRequest request,
 		CancellationToken cancellationToken = default
-	)
-		where T : class, IAggregate, new();
+	);
 
-	Task<ContinuationResponse<T>> ListAsync<T>(
+	Task<ContinuationResponse<T>> ListAsync(
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		ContinuationRequest request,
 		CancellationToken cancellationToken = default
-	)
-		where T : class, IAggregate, new();
+	);
 
-	Task<long> CountAsync<T>(Expression<Func<T, bool>>? whereClause, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new();
+	Task<long> CountAsync(Expression<Func<T, bool>>? whereClause, CancellationToken cancellationToken = default);
 
-	Task<T?> SingleOrDefaultAsync<T>(
-		Expression<Func<T, bool>> whereClause,
-		CancellationToken cancellationToken = default
-	)
-		where T : class, IAggregate, new();
+	Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> whereClause, CancellationToken cancellationToken = default);
 
-	Task<T?> FirstOrDefaultAsync<T>(
+	Task<T?> FirstOrDefaultAsync(
 		Expression<Func<T, bool>> whereClause,
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		CancellationToken cancellationToken = default
-	)
-		where T : class, IAggregate, new();
+	);
 }

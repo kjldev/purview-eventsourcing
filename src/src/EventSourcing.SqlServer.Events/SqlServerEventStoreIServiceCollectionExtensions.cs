@@ -15,9 +15,10 @@ public static class SqlServerEventStoreIServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IEventStore<>), typeof(SqlServerEventStore<>))
+			.AddTransient(typeof(IEventStoreImpl<>), typeof(SqlServerEventStore<>))
 			.AddTransient(typeof(INonQueryableEventStore<>), typeof(SqlServerEventStore<>))
 			.AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
+			.AddTransient<IEventStore, EventStoreFacade>()
 			.AddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>()
 			.AddSqlServerEventStoreTelemetry();
 

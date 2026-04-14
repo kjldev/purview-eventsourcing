@@ -2,7 +2,7 @@
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
-public interface ISqlServerSnapshotEventStore<T> : IQueryableEventStore<T>
+public interface ISqlServerSnapshotEventStore<T> : IQueryableEventStoreImpl<T>
 	where T : class, IAggregate, new()
 {
 	/// <summary>

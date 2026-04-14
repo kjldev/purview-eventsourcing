@@ -2,7 +2,7 @@
 
 namespace Purview.EventSourcing.CosmosDb.Snapshot;
 
-public interface ICosmosDbSnapshotEventStore<T> : IQueryableEventStore<T>
+public interface ICosmosDbSnapshotEventStore<T> : IQueryableEventStoreImpl<T>
 	where T : class, IAggregate, new()
 {
 	/// <summary>

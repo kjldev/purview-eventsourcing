@@ -4,18 +4,18 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class DeletedModel(IQueryableEventStore<InventoryAggregate> store) : PageModel
+public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 {
 	public IReadOnlyList<InventoryAggregate> DeletedItems { get; private set; } = [];
 
 	public async Task OnGetAsync()
 	{
 		var deleted = new List<InventoryAggregate>();
-		await foreach (var id in store.GetAggregateIdsAsync(includeDeleted: true, HttpContext.RequestAborted))
+		await foreach (var id in store.GetAggregateIdsAsync<InventoryAggregate>(includeDeleted: true, HttpContext.RequestAborted))
 		{
-			if (await store.IsDeletedAsync(id, HttpContext.RequestAborted))
+			if (await store.IsDeletedAsync<InventoryAggregate>(id, HttpContext.RequestAborted))
 			{
-				var aggregate = await store.GetDeletedAsync(id, HttpContext.RequestAborted);
+				var aggregate = await store.GetDeletedAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 				if (aggregate != null)
 					deleted.Add(aggregate);
 			}
@@ -26,7 +26,7 @@ public sealed class DeletedModel(IQueryableEventStore<InventoryAggregate> store)
 
 	public async Task<IActionResult> OnPostRestoreAsync(string id)
 	{
-		var item = await store.GetDeletedAsync(id, HttpContext.RequestAborted);
+		var item = await store.GetDeletedAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		await store.RestoreAsync(item, null, HttpContext.RequestAborted);
@@ -35,3 +35,4 @@ public sealed class DeletedModel(IQueryableEventStore<InventoryAggregate> store)
 		return RedirectToPage("Deleted");
 	}
 }
+

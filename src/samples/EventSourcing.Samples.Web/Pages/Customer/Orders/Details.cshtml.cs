@@ -5,8 +5,8 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
 
 public sealed class DetailsModel(
-	IQueryableEventStore<CustomerAggregate> customerStore,
-	IQueryableEventStore<OrderAggregate> orderStore
+	IQueryableEventStore customerStore,
+	IQueryableEventStore orderStore
 ) : EventSourcingPageModel
 {
 	public OrderAggregate? Order { get; private set; }
@@ -19,8 +19,8 @@ public sealed class DetailsModel(
 			return RedirectToPage("/Customer/Index");
 
 		var ct = HttpContext.RequestAborted;
-		CurrentCustomer = await customerStore.GetAsync(customerId, null, ct);
-		Order = await orderStore.GetAsync(id, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
+		Order = await orderStore.GetAsync<OrderAggregate>(id, null, ct);
 
 		if (Order == null || Order.CustomerId != customerId)
 			return NotFound();
@@ -33,7 +33,7 @@ public sealed class DetailsModel(
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var order = await orderStore.GetAsync(id, null, HttpContext.RequestAborted);
+		var order = await orderStore.GetAsync<OrderAggregate>(id, null, HttpContext.RequestAborted);
 		if (order == null || order.CustomerId != customerId) return NotFound();
 		if (order.Status != OrderStatus.Draft) { TempData["Error"] = "Only draft orders can be edited."; return RedirectToPage(new { id }); }
 
@@ -49,7 +49,7 @@ public sealed class DetailsModel(
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var order = await orderStore.GetAsync(id, null, HttpContext.RequestAborted);
+		var order = await orderStore.GetAsync<OrderAggregate>(id, null, HttpContext.RequestAborted);
 		if (order == null || order.CustomerId != customerId) return NotFound();
 		if (order.Status != OrderStatus.Draft) { TempData["Error"] = "Only draft orders can be edited."; return RedirectToPage(new { id }); }
 
@@ -65,7 +65,7 @@ public sealed class DetailsModel(
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var order = await orderStore.GetAsync(id, null, HttpContext.RequestAborted);
+		var order = await orderStore.GetAsync<OrderAggregate>(id, null, HttpContext.RequestAborted);
 		if (order == null || order.CustomerId != customerId) return NotFound();
 		if (order.Status != OrderStatus.Draft) { TempData["Error"] = "Only draft orders can be edited."; return RedirectToPage(new { id }); }
 
@@ -81,7 +81,7 @@ public sealed class DetailsModel(
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var order = await orderStore.GetAsync(id, null, HttpContext.RequestAborted);
+		var order = await orderStore.GetAsync<OrderAggregate>(id, null, HttpContext.RequestAborted);
 		if (order == null || order.CustomerId != customerId) return NotFound();
 		if (order.Status != OrderStatus.Draft) { TempData["Error"] = "Only draft orders can be edited."; return RedirectToPage(new { id }); }
 
@@ -97,7 +97,7 @@ public sealed class DetailsModel(
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var order = await orderStore.GetAsync(id, null, HttpContext.RequestAborted);
+		var order = await orderStore.GetAsync<OrderAggregate>(id, null, HttpContext.RequestAborted);
 		if (order == null || order.CustomerId != customerId) return NotFound();
 		if (order.Status != OrderStatus.Draft) { TempData["Error"] = "Only draft orders can be cancelled by customers."; return RedirectToPage(new { id }); }
 
@@ -108,3 +108,4 @@ public sealed class DetailsModel(
 		);
 	}
 }
+

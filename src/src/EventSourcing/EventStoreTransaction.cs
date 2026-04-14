@@ -12,7 +12,7 @@ namespace Purview.EventSourcing;
 /// This implementation automatically selects the strongest compatible transaction coordinator for the
 /// enlisted stores. When all enlisted stores share the same native transactional boundary, they are
 /// committed atomically through that provider-specific coordinator. Otherwise, the transaction falls
-/// back to sequential <see cref="IEventStore{T}.SaveAsync"/> calls under a shared <see cref="CorrelationId"/>.
+/// back to sequential <see cref="IEventStore.SaveAsync{T}(T, EventStoreOperationContext?, CancellationToken)"/> calls under a shared <see cref="CorrelationId"/>.
 /// </para>
 /// <para>
 /// <strong>Atomicity model:</strong> when provider-native coordination is unavailable or the enlisted
@@ -37,7 +37,22 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 	public string CorrelationId { get; } = correlationId ?? Guid.NewGuid().ToString();
 
 	/// <inheritdoc/>
-	public void Enlist<T>(T aggregate, IEventStore<T> eventStore, EventStoreOperationContext? operationContext = null)
+	public void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
+		where T : class, IAggregate, new()
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
+
+		if (_committed)
+			throw new InvalidOperationException("Cannot enlist aggregates after the transaction has been committed.");
+
+		ArgumentNullException.ThrowIfNull(aggregate);
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		_enlisted.Add(new EnlistedAggregate<T>(aggregate, eventStore, operationContext));
+	}
+
+	/// <inheritdoc/>
+	public void Enlist<T>(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext = null)
 		where T : class, IAggregate, new()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -297,14 +312,25 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		where T : class, IAggregate, new()
 	{
 		readonly T _aggregate;
-		readonly IEventStore<T> _eventStore;
+		readonly IEventStore? _eventStore;
+		readonly IEventStoreImpl<T>? _eventStoreImpl;
 		readonly ITransactionalEventStore<T>? _transactionalEventStore;
 		readonly EventStoreOperationContext? _operationContext;
 
-		public EnlistedAggregate(T aggregate, IEventStore<T> eventStore, EventStoreOperationContext? operationContext)
+		public EnlistedAggregate(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext)
 		{
 			_aggregate = aggregate;
 			_eventStore = eventStore;
+			_eventStoreImpl = (eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>();
+			_transactionalEventStore = _eventStoreImpl as ITransactionalEventStore<T>;
+			_operationContext = operationContext;
+		}
+
+		public EnlistedAggregate(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext)
+		{
+			_aggregate = aggregate;
+			_eventStore = null;
+			_eventStoreImpl = eventStore;
 			_transactionalEventStore = eventStore as ITransactionalEventStore<T>;
 			_operationContext = operationContext;
 		}
@@ -320,20 +346,22 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext;
 			var context = baseContext with { CorrelationId = baseContext.CorrelationId ?? correlationId };
 
-			var result = await _eventStore.SaveAsync(_aggregate, context, cancellationToken);
+			var result = _eventStoreImpl is not null
+				? await _eventStoreImpl.SaveAsync(_aggregate, context, cancellationToken)
+				: await _eventStore!.SaveAsync(_aggregate, context, cancellationToken);
 			return (result.Saved, result.Skipped);
 		}
 
 		public DbConnection CreateTransactionConnection() =>
 			_transactionalEventStore?.CreateTransactionConnection()
 			?? throw new InvalidOperationException(
-				$"The enlisted event store '{_eventStore.GetType().FullName}' does not support native transactions."
+				$"The enlisted event store '{_eventStoreImpl?.GetType().FullName ?? _eventStore?.GetType().FullName}' does not support native transactions."
 			);
 
 		public Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken) =>
 			_transactionalEventStore?.EnsureTransactionConfiguredAsync(connection, cancellationToken)
 			?? throw new InvalidOperationException(
-				$"The enlisted event store '{_eventStore.GetType().FullName}' does not support native transactions."
+				$"The enlisted event store '{_eventStoreImpl?.GetType().FullName ?? _eventStore?.GetType().FullName}' does not support native transactions."
 			);
 
 		public async Task<IProcessedSaveOperation> SaveInTransactionAsync(
@@ -346,7 +374,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			if (_transactionalEventStore is null)
 			{
 				throw new InvalidOperationException(
-					$"The enlisted event store '{_eventStore.GetType().FullName}' does not support native transactions."
+					$"The enlisted event store '{_eventStoreImpl?.GetType().FullName ?? _eventStore?.GetType().FullName}' does not support native transactions."
 				);
 			}
 

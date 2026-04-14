@@ -14,7 +14,7 @@ public sealed class EventStoreTransactionTests
 	{
 		// Arrange
 		await using var transaction = new EventStoreTransaction();
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 
 		// Act & Assert
 		await Assert.That(() => transaction.Enlist<TestAggregate>(null!, eventStore)).Throws<ArgumentNullException>();
@@ -29,7 +29,7 @@ public sealed class EventStoreTransactionTests
 		aggregate.Increment();
 
 		// Act & Assert
-		await Assert.That(() => transaction.Enlist(aggregate, null!)).Throws<ArgumentNullException>();
+		await Assert.That(() => transaction.Enlist(aggregate, (IEventStore)null!)).Throws<ArgumentNullException>();
 	}
 
 	[Test]
@@ -39,7 +39,7 @@ public sealed class EventStoreTransactionTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(
@@ -47,7 +47,7 @@ public sealed class EventStoreTransactionTests
 			);
 
 		await using var transaction = new EventStoreTransaction();
-		transaction.Enlist(aggregate, eventStore);
+		transaction.Enlist(aggregate, (IEventStore)eventStore);
 
 		// Act
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -77,19 +77,19 @@ public sealed class EventStoreTransactionTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.RecordEvent();
 
-		var store1 = Substitute.For<IEventStore<TestAggregate>>();
+		var store1 = Substitute.For<IEventStore>();
 		store1
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(agg1, new FluentValidation.Results.ValidationResult(), true, false));
 
-		var store2 = Substitute.For<IEventStore<TestAggregate>>();
+		var store2 = Substitute.For<IEventStore>();
 		store2
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(agg2, new FluentValidation.Results.ValidationResult(), true, false));
 
 		await using var transaction = new EventStoreTransaction();
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		// Act
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -116,7 +116,7 @@ public sealed class EventStoreTransactionTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.RecordEvent();
 
-		var store1 = Substitute.For<IEventStore<TestAggregate>>();
+		var store1 = Substitute.For<IEventStore>();
 		store1
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(ci =>
@@ -125,7 +125,7 @@ public sealed class EventStoreTransactionTests
 				return new SaveResult<TestAggregate>(agg, new FluentValidation.Results.ValidationResult(), true, false);
 			});
 
-		var store2 = Substitute.For<IEventStore<TestAggregate>>();
+		var store2 = Substitute.For<IEventStore>();
 		store2
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(ci =>
@@ -135,8 +135,8 @@ public sealed class EventStoreTransactionTests
 			});
 
 		await using var transaction = new EventStoreTransaction(correlationId);
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		// Act
 		await transaction.CommitAsync(cancellationToken);
@@ -168,16 +168,16 @@ public sealed class EventStoreTransactionTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.RecordEvent();
 
-		var store1 = Substitute.For<IEventStore<TestAggregate>>();
+		var store1 = Substitute.For<IEventStore>();
 		store1
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.ThrowsAsync(new InvalidOperationException("DB failure"));
 
-		var store2 = Substitute.For<IEventStore<TestAggregate>>();
+		var store2 = Substitute.For<IEventStore>();
 
 		await using var transaction = new EventStoreTransaction();
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		// Act
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -200,7 +200,7 @@ public sealed class EventStoreTransactionTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(
@@ -224,7 +224,7 @@ public sealed class EventStoreTransactionTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(
@@ -250,7 +250,7 @@ public sealed class EventStoreTransactionTests
 
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 
 		// Act & Assert
 		await Assert.That(() => transaction.Enlist(aggregate, eventStore)).Throws<ObjectDisposedException>();
@@ -284,8 +284,8 @@ public sealed class EventStoreTransactionTests
 		var store2 = new FakeTransactionalEventStore("sqlserver:primary");
 
 		await using var transaction = new EventStoreTransaction("coordinated");
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		var result = await transaction.CommitAsync(cancellationToken);
 
@@ -317,8 +317,8 @@ public sealed class EventStoreTransactionTests
 		var store2 = new FakeTransactionalEventStore("sqlserver:secondary");
 
 		await using var transaction = new EventStoreTransaction("fallback");
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		var result = await transaction.CommitAsync(cancellationToken);
 
@@ -345,7 +345,7 @@ public sealed class EventStoreTransactionTests
 		agg2.RecordEvent();
 
 		var transactionalStore = new FakeTransactionalEventStore("sqlserver:primary");
-		var nonTransactionalStore = Substitute.For<IEventStore<TestAggregate>>();
+		var nonTransactionalStore = Substitute.For<IEventStore>();
 		nonTransactionalStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(ci =>
@@ -360,7 +360,7 @@ public sealed class EventStoreTransactionTests
 			});
 
 		await using var transaction = new EventStoreTransaction("mixed");
-		transaction.Enlist(agg1, transactionalStore);
+		transaction.Enlist(agg1, (IEventStore)transactionalStore);
 		transaction.Enlist(agg2, nonTransactionalStore);
 
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -395,8 +395,8 @@ public sealed class EventStoreTransactionTests
 		);
 
 		await using var transaction = new EventStoreTransaction("rollback");
-		transaction.Enlist(agg1, successfulStore);
-		transaction.Enlist(agg2, failingStore);
+		transaction.Enlist(agg1, (IEventStore)successfulStore);
+		transaction.Enlist(agg2, (IEventStore)failingStore);
 
 		var result = await transaction.CommitAsync(cancellationToken);
 
@@ -446,16 +446,16 @@ public sealed class EventStoreTransactionTests
 			new FluentValidation.Results.ValidationFailure("Field", "Required"),
 		]);
 
-		var store1 = Substitute.For<IEventStore<TestAggregate>>();
+		var store1 = Substitute.For<IEventStore>();
 		store1
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(agg1, validationResult, false, false));
 
-		var store2 = Substitute.For<IEventStore<TestAggregate>>();
+		var store2 = Substitute.For<IEventStore>();
 
 		await using var transaction = new EventStoreTransaction();
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		// Act
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -478,19 +478,19 @@ public sealed class EventStoreTransactionTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.Increment();
 
-		var store1 = Substitute.For<IEventStore<TestAggregate>>();
+		var store1 = Substitute.For<IEventStore>();
 		store1
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(agg1, new FluentValidation.Results.ValidationResult(), false, true));
 
-		var store2 = Substitute.For<IEventStore<TestAggregate>>();
+		var store2 = Substitute.For<IEventStore>();
 		store2
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(agg2, new FluentValidation.Results.ValidationResult(), true, false));
 
 		await using var transaction = new EventStoreTransaction();
-		transaction.Enlist(agg1, store1);
-		transaction.Enlist(agg2, store2);
+		transaction.Enlist(agg1, (IEventStore)store1);
+		transaction.Enlist(agg2, (IEventStore)store2);
 
 		// Act
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -513,7 +513,7 @@ public sealed class EventStoreTransactionTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(
@@ -556,13 +556,13 @@ public sealed class EventStoreTransactionTests
 		var agg = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg.Increment();
 
-		var store = Substitute.For<IEventStore<TestAggregate>>();
+		var store = Substitute.For<IEventStore>();
 		store
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(agg, new FluentValidation.Results.ValidationResult(), false, false));
 
 		await using var transaction = new EventStoreTransaction();
-		transaction.Enlist(agg, store);
+		transaction.Enlist(agg, (IEventStore)store);
 
 		// Act
 		var result = await transaction.CommitAsync(cancellationToken);
@@ -583,7 +583,7 @@ public sealed class EventStoreTransactionTests
 		var customCorrelation = "user-provided-correlation";
 		var customContext = new EventStoreOperationContext { CorrelationId = customCorrelation };
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(
@@ -591,7 +591,7 @@ public sealed class EventStoreTransactionTests
 			);
 
 		await using var transaction = new EventStoreTransaction("transaction-correlation");
-		transaction.Enlist(aggregate, eventStore, customContext);
+		transaction.Enlist(aggregate, (IEventStore)eventStore, customContext);
 
 		// Act
 		await transaction.CommitAsync(cancellationToken);
@@ -609,7 +609,7 @@ public sealed class EventStoreTransactionTests
 	sealed record SaveBehavior(bool Saved, bool Skipped, Exception? Exception = null);
 
 	sealed class FakeTransactionalEventStore(string transactionBoundaryKey, SaveBehavior? behavior = null)
-		: ITransactionalEventStore<TestAggregate>
+		: ITransactionalEventStore<TestAggregate>, IEventStore, IEventStoreImplementationAccessor
 	{
 		readonly SaveBehavior _behavior = behavior ?? new SaveBehavior(true, false);
 
@@ -662,6 +662,84 @@ public sealed class EventStoreTransactionTests
 				? throw _behavior.Exception
 				: Task.FromResult(CreateOperation(aggregate).Result);
 		}
+
+		Task<SaveResult<T>> IEventStore.SaveAsync<T>(
+			T aggregate,
+			EventStoreOperationContext? operationContext,
+			CancellationToken cancellationToken
+		)
+		{
+			if (aggregate is not TestAggregate testAggregate || typeof(T) != typeof(TestAggregate))
+				throw new NotSupportedException();
+
+			return (Task<SaveResult<T>>)(object)SaveAsync(testAggregate, operationContext, cancellationToken);
+		}
+
+		IEventStoreImpl<T> IEventStoreImplementationAccessor.GetEventStore<T>()
+		{
+			if (typeof(T) != typeof(TestAggregate))
+				throw new NotSupportedException();
+
+			return (IEventStoreImpl<T>)(object)this;
+		}
+
+		Task<T> IEventStore.CreateAsync<T>(string? aggregateId, CancellationToken cancellationToken) =>
+			throw new NotSupportedException();
+
+		Task<T?> IEventStore.GetOrCreateAsync<T>(
+			string? aggregateId,
+			EventStoreOperationContext? operationContext,
+			CancellationToken cancellationToken
+		)
+			where T : class => throw new NotSupportedException();
+
+		Task<T?> IEventStore.GetAsync<T>(
+			string aggregateId,
+			EventStoreOperationContext? operationContext,
+			CancellationToken cancellationToken
+		)
+			where T : class => throw new NotSupportedException();
+
+		Task<T?> IEventStore.GetAtAsync<T>(
+			string aggregateId,
+			int version,
+			EventStoreOperationContext? operationContext,
+			CancellationToken cancellationToken
+		)
+			where T : class => throw new NotSupportedException();
+
+		Task<bool> IEventStore.IsDeletedAsync<T>(string aggregateId, CancellationToken cancellationToken) =>
+			throw new NotSupportedException();
+
+		Task<T?> IEventStore.GetDeletedAsync<T>(string aggregateId, CancellationToken cancellationToken)
+			where T : class =>
+			throw new NotSupportedException();
+
+		Task<bool> IEventStore.DeleteAsync<T>(
+			T aggregate,
+			EventStoreOperationContext? operationContext,
+			CancellationToken cancellationToken
+		) => throw new NotSupportedException();
+
+		Task<bool> IEventStore.RestoreAsync<T>(
+			T aggregate,
+			EventStoreOperationContext? operationContext,
+			CancellationToken cancellationToken
+		) => throw new NotSupportedException();
+
+		async IAsyncEnumerable<string> IEventStore.GetAggregateIdsAsync<T>(
+			bool includeDeleted,
+			[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken
+		)
+		{
+			await Task.CompletedTask;
+			yield break;
+		}
+
+		Task<ExistsState> IEventStore.ExistsAsync<T>(string aggregateId, CancellationToken cancellationToken) =>
+			throw new NotSupportedException();
+
+		T IEventStore.FulfilRequirements<T>(T aggregate) => aggregate;
 
 		TransactionalSaveOperation<TestAggregate> CreateOperation(TestAggregate aggregate) =>
 			new(
@@ -785,3 +863,4 @@ public sealed class EventStoreTransactionTests
 		public override Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	}
 }
+

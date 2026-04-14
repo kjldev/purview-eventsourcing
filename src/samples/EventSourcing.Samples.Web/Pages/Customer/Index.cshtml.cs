@@ -5,7 +5,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer;
 
-public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : PageModel
+public sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -41,9 +41,9 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 				&& (ShowInactive || c.IsActive)
 			: c => true;
 
-		TotalCount = await store.CountAsync(where, ct);
+		TotalCount = await store.CountAsync<CustomerAggregate>(where, ct);
 
-		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name), request, ct);
+		var result = await store.QueryAsync<CustomerAggregate>(where, q => q.OrderBy(c => c.Name), request, ct);
 		Customers = result.Results;
 	}
 
@@ -57,3 +57,4 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 		return RedirectToPage("/Customer/Catalog/Index");
 	}
 }
+

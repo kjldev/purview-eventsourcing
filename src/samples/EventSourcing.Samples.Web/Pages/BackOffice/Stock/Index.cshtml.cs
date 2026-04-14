@@ -5,7 +5,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class IndexModel(IQueryableEventStore<InventoryAggregate> store) : PageModel
+public sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -52,11 +52,11 @@ public sealed class IndexModel(IQueryableEventStore<InventoryAggregate> store) :
 			_ => q => q.OrderByDescending(i => i.AvailableQuantity)
 		};
 
-		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);
+		TotalCount = await store.CountAsync<InventoryAggregate>(hasFilter ? where : null, ct);
 
 		var result = hasFilter
-			? await store.QueryAsync(where, orderBy, request, ct)
-			: await store.ListAsync(orderBy, request, ct);
+			? await store.QueryAsync<InventoryAggregate>(where, orderBy, request, ct)
+			: await store.ListAsync<InventoryAggregate>(orderBy, request, ct);
 		Items = result.Results;
 	}
 
@@ -66,3 +66,4 @@ public sealed class IndexModel(IQueryableEventStore<InventoryAggregate> store) :
 	public string SortIcon(string column) =>
 		SortBy != column ? "↕" : SortDir == "asc" ? "↑" : "↓";
 }
+

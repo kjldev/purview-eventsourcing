@@ -37,22 +37,16 @@ public sealed class OrderFulfillmentServiceTests
 		new(aggregate, new ValidationResult([new ValidationFailure("field", "Save failed")]), saved: false, skipped: false);
 
 	OrderFulfillmentService CreateService(
-		IQueryableEventStore<OrderAggregate>? orderStore = null,
-		IQueryableEventStore<InventoryAggregate>? inventoryStore = null,
-		IQueryableEventStore<CustomerAggregate>? customerStore = null
-	) => new(
-		orderStore ?? Substitute.For<IQueryableEventStore<OrderAggregate>>(),
-		inventoryStore ?? Substitute.For<IQueryableEventStore<InventoryAggregate>>(),
-		customerStore ?? Substitute.For<IQueryableEventStore<CustomerAggregate>>()
-	);
+		IQueryableEventStore? store = null
+	) => new(store ?? Substitute.For<IQueryableEventStore>());
 
 	[Test]
 	public async Task PlaceOrderAsync_GivenNullCustomer_ReturnsFail(CancellationToken cancellationToken)
 	{
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync("missing", null, cancellationToken).Returns((CustomerAggregate?)null);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>("missing", null, cancellationToken).Returns((CustomerAggregate?)null);
 
-		var result = await CreateService(customerStore: customerStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync("missing", "inv-1", 1, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
@@ -65,10 +59,10 @@ public sealed class OrderFulfillmentServiceTests
 		var customer = ActiveCustomer();
 		customer.Deactivate();
 
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var result = await CreateService(customerStore: customerStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), "inv-1", 1, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
@@ -79,13 +73,12 @@ public sealed class OrderFulfillmentServiceTests
 	public async Task PlaceOrderAsync_GivenNullInventory_ReturnsFail(CancellationToken cancellationToken)
 	{
 		var customer = ActiveCustomer();
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var inventoryStore = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		inventoryStore.GetAsync("missing-inv", null, cancellationToken).Returns((InventoryAggregate?)null);
+		store.GetAsync<InventoryAggregate>("missing-inv", null, cancellationToken).Returns((InventoryAggregate?)null);
 
-		var result = await CreateService(customerStore: customerStore, inventoryStore: inventoryStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), "missing-inv", 1, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
@@ -98,13 +91,12 @@ public sealed class OrderFulfillmentServiceTests
 		var customer = ActiveCustomer();
 		var inventory = StockedInventory(quantity: 5);
 
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var inventoryStore = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		inventoryStore.GetAsync(inventory.Id(), null, cancellationToken).Returns(inventory);
+		store.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken).Returns(inventory);
 
-		var result = await CreateService(customerStore: customerStore, inventoryStore: inventoryStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), inventory.Id(), quantity: 10, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
@@ -118,20 +110,18 @@ public sealed class OrderFulfillmentServiceTests
 		var inventory = StockedInventory(quantity: 50);
 		var order = NewOrder();
 
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var inventoryStore = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		inventoryStore.GetAsync(inventory.Id(), null, cancellationToken).Returns(inventory);
-		inventoryStore.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		store.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken).Returns(inventory);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(SuccessResult(inventory));
 
-		var orderStore = Substitute.For<IQueryableEventStore<OrderAggregate>>();
-		orderStore.CreateAsync(null, cancellationToken).Returns(order);
-		orderStore.SaveAsync(Arg.Any<OrderAggregate>(), null, cancellationToken)
+		store.CreateAsync<OrderAggregate>(null, cancellationToken).Returns(order);
+		store.SaveAsync<OrderAggregate>(Arg.Any<OrderAggregate>(), null, cancellationToken)
 			.Returns(SuccessResult(order));
 
-		var result = await CreateService(orderStore, inventoryStore, customerStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), inventory.Id(), quantity: 3, "123 Main St", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsTrue();
@@ -146,20 +136,18 @@ public sealed class OrderFulfillmentServiceTests
 		var inventory = StockedInventory(quantity: 20);
 		var order = NewOrder();
 
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var inventoryStore = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		inventoryStore.GetAsync(inventory.Id(), null, cancellationToken).Returns(inventory);
-		inventoryStore.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		store.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken).Returns(inventory);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(SuccessResult(inventory));
 
-		var orderStore = Substitute.For<IQueryableEventStore<OrderAggregate>>();
-		orderStore.CreateAsync(null, cancellationToken).Returns(order);
-		orderStore.SaveAsync(Arg.Any<OrderAggregate>(), null, cancellationToken)
+		store.CreateAsync<OrderAggregate>(null, cancellationToken).Returns(order);
+		store.SaveAsync<OrderAggregate>(Arg.Any<OrderAggregate>(), null, cancellationToken)
 			.Returns(callInfo => SuccessResult((OrderAggregate)callInfo[0]));
 
-		await CreateService(orderStore, inventoryStore, customerStore)
+		await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), inventory.Id(), quantity: 2, null, cancellationToken);
 
 		await Assert.That(order.Status).IsEqualTo(OrderStatus.Confirmed);
@@ -175,24 +163,22 @@ public sealed class OrderFulfillmentServiceTests
 		var inventory = StockedInventory(quantity: 50);
 		var order = NewOrder();
 
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var inventoryStore = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		inventoryStore.GetAsync(inventory.Id(), null, cancellationToken).Returns(inventory);
+		store.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken).Returns(inventory);
 
-		var orderStore = Substitute.For<IQueryableEventStore<OrderAggregate>>();
-		orderStore.CreateAsync(null, cancellationToken).Returns(order);
-		orderStore.SaveAsync(Arg.Any<OrderAggregate>(), null, cancellationToken)
+		store.CreateAsync<OrderAggregate>(null, cancellationToken).Returns(order);
+		store.SaveAsync<OrderAggregate>(Arg.Any<OrderAggregate>(), null, cancellationToken)
 			.Returns(FailResult(order));
 
-		var result = await CreateService(orderStore, inventoryStore, customerStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), inventory.Id(), quantity: 1, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 
 		// Inventory should never have been saved — compensation not needed since order wasn't saved
-		await inventoryStore.DidNotReceive().SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken);
+		await store.DidNotReceive().SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken);
 	}
 
 	[Test]
@@ -202,28 +188,25 @@ public sealed class OrderFulfillmentServiceTests
 		var inventory = StockedInventory(quantity: 50);
 		var order = NewOrder();
 
-		var customerStore = Substitute.For<IQueryableEventStore<CustomerAggregate>>();
-		customerStore.GetAsync(customer.Id(), null, cancellationToken).Returns(customer);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken).Returns(customer);
 
-		var inventoryStore = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		inventoryStore.GetAsync(inventory.Id(), null, cancellationToken).Returns(inventory);
-		inventoryStore.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		store.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken).Returns(inventory);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(FailResult(inventory));
 
-		var orderStore = Substitute.For<IQueryableEventStore<OrderAggregate>>();
-		orderStore.CreateAsync(null, cancellationToken).Returns(order);
-		orderStore.SaveAsync(Arg.Any<OrderAggregate>(), null, cancellationToken)
+		store.CreateAsync<OrderAggregate>(null, cancellationToken).Returns(order);
+		store.SaveAsync<OrderAggregate>(Arg.Any<OrderAggregate>(), null, cancellationToken)
 			.Returns(SuccessResult(order));
 
-		var result = await CreateService(orderStore, inventoryStore, customerStore)
+		var result = await CreateService(store)
 			.PlaceOrderAsync(customer.Id(), inventory.Id(), quantity: 1, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("cancelled");
 
 		// Order.SaveAsync called twice: initial save + compensation cancel save
-		await orderStore.Received(2).SaveAsync(Arg.Any<OrderAggregate>(), null, cancellationToken);
+		await store.Received(2).SaveAsync<OrderAggregate>(Arg.Any<OrderAggregate>(), null, cancellationToken);
 		await Assert.That(order.Status).IsEqualTo(OrderStatus.Cancelled);
 	}
 }
-

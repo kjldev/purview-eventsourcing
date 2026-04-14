@@ -5,7 +5,7 @@ using Purview.EventSourcing.Aggregates;
 namespace Purview.EventSourcing.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface ITransactionalEventStore<T> : IEventStore<T>
+public interface ITransactionalEventStore<T> : IEventStoreImpl<T>
 	where T : class, IAggregate, new()
 {
 	string TransactionBoundaryKey { get; }

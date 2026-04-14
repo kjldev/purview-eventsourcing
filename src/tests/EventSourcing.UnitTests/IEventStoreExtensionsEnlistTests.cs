@@ -13,7 +13,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		aggregate.Increment();
 
 		// Act & Assert
-		await Assert.That(() => ((IEventStore<TestAggregate>)null!).Enlist(aggregate))
+		await Assert.That(() => ((IEventStore)null!).Enlist(aggregate))
 			.Throws<ArgumentNullException>();
 	}
 
@@ -24,7 +24,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(aggregate, new FluentValidation.Results.ValidationResult(), true, false));
@@ -53,7 +53,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.RecordEvent();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(ci =>
@@ -81,7 +81,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(aggregate, new FluentValidation.Results.ValidationResult(), true, false));
@@ -106,7 +106,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 
 		// Act
 		await using var transaction = eventStore.Enlist(correlationId: null, aggregate);
@@ -126,7 +126,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(new SaveResult<TestAggregate>(aggregate, new FluentValidation.Results.ValidationResult(), true, false));
@@ -151,7 +151,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 
 		// Act
 		await using var transaction = eventStore.Enlist((EventStoreOperationContext?)null, aggregate);
@@ -164,10 +164,10 @@ public sealed class IEventStoreExtensionsEnlistTests
 	public async Task Enlist_WithCorrelationIdAndNullAggregatesArray_ThrowsArgumentNullException(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 
 		// Act & Assert
-		await Assert.That(() => eventStore.Enlist(correlationId: "corr", aggregates: null!))
+		await Assert.That(() => eventStore.Enlist<TestAggregate>(correlationId: "corr", aggregates: null!))
 			.Throws<ArgumentNullException>();
 	}
 
@@ -175,11 +175,11 @@ public sealed class IEventStoreExtensionsEnlistTests
 	public async Task Enlist_WithOperationContextAndNullAggregatesArray_ThrowsArgumentNullException(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		var context = new EventStoreOperationContext();
 
 		// Act & Assert
-		await Assert.That(() => eventStore.Enlist(context, aggregates: null!))
+		await Assert.That(() => eventStore.Enlist<TestAggregate>(context, aggregates: null!))
 			.Throws<ArgumentNullException>();
 	}
 
@@ -187,7 +187,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 	public async Task Enlist_WithNoAggregates_ReturnsEmptyTransactionThatCommitsSuccessfully(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 
 		// Act
 		await using var transaction = eventStore.Enlist();
@@ -214,7 +214,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.RecordEvent();
 
-		var eventStore = Substitute.For<IEventStore<TestAggregate>>();
+		var eventStore = Substitute.For<IEventStore>();
 		eventStore
 			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(ci =>
@@ -240,3 +240,4 @@ public sealed class IEventStoreExtensionsEnlistTests
 		);
 	}
 }
+

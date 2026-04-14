@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.SqlServer.Snapshot;
 
 namespace Purview.EventSourcing;
@@ -16,12 +17,16 @@ public static class SqlServerSnapshotIEventStoreServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IQueryableEventStore<>), typeof(SqlServerSnapshotEventStore<>))
+			.AddTransient(typeof(IQueryableEventStoreImpl<>), typeof(SqlServerSnapshotEventStore<>))
 			.AddTransient(typeof(ISqlServerSnapshotEventStore<>), typeof(SqlServerSnapshotEventStore<>))
 			.AddSqlServerSnapshotEventStoreTelemetry();
+		services.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		if (registerAsIEventStore)
-			services.AddTransient(typeof(IEventStore<>), typeof(SqlServerSnapshotEventStore<>));
+		{
+			services.AddTransient(typeof(IEventStoreImpl<>), typeof(SqlServerSnapshotEventStore<>));
+			services.TryAddTransient<IEventStore, EventStoreFacade>();
+		}
 
 		services
 			.AddOptions<SqlServerSnapshotEventStoreOptions>()

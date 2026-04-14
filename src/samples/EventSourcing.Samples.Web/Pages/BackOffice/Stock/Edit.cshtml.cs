@@ -4,18 +4,18 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class EditModel(IQueryableEventStore<InventoryAggregate> store) : EventSourcingPageModel
+public sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 {
 	public InventoryAggregate? Item { get; private set; }
 
 	public async Task OnGetAsync(string id)
 	{
-		Item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		Item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 	}
 
 	public async Task<IActionResult> OnPostReceiveStockAsync(string id, int quantity)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -27,7 +27,7 @@ public sealed class EditModel(IQueryableEventStore<InventoryAggregate> store) : 
 
 	public async Task<IActionResult> OnPostAdjustStockAsync(string id, int newQuantity, string reason)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -39,7 +39,7 @@ public sealed class EditModel(IQueryableEventStore<InventoryAggregate> store) : 
 
 	public async Task<IActionResult> OnPostReserveStockAsync(string id, int quantity, string orderId)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -51,7 +51,7 @@ public sealed class EditModel(IQueryableEventStore<InventoryAggregate> store) : 
 
 	public async Task<IActionResult> OnPostReleaseReservationAsync(string id, int quantity, string orderId)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -63,7 +63,7 @@ public sealed class EditModel(IQueryableEventStore<InventoryAggregate> store) : 
 
 	public async Task<IActionResult> OnPostShipStockAsync(string id, int quantity, string orderId)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -73,3 +73,4 @@ public sealed class EditModel(IQueryableEventStore<InventoryAggregate> store) : 
 		);
 	}
 }
+

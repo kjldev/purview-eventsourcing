@@ -18,9 +18,9 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 		var serviceProvider = scope.ServiceProvider;
 
 		var checkoutService = serviceProvider.GetRequiredService<ICartCheckoutService>();
-		var customerStore = serviceProvider.GetRequiredService<IQueryableEventStore<CustomerAggregate>>();
-		var inventoryStore = serviceProvider.GetRequiredService<IQueryableEventStore<InventoryAggregate>>();
-		var orderStore = serviceProvider.GetRequiredService<IQueryableEventStore<OrderAggregate>>();
+		var customerStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
+		var inventoryStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
+		var orderStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
 
 		var customer = await CreateCustomerAsync(customerStore, cancellationToken);
 		var inventory = await CreateInventoryAsync(inventoryStore, quantityOnHand: 10, cancellationToken);
@@ -35,9 +35,9 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 		await Assert.That(result.Succeeded).IsTrue();
 		await Assert.That(result.Order).IsNotNull();
 
-		var savedOrder = await orderStore.GetAsync(result.Order!.Id(), null, cancellationToken);
-		var savedInventory = await inventoryStore.GetAsync(inventory.Id(), null, cancellationToken);
-		var orderCount = await orderStore.CountAsync(order => order.CustomerId == customer.Id(), cancellationToken);
+		var savedOrder = await orderStore.GetAsync<OrderAggregate>(result.Order!.Id(), null, cancellationToken);
+		var savedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken);
+		var orderCount = await orderStore.CountAsync<OrderAggregate>(order => order.CustomerId == customer.Id(), cancellationToken);
 
 		await Assert.That(orderCount).IsEqualTo(1L);
 		await Assert.That(savedOrder).IsNotNull();
@@ -65,11 +65,11 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 						async hookCancellationToken =>
 						{
 							await using var hookScope = serviceProvider.CreateAsyncScope();
-							var inventoryStore = hookScope.ServiceProvider.GetRequiredService<IQueryableEventStore<InventoryAggregate>>();
-							var inventory = await inventoryStore.GetAsync(inventoryId, null, hookCancellationToken);
+							var inventoryStore = hookScope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+							var inventory = await inventoryStore.GetAsync<InventoryAggregate>(inventoryId, null, hookCancellationToken);
 
 							inventory!.ReserveStock(3, "concurrent-order");
-							await inventoryStore.SaveAsync(inventory, null, hookCancellationToken);
+							await inventoryStore.SaveAsync<InventoryAggregate>(inventory, null, hookCancellationToken);
 						}
 					)
 				);
@@ -80,9 +80,9 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 		var serviceProvider = scope.ServiceProvider;
 
 		var checkoutService = serviceProvider.GetRequiredService<ICartCheckoutService>();
-		var customerStore = serviceProvider.GetRequiredService<IQueryableEventStore<CustomerAggregate>>();
-		var inventoryStore = serviceProvider.GetRequiredService<IQueryableEventStore<InventoryAggregate>>();
-		var orderStore = serviceProvider.GetRequiredService<IQueryableEventStore<OrderAggregate>>();
+		var customerStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
+		var inventoryStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
+		var orderStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
 
 		var customer = await CreateCustomerAsync(customerStore, cancellationToken);
 		var inventory = await CreateInventoryAsync(inventoryStore, quantityOnHand: 10, cancellationToken);
@@ -95,8 +95,8 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 			cancellationToken
 		);
 
-		var orderCount = await orderStore.CountAsync(order => order.CustomerId == customer.Id(), cancellationToken);
-		var savedInventory = await inventoryStore.GetAsync(inventory.Id(), null, cancellationToken);
+		var orderCount = await orderStore.CountAsync<OrderAggregate>(order => order.CustomerId == customer.Id(), cancellationToken);
+		var savedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Nothing was saved");
@@ -119,24 +119,24 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 	}
 
 	static async Task<CustomerAggregate> CreateCustomerAsync(
-		IQueryableEventStore<CustomerAggregate> customerStore,
+		IQueryableEventStore customerStore,
 		CancellationToken cancellationToken
 	)
 	{
-		var customer = await customerStore.CreateAsync(null, cancellationToken);
+		var customer = await customerStore.CreateAsync<CustomerAggregate>(null, cancellationToken);
 		customer.RegisterCustomer($"Cart Test {Guid.NewGuid():N}", $"{Guid.NewGuid():N}@example.com");
 
-		var result = await customerStore.SaveAsync(customer, null, cancellationToken);
+		var result = await customerStore.SaveAsync<CustomerAggregate>(customer, null, cancellationToken);
 		return result.Aggregate;
 	}
 
 	static async Task<InventoryAggregate> CreateInventoryAsync(
-		IQueryableEventStore<InventoryAggregate> inventoryStore,
+		IQueryableEventStore inventoryStore,
 		int quantityOnHand,
 		CancellationToken cancellationToken
 	)
 	{
-		var inventory = await inventoryStore.CreateAsync(null, cancellationToken);
+		var inventory = await inventoryStore.CreateAsync<InventoryAggregate>(null, cancellationToken);
 		inventory.Initialize(
 			$"sku-{Guid.NewGuid():N}",
 			"Transactional Widget",
@@ -145,7 +145,7 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 			quantityOnHand
 		);
 
-		var result = await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		var result = await inventoryStore.SaveAsync<InventoryAggregate>(inventory, null, cancellationToken);
 		return result.Aggregate;
 	}
 
@@ -169,7 +169,14 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 
 		public void Enlist<T>(
 			T aggregate,
-			IEventStore<T> eventStore,
+			IEventStore eventStore,
+			EventStoreOperationContext? operationContext = null
+		)
+			where T : class, IAggregate, new() => innerTransaction.Enlist(aggregate, eventStore, operationContext);
+
+		public void Enlist<T>(
+			T aggregate,
+			IEventStoreImpl<T> eventStore,
 			EventStoreOperationContext? operationContext = null
 		)
 			where T : class, IAggregate, new() => innerTransaction.Enlist(aggregate, eventStore, operationContext);

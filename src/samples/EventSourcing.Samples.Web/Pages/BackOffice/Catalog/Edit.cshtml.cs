@@ -7,7 +7,7 @@ using Purview.EventSourcing.Samples.Web.Services;
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
 public sealed class EditModel(
-	IQueryableEventStore<InventoryAggregate> store,
+	IQueryableEventStore store,
 	IProductImageService imageService
 ) : EventSourcingPageModel
 {
@@ -16,14 +16,14 @@ public sealed class EditModel(
 
 	public async Task OnGetAsync(string id)
 	{
-		Item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		Item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (Item != null)
 			CurrentImageUrl = await imageService.GetImageUrlAsync(Item.ProductId, HttpContext.RequestAborted);
 	}
 
 	public async Task<IActionResult> OnPostUpdateProductNameAsync(string id, string productName)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -35,7 +35,7 @@ public sealed class EditModel(
 
 	public async Task<IActionResult> OnPostUpdateLocationNameAsync(string id, string locationName)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -53,7 +53,7 @@ public sealed class EditModel(
 			return RedirectToPage(new { id });
 		}
 
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
@@ -72,7 +72,7 @@ public sealed class EditModel(
 
 	public async Task<IActionResult> OnPostDeleteImageAsync(string id)
 	{
-		var item = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
 		if (item == null) return NotFound();
 
 		await imageService.DeleteImageAsync(item.ProductId, HttpContext.RequestAborted);
@@ -81,3 +81,4 @@ public sealed class EditModel(
 		return RedirectToPage(new { id });
 	}
 }
+

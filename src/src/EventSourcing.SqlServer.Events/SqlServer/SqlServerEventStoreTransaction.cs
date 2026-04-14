@@ -12,7 +12,30 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 
 	public string CorrelationId { get; } = correlationId ?? Guid.NewGuid().ToString();
 
-	public void Enlist<T>(T aggregate, IEventStore<T> eventStore, EventStoreOperationContext? operationContext = null)
+	public void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
+		where T : class, IAggregate, new()
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
+
+		if (_committed)
+			throw new InvalidOperationException("Cannot enlist aggregates after the transaction has been committed.");
+
+		ArgumentNullException.ThrowIfNull(aggregate);
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		var transactionalEventStore =
+			(eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>() as ITransactionalEventStore<T>;
+		if (transactionalEventStore is null)
+		{
+			throw new InvalidOperationException(
+				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
+			);
+		}
+
+		_enlisted.Add(new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext));
+	}
+
+	public void Enlist<T>(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext = null)
 		where T : class, IAggregate, new()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);

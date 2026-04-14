@@ -5,9 +5,7 @@ namespace Purview.EventSourcing.Samples.Services;
 
 public sealed class CartCheckoutService(
 	IEventStoreTransactionFactory transactionFactory,
-	IQueryableEventStore<OrderAggregate> orderStore,
-	IQueryableEventStore<InventoryAggregate> inventoryStore,
-	IQueryableEventStore<CustomerAggregate> customerStore
+	IQueryableEventStore store
 ) : ICartCheckoutService
 {
 	static readonly ConcurrentDictionary<string, decimal> _unitPrices = new(StringComparer.OrdinalIgnoreCase);
@@ -22,7 +20,7 @@ public sealed class CartCheckoutService(
 		if (items.Count == 0)
 			return CartCheckoutResult.Fail("Cart is empty.");
 
-		var customer = await customerStore.GetAsync(customerId, null, cancellationToken);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, cancellationToken);
 		if (customer is null || customer.Details.IsDeleted)
 			return CartCheckoutResult.Fail("Customer not found.");
 		if (!customer.IsActive)
@@ -33,7 +31,7 @@ public sealed class CartCheckoutService(
 		{
 			if (!inventoryReservations.TryGetValue(item.InventoryId, out var reservation))
 			{
-				var inventory = await inventoryStore.GetAsync(item.InventoryId, null, cancellationToken);
+				var inventory = await store.GetAsync<InventoryAggregate>(item.InventoryId, null, cancellationToken);
 				if (inventory is null || inventory.Details.IsDeleted)
 					return CartCheckoutResult.Fail($"Product '{item.ProductName}' is no longer available.");
 
@@ -53,7 +51,7 @@ public sealed class CartCheckoutService(
 			}
 		}
 
-		var order = await orderStore.CreateAsync(null, cancellationToken);
+		var order = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
 		order.CreateOrder(customerId);
 
 		foreach (var item in items)
@@ -72,10 +70,10 @@ public sealed class CartCheckoutService(
 			reservation.Aggregate.ReserveStock(reservation.Quantity, order.Id());
 
 		await using var transaction = transactionFactory.Create();
-		transaction.Enlist(order, orderStore);
+		transaction.Enlist(order, store);
 
 		foreach (var reservation in inventoryReservations.Values)
-			transaction.Enlist(reservation.Aggregate, inventoryStore);
+			transaction.Enlist(reservation.Aggregate, store);
 
 		var transactionResult = await transaction.CommitAsync(cancellationToken);
 		if (!transactionResult.Success)

@@ -4,9 +4,7 @@ using Purview.EventSourcing.Samples.Domain;
 namespace Purview.EventSourcing.Samples.Services;
 
 public sealed class OrderFulfillmentService(
-	IQueryableEventStore<OrderAggregate> orderStore,
-	IQueryableEventStore<InventoryAggregate> inventoryStore,
-	IQueryableEventStore<CustomerAggregate> customerStore
+	IQueryableEventStore store
 ) : IOrderFulfillmentService
 {
 	// Thread-safe price cache shared across all instances.
@@ -20,13 +18,13 @@ public sealed class OrderFulfillmentService(
 		CancellationToken cancellationToken = default
 	)
 	{
-		var customer = await customerStore.GetAsync(customerId, null, cancellationToken);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, cancellationToken);
 		if (customer is null || customer.Details.IsDeleted)
 			return FulfilmentResult.Fail("Customer not found.");
 		if (!customer.IsActive)
 			return FulfilmentResult.Fail($"Customer '{customer.Name}' is not active.");
 
-		var inventory = await inventoryStore.GetAsync(inventoryId, null, cancellationToken);
+		var inventory = await store.GetAsync<InventoryAggregate>(inventoryId, null, cancellationToken);
 		if (inventory is null || inventory.Details.IsDeleted)
 			return FulfilmentResult.Fail("Inventory item not found.");
 		if (inventory.AvailableQuantity < quantity)
@@ -37,14 +35,14 @@ public sealed class OrderFulfillmentService(
 		var unitPrice = GetUnitPrice(inventory.ProductId);
 
 		// Create and confirm the order.
-		var order = await orderStore.CreateAsync(null, cancellationToken);
+		var order = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
 		order.CreateOrder(customerId);
 		order.AddLineItem(inventory.ProductId, inventory.ProductName, quantity, unitPrice);
 		if (!string.IsNullOrWhiteSpace(shippingAddress))
 			order.SetShippingAddress(shippingAddress);
 		order.ConfirmOrder();
 
-		var orderSave = await orderStore.SaveAsync(order, null, cancellationToken);
+		var orderSave = await store.SaveAsync(order, null, cancellationToken);
 		if (!orderSave)
 			return FulfilmentResult.Fail("Failed to save order.");
 
@@ -52,11 +50,11 @@ public sealed class OrderFulfillmentService(
 
 		// Reserve stock — if this fails, compensate by cancelling the order.
 		inventory.ReserveStock(quantity, savedOrder.Id());
-		var inventorySave = await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		var inventorySave = await store.SaveAsync(inventory, null, cancellationToken);
 		if (!inventorySave)
 		{
 			savedOrder.CancelOrder();
-			await orderStore.SaveAsync(savedOrder, null, cancellationToken);
+			await store.SaveAsync(savedOrder, null, cancellationToken);
 			return FulfilmentResult.Fail("Failed to reserve inventory. Order has been cancelled.");
 		}
 

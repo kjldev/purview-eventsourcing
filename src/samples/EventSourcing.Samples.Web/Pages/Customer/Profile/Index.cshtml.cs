@@ -4,7 +4,7 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Profile;
 
-public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : EventSourcingPageModel
+public sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 {
 	public CustomerAggregate? CurrentCustomer { get; private set; }
 
@@ -14,7 +14,7 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		CurrentCustomer = await store.GetAsync(customerId, null, HttpContext.RequestAborted);
+		CurrentCustomer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
 		return Page();
 	}
 
@@ -25,7 +25,7 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 
 		if (string.IsNullOrWhiteSpace(newName)) { TempData["Error"] = "Name cannot be empty."; return RedirectToPage(); }
 
-		var customer = await store.GetAsync(customerId, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -40,7 +40,7 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var customer = await store.GetAsync(customerId, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -55,7 +55,7 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
 
-		var customer = await store.GetAsync(customerId, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -73,7 +73,7 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 		if (string.IsNullOrWhiteSpace(newName)) { TempData["Error"] = "Name cannot be empty."; return RedirectToPage(); }
 		if (string.IsNullOrWhiteSpace(newEmail)) { TempData["Error"] = "Email cannot be empty."; return RedirectToPage(); }
 
-		var customer = await store.GetAsync(customerId, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -91,3 +91,4 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 		);
 	}
 }
+

@@ -34,7 +34,9 @@ public static class EventStoreServiceICollectionExtensions
 
 	public static IServiceCollection AddNullQueryableEventStore(this IServiceCollection services)
 	{
-		services.AddTransient(typeof(IQueryableEventStore<>), typeof(NullQueryableEventStore<>));
+		services
+			.AddTransient(typeof(IQueryableEventStoreImpl<>), typeof(NullQueryableEventStore<>))
+			.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		return services;
 	}

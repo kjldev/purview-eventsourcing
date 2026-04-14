@@ -8,8 +8,8 @@ namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Catalog;
 
 public sealed class OrderModel(
 	IOrderFulfillmentService fulfillmentService,
-	IQueryableEventStore<CustomerAggregate> customerStore,
-	IQueryableEventStore<InventoryAggregate> inventoryStore
+	IQueryableEventStore customerStore,
+	IQueryableEventStore inventoryStore
 ) : PageModel
 {
 	[BindProperty(SupportsGet = true)] public string InventoryId { get; set; } = string.Empty;
@@ -27,8 +27,8 @@ public sealed class OrderModel(
 			return RedirectToPage("/Customer/Index");
 
 		var ct = HttpContext.RequestAborted;
-		CurrentCustomer = await customerStore.GetAsync(customerId, null, ct);
-		InventoryItem = await inventoryStore.GetAsync(InventoryId, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
+		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, null, ct);
 
 		if (InventoryItem != null)
 			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
@@ -75,9 +75,10 @@ public sealed class OrderModel(
 
 	async Task ReloadAsync(string customerId, CancellationToken ct)
 	{
-		CurrentCustomer = await customerStore.GetAsync(customerId, null, ct);
-		InventoryItem = await inventoryStore.GetAsync(InventoryId, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
+		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, null, ct);
 		if (InventoryItem != null)
 			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
 	}
 }
+

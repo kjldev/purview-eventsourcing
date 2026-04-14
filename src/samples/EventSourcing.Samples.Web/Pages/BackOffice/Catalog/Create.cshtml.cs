@@ -5,7 +5,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class CreateModel(IQueryableEventStore<InventoryAggregate> store) : PageModel
+public sealed class CreateModel(IQueryableEventStore store) : PageModel
 {
 	[BindProperty, Required, MaxLength(200)]
 	public string ProductId { get; set; } = string.Empty;
@@ -27,7 +27,7 @@ public sealed class CreateModel(IQueryableEventStore<InventoryAggregate> store) 
 		if (!ModelState.IsValid)
 			return Page();
 
-		var item = await store.CreateAsync(cancellationToken: HttpContext.RequestAborted);
+		var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: HttpContext.RequestAborted);
 		item.Initialize(ProductId.Trim(), ProductName.Trim(), LocationId.Trim(), LocationName.Trim(), InitialQuantity);
 		await store.SaveAsync(item, null, HttpContext.RequestAborted);
 
@@ -35,3 +35,4 @@ public sealed class CreateModel(IQueryableEventStore<InventoryAggregate> store) 
 		return RedirectToPage("Index");
 	}
 }
+

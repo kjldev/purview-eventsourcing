@@ -3,9 +3,7 @@ using Purview.EventSourcing.Samples.Domain;
 namespace Purview.EventSourcing.Samples.Services;
 
 public sealed class SeedDataService(
-	IQueryableEventStore<CustomerAggregate> customerStore,
-	IQueryableEventStore<InventoryAggregate> inventoryStore,
-	IQueryableEventStore<OrderAggregate> orderStore
+	IQueryableEventStore store
 ) : ISeedDataService
 {
 	static readonly string[] _firstNames =
@@ -76,7 +74,7 @@ public sealed class SeedDataService(
 
 	public async Task SeedAsync(CancellationToken cancellationToken = default)
 	{
-		var customerCount = await customerStore.CountAsync(null, cancellationToken);
+		var customerCount = await store.CountAsync<CustomerAggregate>(null, cancellationToken);
 		if (customerCount > 0)
 			return;
 
@@ -97,7 +95,7 @@ public sealed class SeedDataService(
 			var email = $"{first.ToLowerInvariant()}.{last.ToLowerInvariant()}@example.com";
 			var phone = phones[i % phones.Length];
 
-			var customer = await customerStore.CreateAsync(null, cancellationToken);
+			var customer = await store.CreateAsync<CustomerAggregate>(null, cancellationToken);
 			customer.RegisterCustomer($"{first} {last}", email);
 			if (phone is not null)
 				customer.ChangePhoneNumber(phone);
@@ -106,7 +104,7 @@ public sealed class SeedDataService(
 			if (i is 5 or 12 or 21)
 				customer.Deactivate();
 
-			var result = await customerStore.SaveAsync(customer, null, cancellationToken);
+			var result = await store.SaveAsync(customer, null, cancellationToken);
 			ids.Add(result.Aggregate.Id());
 		}
 
@@ -122,10 +120,10 @@ public sealed class SeedDataService(
 			var (productId, productName, initialQty, _) = _products[i];
 			var (locationId, locationName) = _locations[i % _locations.Length];
 
-			var item = await inventoryStore.CreateAsync(null, cancellationToken);
+			var item = await store.CreateAsync<InventoryAggregate>(null, cancellationToken);
 			item.Initialize(productId, productName, locationId, locationName, initialQty);
 
-			var result = await inventoryStore.SaveAsync(item, null, cancellationToken);
+			var result = await store.SaveAsync(item, null, cancellationToken);
 			ids.Add((result.Aggregate.Id(), i));
 		}
 
@@ -150,7 +148,7 @@ public sealed class SeedDataService(
 			var qty = rng.Next(1, 5);
 			var address = _addresses[i % _addresses.Length];
 
-			var order = await orderStore.CreateAsync(null, cancellationToken);
+			var order = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
 			order.CreateOrder(customerId);
 			order.AddLineItem(productId, productName, qty, unitPrice);
 			order.SetShippingAddress(address);
@@ -163,16 +161,16 @@ public sealed class SeedDataService(
 			if (stage == 4)
 			{
 				// Already completed above; create a separate cancelled one.
-				var cancelled = await orderStore.CreateAsync(null, cancellationToken);
+				var cancelled = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
 				cancelled.CreateOrder(customerId);
 				cancelled.AddLineItem(productId, productName, 1, unitPrice);
 				cancelled.SetShippingAddress(address);
 				cancelled.ConfirmOrder();
 				cancelled.CancelOrder();
-				await orderStore.SaveAsync(cancelled, null, cancellationToken);
+				await store.SaveAsync(cancelled, null, cancellationToken);
 			}
 
-			await orderStore.SaveAsync(order, null, cancellationToken);
+			await store.SaveAsync(order, null, cancellationToken);
 		}
 	}
 }

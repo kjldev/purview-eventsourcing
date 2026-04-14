@@ -5,7 +5,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
-public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : PageModel
+public sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -54,17 +54,17 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 			_ => q => q.OrderBy(c => c.Name)
 		};
 
-		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);
+		TotalCount = await store.CountAsync<CustomerAggregate>(hasFilter ? where : null, ct);
 
 		var result = hasFilter
-			? await store.QueryAsync(where, orderBy, request, ct)
-			: await store.ListAsync(orderBy, request, ct);
+			? await store.QueryAsync<CustomerAggregate>(where, orderBy, request, ct)
+			: await store.ListAsync<CustomerAggregate>(orderBy, request, ct);
 		Customers = result.Results;
 	}
 
 	public async Task<IActionResult> OnPostArchiveAsync(string id)
 	{
-		var customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 		if (customer != null)
 		{
 			await store.DeleteAsync(customer, null, HttpContext.RequestAborted);
@@ -80,3 +80,4 @@ public sealed class IndexModel(IQueryableEventStore<CustomerAggregate> store) : 
 	public string SortIcon(string column) =>
 		SortBy != column ? "↕" : SortDir == "asc" ? "↑" : "↓";
 }
+

@@ -22,9 +22,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 50);
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.ProductId).IsEqualTo("prod-1");
@@ -41,9 +41,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReserveStock(15, "order-1");
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.QuantityOnHand).IsEqualTo(100);
@@ -60,9 +60,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReceiveStock(50);
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.QuantityOnHand).IsEqualTo(140);
@@ -78,9 +78,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.AdjustStock(20, "Physical count"); // reserves capped to 20
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.QuantityOnHand).IsEqualTo(20);
@@ -96,9 +96,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReleaseReservation(25, "order-3");
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.ReservedQuantity).IsEqualTo(0);
@@ -117,9 +117,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReserveStock(10, "order-x");                             // v3
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Details.SavedVersion).IsEqualTo(3);
@@ -138,9 +138,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReceiveStock(50);                       // v2
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var atV1 = await store.GetAtAsync(id, 1, cancellationToken);
+		var atV1 = await store.GetAtAsync<InventoryAggregate>(id, 1, null, cancellationToken);
 
 		await Assert.That(atV1).IsNotNull();
 		await Assert.That(atV1!.QuantityOnHand).IsEqualTo(100);
@@ -160,9 +160,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReceiveStock(100);
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>(snapshotRecalculationInterval: int.MaxValue);
-		await store.SaveAsync(inv, cancellationToken);
+		await store.SaveAsync(inv, null, cancellationToken);
 
-		var loaded = await store.GetAsync(inv.Id(), cancellationToken);
+		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.QuantityOnHand).IsEqualTo(250);

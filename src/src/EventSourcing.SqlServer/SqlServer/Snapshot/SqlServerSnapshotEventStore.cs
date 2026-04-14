@@ -7,7 +7,7 @@ namespace Purview.EventSourcing.SqlServer.Snapshot;
 public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotEventStore<T>, ITransactionalEventStore<T>, IDisposable
 	where T : class, IAggregate, new()
 {
-	readonly IEventStore<T> _eventStore;
+	readonly IEventStoreImpl<T> _eventStore;
 	readonly IOptions<SqlServerSnapshotEventStoreOptions> _sqlServerEventStoreOptions;
 	readonly ISqlServerSnapshotEventStoreTelemetry _telemetry;
 

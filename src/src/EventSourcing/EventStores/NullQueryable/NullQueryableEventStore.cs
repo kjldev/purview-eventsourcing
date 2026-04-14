@@ -5,10 +5,10 @@ using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.EventStores.NullQueryable;
 
-sealed class NullQueryableEventStore<T>(INonQueryableEventStore<T> eventStore) : IQueryableEventStore<T>
+sealed class NullQueryableEventStore<T>(INonQueryableEventStore<T> eventStore) : IQueryableEventStoreImpl<T>
 	where T : class, IAggregate, new()
 {
-	readonly IEventStore<T> _eventStore = eventStore;
+	readonly IEventStoreImpl<T> _eventStore = eventStore;
 
 	public T FulfilRequirements(T aggregate) => _eventStore.FulfilRequirements(aggregate);
 

@@ -6,8 +6,8 @@ using Purview.EventSourcing.Samples.Domain;
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
 
 public sealed class IndexModel(
-	IQueryableEventStore<CustomerAggregate> customerStore,
-	IQueryableEventStore<OrderAggregate> orderStore
+	IQueryableEventStore customerStore,
+	IQueryableEventStore orderStore
 ) : PageModel
 {
 	const int DefaultPageSize = 15;
@@ -32,7 +32,7 @@ public sealed class IndexModel(
 		if (PageSize < 5 || PageSize > 100) PageSize = DefaultPageSize;
 
 		var ct = HttpContext.RequestAborted;
-		CurrentCustomer = await customerStore.GetAsync(customerId, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
 
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
@@ -42,9 +42,9 @@ public sealed class IndexModel(
 		};
 
 		Expression<Func<OrderAggregate, bool>> where = o => o.CustomerId == customerId;
-		TotalCount = await orderStore.CountAsync(where, ct);
+		TotalCount = await orderStore.CountAsync<OrderAggregate>(where, ct);
 
-		var result = await orderStore.QueryAsync(
+		var result = await orderStore.QueryAsync<OrderAggregate>(
 			where,
 			q => q.OrderByDescending(o => o.Details.SavedVersion),
 			request, ct
@@ -54,3 +54,4 @@ public sealed class IndexModel(
 		return Page();
 	}
 }
+

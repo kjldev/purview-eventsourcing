@@ -21,8 +21,8 @@ public sealed class StockTransferServiceTests
 	static SaveResult<T> FailResult<T>(T aggregate) where T : class, IAggregate, new() =>
 		new(aggregate, new ValidationResult([new ValidationFailure("field", "Save failed")]), saved: false, skipped: false);
 
-	StockTransferService CreateService(IQueryableEventStore<InventoryAggregate>? store = null) =>
-		new(store ?? Substitute.For<IQueryableEventStore<InventoryAggregate>>());
+	StockTransferService CreateService(IQueryableEventStore? store = null) =>
+		new(store ?? Substitute.For<IQueryableEventStore>());
 
 	[Test]
 	public async Task TransferAsync_GivenSameSourceAndDestination_ReturnsFail(CancellationToken cancellationToken)
@@ -36,8 +36,8 @@ public sealed class StockTransferServiceTests
 	[Test]
 	public async Task TransferAsync_GivenNullSource_ReturnsFail(CancellationToken cancellationToken)
 	{
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
 
 		var result = await CreateService(store).TransferAsync("missing", "inv-2", 5, "test", cancellationToken);
 
@@ -49,9 +49,9 @@ public sealed class StockTransferServiceTests
 	public async Task TransferAsync_GivenNullDestination_ReturnsFail(CancellationToken cancellationToken)
 	{
 		var source = StockedItem("inv-1", "Warehouse North", 100);
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
 
 		var result = await CreateService(store).TransferAsync("inv-1", "missing", 5, "test", cancellationToken);
 
@@ -65,9 +65,9 @@ public sealed class StockTransferServiceTests
 		var source = StockedItem("inv-1", "Warehouse North", 100, productId: "SKU-001");
 		var dest = StockedItem("inv-2", "Warehouse South", 0, productId: "SKU-002");
 
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("inv-2", null, cancellationToken).Returns(dest);
 
 		var result = await CreateService(store).TransferAsync("inv-1", "inv-2", 5, "test", cancellationToken);
 
@@ -81,9 +81,9 @@ public sealed class StockTransferServiceTests
 		var source = StockedItem("inv-1", "Warehouse North", 3);
 		var dest = StockedItem("inv-2", "Warehouse South", 0);
 
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("inv-2", null, cancellationToken).Returns(dest);
 
 		var result = await CreateService(store).TransferAsync("inv-1", "inv-2", 10, "test", cancellationToken);
 
@@ -97,10 +97,10 @@ public sealed class StockTransferServiceTests
 		var source = StockedItem("inv-1", "Warehouse North", 100);
 		var dest = StockedItem("inv-2", "Warehouse South", 20);
 
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
-		store.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("inv-2", null, cancellationToken).Returns(dest);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(callInfo => SuccessResult((InventoryAggregate)callInfo[0]));
 
 		var result = await CreateService(store).TransferAsync("inv-1", "inv-2", 15, "rebalance", cancellationToken);
@@ -115,10 +115,10 @@ public sealed class StockTransferServiceTests
 		var source = StockedItem("inv-1", "Warehouse North", 100);
 		var dest = StockedItem("inv-2", "Warehouse South", 20);
 
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
-		store.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("inv-2", null, cancellationToken).Returns(dest);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(callInfo => SuccessResult((InventoryAggregate)callInfo[0]));
 
 		await CreateService(store).TransferAsync("inv-1", "inv-2", 15, "rebalance", cancellationToken);
@@ -133,17 +133,17 @@ public sealed class StockTransferServiceTests
 		var source = StockedItem("inv-1", "Warehouse North", 100);
 		var dest = StockedItem("inv-2", "Warehouse South", 0);
 
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
-		store.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("inv-2", null, cancellationToken).Returns(dest);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(FailResult(source));
 
 		var result = await CreateService(store).TransferAsync("inv-1", "inv-2", 10, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		// Destination should never be saved — compensation not needed
-		await store.Received(1).SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken);
+		await store.Received(1).SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken);
 	}
 
 	[Test]
@@ -153,10 +153,10 @@ public sealed class StockTransferServiceTests
 		var dest = StockedItem("inv-2", "Warehouse South", 0);
 		var callCount = 0;
 
-		var store = Substitute.For<IQueryableEventStore<InventoryAggregate>>();
-		store.GetAsync("inv-1", null, cancellationToken).Returns(source);
-		store.GetAsync("inv-2", null, cancellationToken).Returns(dest);
-		store.SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken)
+		var store = Substitute.For<IQueryableEventStore>();
+		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
+		store.GetAsync<InventoryAggregate>("inv-2", null, cancellationToken).Returns(dest);
+		store.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
 			.Returns(callInfo =>
 			{
 				callCount++;
@@ -170,7 +170,7 @@ public sealed class StockTransferServiceTests
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("restored");
 		// 3 saves: source, destination (fail), compensation
-		await store.Received(3).SaveAsync(Arg.Any<InventoryAggregate>(), null, cancellationToken);
+		await store.Received(3).SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken);
 		// Source should be back to its original quantity
 		await Assert.That(source.QuantityOnHand).IsEqualTo(100);
 	}

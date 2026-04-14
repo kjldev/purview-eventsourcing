@@ -4,20 +4,20 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
-public sealed class EditModel(IQueryableEventStore<CustomerAggregate> store) : EventSourcingPageModel
+public sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 {
 	public CustomerAggregate? Customer { get; private set; }
 
 	public async Task OnGetAsync(string id)
 	{
-		Customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		Customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 	}
 
 	public async Task<IActionResult> OnPostChangeNameAsync(string id, string newName)
 	{
 		if (string.IsNullOrWhiteSpace(newName)) { TempData["Error"] = "Name cannot be empty."; return RedirectToPage(new { id }); }
 
-		var customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -29,7 +29,7 @@ public sealed class EditModel(IQueryableEventStore<CustomerAggregate> store) : E
 
 	public async Task<IActionResult> OnPostChangeEmailAsync(string id, string newEmail)
 	{
-		var customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -41,7 +41,7 @@ public sealed class EditModel(IQueryableEventStore<CustomerAggregate> store) : E
 
 	public async Task<IActionResult> OnPostChangePhoneAsync(string id, string? phoneNumber)
 	{
-		var customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -53,7 +53,7 @@ public sealed class EditModel(IQueryableEventStore<CustomerAggregate> store) : E
 
 	public async Task<IActionResult> OnPostDeactivateAsync(string id)
 	{
-		var customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -65,7 +65,7 @@ public sealed class EditModel(IQueryableEventStore<CustomerAggregate> store) : E
 
 	public async Task<IActionResult> OnPostReactivateAsync(string id)
 	{
-		var customer = await store.GetAsync(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
 		if (customer == null) return NotFound();
 
 		return await TrySaveAsync(
@@ -75,3 +75,4 @@ public sealed class EditModel(IQueryableEventStore<CustomerAggregate> store) : E
 		);
 	}
 }
+

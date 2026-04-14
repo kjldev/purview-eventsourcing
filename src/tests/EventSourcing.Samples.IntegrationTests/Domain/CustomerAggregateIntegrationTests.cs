@@ -17,9 +17,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Name).IsEqualTo("Jane Smith");
@@ -38,9 +38,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.ChangePhoneNumber("+1-555-0199");
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.PhoneNumber).IsEqualTo("+1-555-0199");
@@ -57,9 +57,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.ChangeEmail("v3@test.com");
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Email).IsEqualTo("v3@test.com");
@@ -75,9 +75,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Deactivate();
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.IsActive).IsFalse();
@@ -94,9 +94,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Reactivate();
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.IsActive).IsTrue();
@@ -117,9 +117,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.ChangePhoneNumber("+44-20-0000-0001");       // v3
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Details.SavedVersion).IsEqualTo(3);
@@ -139,10 +139,10 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.RegisterCustomer("Frank", "frank@test.com");
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
-		await store.DeleteAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
+		await store.DeleteAsync(customer, null, cancellationToken);
 
-		var isDeleted = await store.IsDeletedAsync(id, cancellationToken);
+		var isDeleted = await store.IsDeletedAsync<CustomerAggregate>(id, cancellationToken);
 
 		await Assert.That(isDeleted).IsTrue();
 	}
@@ -156,17 +156,17 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.RegisterCustomer("Grace", "grace@test.com");
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
-		await store.DeleteAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
+		await store.DeleteAsync(customer, null, cancellationToken);
 
-		var deleted = await store.GetDeletedAsync(id, cancellationToken);
-		await store.RestoreAsync(deleted!, cancellationToken);
+		var deleted = await store.GetDeletedAsync<CustomerAggregate>(id, cancellationToken);
+		await store.RestoreAsync(deleted!, null, cancellationToken);
 
-		var restored = await store.GetAsync(id, cancellationToken);
+		var restored = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(restored).IsNotNull();
 		await Assert.That(restored!.Name).IsEqualTo("Grace");
-		await Assert.That(await store.IsDeletedAsync(id, cancellationToken)).IsFalse();
+		await Assert.That(await store.IsDeletedAsync<CustomerAggregate>(id, cancellationToken)).IsFalse();
 	}
 
 	#endregion
@@ -183,9 +183,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.ChangeEmail("updated@test.com");                 // v2
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var atVersion1 = await store.GetAtAsync(id, 1, cancellationToken);
+		var atVersion1 = await store.GetAtAsync<CustomerAggregate>(id, 1, null, cancellationToken);
 
 		await Assert.That(atVersion1).IsNotNull();
 		await Assert.That(atVersion1!.Email).IsEqualTo("original@test.com");
@@ -208,9 +208,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 
 		// Use a very high snapshot interval to force pure event replay
 		using var store = fixture.CreateEventStore<CustomerAggregate>(snapshotRecalculationInterval: int.MaxValue);
-		await store.SaveAsync(customer, cancellationToken);
+		await store.SaveAsync(customer, null, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Name).IsEqualTo("Ivan");

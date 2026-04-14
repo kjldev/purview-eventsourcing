@@ -17,8 +17,8 @@ public sealed record CatalogProductViewModel(
 	string? ImageUrl);
 
 public sealed class IndexModel(
-	IQueryableEventStore<CustomerAggregate> customerStore,
-	IQueryableEventStore<InventoryAggregate> inventoryStore,
+	IQueryableEventStore customerStore,
+	IQueryableEventStore inventoryStore,
 	IProductImageService imageService
 ) : PageModel
 {
@@ -35,10 +35,10 @@ public sealed class IndexModel(
 			return RedirectToPage("/Customer/Index");
 
 		var ct = HttpContext.RequestAborted;
-		CurrentCustomer = await customerStore.GetAsync(customerId, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
 
 		var request = new ContinuationRequest { MaxRecords = 500 };
-		var inventoryResult = await inventoryStore.ListAsync(q => q.OrderBy(i => i.ProductName), request, ct);
+		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(q => q.OrderBy(i => i.ProductName), request, ct);
 		var allItems = inventoryResult.Results;
 
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
@@ -90,3 +90,4 @@ public sealed class IndexModel(
 		return RedirectToPage();
 	}
 }
+

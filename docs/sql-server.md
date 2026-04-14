@@ -55,14 +55,14 @@ builder.Services.AddSqlServerEventStore();
 }
 ```
 
-Inject `IEventStore<T>` or `ISqlServerEventStore<T>` in your services:
+Inject `IEventStore` for the provider-agnostic facade, or `ISqlServerEventStore<T>` when you need the typed SQL Server implementation directly:
 
 ```csharp
-public class OrderService(ISqlServerEventStore<OrderAggregate> store)
+public class OrderService(IEventStore store)
 {
     public async Task PlaceOrderAsync(string orderId, string customerId)
     {
-        var order = await store.GetOrCreateAsync(orderId);
+        var order = await store.GetOrCreateAsync<OrderAggregate>(orderId);
         order.CreateOrder(customerId, 0m);
         await store.SaveAsync(order);
     }

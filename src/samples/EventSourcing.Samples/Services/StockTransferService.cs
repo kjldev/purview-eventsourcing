@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.Samples.Services;
 /// with automatic rollback if the destination save fails.
 /// </summary>
 public sealed class StockTransferService(
-	IQueryableEventStore<InventoryAggregate> inventoryStore
+	IQueryableEventStore store
 ) : IStockTransferService
 {
 	public async Task<StockTransferResult> TransferAsync(
@@ -27,11 +27,11 @@ public sealed class StockTransferService(
 		if (string.Equals(sourceLocationId, destinationLocationId, StringComparison.OrdinalIgnoreCase))
 			return StockTransferResult.Fail("Source and destination locations must be different.");
 
-		var source = await inventoryStore.GetAsync(sourceLocationId, null, cancellationToken);
+		var source = await store.GetAsync<InventoryAggregate>(sourceLocationId, null, cancellationToken);
 		if (source is null || source.Details.IsDeleted)
 			return StockTransferResult.Fail("Source location not found.");
 
-		var destination = await inventoryStore.GetAsync(destinationLocationId, null, cancellationToken);
+		var destination = await store.GetAsync<InventoryAggregate>(destinationLocationId, null, cancellationToken);
 		if (destination is null || destination.Details.IsDeleted)
 			return StockTransferResult.Fail("Destination location not found.");
 
@@ -52,7 +52,7 @@ public sealed class StockTransferService(
 		var previousSourceQty = source.QuantityOnHand;
 		source.AdjustStock(source.QuantityOnHand - quantity, $"Transfer to {destination.LocationName}: {reason}");
 
-		var sourceSave = await inventoryStore.SaveAsync(source, null, cancellationToken);
+		var sourceSave = await store.SaveAsync(source, null, cancellationToken);
 		if (!sourceSave)
 			return StockTransferResult.Fail($"Failed to save source location '{source.LocationName}'.");
 
@@ -60,12 +60,12 @@ public sealed class StockTransferService(
 
 		// Step 2 — add to destination; compensate if save fails.
 		destination.ReceiveStock(quantity);
-		var destinationSave = await inventoryStore.SaveAsync(destination, null, cancellationToken);
+		var destinationSave = await store.SaveAsync(destination, null, cancellationToken);
 		if (!destinationSave)
 		{
 			// Compensate: restore source stock before returning failure.
 			savedSource.AdjustStock(previousSourceQty, $"Compensation rollback: failed transfer to {destination.LocationName}");
-			await inventoryStore.SaveAsync(savedSource, null, cancellationToken);
+			await store.SaveAsync(savedSource, null, cancellationToken);
 
 			return StockTransferResult.Fail(
 				$"Failed to save destination location '{destination.LocationName}'. " +

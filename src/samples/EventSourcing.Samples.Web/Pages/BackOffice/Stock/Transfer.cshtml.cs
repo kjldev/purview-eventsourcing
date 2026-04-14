@@ -9,7 +9,7 @@ namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
 public sealed class TransferModel(
 	IStockTransferService transferService,
-	IQueryableEventStore<InventoryAggregate> inventoryStore
+	IQueryableEventStore inventoryStore
 ) : PageModel
 {
 	[BindProperty] public string SourceId { get; set; } = string.Empty;
@@ -74,7 +74,7 @@ public sealed class TransferModel(
 	async Task LoadDropdownsAsync(CancellationToken ct)
 	{
 		var request = new ContinuationRequest { MaxRecords = 500 };
-		var result = await inventoryStore.QueryAsync(
+		var result = await inventoryStore.QueryAsync<InventoryAggregate>(
 			_ => true,
 			q => q.OrderBy(i => i.ProductName),
 			request, ct
@@ -87,3 +87,4 @@ public sealed class TransferModel(
 			.ToList();
 	}
 }
+
