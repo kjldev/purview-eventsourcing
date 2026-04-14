@@ -61,8 +61,8 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 		_aggregateChangeNotifier = aggregateChangeNotifier;
 		_aggregateRequirementsManager = aggregateRequirementsManager;
 		_eventUpcasterRegistry = eventUpcasterRegistry;
-		_snapshotStrategy = snapshotStrategy
-			?? new IntervalSnapshotStrategy<T>(sqlServerOptions.Value.SnapshotInterval);
+		_snapshotStrategy =
+			snapshotStrategy ?? new IntervalSnapshotStrategy<T>(sqlServerOptions.Value.SnapshotInterval);
 
 		_aggregateTypeShortName = typeof(T).Name;
 		_aggregateTypeFullName = typeof(T).FullName ?? _aggregateTypeShortName;
@@ -110,9 +110,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
 			}
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch (Exception ex)
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 		}
@@ -222,9 +222,9 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 				);
 			}
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch (Exception ex)
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, ex);
 		}
@@ -260,7 +260,7 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 
 	string CreateSnapshotId(string aggregateId) => $"snap_{_aggregateTypeShortName}_{aggregateId}";
 
-	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerInvariant();
+	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToUpperInvariant();
 
 	async Task EnsureConfiguredAsync(CancellationToken cancellationToken)
 	{
@@ -277,28 +277,24 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 	/// </summary>
 	static SqlServerEventStoreOptions ResolveClientOptions(SqlServerEventStoreOptions options, string aggregateTypeName)
 	{
-		if (!options.AggregateTableOverrides.TryGetValue(aggregateTypeName, out var ovr) || ovr is null)
-			return options;
-
-		if (ovr.SchemaName is null && ovr.TableName is null)
-			return options;
-
-		return new SqlServerEventStoreOptions
-		{
-			ConnectionString = options.ConnectionString,
-			SchemaName = ovr.SchemaName ?? options.SchemaName,
-			TableName = ovr.TableName ?? options.TableName,
-			AutoCreateTable = options.AutoCreateTable,
-			UseDataCompression = options.UseDataCompression,
-			TimeoutInSeconds = options.TimeoutInSeconds,
-			MaxEventCountOnSave = options.MaxEventCountOnSave,
-			SnapshotInterval = options.SnapshotInterval,
-			RemoveDeletedFromCache = options.RemoveDeletedFromCache,
-			EventSuffixLength = options.EventSuffixLength,
-			CacheMode = options.CacheMode,
-			DefaultCacheSlidingDuration = options.DefaultCacheSlidingDuration,
-			RequiresValidPrincipalIdentifier = options.RequiresValidPrincipalIdentifier,
-		};
+		return !options.AggregateTableOverrides.TryGetValue(aggregateTypeName, out var ovr) || ovr is null ? options
+			: ovr.SchemaName is null && ovr.TableName is null ? options
+			: new SqlServerEventStoreOptions
+			{
+				ConnectionString = options.ConnectionString,
+				SchemaName = ovr.SchemaName ?? options.SchemaName,
+				TableName = ovr.TableName ?? options.TableName,
+				AutoCreateTable = options.AutoCreateTable,
+				UseDataCompression = options.UseDataCompression,
+				TimeoutInSeconds = options.TimeoutInSeconds,
+				MaxEventCountOnSave = options.MaxEventCountOnSave,
+				SnapshotInterval = options.SnapshotInterval,
+				RemoveDeletedFromCache = options.RemoveDeletedFromCache,
+				EventSuffixLength = options.EventSuffixLength,
+				CacheMode = options.CacheMode,
+				DefaultCacheSlidingDuration = options.DefaultCacheSlidingDuration,
+				RequiresValidPrincipalIdentifier = options.RequiresValidPrincipalIdentifier,
+			};
 	}
 
 	public void Dispose()

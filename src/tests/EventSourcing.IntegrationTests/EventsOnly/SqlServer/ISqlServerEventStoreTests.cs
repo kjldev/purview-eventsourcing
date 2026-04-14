@@ -5,8 +5,13 @@ public interface ISqlServerEventStoreTests
 	Task DeleteAsync_GivenAggregateExists_PermanentlyDeletesAllData(CancellationToken cancellationToken);
 	Task DeleteAsync_GivenDelete_NotifiesChangeFeed(CancellationToken cancellationToken);
 	Task DeleteAsync_GivenPreviouslySavedAggregate_MarksAsDeleted(CancellationToken cancellationToken);
-	Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(CancellationToken cancellationToken);
-	Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount, CancellationToken cancellationToken);
+	Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(
+		CancellationToken cancellationToken
+	);
+	Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(
+		int aggregateCount,
+		CancellationToken cancellationToken
+	);
 	Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(
 		int nonDeletedAggregateIdCount,
 		int deletedAggregateIdCount,
@@ -17,10 +22,21 @@ public interface ISqlServerEventStoreTests
 		int deletedAggregateIdCount,
 		CancellationToken cancellationToken
 	);
-	Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(CancellationToken cancellationToken);
-	Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken);
-	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken);
-	Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(int previousEventsToCreate, CancellationToken cancellationToken);
+	Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(
+		CancellationToken cancellationToken
+	);
+	Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
+	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
+	Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(
+		int previousEventsToCreate,
+		CancellationToken cancellationToken
+	);
 	Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate(CancellationToken cancellationToken);
 	Task GetEventRangeAsync_GivenARequestedRangeOfEvents_EventsAreReturnsInCorrectOrder(
 		int eventsToCreate,
@@ -39,8 +55,13 @@ public interface ISqlServerEventStoreTests
 	Task IsDeletedAsync_GivenDeletedAggregates_ReturnsTrue(CancellationToken cancellationToken);
 	Task IsDeletedAsync_GivenNonDeletedAggregates_ReturnsFalse(CancellationToken cancellationToken);
 	Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(CancellationToken cancellationToken);
-	Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(int eventsToCreate, CancellationToken cancellationToken);
-	Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(CancellationToken cancellationToken);
+	Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
+	Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(
+		CancellationToken cancellationToken
+	);
 	Task SaveAsync_GivenAggregateWithNoChanges_DoesNotNotifyChangeFeed(CancellationToken cancellationToken);
 	Task SaveAsync_GivenAggregateWithNoChanges_DoesNotSave(CancellationToken cancellationToken);
 	Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(CancellationToken cancellationToken);

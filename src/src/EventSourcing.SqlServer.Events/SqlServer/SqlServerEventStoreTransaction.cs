@@ -4,18 +4,13 @@ using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.SqlServer;
 
-sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
+sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEventStoreTransaction
 {
 	readonly List<IEnlistedAggregate> _enlisted = [];
 	bool _committed;
 	bool _disposed;
 
-	public SqlServerEventStoreTransaction(string? correlationId = null)
-	{
-		CorrelationId = correlationId ?? Guid.NewGuid().ToString();
-	}
-
-	public string CorrelationId { get; }
+	public string CorrelationId { get; } = correlationId ?? Guid.NewGuid().ToString();
 
 	public void Enlist<T>(T aggregate, IEventStore<T> eventStore, EventStoreOperationContext? operationContext = null)
 		where T : class, IAggregate, new()
@@ -31,7 +26,8 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 		if (eventStore is not ITransactionalEventStore<T> transactionalEventStore)
 		{
 			throw new InvalidOperationException(
-				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions.");
+				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
+			);
 		}
 
 		_enlisted.Add(new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext));
@@ -57,7 +53,7 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 
 		await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-		var processed = new List<IProcessedSaveOperation>(_enlisted.Count);
+		List<IProcessedSaveOperation> processed = new(_enlisted.Count);
 		IEnlistedAggregate? failedEnlisted = null;
 		Exception? failure = null;
 
@@ -92,7 +88,7 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 		{
 			await transaction.CommitAsync(cancellationToken);
 
-			var committedResults = new List<TransactionResult.AggregateResult>(processed.Count);
+			List<TransactionResult.AggregateResult> committedResults = new(processed.Count);
 			foreach (var operation in processed)
 			{
 				Exception? postCommitError = null;
@@ -105,12 +101,7 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 					postCommitError = ex;
 				}
 
-				committedResults.Add(new TransactionResult.AggregateResult(
-					operation.Aggregate,
-					operation.Saved,
-					operation.Skipped,
-					postCommitError
-				));
+				committedResults.Add(new(operation.Aggregate, operation.Saved, operation.Skipped, postCommitError));
 			}
 
 			return new TransactionResult(committedResults);
@@ -122,9 +113,11 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 			await operation.AfterRollbackAsync(cancellationToken);
 
 		var rollbackResults = new List<TransactionResult.AggregateResult>(processed.Count + 1);
-		var rollbackError = failure
+		var rollbackError =
+			failure
 			?? new InvalidOperationException(
-				"The transaction was rolled back because an enlisted aggregate could not be saved.");
+				"The transaction was rolled back because an enlisted aggregate could not be saved."
+			);
 
 		foreach (var operation in processed)
 		{
@@ -135,12 +128,14 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 				&& !operation.Skipped;
 			var wasRolledBack = operation.Saved;
 
-			rollbackResults.Add(new TransactionResult.AggregateResult(
-				operation.Aggregate,
-				saved: false,
-				skipped: isFailedOperation || wasRolledBack ? false : operation.Skipped,
-				error: isFailedOperation || operation.Skipped ? null : rollbackError
-			));
+			rollbackResults.Add(
+				new TransactionResult.AggregateResult(
+					operation.Aggregate,
+					saved: false,
+					skipped: !isFailedOperation && !wasRolledBack && operation.Skipped,
+					error: isFailedOperation || operation.Skipped ? null : rollbackError
+				)
+			);
 		}
 
 		if (
@@ -148,12 +143,14 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 			&& processed.All(operation => !ReferenceEquals(operation.Aggregate, failedEnlisted.Aggregate))
 		)
 		{
-			rollbackResults.Add(new TransactionResult.AggregateResult(
-				failedEnlisted.Aggregate,
-				saved: false,
-				skipped: false,
-				error: failure
-			));
+			rollbackResults.Add(
+				new TransactionResult.AggregateResult(
+					failedEnlisted.Aggregate,
+					saved: false,
+					skipped: false,
+					error: failure
+				)
+			);
 		}
 
 		return new TransactionResult(rollbackResults);
@@ -203,10 +200,8 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 
 		public DbConnection CreateTransactionConnection() => eventStore.CreateTransactionConnection();
 
-		public Task EnsureTransactionConfiguredAsync(
-			DbConnection connection,
-			CancellationToken cancellationToken
-		) => eventStore.EnsureTransactionConfiguredAsync(connection, cancellationToken);
+		public Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken) =>
+			eventStore.EnsureTransactionConfiguredAsync(connection, cancellationToken);
 
 		public async Task<IProcessedSaveOperation> SaveInTransactionAsync(
 			string correlationId,
@@ -216,10 +211,7 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 		)
 		{
 			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext;
-			var context = baseContext with
-			{
-				CorrelationId = baseContext.CorrelationId ?? correlationId
-			};
+			var context = baseContext with { CorrelationId = baseContext.CorrelationId ?? correlationId };
 
 			var saveOperation = await eventStore.SaveInTransactionAsync(
 				aggregate,
@@ -233,10 +225,8 @@ sealed class SqlServerEventStoreTransaction : IEventStoreTransaction
 		}
 	}
 
-	sealed class ProcessedSaveOperation<T>(
-		T aggregate,
-		TransactionalSaveOperation<T> operation
-	) : IProcessedSaveOperation
+	sealed class ProcessedSaveOperation<T>(T aggregate, TransactionalSaveOperation<T> operation)
+		: IProcessedSaveOperation
 		where T : class, IAggregate, new()
 	{
 		public IAggregate Aggregate => aggregate;

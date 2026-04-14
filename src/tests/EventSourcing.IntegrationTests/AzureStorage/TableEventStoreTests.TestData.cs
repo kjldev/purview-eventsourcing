@@ -142,7 +142,7 @@ partial class TableEventStoreTests
 		return data;
 	}
 
-	public ITableEventStoreTests CreateTableStoreTests(Type aggregateType)
+	internal ITableEventStoreTests CreateTableStoreTests(Type aggregateType)
 	{
 		var testType = typeof(GenericTableEventStoreTests<>).MakeGenericType(aggregateType);
 

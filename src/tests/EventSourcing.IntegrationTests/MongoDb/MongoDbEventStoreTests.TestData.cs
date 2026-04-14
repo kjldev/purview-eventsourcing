@@ -123,7 +123,7 @@ partial class MongoDBEventStoreTests
 		return data;
 	}
 
-	public IMongoDBEventStoreTests CreateMongoDBStoreTests(Type aggregateType)
+	internal IMongoDBEventStoreTests CreateMongoDBStoreTests(Type aggregateType)
 	{
 		var testType = typeof(GenericMongoDBEventStoreTests<>).MakeGenericType(aggregateType);
 
