@@ -5,7 +5,7 @@ set windows-shell := ["pwsh", "-NoProfile", "-Command"]
 
 root_folder := "src/"
 solution_file := root_folder + "Purview.EventSourcing.slnx"
-test_project := root_folder + "Purview.EventSourcing.slnf"
+test_project := root_folder + "Purview.EventSourcing.slnx"
 configuration := "Release"
 pack_version := "1.1.0"
 artifact_folder := "p:/sync-projects/.local-nuget/"
