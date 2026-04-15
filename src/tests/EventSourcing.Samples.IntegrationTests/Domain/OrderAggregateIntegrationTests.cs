@@ -135,7 +135,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenOrderWithRemovedLineItem_LoadedLineItemsReflectRemoval(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenOrderWithRemovedLineItem_LoadedLineItemsReflectRemoval(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var order = CreateDraftWithItems(id); // 2 items
@@ -186,7 +188,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	{
 		var id = $"{Guid.NewGuid()}";
 		var order = CreateDraftWithItems(id); // v1=Created, v2=AddItem, v3=AddItem
-		order.ConfirmOrder();                  // v4
+		order.ConfirmOrder(); // v4
 
 		using var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
@@ -201,7 +203,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	}
 
 	[Test]
-	public async Task GetAtAsync_GivenOrderBeforeConfirmation_ReturnsUnconfirmedState(CancellationToken cancellationToken)
+	public async Task GetAtAsync_GivenOrderBeforeConfirmation_ReturnsUnconfirmedState(
+		CancellationToken cancellationToken
+	)
 	{
 		// v1=Created, v2=AddItem(prod-1), v3=AddItem(prod-2), v4=Confirm
 		var id = $"{Guid.NewGuid()}";
@@ -224,7 +228,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	#region Event Replay Without Snapshots
 
 	[Test]
-	public async Task SaveAsync_GivenOrderWithNoSnapshot_EventReplayRestoresLineItems(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenOrderWithNoSnapshot_EventReplayRestoresLineItems(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var order = CreateDraftWithItems(id);

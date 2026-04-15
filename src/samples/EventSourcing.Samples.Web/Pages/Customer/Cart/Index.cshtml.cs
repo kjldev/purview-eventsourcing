@@ -6,16 +6,15 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Cart;
 
-public sealed class IndexModel(
-	IQueryableEventStore customerStore,
-	ICartCheckoutService checkoutService
-) : Microsoft.AspNetCore.Mvc.RazorPages.PageModel
+public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService checkoutService)
+	: Microsoft.AspNetCore.Mvc.RazorPages.PageModel
 {
 	public CustomerAggregate? CurrentCustomer { get; private set; }
 	public List<CartItem> CartItems { get; private set; } = [];
 	public decimal CartTotal => CartItems.Sum(c => c.Quantity * c.UnitPrice);
 
-	[BindProperty] public string? ShippingAddress { get; set; }
+	[BindProperty]
+	public string? ShippingAddress { get; set; }
 
 	public async Task<IActionResult> OnGetAsync()
 	{
@@ -60,19 +59,26 @@ public sealed class IndexModel(
 	public async Task<IActionResult> OnPostCheckoutAsync()
 	{
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
-		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
+		if (string.IsNullOrEmpty(customerId))
+			return RedirectToPage("/Customer/Index");
 
 		var cart = HttpContext.Session.GetCart();
-		if (cart.Count == 0) { TempData["Error"] = "Your cart is empty."; return RedirectToPage(); }
+		if (cart.Count == 0)
+		{
+			TempData["Error"] = "Your cart is empty.";
+			return RedirectToPage();
+		}
 
-		var result = await checkoutService.CheckoutAsync(
-			customerId, cart, ShippingAddress, HttpContext.RequestAborted);
+		var result = await checkoutService.CheckoutAsync(customerId, cart, ShippingAddress, HttpContext.RequestAborted);
 
-		if (!result.Succeeded) { TempData["Error"] = result.ErrorMessage; return RedirectToPage(); }
+		if (!result.Succeeded)
+		{
+			TempData["Error"] = result.ErrorMessage;
+			return RedirectToPage();
+		}
 
 		HttpContext.Session.SetCart([]);
 		TempData["Success"] = "Order placed successfully!";
 		return RedirectToPage("/Customer/Orders/Details", new { id = result.Order!.Id() });
 	}
 }
-

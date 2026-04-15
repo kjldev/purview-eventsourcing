@@ -2,7 +2,9 @@
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);

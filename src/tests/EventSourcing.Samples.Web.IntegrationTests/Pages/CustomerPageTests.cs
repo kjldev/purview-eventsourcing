@@ -5,9 +5,7 @@ namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Pages;
 [ClassDataSource<WebAppFactory>(Shared = SharedType.PerTestSession)]
 public sealed class CustomerPageTests(WebAppFactory factory)
 {
-	readonly HttpClient _client = factory.CreateClient(
-		new() { AllowAutoRedirect = false }
-	);
+	readonly HttpClient _client = factory.CreateClient(new() { AllowAutoRedirect = false });
 
 	[Test]
 	public async Task CustomerSelector_Returns200(CancellationToken cancellationToken)
@@ -77,11 +75,7 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 	[Test]
 	public async Task BackOfficeCustomersCreate_Post_RedirectsToIndex(CancellationToken cancellationToken)
 	{
-		var form = new Dictionary<string, string>
-		{
-			["Name"] = "Test Customer",
-			["Email"] = "test@example.com"
-		};
+		var form = new Dictionary<string, string> { ["Name"] = "Test Customer", ["Email"] = "test@example.com" };
 
 		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Customers/Create", cancellationToken);
 		form["__RequestVerificationToken"] = antiForgery;
@@ -115,7 +109,8 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 		var html = await response.Content.ReadAsStringAsync(cancellationToken);
 
 		var start = html.IndexOf("__RequestVerificationToken", StringComparison.Ordinal);
-		if (start == -1) return string.Empty;
+		if (start == -1)
+			return string.Empty;
 
 		var valueStart = html.IndexOf("value=\"", start, StringComparison.Ordinal) + 7;
 		var valueEnd = html.IndexOf('"', valueStart);

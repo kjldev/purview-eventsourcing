@@ -17,14 +17,14 @@ public static class MongoDBSnapshotIEventStoreServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IQueryableEventStoreImpl<>), typeof(MongoDBSnapshotEventStore<>))
+			.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(MongoDBSnapshotEventStore<>))
 			.AddTransient(typeof(IMongoDBSnapshotEventStore<>), typeof(MongoDBSnapshotEventStore<>))
 			.AddMongoDBSnapshotEventStoreTelemetry();
 		services.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		if (registerAsIEventStore)
 		{
-			services.AddTransient(typeof(IEventStoreImpl<>), typeof(MongoDBSnapshotEventStore<>));
+			services.AddTransient(typeof(IEventStoreCore<>), typeof(MongoDBSnapshotEventStore<>));
 			services.TryAddTransient<IEventStore, EventStoreFacade>();
 		}
 

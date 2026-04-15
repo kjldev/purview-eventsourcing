@@ -4,4 +4,3 @@
 [assembly: InternalsVisibleTo("EventSourcing.IntegrationTests")]
 [assembly: InternalsVisibleTo("EventSourcing.UnitTests")]
 [assembly: InternalsVisibleTo("SharedTestingFramework")]
-

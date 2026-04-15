@@ -7,13 +7,12 @@ partial class TableEventStore<T>
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
 		var streamVersion = await GetStreamVersionAsync(aggregateId, false, cancellationToken);
-		if (streamVersion == null)
-			return ExistsState.DoesNotExists;
-
-		return new ExistsState
-		{
-			Status = streamVersion.IsDeleted ? ExistsStatus.ExistsInDeletedState : ExistsStatus.Exists,
-			Version = streamVersion.Version,
-		};
+		return streamVersion == null
+			? ExistsState.DoesNotExists
+			: new ExistsState
+			{
+				Status = streamVersion.IsDeleted ? ExistsStatus.ExistsInDeletedState : ExistsStatus.Exists,
+				Version = streamVersion.Version,
+			};
 	}
 }

@@ -5,7 +5,10 @@ namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(int eventsToCreate, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateChangeNotifier = Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>();
 		var beforeWasCalled = false;
@@ -22,13 +25,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 			.Do(_ => beforeWasCalled = true);
 		aggregateChangeNotifier
 			.When(m =>
-				m.AfterSaveAsync(
-					aggregate,
-					Arg.Any<int>(),
-					true,
-					Arg.Any<IEvent[]>(),
-					Arg.Any<CancellationToken>()
-				)
+				m.AfterSaveAsync(aggregate, Arg.Any<int>(), true, Arg.Any<IEvent[]>(), Arg.Any<CancellationToken>())
 			)
 			.Do(_ => afterWasCalled = true);
 
@@ -61,6 +58,12 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 			.BeforeSaveAsync(Arg.Any<TAggregate>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
 		await aggregateChangeNotifier
 			.DidNotReceive()
-			.AfterSaveAsync(Arg.Any<TAggregate>(), Arg.Any<int>(), Arg.Any<bool>(), Arg.Any<IEvent[]>(), Arg.Any<CancellationToken>());
+			.AfterSaveAsync(
+				Arg.Any<TAggregate>(),
+				Arg.Any<int>(),
+				Arg.Any<bool>(),
+				Arg.Any<IEvent[]>(),
+				Arg.Any<CancellationToken>()
+			);
 	}
 }

@@ -28,7 +28,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await Assert.That(aggregateResult.Details.SavedVersion).IsEqualTo(2);
 	}
 
-	public async Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(CancellationToken cancellationToken)
+	public async Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";

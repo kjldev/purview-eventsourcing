@@ -7,10 +7,13 @@ namespace Purview.EventSourcing.SqlServer.Snapshot.EntityFramework;
 /// Provides model-first design with migrations for the snapshot table,
 /// matching the same schema and indices as the ADO.NET auto-create path.
 /// </summary>
-public class SnapshotStoreDbContext : DbContext
+/// <remarks>
+/// Creates a new <see cref="SnapshotStoreDbContext"/> with explicit schema and table names.
+/// </remarks>
+public class SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options, string schemaName, string tableName) : DbContext(options)
 {
-	readonly string _schemaName;
-	readonly string _tableName;
+	readonly string _schemaName = schemaName;
+	readonly string _tableName = tableName;
 
 	/// <summary>
 	/// All snapshot store rows.
@@ -23,16 +26,6 @@ public class SnapshotStoreDbContext : DbContext
 	/// </summary>
 	public SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options)
 		: this(options, "dbo", "Snapshots") { }
-
-	/// <summary>
-	/// Creates a new <see cref="SnapshotStoreDbContext"/> with explicit schema and table names.
-	/// </summary>
-	public SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options, string schemaName, string tableName)
-		: base(options)
-	{
-		_schemaName = schemaName;
-		_tableName = tableName;
-	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

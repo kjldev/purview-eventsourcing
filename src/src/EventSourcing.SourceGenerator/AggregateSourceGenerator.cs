@@ -9,7 +9,8 @@ namespace Purview.EventSourcing.SourceGenerator;
 public sealed class AggregateSourceGenerator : IIncrementalGenerator
 {
 	const string GenerateAggregateAttributeName = "Purview.EventSourcing.Aggregates.GenerateAggregateAttribute";
-	const string GenerateAggregateEventAttributeName = "Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
+	const string GenerateAggregateEventAttributeName =
+		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
@@ -19,25 +20,33 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		{
 			var resources = EmbeddedResources.Instance;
 			ctx.AddSource("GenerateAggregateAttribute.g.cs", resources.LoadTemplate("GenerateAggregateAttribute"));
-			ctx.AddSource("GenerateAggregateEventAttribute.g.cs", resources.LoadTemplate("GenerateAggregateEventAttribute"));
+			ctx.AddSource(
+				"GenerateAggregateEventAttribute.g.cs",
+				resources.LoadTemplate("GenerateAggregateEventAttribute")
+			);
 		});
 
 		// Find all class declarations decorated with [GenerateAggregate]
-		var aggregateClasses = context.SyntaxProvider.ForAttributeWithMetadataName(
-			GenerateAggregateAttributeName,
-			predicate: static (node, _) => node is ClassDeclarationSyntax,
-			transform: static (ctx, ct) => GetAggregateInfo(ctx, ct)
-		).Where(static info => info is not null);
+		var aggregateClasses = context
+			.SyntaxProvider.ForAttributeWithMetadataName(
+				GenerateAggregateAttributeName,
+				predicate: static (node, _) => node is ClassDeclarationSyntax,
+				transform: static (ctx, ct) => GetAggregateInfo(ctx, ct)
+			)
+			.Where(static info => info is not null);
 
 		// Combine with compilation and generate
-		context.RegisterSourceOutput(aggregateClasses, static (spc, info) =>
-		{
-			if (info is null)
-				return;
+		context.RegisterSourceOutput(
+			aggregateClasses,
+			static (spc, info) =>
+			{
+				if (info is null)
+					return;
 
-			var source = EmitHelper.GenerateAggregateSource(info);
-			spc.AddSource($"{info.ClassName}.g.cs", source);
-		});
+				var source = EmitHelper.GenerateAggregateSource(info);
+				spc.AddSource($"{info.ClassName}.g.cs", source);
+			}
+		);
 	}
 
 	static AggregateInfo? GetAggregateInfo(GeneratorAttributeSyntaxContext ctx, CancellationToken ct)
@@ -48,8 +57,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			return null;
 
 		// Verify it's a partial class
-		var syntax = ctx.TargetNode as ClassDeclarationSyntax;
-		if (syntax is null)
+		if (ctx.TargetNode is not ClassDeclarationSyntax syntax)
 			return null;
 
 		var isPartial = false;
@@ -87,13 +95,17 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			if (propertySymbol.SetMethod is null)
 				continue;
 
-			properties.Add(new AggregateStatePropertyInfo(
-				propertySymbol.Name,
-				propertySymbol.Type.ToDisplayString(
-					SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-						SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier))
-			));
+			properties.Add(
+				new AggregateStatePropertyInfo(
+					propertySymbol.Name,
+					propertySymbol.Type.ToDisplayString(
+						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+						)
+					)
+				)
+			);
 		}
 
 		var methods = new List<AggregateEventMethodInfo>();
@@ -147,13 +159,17 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			var parameters = new List<EventPropertyInfo>();
 			foreach (var param in methodSymbol.Parameters)
 			{
-				parameters.Add(new EventPropertyInfo(
-					param.Name,
-					param.Type.ToDisplayString(
-						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-							| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier))
-				));
+				parameters.Add(
+					new EventPropertyInfo(
+						param.Name,
+						param.Type.ToDisplayString(
+							SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+								SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+									| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+							)
+						)
+					)
+				);
 			}
 
 			// Read Version from the [GenerateAggregateEvent] attribute (default 1)
@@ -176,11 +192,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 				break;
 			}
 
-			methods.Add(new AggregateEventMethodInfo(
-				methodSymbol.Name,
-				parameters,
-				version
-			));
+			methods.Add(new AggregateEventMethodInfo(methodSymbol.Name, parameters, version));
 		}
 
 		return new AggregateInfo(

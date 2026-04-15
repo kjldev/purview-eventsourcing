@@ -105,9 +105,9 @@ partial class MongoDBEventStore<T>
 
 			return @event;
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch (Exception ex)
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.EventDeserializationFailed(eventEntity.AggregateId, _aggregateTypeFullName, ex);
 

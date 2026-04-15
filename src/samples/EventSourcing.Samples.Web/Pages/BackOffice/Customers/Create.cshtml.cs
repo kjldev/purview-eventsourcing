@@ -26,4 +26,3 @@ public sealed class CreateModel(IQueryableEventStore store) : PageModel
 		return RedirectToPage("Index");
 	}
 }
-

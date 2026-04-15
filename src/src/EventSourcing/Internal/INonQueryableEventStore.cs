@@ -4,5 +4,5 @@ using Purview.EventSourcing.Aggregates;
 namespace Purview.EventSourcing.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface INonQueryableEventStore<T> : IEventStoreImpl<T>
+public interface INonQueryableEventStore<T> : IEventStoreCore<T>
 	where T : class, IAggregate, new() { }

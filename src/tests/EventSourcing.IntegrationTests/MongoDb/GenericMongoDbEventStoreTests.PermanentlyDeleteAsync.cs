@@ -37,7 +37,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await ValidateEntitiesDeletedAsync(aggregate, eventClient, snapshotClient, cancellationToken);
 	}
 
-	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -82,7 +84,12 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await ValidateEntitiesDeletedAsync(aggregate, eventClient, snapshotClient, cancellationToken);
 	}
 
-	async Task ValidateEntitiesDeletedAsync(TAggregate aggregate, MongoDBClient eventClient, MongoDBClient snapshotClient, CancellationToken cancellationToken)
+	async Task ValidateEntitiesDeletedAsync(
+		TAggregate aggregate,
+		MongoDBClient eventClient,
+		MongoDBClient snapshotClient,
+		CancellationToken cancellationToken
+	)
 	{
 		var eventCount = await eventClient.CountAsync<EventEntity>(
 			m => m.AggregateId == aggregate.Id() && m.EntityType == EntityTypes.EventType,

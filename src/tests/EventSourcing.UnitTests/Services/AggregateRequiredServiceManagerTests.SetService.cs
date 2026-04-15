@@ -55,9 +55,9 @@ partial class AggregateRequiredServiceManagerTests
 		var serviceManager = CreateServiceManager(serviceProvider);
 
 		// Act
-		var act = () => serviceManager.Fulfil(aggregate);
+		void Act() => serviceManager.Fulfil(aggregate);
 
 		// Assert
-		await Assert.That(act).ThrowsNothing();
+		await Assert.That(Act).ThrowsNothing();
 	}
 }

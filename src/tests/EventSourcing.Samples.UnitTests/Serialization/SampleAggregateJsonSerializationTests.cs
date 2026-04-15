@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.Samples.UnitTests.Serialization;
 public sealed class SampleAggregateJsonSerializationTests
 {
 	[Test]
-	public async Task SerializeAndDeserialize_GivenOrderAggregate_RestoresGeneratedAggregateState(CancellationToken cancellationToken)
+	public async Task SerializeAndDeserialize_GivenOrderAggregate_RestoresGeneratedAggregateState()
 	{
 		var aggregate = new OrderAggregate();
 		aggregate.Details.Id = "order-1";
@@ -31,7 +31,7 @@ public sealed class SampleAggregateJsonSerializationTests
 	}
 
 	[Test]
-	public async Task SerializeAndDeserialize_GivenCustomerAggregate_RestoresGeneratedAggregateState(CancellationToken cancellationToken)
+	public async Task SerializeAndDeserialize_GivenCustomerAggregate_RestoresGeneratedAggregateState()
 	{
 		var aggregate = new CustomerAggregate();
 		aggregate.Details.Id = "customer-9";
@@ -50,3 +50,4 @@ public sealed class SampleAggregateJsonSerializationTests
 		await Assert.That(roundTripped.Details.Id).IsEqualTo("customer-9");
 	}
 }
+

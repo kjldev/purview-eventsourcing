@@ -7,10 +7,10 @@ namespace Purview.EventSourcing;
 /// Provider-facing typed event-store contract used by concrete implementations and internal infrastructure.
 /// </summary>
 /// <typeparam name="T">An <see cref="IAggregate"/> implementation.</typeparam>
-/// <seealso cref="IQueryableEventStoreImpl{T}"/>
+/// <seealso cref="IQueryableEventStoreCore{T}"/>
 /// <seealso cref="IAggregate"/>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface IEventStoreImpl<T>
+public interface IEventStoreCore<T>
 	where T : class, IAggregate, new()
 {
 	Task<T> CreateAsync(string? aggregateId = null, CancellationToken cancellationToken = default);

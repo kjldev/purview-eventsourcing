@@ -13,7 +13,11 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(27, 5)]
 	[Arguments(50, 5)]
 	[Arguments(51, 5)]
-	public async Task ListAsync_GivenData_ListsAsExpected(int numberOfAggregates, int pageCount, CancellationToken cancellationToken)
+	public async Task ListAsync_GivenData_ListsAsExpected(
+		int numberOfAggregates,
+		int pageCount,
+		CancellationToken cancellationToken
+	)
 	{
 		const int numberOfEvents = 10;
 
@@ -64,7 +68,11 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(27, 5)]
 	[Arguments(50, 5)]
 	[Arguments(51, 5)]
-	public async Task QueryAsync_GivenWhereClause_QueryAsExpected(int numberOfAggregates, int pageCount, CancellationToken cancellationToken)
+	public async Task QueryAsync_GivenWhereClause_QueryAsExpected(
+		int numberOfAggregates,
+		int pageCount,
+		CancellationToken cancellationToken
+	)
 	{
 		const int numberOfEvents = 10;
 
@@ -79,10 +87,7 @@ partial class SqlServerSnapshotEventStoreTests
 			for (var eventIndex = 0; eventIndex < numberOfEvents; eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(
-				aggregate,
-				cancellationToken: cancellationToken
-			);
+			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 			await Assert.That(saveResult).IsTrue();
 		}
@@ -96,10 +101,7 @@ partial class SqlServerSnapshotEventStoreTests
 			for (var eventIndex = 0; eventIndex < (numberOfEvents * 2); eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(
-				aggregate,
-				cancellationToken: cancellationToken
-			);
+			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 			await Assert.That(saveResult).IsTrue();
 		}

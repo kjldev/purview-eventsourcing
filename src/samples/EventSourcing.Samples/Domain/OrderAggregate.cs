@@ -21,7 +21,7 @@ public sealed partial class OrderAggregate : AggregateBase
 	[Range(0, double.MaxValue)]
 	public decimal TotalAmount { get; private set; }
 
-	public ImmutableArray<OrderLineItem> LineItems { get; private set; } = ImmutableArray<OrderLineItem>.Empty;
+	public ImmutableArray<OrderLineItem> LineItems { get; private set; } = [];
 	public string? ShippingAddress { get; private set; }
 	public string? Notes { get; private set; }
 	public DateTimeOffset? ShippedAt { get; private set; }
@@ -47,11 +47,15 @@ public sealed partial class OrderAggregate : AggregateBase
 		var existingLineItem = LineItems.FirstOrDefault(lineItem => lineItem.ProductId == productId);
 		var updatedLineItems = existingLineItem is null
 			? LineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice))
-			: LineItems
-				.Select(lineItem => lineItem.ProductId == productId
-					? lineItem with { Quantity = lineItem.Quantity + quantity }
-					: lineItem)
-				.ToImmutableArray();
+			: [.. LineItems
+				.Select(lineItem =>
+					lineItem.ProductId == productId
+						? lineItem with
+						{
+							Quantity = lineItem.Quantity + quantity,
+						}
+						: lineItem
+				)];
 
 		OrderLineItemAdded(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}
@@ -64,9 +68,7 @@ public sealed partial class OrderAggregate : AggregateBase
 		if (!LineItems.Any(li => li.ProductId == productId))
 			throw new InvalidOperationException($"Product '{productId}' not found in order.");
 
-		var updatedLineItems = LineItems
-			.Where(lineItem => lineItem.ProductId != productId)
-			.ToImmutableArray();
+		var updatedLineItems = LineItems.Where(lineItem => lineItem.ProductId != productId).ToImmutableArray();
 
 		OrderLineItemRemoved(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}
@@ -173,7 +175,7 @@ public enum OrderStatus
 	Confirmed,
 	Shipped,
 	Completed,
-	Cancelled
+	Cancelled,
 }
 
 public sealed record OrderLineItem(string ProductId, string ProductName, int Quantity, decimal UnitPrice);

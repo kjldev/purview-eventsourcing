@@ -61,7 +61,14 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		// Act
 		List<(IEvent @event, string eventType)> resultsList = [];
-		await foreach (var item in eventStore.GetEventRangeAsync(aggregateId, startEvent, endEvent, cancellationToken: cancellationToken))
+		await foreach (
+			var item in eventStore.GetEventRangeAsync(
+				aggregateId,
+				startEvent,
+				endEvent,
+				cancellationToken: cancellationToken
+			)
+		)
 			resultsList.Add(item);
 		var results = resultsList.ToArray();
 		var continuationResult = await eventClient.QueryAsync<EventEntity>(

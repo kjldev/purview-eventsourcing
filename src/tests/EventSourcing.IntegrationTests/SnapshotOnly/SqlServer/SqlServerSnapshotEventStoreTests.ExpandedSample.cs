@@ -9,7 +9,10 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(5)]
 	[Arguments(10)]
 	[Arguments(25)]
-	public async Task CountAsync_GivenAggregatesExist_ReturnsCorrectCount(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task CountAsync_GivenAggregatesExist_ReturnsCorrectCount(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		const int numberOfEvents = 5;
 
@@ -65,7 +68,10 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(1)]
 	[Arguments(5)]
 	[Arguments(10)]
-	public async Task GetQueryEnumerableAsync_GivenAggregatesExist_EnumeratesAsExpected(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task GetQueryEnumerableAsync_GivenAggregatesExist_EnumeratesAsExpected(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		const int numberOfEvents = 5;
 
@@ -103,7 +109,10 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(1)]
 	[Arguments(5)]
 	[Arguments(10)]
-	public async Task GetListEnumerableAsync_GivenAggregatesExist_EnumeratesAsExpected(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task GetListEnumerableAsync_GivenAggregatesExist_EnumeratesAsExpected(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		const int numberOfEvents = 5;
 
@@ -133,7 +142,9 @@ partial class SqlServerSnapshotEventStoreTests
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenAggregateWithComplexProperties_PersistsCorrectly(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithComplexProperties_PersistsCorrectly(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var context = fixture.CreateContext();

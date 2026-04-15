@@ -34,9 +34,9 @@ sealed partial class MongoDBClient : IDisposable
 
 			BsonSerializer.RegisterSerializer(new ObjectSerializer(iEntityType.IsAssignableFrom));
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			return false;
 		}
@@ -60,9 +60,9 @@ sealed partial class MongoDBClient : IDisposable
 
 			BsonSerializer.RegisterSerializer(new ObjectSerializer(t => Array.IndexOf(entityType, t) > -1));
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			return false;
 		}

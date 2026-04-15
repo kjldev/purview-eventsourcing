@@ -6,7 +6,9 @@ namespace Purview.EventSourcing.MongoDB;
 
 partial class GenericMongoDBEventStoreTests<TAggregate>
 {
-	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -27,7 +29,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			.IsEqualTo(nameof(IAggregateTest.IncrementInt32));
 	}
 
-	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var complexProperty = CreateComplexTestType();
@@ -98,7 +102,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await Assert.That(aggregateFromEventStore.Details.Etag).IsEqualTo(aggregate.Details.Etag);
 	}
 
-	public async Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -140,7 +146,9 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		await Assert.That(sizeIsLessThan32K).IsFalse();
 	}
 
-	public async Task SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";

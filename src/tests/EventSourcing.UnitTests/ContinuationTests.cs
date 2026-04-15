@@ -5,42 +5,34 @@ public class ContinuationTests
 	#region ContinuationResponse Tests
 
 	[Test]
-	public async Task ContinuationResponse_HasRecords_GivenEmptyResults_ReturnsFalse(CancellationToken cancellationToken)
+	public async Task ContinuationResponse_HasRecords_GivenEmptyResults_ReturnsFalse()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
-		{
-			Results = [],
-			RequestedCount = 10
-		};
+		var response = new ContinuationResponse<string> { Results = [], RequestedCount = 10 };
 
 		// Assert
 		await Assert.That(response.HasRecords).IsFalse();
 	}
 
 	[Test]
-	public async Task ContinuationResponse_HasRecords_GivenResults_ReturnsTrue(CancellationToken cancellationToken)
+	public async Task ContinuationResponse_HasRecords_GivenResults_ReturnsTrue()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
-		{
-			Results = ["item1", "item2"],
-			RequestedCount = 10
-		};
+		var response = new ContinuationResponse<string> { Results = ["item1", "item2"], RequestedCount = 10 };
 
 		// Assert
 		await Assert.That(response.HasRecords).IsTrue();
 	}
 
 	[Test]
-	public async Task ContinuationResponse_HasMoreRecords_GivenContinuationToken_ReturnsTrue(CancellationToken cancellationToken)
+	public async Task ContinuationResponse_HasMoreRecords_GivenContinuationToken_ReturnsTrue()
 	{
 		// Arrange
 		var response = new ContinuationResponse<string>
 		{
 			Results = ["item1"],
 			RequestedCount = 1,
-			ContinuationToken = "next-token"
+			ContinuationToken = "next-token",
 		};
 
 		// Assert
@@ -48,14 +40,14 @@ public class ContinuationTests
 	}
 
 	[Test]
-	public async Task ContinuationResponse_HasMoreRecords_GivenNoContinuationToken_ReturnsFalse(CancellationToken cancellationToken)
+	public async Task ContinuationResponse_HasMoreRecords_GivenNoContinuationToken_ReturnsFalse()
 	{
 		// Arrange
 		var response = new ContinuationResponse<string>
 		{
 			Results = ["item1"],
 			RequestedCount = 10,
-			ContinuationToken = null
+			ContinuationToken = null,
 		};
 
 		// Assert
@@ -63,14 +55,16 @@ public class ContinuationTests
 	}
 
 	[Test]
-	public async Task ContinuationResponse_ToRequest_CreatesRequestWithTokenAndCount(CancellationToken cancellationToken)
+	public async Task ContinuationResponse_ToRequest_CreatesRequestWithTokenAndCount(
+
+	)
 	{
 		// Arrange
 		var response = new ContinuationResponse<string>
 		{
 			Results = ["item"],
 			RequestedCount = 25,
-			ContinuationToken = "page-2"
+			ContinuationToken = "page-2",
 		};
 
 		// Act
@@ -82,14 +76,14 @@ public class ContinuationTests
 	}
 
 	[Test]
-	public async Task ContinuationResponse_Convert_MapsResultsCorrectly(CancellationToken cancellationToken)
+	public async Task ContinuationResponse_Convert_MapsResultsCorrectly()
 	{
 		// Arrange
 		var response = new ContinuationResponse<int>
 		{
 			Results = [1, 2, 3],
 			RequestedCount = 10,
-			ContinuationToken = "token"
+			ContinuationToken = "token",
 		};
 
 		// Act
@@ -103,3 +97,4 @@ public class ContinuationTests
 
 	#endregion
 }
+

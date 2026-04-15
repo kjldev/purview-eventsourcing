@@ -24,7 +24,7 @@ public class OrderAggregateTests
 	#region CreateOrder Tests
 
 	[Test]
-	public async Task CreateOrder_GivenValidCustomerId_SetsProperties(CancellationToken cancellationToken)
+	public async Task CreateOrder_GivenValidCustomerId_SetsProperties()
 	{
 		// Arrange & Act
 		var order = new OrderAggregate();
@@ -50,7 +50,7 @@ public class OrderAggregateTests
 	#region AddLineItem Tests
 
 	[Test]
-	public async Task AddLineItem_GivenValidItem_AddsToLineItems(CancellationToken cancellationToken)
+	public async Task AddLineItem_GivenValidItem_AddsToLineItems()
 	{
 		// Arrange
 		var order = CreateOrder("order-1");
@@ -66,7 +66,7 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public async Task AddLineItem_GivenDuplicateProduct_IncreasesQuantity(CancellationToken cancellationToken)
+	public async Task AddLineItem_GivenDuplicateProduct_IncreasesQuantity()
 	{
 		// Arrange
 		var order = CreateOrder("order-1");
@@ -104,7 +104,7 @@ public class OrderAggregateTests
 	#region RemoveLineItem Tests
 
 	[Test]
-	public async Task RemoveLineItem_GivenExistingProduct_RemovesFromList(CancellationToken cancellationToken)
+	public async Task RemoveLineItem_GivenExistingProduct_RemovesFromList()
 	{
 		// Arrange
 		var order = CreateOrder("order-1", withItems: true);
@@ -129,7 +129,7 @@ public class OrderAggregateTests
 	#region Order Lifecycle Tests
 
 	[Test]
-	public async Task FullLifecycle_DraftToCompleted_TransitionsCorrectly(CancellationToken cancellationToken)
+	public async Task FullLifecycle_DraftToCompleted_TransitionsCorrectly()
 	{
 		// Arrange
 		var order = CreateOrder("order-1", withItems: true);
@@ -183,7 +183,7 @@ public class OrderAggregateTests
 	#region CancelOrder Tests
 
 	[Test]
-	public async Task CancelOrder_GivenDraftOrder_SetsCancelledStatus(CancellationToken cancellationToken)
+	public async Task CancelOrder_GivenDraftOrder_SetsCancelledStatus()
 	{
 		var order = CreateOrder("order-1", withItems: true);
 		order.CancelOrder();
@@ -191,7 +191,7 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public async Task CancelOrder_GivenConfirmedOrder_SetsCancelledStatus(CancellationToken cancellationToken)
+	public async Task CancelOrder_GivenConfirmedOrder_SetsCancelledStatus()
 	{
 		var order = CreateOrder("order-1", withItems: true);
 		order.ConfirmOrder();
@@ -215,7 +215,7 @@ public class OrderAggregateTests
 	#region UpdateDetails Tests
 
 	[Test]
-	public async Task UpdateDetails_GivenShippingAddressAndNotes_RaisesTwoEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenShippingAddressAndNotes_RaisesTwoEvents()
 	{
 		var order = CreateOrder("order-1");
 		var countBefore = order.GetUnsavedEvents().Count();
@@ -228,7 +228,7 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenOnlyShippingAddress_RaisesOneEvent(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenOnlyShippingAddress_RaisesOneEvent()
 	{
 		var order = CreateOrder("order-1");
 		order.UpdateNotes("Old note");
@@ -242,7 +242,7 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents()
 	{
 		var order = CreateOrder("order-1");
 		order.UpdateDetails(shippingAddress: "123 Main St", notes: "Urgent");
@@ -266,7 +266,7 @@ public class OrderAggregateTests
 	#region Event Tracking Tests
 
 	[Test]
-	public async Task FullWorkflow_TracksAllEvents(CancellationToken cancellationToken)
+	public async Task FullWorkflow_TracksAllEvents()
 	{
 		// Arrange & Act
 		var order = CreateOrder("order-1");
@@ -284,3 +284,4 @@ public class OrderAggregateTests
 
 	#endregion
 }
+

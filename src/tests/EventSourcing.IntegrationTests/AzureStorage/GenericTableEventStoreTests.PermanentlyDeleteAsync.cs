@@ -39,7 +39,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await ValidateEntitiesDeletedAsync(aggregate, eventStore, tableClient, blobClient, cancellationToken);
 	}
 
-	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";

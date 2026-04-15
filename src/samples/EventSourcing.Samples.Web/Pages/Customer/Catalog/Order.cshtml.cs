@@ -12,9 +12,14 @@ public sealed class OrderModel(
 	IQueryableEventStore inventoryStore
 ) : PageModel
 {
-	[BindProperty(SupportsGet = true)] public string InventoryId { get; set; } = string.Empty;
-	[BindProperty] public int Quantity { get; set; } = 1;
-	[BindProperty] public string? ShippingAddress { get; set; }
+	[BindProperty(SupportsGet = true)]
+	public string InventoryId { get; set; } = string.Empty;
+
+	[BindProperty]
+	public int Quantity { get; set; } = 1;
+
+	[BindProperty]
+	public string? ShippingAddress { get; set; }
 
 	public CustomerAggregate? CurrentCustomer { get; private set; }
 	public InventoryAggregate? InventoryItem { get; private set; }
@@ -52,11 +57,20 @@ public sealed class OrderModel(
 		FulfilmentResult result;
 		try
 		{
-			result = await fulfillmentService.PlaceOrderAsync(customerId, InventoryId, Quantity, ShippingAddress, HttpContext.RequestAborted);
+			result = await fulfillmentService.PlaceOrderAsync(
+				customerId,
+				InventoryId,
+				Quantity,
+				ShippingAddress,
+				HttpContext.RequestAborted
+			);
 		}
 		catch (ConcurrencyException)
 		{
-			ModelState.AddModelError(string.Empty, "Another user modified the inventory concurrently. Please try again.");
+			ModelState.AddModelError(
+				string.Empty,
+				"Another user modified the inventory concurrently. Please try again."
+			);
 			await ReloadAsync(customerId, HttpContext.RequestAborted);
 			return Page();
 		}
@@ -81,4 +95,3 @@ public sealed class OrderModel(
 			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
 	}
 }
-

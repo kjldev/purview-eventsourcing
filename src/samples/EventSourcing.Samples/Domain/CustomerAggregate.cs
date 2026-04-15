@@ -26,7 +26,8 @@ public sealed partial class CustomerAggregate : AggregateBase
 	public void ChangeName(string newName)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(newName);
-		if (newName == Name) return;
+		if (newName == Name)
+			return;
 
 		CustomerNameChanged(newName);
 	}
@@ -34,7 +35,8 @@ public sealed partial class CustomerAggregate : AggregateBase
 	public void ChangeEmail(string newEmail)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
-		if (newEmail == Email) return;
+		if (newEmail == Email)
+			return;
 
 		CustomerEmailChanged(newEmail);
 	}
@@ -68,14 +70,16 @@ public sealed partial class CustomerAggregate : AggregateBase
 
 	public void Deactivate()
 	{
-		if (!IsActive) return;
+		if (!IsActive)
+			return;
 
 		CustomerDeactivated(isActive: false);
 	}
 
 	public void Reactivate()
 	{
-		if (IsActive) return;
+		if (IsActive)
+			return;
 
 		CustomerReactivated(isActive: true);
 	}

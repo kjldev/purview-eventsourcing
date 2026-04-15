@@ -5,16 +5,24 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 {
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(Type aggregateType, CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(cancellationToken);
+		await mongoDBEventStoreTests.DeleteAsync_GivenAggregateExistsWithLargeEvent_PermanentlyDeletesAllData(
+			cancellationToken
+		);
 	}
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task DeleteAsync_GivenAggregateExists_PermanentlyDeletesAllData(Type aggregateType, CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenAggregateExists_PermanentlyDeletesAllData(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -23,7 +31,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task DeleteAsync_GivenDelete_NotifiesChangeFeed(Type aggregateType, CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenDelete_NotifiesChangeFeed(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -32,7 +43,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task DeleteAsync_GivenPreviouslySavedAggregate_MarksAsDeleted(Type aggregateType, CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenPreviouslySavedAggregate_MarksAsDeleted(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -48,7 +62,9 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(cancellationToken);
+		await mongoDBEventStoreTests.DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(
+			cancellationToken
+		);
 	}
 
 	[Test]
@@ -112,7 +128,9 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(cancellationToken);
+		await mongoDBEventStoreTests.GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(
+			cancellationToken
+		);
 	}
 
 	[Test]
@@ -202,7 +220,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate(Type aggregateType, CancellationToken cancellationToken)
+	public async Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -253,7 +274,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate(Type aggregateType, CancellationToken cancellationToken)
+	public async Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -262,7 +286,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task IsDeletedAsync_GivenDeletedAggregates_ReturnsTrue(Type aggregateType, CancellationToken cancellationToken)
+	public async Task IsDeletedAsync_GivenDeletedAggregates_ReturnsTrue(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -271,7 +298,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task IsDeletedAsync_GivenNonDeletedAggregates_ReturnsFalse(Type aggregateType, CancellationToken cancellationToken)
+	public async Task IsDeletedAsync_GivenNonDeletedAggregates_ReturnsFalse(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -280,20 +310,32 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(Type aggregateType, CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(cancellationToken);
+		await mongoDBEventStoreTests.RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(
+			cancellationToken
+		);
 	}
 
 	[Test]
 	[MethodDataSource(nameof(SteppedCountTestData))]
-	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(Type aggregateType, int eventsToCreate, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+		Type aggregateType,
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(eventsToCreate, cancellationToken);
+		await mongoDBEventStoreTests.SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+			eventsToCreate,
+			cancellationToken
+		);
 	}
 
 	[Test]
@@ -305,12 +347,17 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(cancellationToken);
+		await mongoDBEventStoreTests.SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(
+			cancellationToken
+		);
 	}
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotNotifyChangeFeed(Type aggregateType, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotNotifyChangeFeed(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -319,7 +366,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotSave(Type aggregateType, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotSave(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -328,7 +378,10 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(Type aggregateType, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
@@ -344,25 +397,37 @@ public sealed partial class MongoDBEventStoreTests(MongoDBEventStoreFixture fixt
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(cancellationToken);
+		await mongoDBEventStoreTests.SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(
+			cancellationToken
+		);
 	}
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(Type aggregateType, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(cancellationToken);
+		await mongoDBEventStoreTests.SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(
+			cancellationToken
+		);
 	}
 
 	[Test]
 	[MethodDataSource(nameof(GetAggregateTestTypes))]
-	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(Type aggregateType, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(
+		Type aggregateType,
+		CancellationToken cancellationToken
+	)
 	{
 		var mongoDBEventStoreTests = CreateMongoDBStoreTests(aggregateType);
 
-		await mongoDBEventStoreTests.SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(cancellationToken);
+		await mongoDBEventStoreTests.SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(
+			cancellationToken
+		);
 	}
 
 	[Test]

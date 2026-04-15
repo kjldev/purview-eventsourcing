@@ -35,7 +35,7 @@ public static class EventStoreServiceICollectionExtensions
 	public static IServiceCollection AddNullQueryableEventStore(this IServiceCollection services)
 	{
 		services
-			.AddTransient(typeof(IQueryableEventStoreImpl<>), typeof(NullQueryableEventStore<>))
+			.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(NullQueryableEventStore<>))
 			.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		return services;
@@ -57,20 +57,16 @@ public static class EventStoreServiceICollectionExtensions
 	/// <see cref="AddEventSourcing"/> must be called before (or after) this method on the same
 	/// <paramref name="services"/> collection.
 	/// </remarks>
-	public static IServiceCollection AddEventUpcaster<TSource, TTarget, TUpcaster>(
-		this IServiceCollection services
-	)
+	public static IServiceCollection AddEventUpcaster<TSource, TTarget, TUpcaster>(this IServiceCollection services)
 		where TSource : IEvent
 		where TTarget : IEvent
 		where TUpcaster : class, IEventUpcaster<TSource, TTarget>
 	{
 		services
 			.AddSingleton<IEventUpcaster<TSource, TTarget>, TUpcaster>()
-			.AddSingleton<IEventUpcasterDescriptor>(
-				sp => new EventUpcasterDescriptor<TSource, TTarget>(
-					sp.GetRequiredService<IEventUpcaster<TSource, TTarget>>()
-				)
-			);
+			.AddSingleton<IEventUpcasterDescriptor>(sp => new EventUpcasterDescriptor<TSource, TTarget>(
+				sp.GetRequiredService<IEventUpcaster<TSource, TTarget>>()
+			));
 
 		return services;
 	}

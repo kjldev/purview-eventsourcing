@@ -4,7 +4,9 @@ namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId, a => a.SetValidatedProperty(-1));
@@ -21,7 +23,9 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 			.IsEqualTo(nameof(IAggregateTest.IncrementInt32));
 	}
 
-	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(
+		CancellationToken cancellationToken
+	)
 	{
 		var complexProperty = CreateComplexTestType();
 		var aggregateId = $"{Guid.NewGuid()}";

@@ -80,9 +80,9 @@ partial class MongoDBEventStore<T>
 
 			return true;
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch (Exception ex)
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.PermanentDeleteFailed(aggregateId, ex);
 

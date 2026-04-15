@@ -7,10 +7,13 @@ namespace Purview.EventSourcing.SqlServer.EntityFramework;
 /// Provides model-first design with migrations for the event store table,
 /// matching the same schema and indices as the ADO.NET auto-create path.
 /// </summary>
-public class EventStoreDbContext : DbContext
+/// <remarks>
+/// Creates a new <see cref="EventStoreDbContext"/> with explicit schema and table names.
+/// </remarks>
+public class EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName) : DbContext(options)
 {
-	readonly string _schemaName;
-	readonly string _tableName;
+	readonly string _schemaName = schemaName;
+	readonly string _tableName = tableName;
 
 	/// <summary>
 	/// All event store rows (stream versions, events, idempotency markers, snapshots).
@@ -23,16 +26,6 @@ public class EventStoreDbContext : DbContext
 	/// </summary>
 	public EventStoreDbContext(DbContextOptions<EventStoreDbContext> options)
 		: this(options, "dbo", "EventStore") { }
-
-	/// <summary>
-	/// Creates a new <see cref="EventStoreDbContext"/> with explicit schema and table names.
-	/// </summary>
-	public EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName)
-		: base(options)
-	{
-		_schemaName = schemaName;
-		_tableName = tableName;
-	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

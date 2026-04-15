@@ -66,7 +66,7 @@ public interface IEventStoreTransaction : IAsyncDisposable
 	/// Optional <see cref="EventStoreOperationContext"/>. When <see langword="null"/>,
 	/// the default context is used with this transaction's <see cref="CorrelationId"/>.
 	/// </param>
-	void Enlist<T>(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext = null)
+	void Enlist<T>(T aggregate, IEventStoreCore<T> eventStore, EventStoreOperationContext? operationContext = null)
 		where T : class, IAggregate, new();
 
 	/// <summary>

@@ -2,7 +2,10 @@
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount, CancellationToken cancellationToken)
+	public async Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(
+		int aggregateCount,
+		CancellationToken cancellationToken
+	)
 	{
 		using var eventStore = fixture.CreateEventStore<TAggregate>();
 

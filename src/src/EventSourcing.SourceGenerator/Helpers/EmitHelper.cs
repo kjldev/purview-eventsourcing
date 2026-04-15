@@ -16,9 +16,7 @@ static class EmitHelper
 		// Generate event classes in a nested Events namespace
 		if (info.Methods.Count > 0)
 		{
-			var eventsNamespace = info.Namespace is not null
-				? $"{info.Namespace}.Events"
-				: "Events";
+			var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
 
 			sb.AppendLine($"namespace {eventsNamespace}");
 			sb.AppendLine("{");
@@ -45,7 +43,8 @@ static class EmitHelper
 		var indent = info.Namespace is not null ? "\t" : "";
 
 		sb.AppendLine(
-			$"{indent}[global::System.Text.Json.Serialization.JsonConverter(typeof({info.ClassName}JsonConverter))]");
+			$"{indent}[global::System.Text.Json.Serialization.JsonConverter(typeof({info.ClassName}JsonConverter))]"
+		);
 		sb.AppendLine($"{indent}{accessModifier} partial class {info.ClassName}");
 		sb.AppendLine($"{indent}{{");
 
@@ -81,11 +80,11 @@ static class EmitHelper
 
 	static void GenerateEventClass(StringBuilder sb, AggregateEventMethodInfo method)
 	{
-		var hashParameterName = method.Parameters.Count == 0
-			? "_"
-			: "hash";
+		var hashParameterName = method.Parameters.Count == 0 ? "_" : "hash";
 
-		sb.AppendLine($"\tpublic sealed class {method.EventName} : global::Purview.EventSourcing.Aggregates.Events.EventBase");
+		sb.AppendLine(
+			$"\tpublic sealed class {method.EventName} : global::Purview.EventSourcing.Aggregates.Events.EventBase"
+		);
 		sb.AppendLine("\t{");
 
 		foreach (var prop in method.Parameters)
@@ -118,9 +117,7 @@ static class EmitHelper
 		sb.AppendLine($"{indent}\tprotected override void RegisterEvents()");
 		sb.AppendLine($"{indent}\t{{");
 
-		var eventsNamespace = info.Namespace is not null
-			? $"{info.Namespace}.Events"
-			: "Events";
+		var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
 
 		foreach (var method in info.Methods)
 		{
@@ -133,10 +130,13 @@ static class EmitHelper
 
 	static void GenerateJsonSerializationSupport(StringBuilder sb, AggregateInfo info, string indent)
 	{
-		sb.AppendLine($"{indent}\tinternal static {info.ClassName} CreateFromJsonModel({info.ClassName}JsonModel jsonModel) => new()");
+		sb.AppendLine(
+			$"{indent}\tinternal static {info.ClassName} CreateFromJsonModel({info.ClassName}JsonModel jsonModel) => new()"
+		);
 		sb.AppendLine($"{indent}\t\t{{");
 		sb.AppendLine(
-			$"{indent}\t\t\tDetails = jsonModel.Details ?? new global::Purview.EventSourcing.Aggregates.AggregateDetails(),");
+			$"{indent}\t\t\tDetails = jsonModel.Details ?? new global::Purview.EventSourcing.Aggregates.AggregateDetails(),"
+		);
 
 		foreach (var property in info.Properties)
 		{
@@ -159,14 +159,15 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateApplyMethod(StringBuilder sb, AggregateInfo info, AggregateEventMethodInfo method, string indent)
+	static void GenerateApplyMethod(
+		StringBuilder sb,
+		AggregateInfo info,
+		AggregateEventMethodInfo method,
+		string indent
+	)
 	{
-		var eventsNamespace = info.Namespace is not null
-			? $"{info.Namespace}.Events"
-			: "Events";
-		var eventParameterName = method.Parameters.Count == 0
-			? "_"
-			: "@event";
+		var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
+		var eventParameterName = method.Parameters.Count == 0 ? "_" : "@event";
 
 		sb.AppendLine($"{indent}\tvoid Apply(global::{eventsNamespace}.{method.EventName} {eventParameterName})");
 		sb.AppendLine($"{indent}\t{{");
@@ -180,11 +181,14 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateCommandMethod(StringBuilder sb, AggregateInfo info, AggregateEventMethodInfo method, string indent)
+	static void GenerateCommandMethod(
+		StringBuilder sb,
+		AggregateInfo info,
+		AggregateEventMethodInfo method,
+		string indent
+	)
 	{
-		var eventsNamespace = info.Namespace is not null
-			? $"{info.Namespace}.Events"
-			: "Events";
+		var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
 
 		// Build parameter list
 		var paramList = new StringBuilder();
@@ -224,46 +228,46 @@ static class EmitHelper
 
 	static string GetAccessModifier(Accessibility accessibility)
 	{
-		switch (accessibility)
+		return accessibility switch
 		{
-			case Accessibility.Public:
-				return "public";
-			case Accessibility.Internal:
-				return "internal";
-			case Accessibility.Protected:
-				return "protected";
-			case Accessibility.ProtectedOrInternal:
-				return "protected internal";
-			case Accessibility.ProtectedAndInternal:
-				return "private protected";
-			default:
-				return "internal";
-		}
+			Accessibility.Public => "public",
+			Accessibility.Internal => "internal",
+			Accessibility.Protected => "protected",
+			Accessibility.ProtectedOrInternal => "protected internal",
+			Accessibility.ProtectedAndInternal => "private protected",
+			_ => "internal",
+		};
 	}
 
 	static void GenerateJsonConverter(StringBuilder sb, AggregateInfo info, string indent)
 	{
 		sb.AppendLine();
 		sb.AppendLine(
-			$"{indent}sealed class {info.ClassName}JsonConverter : global::System.Text.Json.Serialization.JsonConverter<{info.ClassName}>");
+			$"{indent}sealed class {info.ClassName}JsonConverter : global::System.Text.Json.Serialization.JsonConverter<{info.ClassName}>"
+		);
 		sb.AppendLine($"{indent}{{");
 		sb.AppendLine(
-			$"{indent}\tpublic override {info.ClassName}? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)");
+			$"{indent}\tpublic override {info.ClassName}? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
+		);
 		sb.AppendLine($"{indent}\t{{");
 		sb.AppendLine(
-			$"{indent}\t\tvar jsonModel = global::System.Text.Json.JsonSerializer.Deserialize<{info.ClassName}JsonModel>(ref reader, options);");
+			$"{indent}\t\tvar jsonModel = global::System.Text.Json.JsonSerializer.Deserialize<{info.ClassName}JsonModel>(ref reader, options);"
+		);
 		sb.AppendLine($"{indent}\t\tif (jsonModel is null)");
 		sb.AppendLine(
-			$"{indent}\t\t\tthrow new global::System.Text.Json.JsonException(\"Unable to deserialize {info.ClassName}.\");");
+			$"{indent}\t\t\tthrow new global::System.Text.Json.JsonException(\"Unable to deserialize {info.ClassName}.\");"
+		);
 		sb.AppendLine();
 		sb.AppendLine($"{indent}\t\treturn {info.ClassName}.CreateFromJsonModel(jsonModel);");
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
 		sb.AppendLine(
-			$"{indent}\tpublic override void Write(global::System.Text.Json.Utf8JsonWriter writer, {info.ClassName} value, global::System.Text.Json.JsonSerializerOptions options)");
+			$"{indent}\tpublic override void Write(global::System.Text.Json.Utf8JsonWriter writer, {info.ClassName} value, global::System.Text.Json.JsonSerializerOptions options)"
+		);
 		sb.AppendLine($"{indent}\t{{");
 		sb.AppendLine(
-			$"{indent}\t\tglobal::System.Text.Json.JsonSerializer.Serialize(writer, value.ToJsonModel(), options);");
+			$"{indent}\t\tglobal::System.Text.Json.JsonSerializer.Serialize(writer, value.ToJsonModel(), options);"
+		);
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine($"{indent}}}");
 	}
@@ -274,7 +278,8 @@ static class EmitHelper
 		sb.AppendLine($"{indent}sealed class {info.ClassName}JsonModel");
 		sb.AppendLine($"{indent}{{");
 		sb.AppendLine(
-			$"{indent}\tpublic global::Purview.EventSourcing.Aggregates.AggregateDetails? Details {{ get; set; }} = new();");
+			$"{indent}\tpublic global::Purview.EventSourcing.Aggregates.AggregateDetails? Details {{ get; set; }} = new();"
+		);
 
 		foreach (var property in info.Properties)
 		{

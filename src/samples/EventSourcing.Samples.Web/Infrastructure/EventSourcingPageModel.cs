@@ -12,18 +12,14 @@ namespace Purview.EventSourcing.Samples.Web.Infrastructure;
 public abstract class EventSourcingPageModel : PageModel
 {
 	const string ConflictMessage =
-		"This record was modified by another user while you were editing it. " +
-		"The page has been refreshed — please review and resubmit your change.";
+		"This record was modified by another user while you were editing it. "
+		+ "The page has been refreshed — please review and resubmit your change.";
 
 	/// <summary>
 	/// Executes <paramref name="saveAction"/>, sets a success or conflict message,
 	/// and returns <paramref name="result"/> in both cases.
 	/// </summary>
-	protected async Task<IActionResult> TrySaveAsync(
-		Func<Task> saveAction,
-		string successMessage,
-		IActionResult result
-	)
+	protected async Task<IActionResult> TrySaveAsync(Func<Task> saveAction, string successMessage, IActionResult result)
 	{
 		try
 		{

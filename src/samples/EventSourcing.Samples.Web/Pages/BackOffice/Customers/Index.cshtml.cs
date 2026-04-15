@@ -9,12 +9,23 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
-	[BindProperty(SupportsGet = true)] public string? Search { get; set; }
-	[BindProperty(SupportsGet = true)] public bool? ActiveFilter { get; set; }
-	[BindProperty(SupportsGet = true)] public new int Page { get; set; } = 1;
-	[BindProperty(SupportsGet = true)] public int PageSize { get; set; } = DefaultPageSize;
-	[BindProperty(SupportsGet = true)] public string SortBy { get; set; } = "name";
-	[BindProperty(SupportsGet = true)] public string SortDir { get; set; } = "asc";
+	[BindProperty(SupportsGet = true)]
+	public string? Search { get; set; }
+
+	[BindProperty(SupportsGet = true)]
+	public bool? ActiveFilter { get; set; }
+
+	[BindProperty(SupportsGet = true)]
+	public new int Page { get; set; } = 1;
+
+	[BindProperty(SupportsGet = true)]
+	public int PageSize { get; set; } = DefaultPageSize;
+
+	[BindProperty(SupportsGet = true)]
+	public string SortBy { get; set; } = "name";
+
+	[BindProperty(SupportsGet = true)]
+	public string SortDir { get; set; } = "asc";
 
 	public IReadOnlyList<CustomerAggregate> Customers { get; private set; } = [];
 	public long TotalCount { get; private set; }
@@ -24,15 +35,17 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 	public async Task OnGetAsync()
 	{
-		if (Page < 1) Page = 1;
-		if (PageSize < 5 || PageSize > 100) PageSize = DefaultPageSize;
+		if (Page < 1)
+			Page = 1;
+		if (PageSize < 5 || PageSize > 100)
+			PageSize = DefaultPageSize;
 
 		var ct = HttpContext.RequestAborted;
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
 			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
-			MaxRecords = PageSize
+			MaxRecords = PageSize,
 		};
 
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
@@ -40,8 +53,12 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var hasFilter = !string.IsNullOrEmpty(search) || activeFilter.HasValue;
 
 		Expression<Func<CustomerAggregate, bool>> where = hasFilter
-			? c => (string.IsNullOrEmpty(search) || c.Name.ToLower().Contains(search) || c.Email.ToLower().Contains(search))
-				&& (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
+			? c =>
+				(
+					string.IsNullOrEmpty(search)
+					|| c.Name.ToLower().Contains(search)
+					|| c.Email.ToLower().Contains(search)
+				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: c => true;
 
 		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch
@@ -51,7 +68,7 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 			("status", "desc") => q => q.OrderByDescending(c => c.IsActive),
 			("status", _) => q => q.OrderBy(c => c.IsActive),
 			("name", "desc") => q => q.OrderByDescending(c => c.Name),
-			_ => q => q.OrderBy(c => c.Name)
+			_ => q => q.OrderBy(c => c.Name),
 		};
 
 		TotalCount = await store.CountAsync<CustomerAggregate>(hasFilter ? where : null, ct);
@@ -74,10 +91,10 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		return RedirectToPage("Index");
 	}
 
-	public string SortLink(string column) =>
-		column == SortBy && SortDir == "asc" ? "desc" : "asc";
+	public string SortLink(string column) => column == SortBy && SortDir == "asc" ? "desc" : "asc";
 
 	public string SortIcon(string column) =>
-		SortBy != column ? "↕" : SortDir == "asc" ? "↑" : "↓";
+		SortBy != column ? "↕"
+		: SortDir == "asc" ? "↑"
+		: "↓";
 }
-

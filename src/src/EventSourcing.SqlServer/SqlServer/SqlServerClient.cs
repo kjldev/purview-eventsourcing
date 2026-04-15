@@ -7,7 +7,7 @@ namespace Purview.EventSourcing.SqlServer;
 // SQL strings are built from validated identifiers at construction time, not from user input.
 #pragma warning disable CA2100
 
-sealed partial class SqlServerClient : IDisposable
+sealed partial class SqlServerClient
 {
 	const int MinimumSqlServerMajorVersion = 16; // SQL Server 2022
 	const string MinimumSqlServerVersionName = "SQL Server 2022";
@@ -119,8 +119,8 @@ sealed partial class SqlServerClient : IDisposable
 
 		if (majorVersion < MinimumSqlServerMajorVersion)
 			throw new InvalidOperationException(
-				$"SQL Server {MinimumSqlServerVersionName} ({MinimumSqlServerMajorVersion}.x) or later is required " +
-				$"for native JSON column support. The connected server reports major version {majorVersion}."
+				$"SQL Server {MinimumSqlServerVersionName} ({MinimumSqlServerMajorVersion}.x) or later is required "
+					+ $"for native JSON column support. The connected server reports major version {majorVersion}."
 			);
 	}
 
@@ -283,11 +283,6 @@ sealed partial class SqlServerClient : IDisposable
 
 	[GeneratedRegex(@"^[\w\-\.]+$")]
 	private static partial Regex IdentifierRegex();
-
-	public void Dispose()
-	{
-		// No persistent connections to dispose - connections are created per-operation.
-	}
 }
 
 sealed class SqlServerClientOptions

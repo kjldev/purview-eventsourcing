@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.Samples.UnitTests.Domain;
 public class MultiAggregateWorkflowTests
 {
 	[Test]
-	public async Task OrderFulfillment_CustomerPlacesOrderWithInventoryReservation_AllAggregatesHaveCorrectState(CancellationToken cancellationToken)
+	public async Task OrderFulfillment_CustomerPlacesOrderWithInventoryReservation_AllAggregatesHaveCorrectState()
 	{
 		// Arrange — set up customer, inventory, and order
 		var customer = new CustomerAggregate();
@@ -47,7 +47,7 @@ public class MultiAggregateWorkflowTests
 	}
 
 	[Test]
-	public async Task OrderCancellation_ReleasesInventoryReservation_InventoryRestored(CancellationToken cancellationToken)
+	public async Task OrderCancellation_ReleasesInventoryReservation_InventoryRestored()
 	{
 		// Arrange
 		var inventory = new InventoryAggregate();
@@ -74,7 +74,7 @@ public class MultiAggregateWorkflowTests
 	}
 
 	[Test]
-	public async Task CustomerDeactivation_DoesNotAffectExistingOrders(CancellationToken cancellationToken)
+	public async Task CustomerDeactivation_DoesNotAffectExistingOrders()
 	{
 		// Arrange
 		var customer = new CustomerAggregate();
@@ -97,3 +97,4 @@ public class MultiAggregateWorkflowTests
 		await Assert.That(order.CustomerId).IsEqualTo(customer.Id());
 	}
 }
+

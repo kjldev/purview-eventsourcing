@@ -5,15 +5,15 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
 
-public sealed class IndexModel(
-	IQueryableEventStore customerStore,
-	IQueryableEventStore orderStore
-) : PageModel
+public sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore orderStore) : PageModel
 {
 	const int DefaultPageSize = 15;
 
-	[BindProperty(SupportsGet = true)] public new int Page { get; set; } = 1;
-	[BindProperty(SupportsGet = true)] public int PageSize { get; set; } = DefaultPageSize;
+	[BindProperty(SupportsGet = true)]
+	public new int Page { get; set; } = 1;
+
+	[BindProperty(SupportsGet = true)]
+	public int PageSize { get; set; } = DefaultPageSize;
 
 	public CustomerAggregate? CurrentCustomer { get; private set; }
 	public IReadOnlyList<OrderAggregate> Orders { get; private set; } = [];
@@ -28,8 +28,10 @@ public sealed class IndexModel(
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		if (Page < 1) Page = 1;
-		if (PageSize < 5 || PageSize > 100) PageSize = DefaultPageSize;
+		if (Page < 1)
+			Page = 1;
+		if (PageSize < 5 || PageSize > 100)
+			PageSize = DefaultPageSize;
 
 		var ct = HttpContext.RequestAborted;
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
@@ -38,7 +40,7 @@ public sealed class IndexModel(
 		var request = new ContinuationRequest
 		{
 			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
-			MaxRecords = PageSize
+			MaxRecords = PageSize,
 		};
 
 		Expression<Func<OrderAggregate, bool>> where = o => o.CustomerId == customerId;
@@ -47,11 +49,11 @@ public sealed class IndexModel(
 		var result = await orderStore.QueryAsync<OrderAggregate>(
 			where,
 			q => q.OrderByDescending(o => o.Details.SavedVersion),
-			request, ct
+			request,
+			ct
 		);
 		Orders = result.Results;
 
 		return Page();
 	}
 }
-

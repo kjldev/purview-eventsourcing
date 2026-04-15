@@ -6,7 +6,9 @@ namespace Purview.EventSourcing.CosmosDb.Snapshot;
 partial class CosmosDbSnapshotEventStoreTests
 {
 	[Test]
-	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInCosmosDbWhenRestore_SnapshotCreatedInCosmosDb(CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInCosmosDbWhenRestore_SnapshotCreatedInCosmosDb(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		await using var context = fixture.CreateContext();

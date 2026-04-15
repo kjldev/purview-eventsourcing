@@ -3,7 +3,7 @@ namespace Purview.EventSourcing;
 public partial class AggregateBaseTests
 {
 	[Test]
-	public async Task ForceSave_GivenNoUnsavedEvents_RecordsForceSaveEvent(CancellationToken cancellationToken)
+	public async Task ForceSave_GivenNoUnsavedEvents_RecordsForceSaveEvent()
 	{
 		// Arrange
 		var aggregate = new Aggregates.Test.TestAggregate();
@@ -17,7 +17,7 @@ public partial class AggregateBaseTests
 	}
 
 	[Test]
-	public async Task ForceSave_GivenExistingUnsavedEvents_DoesNotRecordForceSaveEvent(CancellationToken cancellationToken)
+	public async Task ForceSave_GivenExistingUnsavedEvents_DoesNotRecordForceSaveEvent()
 	{
 		// Arrange
 		var aggregate = new Aggregates.Test.TestAggregate();
@@ -33,7 +33,7 @@ public partial class AggregateBaseTests
 	}
 
 	[Test]
-	public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix(CancellationToken cancellationToken)
+	public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix()
 	{
 		// Arrange
 		var aggregate = new Aggregates.Test.TestAggregate();
@@ -42,3 +42,4 @@ public partial class AggregateBaseTests
 		await Assert.That(aggregate.AggregateType).IsEqualTo("test");
 	}
 }
+

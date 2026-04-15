@@ -12,7 +12,11 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(10, 1)]
 	[Arguments(10, 5)]
 	[Arguments(10, 10)]
-	public async Task QueryAsync_GivenAggregatesExist_QueriesAsExpected(int numberOfAggregates, int numberOfEvents, CancellationToken cancellationToken)
+	public async Task QueryAsync_GivenAggregatesExist_QueriesAsExpected(
+		int numberOfAggregates,
+		int numberOfEvents,
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
@@ -44,7 +48,10 @@ partial class SqlServerSnapshotEventStoreTests
 	[Arguments(1)]
 	[Arguments(5)]
 	[Arguments(10)]
-	public async Task QueryAsync_GivenAggregateType_QueriesAsExpected(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task QueryAsync_GivenAggregateType_QueriesAsExpected(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);

@@ -11,22 +11,18 @@ public sealed class JsonHelpersTests
 {
 	[Test]
 	public async Task SerializeAndDeserialize_GivenAggregateWithPrivateSetterAndGetterOnlyCollections_RestoresState(
-		CancellationToken cancellationToken
-	)
+)
 	{
+		string[] value = ["value-2", "value-3"];
 		var aggregate = new SerializerAggregate
 		{
-			Details = new AggregateDetails
-			{
-				Id = "aggregate-1",
-				CurrentVersion = 3,
-			},
+			Details = new AggregateDetails { Id = "aggregate-1", CurrentVersion = 3 },
 		};
 		aggregate.Seed(
 			"customer-1",
 			[
 				new KeyValuePair<string, StringValues>("single", "value-1"),
-				new KeyValuePair<string, StringValues>("multi", new[] { "value-2", "value-3" }),
+				new KeyValuePair<string, StringValues>("multi", value),
 			],
 			["item-1", "item-2"]
 		);
@@ -39,20 +35,19 @@ public sealed class JsonHelpersTests
 		await Assert.That(roundTripped.Details.Id).IsEqualTo("aggregate-1");
 		await Assert.That(roundTripped.Details.CurrentVersion).IsEqualTo(3);
 		await Assert.That(roundTripped.StringValuesDictionary["single"].ToString()).IsEqualTo("value-1");
-		await Assert.That(roundTripped.StringValuesDictionary["multi"].ToArray()).IsEquivalentTo(["value-2", "value-3"]);
+		await Assert
+			.That(roundTripped.StringValuesDictionary["multi"].ToArray<string>())
+			.IsEquivalentTo(value);
 		await Assert.That(roundTripped.Tags).IsEquivalentTo(["item-1", "item-2"]);
 	}
 
 	[Test]
-	public async Task SerializeAndDeserialize_GivenEventWithDetails_RestoresEventDetails(CancellationToken cancellationToken)
+	public async Task SerializeAndDeserialize_GivenEventWithDetails_RestoresEventDetails(
+	)
 	{
 		var @event = new SerializerEvent
 		{
-			Details = new EventDetails
-			{
-				AggregateVersion = 2,
-				CorrelationId = "corr-1",
-			},
+			Details = new EventDetails { AggregateVersion = 2, CorrelationId = "corr-1" },
 			Value = "event-value",
 		};
 
@@ -66,10 +61,11 @@ public sealed class JsonHelpersTests
 	}
 
 	[Test]
-	public async Task Serialize_GivenStringValues_WritesExpectedShapesAndRoundTrips(CancellationToken cancellationToken)
+	public async Task Serialize_GivenStringValues_WritesExpectedShapesAndRoundTrips()
 	{
+		var value = new[] { "one", "two" };
 		var singleJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = "single" });
-		var multiJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = new[] { "one", "two" } });
+		var multiJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = value });
 		var emptyJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = StringValues.Empty });
 
 		using var singleDocument = JsonDocument.Parse(singleJson);
@@ -85,26 +81,25 @@ public sealed class JsonHelpersTests
 		var empty = JsonHelpers.Deserialize<StringValuesEnvelope>(emptyJson);
 
 		await Assert.That(single!.Value.ToString()).IsEqualTo("single");
-		await Assert.That(multi!.Value.ToArray()).IsEquivalentTo(["one", "two"]);
+		await Assert.That(multi!.Value.ToArray<string>()).IsEquivalentTo(value);
 		await Assert.That(empty!.Value.Count).IsEqualTo(0);
 	}
 
 	[Test]
-	public async Task Deserialize_GivenLegacyEventJson_ProducesEventThatCanBeUpcast(CancellationToken cancellationToken)
+	public async Task Deserialize_GivenLegacyEventJson_ProducesEventThatCanBeUpcast()
 	{
 		var legacyEvent = new LegacySerializerEvent
 		{
-			Details = new EventDetails
-			{
-				CorrelationId = "corr-2",
-			},
+			Details = new EventDetails { CorrelationId = "corr-2" },
 			OldField = "legacy",
 		};
 		var json = JsonHelpers.Serialize(legacyEvent, legacyEvent.GetType());
-		var deserialized = (LegacySerializerEvent)JsonHelpers.Deserialize(json, typeof(LegacySerializerEvent))!;
+		var deserialized = JsonHelpers.Deserialize<LegacySerializerEvent>(json)!;
 
 		var registry = new EventUpcasterRegistry([
-			new EventUpcasterDescriptor<LegacySerializerEvent, CurrentSerializerEvent>(new LegacySerializerEventUpcaster()),
+			new EventUpcasterDescriptor<LegacySerializerEvent, CurrentSerializerEvent>(
+				new LegacySerializerEventUpcaster()
+			),
 		]);
 
 		var upcast = (CurrentSerializerEvent)registry.Upcast(deserialized);
@@ -176,3 +171,4 @@ public sealed class JsonHelpersTests
 			new() { Details = source.Details, NewField = source.OldField + "-upcast" };
 	}
 }
+

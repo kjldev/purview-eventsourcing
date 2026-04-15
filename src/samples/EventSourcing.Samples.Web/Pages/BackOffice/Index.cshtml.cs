@@ -3,10 +3,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice;
 
-public sealed class IndexModel(
-	IQueryableEventStore inventoryStore,
-	IQueryableEventStore orderStore
-) : PageModel
+public sealed class IndexModel(IQueryableEventStore inventoryStore, IQueryableEventStore orderStore) : PageModel
 {
 	public int UniqueProductCount { get; private set; }
 	public long InventoryItemCount { get; private set; }
@@ -20,7 +17,11 @@ public sealed class IndexModel(
 		var ct = HttpContext.RequestAborted;
 
 		var request = new ContinuationRequest { MaxRecords = 1000 };
-		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(q => q.OrderBy(i => i.ProductId), request, ct);
+		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(
+			q => q.OrderBy(i => i.ProductId),
+			request,
+			ct
+		);
 		var allItems = inventoryResult.Results;
 
 		UniqueProductCount = allItems.Select(i => i.ProductId).Distinct().Count();
@@ -29,9 +30,12 @@ public sealed class IndexModel(
 
 		DraftOrderCount = await orderStore.CountAsync<OrderAggregate>(o => o.Status == OrderStatus.Draft, ct);
 		ActiveOrderCount = await orderStore.CountAsync<OrderAggregate>(
-			o => o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Shipped, ct);
+			o => o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Shipped,
+			ct
+		);
 		CompletedOrderCount = await orderStore.CountAsync<OrderAggregate>(
-			o => o.Status == OrderStatus.Completed || o.Status == OrderStatus.Cancelled, ct);
+			o => o.Status == OrderStatus.Completed || o.Status == OrderStatus.Cancelled,
+			ct
+		);
 	}
 }
-

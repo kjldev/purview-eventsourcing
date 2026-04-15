@@ -3,12 +3,10 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class CartCheckoutService(
-	IEventStoreTransactionFactory transactionFactory,
-	IQueryableEventStore store
-) : ICartCheckoutService
+public sealed class CartCheckoutService(IEventStoreTransactionFactory transactionFactory, IQueryableEventStore store)
+	: ICartCheckoutService
 {
-	static readonly ConcurrentDictionary<string, decimal> _unitPrices = new(StringComparer.OrdinalIgnoreCase);
+	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(StringComparer.OrdinalIgnoreCase);
 
 	public async Task<CartCheckoutResult> CheckoutAsync(
 		string customerId,
@@ -47,7 +45,8 @@ public sealed class CartCheckoutService(
 			if (reservation.Aggregate.AvailableQuantity < reservation.Quantity)
 			{
 				return CartCheckoutResult.Fail(
-					$"Insufficient stock for '{reservation.Aggregate.ProductName}'. Available: {reservation.Aggregate.AvailableQuantity}, requested: {reservation.Quantity}.");
+					$"Insufficient stock for '{reservation.Aggregate.ProductName}'. Available: {reservation.Aggregate.AvailableQuantity}, requested: {reservation.Quantity}."
+				);
 			}
 		}
 
@@ -76,20 +75,21 @@ public sealed class CartCheckoutService(
 			transaction.Enlist(reservation.Aggregate, store);
 
 		var transactionResult = await transaction.CommitAsync(cancellationToken);
-		if (!transactionResult.Success)
-			return CartCheckoutResult.Fail("Unable to complete checkout. Nothing was saved. Please review your cart and try again.");
-
-		return CartCheckoutResult.Success(order);
+		return transactionResult.Success
+			? CartCheckoutResult.Success(order)
+			: CartCheckoutResult.Fail(
+				"Unable to complete checkout. Nothing was saved. Please review your cart and try again."
+			);
 	}
 
 	static decimal GetUnitPrice(string productId)
 	{
-		if (_unitPrices.TryGetValue(productId, out var cached))
+		if (UnitPrices.TryGetValue(productId, out var cached))
 			return cached;
 
 		var hash = Math.Abs(productId.GetHashCode());
 		var price = Math.Round(9.99m + (hash % 9000) / 100m, 2);
-		return _unitPrices.GetOrAdd(productId, price);
+		return UnitPrices.GetOrAdd(productId, price);
 	}
 
 	sealed class InventoryReservation(InventoryAggregate aggregate)

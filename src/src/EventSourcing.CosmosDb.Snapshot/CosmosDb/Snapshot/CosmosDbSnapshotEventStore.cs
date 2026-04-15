@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.CosmosDb.Snapshot;
 public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEventStore<T>, IAsyncDisposable
 	where T : class, IAggregate, new()
 {
-	readonly IEventStoreImpl<T> _eventStore;
+	readonly IEventStoreCore<T> _eventStore;
 	readonly IOptions<CosmosDbEventStoreOptions> _cosmosDbEventStoreOptions;
 	readonly ICosmosDbSnapshotEventStoreTelemetry _telemetry;
 

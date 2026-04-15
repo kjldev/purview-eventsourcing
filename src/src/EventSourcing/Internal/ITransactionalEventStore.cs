@@ -5,17 +5,14 @@ using Purview.EventSourcing.Aggregates;
 namespace Purview.EventSourcing.Internal;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface ITransactionalEventStore<T> : IEventStoreImpl<T>
+public interface ITransactionalEventStore<T> : IEventStoreCore<T>
 	where T : class, IAggregate, new()
 {
 	string TransactionBoundaryKey { get; }
 
 	DbConnection CreateTransactionConnection();
 
-	Task EnsureTransactionConfiguredAsync(
-		DbConnection connection,
-		CancellationToken cancellationToken = default
-	);
+	Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken = default);
 
 	Task<TransactionalSaveOperation<T>> SaveInTransactionAsync(
 		T aggregate,
@@ -41,9 +38,7 @@ public sealed class TransactionalSaveOperation<T>(
 	readonly Func<CancellationToken, Task> _afterCommit = afterCommit ?? NoOp;
 	readonly Func<CancellationToken, Task> _afterRollback = afterRollback ?? NoOp;
 
-	public Task AfterCommitAsync(CancellationToken cancellationToken = default) =>
-		_afterCommit(cancellationToken);
+	public Task AfterCommitAsync(CancellationToken cancellationToken = default) => _afterCommit(cancellationToken);
 
-	public Task AfterRollbackAsync(CancellationToken cancellationToken = default) =>
-		_afterRollback(cancellationToken);
+	public Task AfterRollbackAsync(CancellationToken cancellationToken = default) => _afterRollback(cancellationToken);
 }

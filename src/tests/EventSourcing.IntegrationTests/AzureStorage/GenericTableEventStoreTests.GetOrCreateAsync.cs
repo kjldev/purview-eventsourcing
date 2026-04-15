@@ -2,7 +2,9 @@
 
 partial class GenericTableEventStoreTests<TAggregate>
 {
-	public async Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate(CancellationToken cancellationToken)
+	public async Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";

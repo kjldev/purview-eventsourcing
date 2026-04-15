@@ -17,14 +17,14 @@ public static class SqlServerSnapshotIEventStoreServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IQueryableEventStoreImpl<>), typeof(SqlServerSnapshotEventStore<>))
+			.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(SqlServerSnapshotEventStore<>))
 			.AddTransient(typeof(ISqlServerSnapshotEventStore<>), typeof(SqlServerSnapshotEventStore<>))
 			.AddSqlServerSnapshotEventStoreTelemetry();
 		services.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		if (registerAsIEventStore)
 		{
-			services.AddTransient(typeof(IEventStoreImpl<>), typeof(SqlServerSnapshotEventStore<>));
+			services.AddTransient(typeof(IEventStoreCore<>), typeof(SqlServerSnapshotEventStore<>));
 			services.TryAddTransient<IEventStore, EventStoreFacade>();
 		}
 

@@ -12,7 +12,11 @@ partial class CosmosDbSnapshotEventStoreTests
 	[Arguments(10, 1)]
 	[Arguments(10, 5)]
 	[Arguments(10, 10)]
-	public async Task CanQuery_GivenAggregatesExist_QueryAsExpected(int numberOfAggregates, int numberOfEvents, CancellationToken cancellationToken)
+	public async Task CanQuery_GivenAggregatesExist_QueryAsExpected(
+		int numberOfAggregates,
+		int numberOfEvents,
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		await using var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
@@ -48,7 +52,10 @@ partial class CosmosDbSnapshotEventStoreTests
 	[Arguments(1)]
 	[Arguments(5)]
 	[Arguments(10)]
-	public async Task CanQuery_GivenAggregateType_QueryAsExpected(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task CanQuery_GivenAggregateType_QueryAsExpected(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		await using var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);

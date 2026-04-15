@@ -48,12 +48,10 @@ public sealed class EventStoreFacade(IServiceProvider serviceProvider) : IEventS
 		GetEventStore<T>().SaveAsync(aggregate, operationContext, cancellationToken);
 
 	public Task<bool> IsDeletedAsync<T>(string aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new() =>
-		GetEventStore<T>().IsDeletedAsync(aggregateId, cancellationToken);
+		where T : class, IAggregate, new() => GetEventStore<T>().IsDeletedAsync(aggregateId, cancellationToken);
 
 	public Task<T?> GetDeletedAsync<T>(string aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new() =>
-		GetEventStore<T>().GetDeletedAsync(aggregateId, cancellationToken);
+		where T : class, IAggregate, new() => GetEventStore<T>().GetDeletedAsync(aggregateId, cancellationToken);
 
 	public Task<bool> DeleteAsync<T>(
 		T aggregate,
@@ -79,16 +77,13 @@ public sealed class EventStoreFacade(IServiceProvider serviceProvider) : IEventS
 		GetEventStore<T>().GetAggregateIdsAsync(includeDeleted, cancellationToken);
 
 	public Task<ExistsState> ExistsAsync<T>(string aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new() =>
-		GetEventStore<T>().ExistsAsync(aggregateId, cancellationToken);
+		where T : class, IAggregate, new() => GetEventStore<T>().ExistsAsync(aggregateId, cancellationToken);
 
 	public T FulfilRequirements<T>(T aggregate)
 		where T : class, IAggregate, new() => GetEventStore<T>().FulfilRequirements(aggregate);
 
-	public IEventStoreImpl<T> GetEventStore<T>()
+	public IEventStoreCore<T> GetEventStore<T>()
 		where T : class, IAggregate, new() =>
-		(IEventStoreImpl<T>)_eventStores.GetOrAdd(
-			typeof(T),
-			_ => serviceProvider.GetRequiredService<IEventStoreImpl<T>>()
-		);
+		(IEventStoreCore<T>)
+			_eventStores.GetOrAdd(typeof(T), _ => serviceProvider.GetRequiredService<IEventStoreCore<T>>());
 }

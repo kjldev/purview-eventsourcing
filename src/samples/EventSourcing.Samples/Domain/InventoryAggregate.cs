@@ -24,7 +24,13 @@ public sealed partial class InventoryAggregate : AggregateBase
 	public int AvailableQuantity => QuantityOnHand - ReservedQuantity;
 
 	// Commands
-	public void Initialize(string productId, string productName, string locationId, string locationName, int initialQuantity = 0)
+	public void Initialize(
+		string productId,
+		string productName,
+		string locationId,
+		string locationName,
+		int initialQuantity = 0
+	)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(productId);
 		ArgumentException.ThrowIfNullOrWhiteSpace(productName);
@@ -32,7 +38,14 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentException.ThrowIfNullOrWhiteSpace(locationName);
 		ArgumentOutOfRangeException.ThrowIfNegative(initialQuantity);
 
-		InventoryInitialized(productId, productName, locationId, locationName, quantityOnHand: initialQuantity, reservedQuantity: 0);
+		InventoryInitialized(
+			productId,
+			productName,
+			locationId,
+			locationName,
+			quantityOnHand: initialQuantity,
+			reservedQuantity: 0
+		);
 	}
 
 	public void ReceiveStock(int quantity)
@@ -49,7 +62,8 @@ public sealed partial class InventoryAggregate : AggregateBase
 
 		if (quantity > AvailableQuantity)
 			throw new InvalidOperationException(
-				$"Cannot reserve {quantity} units. Only {AvailableQuantity} available.");
+				$"Cannot reserve {quantity} units. Only {AvailableQuantity} available."
+			);
 
 		StockReserved(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
 	}
@@ -60,8 +74,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
 		if (quantity > ReservedQuantity)
-			throw new InvalidOperationException(
-				$"Cannot release {quantity} units. Only {ReservedQuantity} reserved.");
+			throw new InvalidOperationException($"Cannot release {quantity} units. Only {ReservedQuantity} reserved.");
 
 		StockReservationReleased(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
 	}
@@ -72,8 +85,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
 		if (quantity > ReservedQuantity)
-			throw new InvalidOperationException(
-				$"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.");
+			throw new InvalidOperationException($"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.");
 
 		StockShipped(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
 	}
@@ -83,9 +95,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentOutOfRangeException.ThrowIfNegative(newQuantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
-		StockAdjusted(
-			quantityOnHand: newQuantity,
-			reservedQuantity: Math.Min(ReservedQuantity, newQuantity));
+		StockAdjusted(quantityOnHand: newQuantity, reservedQuantity: Math.Min(ReservedQuantity, newQuantity));
 	}
 
 	/// <summary>
@@ -111,7 +121,14 @@ public sealed partial class InventoryAggregate : AggregateBase
 	}
 
 	[GenerateAggregateEvent]
-	public partial void InventoryInitialized(string productId, string productName, string locationId, string locationName, int quantityOnHand, int reservedQuantity);
+	public partial void InventoryInitialized(
+		string productId,
+		string productName,
+		string locationId,
+		string locationName,
+		int quantityOnHand,
+		int reservedQuantity
+	);
 
 	[GenerateAggregateEvent]
 	public partial void StockReceived(int quantityOnHand, int reservedQuantity);

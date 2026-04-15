@@ -4,10 +4,12 @@ using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
-public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotEventStore<T>, ITransactionalEventStore<T>, IDisposable
+public sealed partial class SqlServerSnapshotEventStore<T>
+	: ISqlServerSnapshotEventStore<T>,
+		ITransactionalEventStore<T>
 	where T : class, IAggregate, new()
 {
-	readonly IEventStoreImpl<T> _eventStore;
+	readonly IEventStoreCore<T> _eventStore;
 	readonly IOptions<SqlServerSnapshotEventStoreOptions> _sqlServerEventStoreOptions;
 	readonly ISqlServerSnapshotEventStoreTelemetry _telemetry;
 
@@ -93,10 +95,4 @@ public sealed partial class SqlServerSnapshotEventStore<T> : ISqlServerSnapshotE
 	}
 
 	string GetAggregateTypeName() => AggregateTypeNames.GetOrAdd(_aggregateType, _ => new T().AggregateType);
-
-	public void Dispose()
-	{
-		GC.SuppressFinalize(this);
-		_sqlServerClient?.Dispose();
-	}
 }

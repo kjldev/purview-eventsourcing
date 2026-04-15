@@ -14,7 +14,8 @@ public sealed record CatalogProductViewModel(
 	int TotalAvailable,
 	string BestInventoryId,
 	decimal UnitPrice,
-	string? ImageUrl);
+	string? ImageUrl
+);
 
 public sealed class IndexModel(
 	IQueryableEventStore customerStore,
@@ -22,7 +23,8 @@ public sealed class IndexModel(
 	IProductImageService imageService
 ) : PageModel
 {
-	[BindProperty(SupportsGet = true)] public string? Search { get; set; }
+	[BindProperty(SupportsGet = true)]
+	public string? Search { get; set; }
 
 	public CustomerAggregate? CurrentCustomer { get; private set; }
 	public IReadOnlyList<CatalogProductViewModel> Products { get; private set; } = [];
@@ -38,15 +40,21 @@ public sealed class IndexModel(
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
 
 		var request = new ContinuationRequest { MaxRecords = 500 };
-		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(q => q.OrderBy(i => i.ProductName), request, ct);
+		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(
+			q => q.OrderBy(i => i.ProductName),
+			request,
+			ct
+		);
 		var allItems = inventoryResult.Results;
 
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
 
 		var grouped = allItems
-			.Where(i => string.IsNullOrEmpty(search) ||
-				i.ProductName.ToLower().Contains(search) ||
-				i.ProductId.ToLower().Contains(search))
+			.Where(i =>
+				string.IsNullOrEmpty(search)
+				|| i.ProductName.ToLower().Contains(search)
+				|| i.ProductId.ToLower().Contains(search)
+			)
 			.GroupBy(i => i.ProductId)
 			.Where(g => g.Sum(i => i.AvailableQuantity) > 0)
 			.Select(g =>
@@ -54,7 +62,13 @@ public sealed class IndexModel(
 				var best = g.OrderByDescending(i => i.AvailableQuantity).First();
 				var totalAvailable = g.Sum(i => i.AvailableQuantity);
 				var unitPrice = Math.Round(9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m, 2);
-				return (ProductId: g.Key, ProductName: best.ProductName, TotalAvailable: totalAvailable, BestInventoryId: best.Id(), UnitPrice: unitPrice);
+				return (
+					ProductId: g.Key,
+					ProductName: best.ProductName,
+					TotalAvailable: totalAvailable,
+					BestInventoryId: best.Id(),
+					UnitPrice: unitPrice
+				);
 			})
 			.OrderBy(p => p.ProductName)
 			.ToList();
@@ -63,20 +77,39 @@ public sealed class IndexModel(
 		var imageUrlTasks = grouped.Select(p => imageService.GetImageUrlAsync(p.ProductId, ct)).ToList();
 		var imageUrls = await Task.WhenAll(imageUrlTasks);
 
-		Products = grouped.Zip(imageUrls, (p, url) =>
-			new CatalogProductViewModel(p.ProductId, p.ProductName, p.TotalAvailable, p.BestInventoryId, p.UnitPrice, url))
+		Products = grouped
+			.Zip(
+				imageUrls,
+				(p, url) =>
+					new CatalogProductViewModel(
+						p.ProductId,
+						p.ProductName,
+						p.TotalAvailable,
+						p.BestInventoryId,
+						p.UnitPrice,
+						url
+					)
+			)
 			.ToList();
 
 		CartCount = HttpContext.Session.GetCartCount();
 		return Page();
 	}
 
-	public IActionResult OnPostAddToCart(string inventoryId, string productId, string productName, decimal unitPrice, int quantity = 1)
+	public IActionResult OnPostAddToCart(
+		string inventoryId,
+		string productId,
+		string productName,
+		decimal unitPrice,
+		int quantity = 1
+	)
 	{
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
-		if (string.IsNullOrEmpty(customerId)) return RedirectToPage("/Customer/Index");
+		if (string.IsNullOrEmpty(customerId))
+			return RedirectToPage("/Customer/Index");
 
-		if (quantity < 1) quantity = 1;
+		if (quantity < 1)
+			quantity = 1;
 
 		var cart = HttpContext.Session.GetCart();
 		var idx = cart.FindIndex(c => c.InventoryId == inventoryId);
@@ -90,4 +123,3 @@ public sealed class IndexModel(
 		return RedirectToPage();
 	}
 }
-

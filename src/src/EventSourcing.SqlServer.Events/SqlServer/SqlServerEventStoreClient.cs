@@ -159,8 +159,8 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 
 		if (majorVersion < MinimumSqlServerMajorVersion)
 			throw new InvalidOperationException(
-				$"SQL Server {MinimumSqlServerVersionName} ({MinimumSqlServerMajorVersion}.x) or later is required " +
-				$"for native JSON column support. The connected server reports major version {majorVersion}."
+				$"SQL Server {MinimumSqlServerVersionName} ({MinimumSqlServerMajorVersion}.x) or later is required "
+					+ $"for native JSON column support. The connected server reports major version {majorVersion}."
 			);
 	}
 

@@ -177,7 +177,13 @@ partial class TableEventStore<T>
 			if (operationContext.UseIdempotencyMarker)
 				batchOperation.Add(idempotencyMarkerOperation, recordAt: 0);
 
-			await SubmitBatchOperationsAsync(aggregate, idempotencyId, batchOperation, operationContext.UseIdempotencyMarker, cancellationToken);
+			await SubmitBatchOperationsAsync(
+				aggregate,
+				idempotencyId,
+				batchOperation,
+				operationContext.UseIdempotencyMarker,
+				cancellationToken
+			);
 
 			if (largeChangeEvents.Count > 0)
 			{
@@ -261,10 +267,7 @@ partial class TableEventStore<T>
 
 	bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
-		if (aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any())
-			return true;
-
-		return (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
+		return aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any() || (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
 			>= _eventStoreOptions.Value.SnapshotInterval;
 	}
 
@@ -473,9 +476,9 @@ partial class TableEventStore<T>
 				// Do not pass in the cancellation token. We want this to carry on as long as possible.
 				await _distributedCache.RemoveAsync(cacheKey);
 			}
-			#pragma warning disable CA1031
+#pragma warning disable CA1031
 			catch (Exception ex)
-			#pragma warning restore CA1031
+#pragma warning restore CA1031
 			{
 				_eventStoreTelemetry.CacheRemovalFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 			}

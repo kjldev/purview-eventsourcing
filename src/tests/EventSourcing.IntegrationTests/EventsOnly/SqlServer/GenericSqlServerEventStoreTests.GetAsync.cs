@@ -4,7 +4,9 @@ namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(CancellationToken cancellationToken)
+	public async Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -23,7 +25,10 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await Assert.That(func).Throws<AggregateIsDeletedException>();
 	}
 
-	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken)
+	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -52,7 +57,10 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 			.Because("There is no snapshot version as it was deleted as part of this test.");
 	}
 
-	public async Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken)
+	public async Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	)
 	{
 		// eventsToCreate is a multiple of snapshotInterval (10, 20, 50, 80, 100).
 		// First save triggers a snapshot at CurrentVersion == eventsToCreate.

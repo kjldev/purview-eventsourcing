@@ -12,7 +12,9 @@ namespace Purview.EventSourcing.Samples.Domain;
 public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fixture)
 {
 	[Test]
-	public async Task SaveAsync_GivenOrderFulfillmentWorkflow_AllAggregatesRestoreWithCoherentState(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenOrderFulfillmentWorkflow_AllAggregatesRestoreWithCoherentState(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange: set up independent stores (each with their own isolated table)
 		using var customerStore = fixture.CreateEventStore<CustomerAggregate>();
@@ -56,7 +58,11 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 
 		// Act: Reload all three aggregates from their respective stores
 		var loadedCustomer = await customerStore.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken);
-		var loadedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken);
+		var loadedInventory = await inventoryStore.GetAsync<InventoryAggregate>(
+			inventory.Id(),
+			null,
+			cancellationToken
+		);
 		var loadedOrder = await orderStore.GetAsync<OrderAggregate>(order.Id(), null, cancellationToken);
 
 		// Assert: Customer
@@ -81,7 +87,9 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenOrderCancellationWorkflow_InventoryReservationIsReleased(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenOrderCancellationWorkflow_InventoryReservationIsReleased(
+		CancellationToken cancellationToken
+	)
 	{
 		using var inventoryStore = fixture.CreateEventStore<InventoryAggregate>();
 		using var orderStore = fixture.CreateEventStore<OrderAggregate>();
@@ -112,7 +120,11 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 
 		// Act: Reload
 		var loadedOrder = await orderStore.GetAsync<OrderAggregate>(order.Id(), null, cancellationToken);
-		var loadedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken);
+		var loadedInventory = await inventoryStore.GetAsync<InventoryAggregate>(
+			inventory.Id(),
+			null,
+			cancellationToken
+		);
 
 		// Assert
 		await Assert.That(loadedOrder).IsNotNull();
@@ -125,7 +137,9 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenCustomerDeactivatedAfterOrderPlaced_OrderRemainsIntact(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenCustomerDeactivatedAfterOrderPlaced_OrderRemainsIntact(
+		CancellationToken cancellationToken
+	)
 	{
 		using var customerStore = fixture.CreateEventStore<CustomerAggregate>();
 		using var orderStore = fixture.CreateEventStore<OrderAggregate>();

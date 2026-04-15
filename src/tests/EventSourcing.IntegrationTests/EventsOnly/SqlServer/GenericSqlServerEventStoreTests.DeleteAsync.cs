@@ -22,7 +22,9 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await Assert.That(aggregateResult.Details.SavedVersion).IsEqualTo(2);
 	}
 
-	public async Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(CancellationToken cancellationToken)
+	public async Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);

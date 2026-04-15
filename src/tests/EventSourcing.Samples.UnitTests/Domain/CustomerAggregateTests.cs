@@ -16,7 +16,7 @@ public class CustomerAggregateTests
 	#region RegisterCustomer Tests
 
 	[Test]
-	public async Task RegisterCustomer_GivenValidData_SetsPropertiesCorrectly(CancellationToken cancellationToken)
+	public async Task RegisterCustomer_GivenValidData_SetsPropertiesCorrectly()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -31,7 +31,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task RegisterCustomer_GivenValidData_RecordsOneEvent(CancellationToken cancellationToken)
+	public async Task RegisterCustomer_GivenValidData_RecordsOneEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -69,7 +69,7 @@ public class CustomerAggregateTests
 	#region ChangeName Tests
 
 	[Test]
-	public async Task ChangeName_GivenNewName_UpdatesName(CancellationToken cancellationToken)
+	public async Task ChangeName_GivenNewName_UpdatesName()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -83,7 +83,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task ChangeName_GivenNewName_RecordsEvent(CancellationToken cancellationToken)
+	public async Task ChangeName_GivenNewName_RecordsEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -98,7 +98,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task ChangeName_GivenSameName_DoesNotRecordEvent(CancellationToken cancellationToken)
+	public async Task ChangeName_GivenSameName_DoesNotRecordEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -128,7 +128,7 @@ public class CustomerAggregateTests
 	#region ChangeEmail Tests
 
 	[Test]
-	public async Task ChangeEmail_GivenNewEmail_UpdatesEmail(CancellationToken cancellationToken)
+	public async Task ChangeEmail_GivenNewEmail_UpdatesEmail()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -142,7 +142,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task ChangeEmail_GivenSameEmail_DoesNotRecordEvent(CancellationToken cancellationToken)
+	public async Task ChangeEmail_GivenSameEmail_DoesNotRecordEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -172,7 +172,7 @@ public class CustomerAggregateTests
 	#region Deactivate/Reactivate Tests
 
 	[Test]
-	public async Task Deactivate_GivenActiveCustomer_SetsIsActiveFalse(CancellationToken cancellationToken)
+	public async Task Deactivate_GivenActiveCustomer_SetsIsActiveFalse()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -186,7 +186,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task Deactivate_GivenAlreadyInactive_DoesNotRecordEvent(CancellationToken cancellationToken)
+	public async Task Deactivate_GivenAlreadyInactive_DoesNotRecordEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -202,7 +202,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task Reactivate_GivenInactiveCustomer_SetsIsActiveTrue(CancellationToken cancellationToken)
+	public async Task Reactivate_GivenInactiveCustomer_SetsIsActiveTrue()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -221,7 +221,7 @@ public class CustomerAggregateTests
 	#region UpdateDetails Tests
 
 	[Test]
-	public async Task UpdateDetails_GivenNameAndEmail_RaisesTwoEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenNameAndEmail_RaisesTwoEvents()
 	{
 		var customer = CreateCustomer("cust-1");
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
@@ -235,7 +235,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenAllThreeFields_RaisesThreeEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenAllThreeFields_RaisesThreeEvents()
 	{
 		var customer = CreateCustomer("cust-1");
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
@@ -250,7 +250,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenOnlyName_RaisesOneEvent(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenOnlyName_RaisesOneEvent()
 	{
 		var customer = CreateCustomer("cust-1");
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
@@ -264,7 +264,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents()
 	{
 		var customer = CreateCustomer("cust-1");
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
@@ -289,7 +289,7 @@ public class CustomerAggregateTests
 	#region Version Tracking Tests
 
 	[Test]
-	public async Task MultipleOperations_TracksVersionCorrectly(CancellationToken cancellationToken)
+	public async Task MultipleOperations_TracksVersionCorrectly()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -306,3 +306,4 @@ public class CustomerAggregateTests
 
 	#endregion
 }
+

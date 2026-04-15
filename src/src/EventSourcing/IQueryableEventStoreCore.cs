@@ -9,7 +9,7 @@ namespace Purview.EventSourcing;
 /// </summary>
 /// <typeparam name="T">An <see cref="IAggregate"/> implementation.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public interface IQueryableEventStoreImpl<T> : IEventStoreImpl<T>
+public interface IQueryableEventStoreCore<T> : IEventStoreCore<T>
 	where T : class, IAggregate, new()
 {
 	IAsyncEnumerable<T> GetQueryEnumerableAsync(

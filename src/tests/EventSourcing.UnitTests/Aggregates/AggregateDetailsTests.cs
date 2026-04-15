@@ -5,7 +5,7 @@ namespace Purview.EventSourcing;
 public class AggregateDetailsTests
 {
 	[Test]
-	public async Task Id_WhenSetToSameValue_DoesNotThrow(CancellationToken cancellationToken)
+	public async Task Id_WhenSetToSameValue_DoesNotThrow()
 	{
 		// Arrange
 		var details = new AggregateDetails { Id = "test-id" };
@@ -18,14 +18,14 @@ public class AggregateDetailsTests
 	}
 
 	[Test]
-	public async Task Clone_ModifyingClone_DoesNotAffectOriginal(CancellationToken cancellationToken)
+	public async Task Clone_ModifyingClone_DoesNotAffectOriginal()
 	{
 		// Arrange
 		var original = new AggregateDetails
 		{
 			Id = "original",
 			SavedVersion = 3,
-			CurrentVersion = 5
+			CurrentVersion = 5,
 		};
 
 		// Act
@@ -38,3 +38,4 @@ public class AggregateDetailsTests
 		await Assert.That(original.CurrentVersion).IsEqualTo(5);
 	}
 }
+

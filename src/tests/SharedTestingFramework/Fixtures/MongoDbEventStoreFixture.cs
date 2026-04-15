@@ -34,8 +34,8 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)
-		where TAggregate : class, IAggregate, new()
-		=> CreateEventStoreContext<TAggregate>(
+		where TAggregate : class, IAggregate, new() =>
+		CreateEventStoreContext<TAggregate>(
 			aggregateChangeNotifier,
 			correlationIdsToGenerate,
 			removeFromCacheOnDelete,

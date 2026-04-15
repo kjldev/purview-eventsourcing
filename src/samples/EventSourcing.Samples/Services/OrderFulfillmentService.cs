@@ -3,12 +3,10 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class OrderFulfillmentService(
-	IQueryableEventStore store
-) : IOrderFulfillmentService
+public sealed class OrderFulfillmentService(IQueryableEventStore store) : IOrderFulfillmentService
 {
 	// Thread-safe price cache shared across all instances.
-	static readonly ConcurrentDictionary<string, decimal> _unitPrices = new(StringComparer.OrdinalIgnoreCase);
+	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(StringComparer.OrdinalIgnoreCase);
 
 	public async Task<FulfilmentResult> PlaceOrderAsync(
 		string customerId,
@@ -63,12 +61,12 @@ public sealed class OrderFulfillmentService(
 
 	static decimal GetUnitPrice(string productId)
 	{
-		if (_unitPrices.TryGetValue(productId, out var cached))
+		if (UnitPrices.TryGetValue(productId, out var cached))
 			return cached;
 
 		// Derive a stable price from the product ID hash for demo purposes.
 		var hash = Math.Abs(productId.GetHashCode());
 		var price = Math.Round(9.99m + (hash % 9000) / 100m, 2);
-		return _unitPrices.GetOrAdd(productId, price);
+		return UnitPrices.GetOrAdd(productId, price);
 	}
 }

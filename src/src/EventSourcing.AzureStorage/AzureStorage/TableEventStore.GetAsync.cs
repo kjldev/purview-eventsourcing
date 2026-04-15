@@ -185,9 +185,9 @@ partial class TableEventStore<T>
 
 			return DeserializeSnapshot(aggregateContent);
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch (Exception ex)
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.SnapshotDeserializationFailed(aggregateId, _aggregateTypeFullName, ex);
 
@@ -208,9 +208,9 @@ partial class TableEventStore<T>
 				aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
 			}
 		}
-		#pragma warning disable CA1031
+#pragma warning disable CA1031
 		catch (Exception ex)
-		#pragma warning restore CA1031
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheGetFailure(aggregateId, _aggregateTypeFullName, ex);
 		}

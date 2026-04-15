@@ -23,7 +23,7 @@ public partial class GenericSqlServerEventStoreTests<TAggregate>(SqlServerEventS
 
 	public Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(
 		int eventsToGenerate,
-		CancellationToken cancellationToken
+		CancellationToken _
 	)
 	{
 		throw new NotImplementedException();

@@ -9,7 +9,6 @@ namespace Purview.EventSourcing.Aggregates;
 public sealed class AggregateDetails : ICloneable
 {
 	string _id = default!;
-	bool _locked;
 
 	/// <summary>
 	/// Gets the Id of the aggregate.
@@ -85,13 +84,13 @@ public sealed class AggregateDetails : ICloneable
 	/// </summary>
 	public bool Locked
 	{
-		get => _locked;
+		get;
 		set
 		{
-			if (_locked && !value)
+			if (field && !value)
 				throw new LockedException(Id, "This aggregate is locked, changing the locked state is not permitted.");
 
-			_locked = value;
+			field = value;
 		}
 	}
 

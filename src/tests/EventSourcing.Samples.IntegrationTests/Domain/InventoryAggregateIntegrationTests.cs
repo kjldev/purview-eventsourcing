@@ -6,7 +6,12 @@ namespace Purview.EventSourcing.Samples.Domain;
 [ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
 public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixture fixture)
 {
-	static InventoryAggregate CreateInitialized(string id, string productId = "prod-1", string productName = "Widget A", int qty = 100)
+	static InventoryAggregate CreateInitialized(
+		string id,
+		string productId = "prod-1",
+		string productName = "Widget A",
+		int qty = 100
+	)
 	{
 		var inv = new InventoryAggregate();
 		inv.Details.Id = id;
@@ -35,7 +40,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenInventoryWithStockReservation_LoadedReservedQuantityMatches(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenInventoryWithStockReservation_LoadedReservedQuantityMatches(
+		CancellationToken cancellationToken
+	)
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 100);
 		inv.ReserveStock(15, "order-1");
@@ -52,7 +59,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenMultipleStockOperations_LoadedStateReflectsAllOperations(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenMultipleStockOperations_LoadedStateReflectsAllOperations(
+		CancellationToken cancellationToken
+	)
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -71,7 +80,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenStockAdjustment_LoadedQuantityReflectsAdjustment(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenStockAdjustment_LoadedQuantityReflectsAdjustment(
+		CancellationToken cancellationToken
+	)
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 100);
 		inv.ReserveStock(30, "order-2");
@@ -89,7 +100,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenReleasedReservation_LoadedReservedQuantityIsZero(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenReleasedReservation_LoadedReservedQuantityIsZero(
+		CancellationToken cancellationToken
+	)
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 100);
 		inv.ReserveStock(25, "order-3");
@@ -113,8 +126,8 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	public async Task SaveAsync_GivenMultipleOperations_VersionIsTrackedCorrectly(CancellationToken cancellationToken)
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 100); // v1
-		inv.ReceiveStock(50);                                        // v2
-		inv.ReserveStock(10, "order-x");                             // v3
+		inv.ReceiveStock(50); // v2
+		inv.ReserveStock(10, "order-x"); // v3
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
@@ -131,11 +144,13 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	#region Point-in-Time Replay
 
 	[Test]
-	public async Task GetAtAsync_GivenInventoryAfterReceiveStock_ReturnsStateBeforeReceive(CancellationToken cancellationToken)
+	public async Task GetAtAsync_GivenInventoryAfterReceiveStock_ReturnsStateBeforeReceive(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var inv = CreateInitialized(id, qty: 100); // v1
-		inv.ReceiveStock(50);                       // v2
+		inv.ReceiveStock(50); // v2
 
 		using var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
@@ -152,7 +167,9 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	#region Event Replay Without Snapshots
 
 	[Test]
-	public async Task SaveAsync_GivenInventoryWithNoSnapshot_EventReplayRestoresState(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenInventoryWithNoSnapshot_EventReplayRestoresState(
+		CancellationToken cancellationToken
+	)
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 200);
 		inv.ReserveStock(50, "order-snap");

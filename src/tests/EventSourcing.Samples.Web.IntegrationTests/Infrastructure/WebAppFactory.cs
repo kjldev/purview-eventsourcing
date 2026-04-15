@@ -9,8 +9,7 @@ namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Infrastructure;
 
 public sealed class WebAppFactory : WebApplicationFactory<Program>, IAsyncInitializer, IAsyncDisposable
 {
-	readonly MsSqlContainer _sqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
-		.Build();
+	readonly MsSqlContainer _sqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest").Build();
 
 	public async Task InitializeAsync()
 	{
@@ -19,10 +18,7 @@ public sealed class WebAppFactory : WebApplicationFactory<Program>, IAsyncInitia
 
 	protected override void ConfigureWebHost(IWebHostBuilder builder)
 	{
-		builder.UseSetting(
-			"ConnectionStrings:eventstore-sqlserver",
-			_sqlContainer.GetConnectionString()
-		);
+		builder.UseSetting("ConnectionStrings:eventstore-sqlserver", _sqlContainer.GetConnectionString());
 
 		builder.ConfigureServices(services =>
 		{

@@ -35,7 +35,11 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		_enlisted.Add(new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext));
 	}
 
-	public void Enlist<T>(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext = null)
+	public void Enlist<T>(
+		T aggregate,
+		IEventStoreCore<T> eventStore,
+		EventStoreOperationContext? operationContext = null
+	)
 		where T : class, IAggregate, new()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -111,7 +115,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		{
 			await transaction.CommitAsync(cancellationToken);
 
-			List<TransactionResult.AggregateResult> committedResults = new(processed.Count);
+			List<TransactionAggregateResult> committedResults = new(processed.Count);
 			foreach (var operation in processed)
 			{
 				Exception? postCommitError = null;
@@ -135,7 +139,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		foreach (var operation in processed)
 			await operation.AfterRollbackAsync(cancellationToken);
 
-		var rollbackResults = new List<TransactionResult.AggregateResult>(processed.Count + 1);
+		var rollbackResults = new List<TransactionAggregateResult>(processed.Count + 1);
 		var rollbackError =
 			failure
 			?? new InvalidOperationException(
@@ -152,7 +156,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 			var wasRolledBack = operation.Saved;
 
 			rollbackResults.Add(
-				new TransactionResult.AggregateResult(
+				new TransactionAggregateResult(
 					operation.Aggregate,
 					saved: false,
 					skipped: !isFailedOperation && !wasRolledBack && operation.Skipped,
@@ -167,7 +171,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		)
 		{
 			rollbackResults.Add(
-				new TransactionResult.AggregateResult(
+				new TransactionAggregateResult(
 					failedEnlisted.Aggregate,
 					saved: false,
 					skipped: false,

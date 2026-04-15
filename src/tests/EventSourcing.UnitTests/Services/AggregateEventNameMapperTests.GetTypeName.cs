@@ -29,9 +29,9 @@ partial class AggregateEventNameMapperTests
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
 
 		// Act
-		var action = () => mapper.GetTypeName<CorrectlyNamedAggregate>(eventTypeName!);
+		string? Action() => mapper.GetTypeName<CorrectlyNamedAggregate>(eventTypeName!);
 
 		// Assert
-		await Assert.That(action).Throws<ArgumentNullException>().WithParameterName(nameof(eventTypeName));
+		await Assert.That(Action).Throws<ArgumentNullException>().WithParameterName(nameof(eventTypeName));
 	}
 }

@@ -17,7 +17,7 @@ public class InventoryAggregateTests
 	#region Initialize Tests
 
 	[Test]
-	public async Task Initialize_GivenValidData_SetsProperties(CancellationToken cancellationToken)
+	public async Task Initialize_GivenValidData_SetsProperties()
 	{
 		// Arrange & Act
 		var inv = CreateInventory("inv-1", initialQty: 50);
@@ -58,7 +58,7 @@ public class InventoryAggregateTests
 	#region ReceiveStock Tests
 
 	[Test]
-	public async Task ReceiveStock_GivenPositiveQuantity_IncreasesOnHand(CancellationToken cancellationToken)
+	public async Task ReceiveStock_GivenPositiveQuantity_IncreasesOnHand()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 50);
 		inv.ReceiveStock(25);
@@ -78,7 +78,7 @@ public class InventoryAggregateTests
 	#region ReserveStock Tests
 
 	[Test]
-	public async Task ReserveStock_GivenAvailableQuantity_ReservesSuccessfully(CancellationToken cancellationToken)
+	public async Task ReserveStock_GivenAvailableQuantity_ReservesSuccessfully()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -96,7 +96,7 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public async Task ReserveStock_GivenMultipleReservations_AccumulatesReserved(CancellationToken cancellationToken)
+	public async Task ReserveStock_GivenMultipleReservations_AccumulatesReserved()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -111,7 +111,7 @@ public class InventoryAggregateTests
 	#region ShipStock Tests
 
 	[Test]
-	public async Task ShipStock_GivenReservedQuantity_DeductsFromBoth(CancellationToken cancellationToken)
+	public async Task ShipStock_GivenReservedQuantity_DeductsFromBoth()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -135,7 +135,7 @@ public class InventoryAggregateTests
 	#region ReleaseReservation Tests
 
 	[Test]
-	public async Task ReleaseReservation_GivenReservedQuantity_ReleasesCorrectly(CancellationToken cancellationToken)
+	public async Task ReleaseReservation_GivenReservedQuantity_ReleasesCorrectly()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -158,7 +158,7 @@ public class InventoryAggregateTests
 	#region AdjustStock Tests
 
 	[Test]
-	public async Task AdjustStock_GivenNewQuantity_SetsQuantityDirectly(CancellationToken cancellationToken)
+	public async Task AdjustStock_GivenNewQuantity_SetsQuantityDirectly()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.AdjustStock(50, "Physical count correction");
@@ -167,7 +167,7 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public async Task AdjustStock_GivenQuantityBelowReserved_CapsReservedQuantity(CancellationToken cancellationToken)
+	public async Task AdjustStock_GivenQuantityBelowReserved_CapsReservedQuantity()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(20, "order-1");
@@ -183,7 +183,7 @@ public class InventoryAggregateTests
 	#region UpdateDetails Tests
 
 	[Test]
-	public async Task UpdateDetails_GivenProductNameAndLocationName_RaisesTwoEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenProductNameAndLocationName_RaisesTwoEvents()
 	{
 		var inv = CreateInventory("inv-1");
 		var countBefore = inv.GetUnsavedEvents().Count();
@@ -196,7 +196,7 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenOnlyProductName_UpdatesProductNameOnly(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenOnlyProductName_UpdatesProductNameOnly()
 	{
 		var inv = CreateInventory("inv-1");
 		var countBefore = inv.GetUnsavedEvents().Count();
@@ -209,7 +209,7 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents(CancellationToken cancellationToken)
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents()
 	{
 		var inv = CreateInventory("inv-1");
 		var countBefore = inv.GetUnsavedEvents().Count();
@@ -232,7 +232,7 @@ public class InventoryAggregateTests
 	#region Multi-Aggregate Workflow Test
 
 	[Test]
-	public async Task FullOrderFulfillmentWorkflow_TracksCorrectState(CancellationToken cancellationToken)
+	public async Task FullOrderFulfillmentWorkflow_TracksCorrectState()
 	{
 		// Simulate order fulfillment across inventory
 		var inv = CreateInventory("inv-1", initialQty: 100);
@@ -257,3 +257,4 @@ public class InventoryAggregateTests
 
 	#endregion
 }
+

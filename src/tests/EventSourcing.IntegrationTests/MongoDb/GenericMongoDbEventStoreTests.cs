@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.MongoDB;
@@ -23,7 +23,7 @@ public partial class GenericMongoDBEventStoreTests<TAggregate>(MongoDBEventStore
 
 	public Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(
 		int eventsToGenerate,
-		CancellationToken cancellationToken
+		CancellationToken _
 	)
 	{
 		throw new NotImplementedException();

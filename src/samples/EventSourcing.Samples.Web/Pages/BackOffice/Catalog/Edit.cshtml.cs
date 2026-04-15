@@ -6,10 +6,7 @@ using Purview.EventSourcing.Samples.Web.Services;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class EditModel(
-	IQueryableEventStore store,
-	IProductImageService imageService
-) : EventSourcingPageModel
+public sealed class EditModel(IQueryableEventStore store, IProductImageService imageService) : EventSourcingPageModel
 {
 	public InventoryAggregate? Item { get; private set; }
 	public string? CurrentImageUrl { get; private set; }
@@ -24,23 +21,16 @@ public sealed class EditModel(
 	public async Task<IActionResult> OnPostUpdateProductNameAsync(string id, string productName)
 	{
 		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
-		if (item == null) return NotFound();
+		if (item == null)
+			return NotFound();
 
 		return await TrySaveAsync(
-			async () => { item.UpdateDetails(productName: productName.Trim()); await store.SaveAsync(item, null, HttpContext.RequestAborted); },
+			async () =>
+			{
+				item.UpdateDetails(productName: productName.Trim());
+				await store.SaveAsync(item, null, HttpContext.RequestAborted);
+			},
 			"Product name updated.",
-			RedirectToPage(new { id })
-		);
-	}
-
-	public async Task<IActionResult> OnPostUpdateLocationNameAsync(string id, string locationName)
-	{
-		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
-		if (item == null) return NotFound();
-
-		return await TrySaveAsync(
-			async () => { item.UpdateDetails(locationName: locationName.Trim()); await store.SaveAsync(item, null, HttpContext.RequestAborted); },
-			"Location name updated.",
 			RedirectToPage(new { id })
 		);
 	}
@@ -54,7 +44,8 @@ public sealed class EditModel(
 		}
 
 		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
-		if (item == null) return NotFound();
+		if (item == null)
+			return NotFound();
 
 		var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
 		if (!allowedTypes.Contains(imageFile.ContentType, StringComparer.OrdinalIgnoreCase))
@@ -73,7 +64,8 @@ public sealed class EditModel(
 	public async Task<IActionResult> OnPostDeleteImageAsync(string id)
 	{
 		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
-		if (item == null) return NotFound();
+		if (item == null)
+			return NotFound();
 
 		await imageService.DeleteImageAsync(item.ProductId, HttpContext.RequestAborted);
 
@@ -81,4 +73,3 @@ public sealed class EditModel(
 		return RedirectToPage(new { id });
 	}
 }
-

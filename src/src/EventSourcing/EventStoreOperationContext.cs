@@ -10,22 +10,20 @@ namespace Purview.EventSourcing;
 [System.Diagnostics.DebuggerStepThrough]
 public sealed record class EventStoreOperationContext
 {
-	static EventStoreOperationContext _default = new();
-
 	/// <summary>
 	/// Get or sets the default <see cref="EventStoreOperationContext"/>, for
 	/// when <see cref="IEventStore{T}"/> operations provide a null operational context.
 	/// </summary>
 	public static EventStoreOperationContext DefaultContext
 	{
-		get => _default;
+		get;
 		set =>
-			_default =
+			field =
 				value
 				?? throw new NullReferenceException(
 					$"A default {nameof(EventStoreOperationContext)} is required, null is not allowed."
 				);
-	}
+	} = new();
 
 	/// <summary>
 	/// Gets/ sets the default value for <see cref="RequiresValidPrincipalIdentifier"/>.

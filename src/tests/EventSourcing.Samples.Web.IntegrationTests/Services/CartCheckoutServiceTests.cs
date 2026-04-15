@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
@@ -12,7 +10,9 @@ namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Services;
 public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 {
 	[Test]
-	public async Task CheckoutAsync_GivenAvailableStock_CreatesOrderAndReservesInventoryAtomically(CancellationToken cancellationToken)
+	public async Task CheckoutAsync_GivenAvailableStock_CreatesOrderAndReservesInventoryAtomically(
+		CancellationToken cancellationToken
+	)
 	{
 		await using var scope = factory.Services.CreateAsyncScope();
 		var serviceProvider = scope.ServiceProvider;
@@ -37,7 +37,10 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 
 		var savedOrder = await orderStore.GetAsync<OrderAggregate>(result.Order!.Id(), null, cancellationToken);
 		var savedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken);
-		var orderCount = await orderStore.CountAsync<OrderAggregate>(order => order.CustomerId == customer.Id(), cancellationToken);
+		var orderCount = await orderStore.CountAsync<OrderAggregate>(
+			order => order.CustomerId == customer.Id(),
+			cancellationToken
+		);
 
 		await Assert.That(orderCount).IsEqualTo(1L);
 		await Assert.That(savedOrder).IsNotNull();
@@ -49,7 +52,9 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 	}
 
 	[Test]
-	public async Task CheckoutAsync_WhenInventoryChangesBeforeCommit_RollsBackOrderAndPreservesAtomicity(CancellationToken cancellationToken)
+	public async Task CheckoutAsync_WhenInventoryChangesBeforeCommit_RollsBackOrderAndPreservesAtomicity(
+		CancellationToken cancellationToken
+	)
 	{
 		var inventoryId = string.Empty;
 
@@ -59,20 +64,22 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 			{
 				var descriptor = services.Last(service => service.ServiceType == typeof(IEventStoreTransactionFactory));
 				services.Remove(descriptor);
-				services.AddSingleton<IEventStoreTransactionFactory>(serviceProvider =>
-					new HookedTransactionFactory(
-						CreateService<IEventStoreTransactionFactory>(serviceProvider, descriptor),
-						async hookCancellationToken =>
-						{
-							await using var hookScope = serviceProvider.CreateAsyncScope();
-							var inventoryStore = hookScope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
-							var inventory = await inventoryStore.GetAsync<InventoryAggregate>(inventoryId, null, hookCancellationToken);
+				services.AddSingleton<IEventStoreTransactionFactory>(serviceProvider => new HookedTransactionFactory(
+					CreateService<IEventStoreTransactionFactory>(serviceProvider, descriptor),
+					async hookCancellationToken =>
+					{
+						await using var hookScope = serviceProvider.CreateAsyncScope();
+						var inventoryStore = hookScope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+						var inventory = await inventoryStore.GetAsync<InventoryAggregate>(
+							inventoryId,
+							null,
+							hookCancellationToken
+						);
 
-							inventory!.ReserveStock(3, "concurrent-order");
-							await inventoryStore.SaveAsync<InventoryAggregate>(inventory, null, hookCancellationToken);
-						}
-					)
-				);
+						inventory!.ReserveStock(3, "concurrent-order");
+						await inventoryStore.SaveAsync<InventoryAggregate>(inventory, null, hookCancellationToken);
+					}
+				));
 			});
 		});
 
@@ -95,7 +102,10 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 			cancellationToken
 		);
 
-		var orderCount = await orderStore.CountAsync<OrderAggregate>(order => order.CustomerId == customer.Id(), cancellationToken);
+		var orderCount = await orderStore.CountAsync<OrderAggregate>(
+			order => order.CustomerId == customer.Id(),
+			cancellationToken
+		);
 		var savedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
@@ -158,25 +168,19 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 			new HookedTransaction(innerFactory.Create(correlationId), beforeCommit);
 	}
 
-	sealed class HookedTransaction(
-		IEventStoreTransaction innerTransaction,
-		Func<CancellationToken, Task> beforeCommit
-	) : IEventStoreTransaction
+	sealed class HookedTransaction(IEventStoreTransaction innerTransaction, Func<CancellationToken, Task> beforeCommit)
+		: IEventStoreTransaction
 	{
 		int _beforeCommitInvoked;
 
 		public string CorrelationId => innerTransaction.CorrelationId;
 
-		public void Enlist<T>(
-			T aggregate,
-			IEventStore eventStore,
-			EventStoreOperationContext? operationContext = null
-		)
+		public void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
 			where T : class, IAggregate, new() => innerTransaction.Enlist(aggregate, eventStore, operationContext);
 
 		public void Enlist<T>(
 			T aggregate,
-			IEventStoreImpl<T> eventStore,
+			IEventStoreCore<T> eventStore,
 			EventStoreOperationContext? operationContext = null
 		)
 			where T : class, IAggregate, new() => innerTransaction.Enlist(aggregate, eventStore, operationContext);

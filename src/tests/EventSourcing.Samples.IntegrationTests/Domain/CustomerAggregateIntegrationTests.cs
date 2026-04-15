@@ -47,7 +47,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 	}
 
 	[Test]
-	public async Task SaveAsync_GivenMultipleEmailChanges_LoadedEmailMatchesFinalValue(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenMultipleEmailChanges_LoadedEmailMatchesFinalValue(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var customer = new CustomerAggregate();
@@ -113,8 +115,8 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		var customer = new CustomerAggregate();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("David", "david@test.com"); // v1
-		customer.ChangeEmail("david2@test.com");              // v2
-		customer.ChangePhoneNumber("+44-20-0000-0001");       // v3
+		customer.ChangeEmail("david2@test.com"); // v2
+		customer.ChangePhoneNumber("+44-20-0000-0001"); // v3
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
@@ -148,7 +150,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 	}
 
 	[Test]
-	public async Task RestoreAsync_GivenDeletedCustomer_AggregateIsRestoredWithOriginalState(CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenDeletedCustomer_AggregateIsRestoredWithOriginalState(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var customer = new CustomerAggregate();
@@ -174,13 +178,15 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 	#region Point-in-Time Replay
 
 	[Test]
-	public async Task GetAtAsync_GivenCustomerWithEmailChange_ReturnsOriginalEmailAtVersion1(CancellationToken cancellationToken)
+	public async Task GetAtAsync_GivenCustomerWithEmailChange_ReturnsOriginalEmailAtVersion1(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var customer = new CustomerAggregate();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Heidi", "original@test.com"); // v1
-		customer.ChangeEmail("updated@test.com");                 // v2
+		customer.ChangeEmail("updated@test.com"); // v2
 
 		using var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
@@ -197,7 +203,9 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 	#region Event Replay Without Snapshots
 
 	[Test]
-	public async Task SaveAsync_GivenCustomerWithNoSnapshot_EventReplayRestoresState(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenCustomerWithNoSnapshot_EventReplayRestoresState(
+		CancellationToken cancellationToken
+	)
 	{
 		var id = $"{Guid.NewGuid()}";
 		var customer = new CustomerAggregate();

@@ -3,7 +3,9 @@
 partial class SqlServerSnapshotEventStoreTests
 {
 	[Test]
-	public async Task SingleOrDefaultAsync_GivenMultipleMatchingAggregates_ThrowsException(CancellationToken cancellationToken)
+	public async Task SingleOrDefaultAsync_GivenMultipleMatchingAggregates_ThrowsException(
+		CancellationToken cancellationToken
+	)
 	{
 		const int matchingIncrement = 10;
 
@@ -35,7 +37,9 @@ partial class SqlServerSnapshotEventStoreTests
 	}
 
 	[Test]
-	public async Task SingleOrDefaultAsync_GivenSingleMatchingAggregate_ReturnsAggregate(CancellationToken cancellationToken)
+	public async Task SingleOrDefaultAsync_GivenSingleMatchingAggregate_ReturnsAggregate(
+		CancellationToken cancellationToken
+	)
 	{
 		const int matchingIncrement = 10;
 

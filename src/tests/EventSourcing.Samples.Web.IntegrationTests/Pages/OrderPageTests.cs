@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using Purview.EventSourcing;
+using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.IntegrationTests.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Pages;
@@ -5,9 +8,7 @@ namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Pages;
 [ClassDataSource<WebAppFactory>(Shared = SharedType.PerTestSession)]
 public sealed class OrderPageTests(WebAppFactory factory)
 {
-	readonly HttpClient _client = factory.CreateClient(
-		new() { AllowAutoRedirect = false }
-	);
+	readonly HttpClient _client = factory.CreateClient(new() { AllowAutoRedirect = false });
 
 	[Test]
 	public async Task BackOfficeIndex_Returns200(CancellationToken cancellationToken)
@@ -36,27 +37,16 @@ public sealed class OrderPageTests(WebAppFactory factory)
 	[Test]
 	public async Task BackOfficeStockTransfer_Post_WithValidData_Redirects(CancellationToken cancellationToken)
 	{
+		var (SourceInventoryId, DestinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Stock/Transfer", cancellationToken);
-
-		var pageResponse = await _client.GetAsync("/BackOffice/Stock/Transfer", cancellationToken);
-		var html = await pageResponse.Content.ReadAsStringAsync(cancellationToken);
-
-		var sourceId = ExtractFirstSelectValue(html, "SourceId");
-		var destId = ExtractSecondSelectValue(html, "DestinationId", sourceId);
-
-		if (string.IsNullOrEmpty(sourceId) || string.IsNullOrEmpty(destId) || sourceId == destId)
-		{
-			await Assert.That(pageResponse.IsSuccessStatusCode).IsTrue();
-			return;
-		}
 
 		var form = new Dictionary<string, string>
 		{
-			["SourceId"] = sourceId,
-			["DestinationId"] = destId,
+			["SourceInventoryId"] = SourceInventoryId,
+			["DestinationLocationId"] = DestinationLocationId,
 			["Quantity"] = "1",
 			["Reason"] = "Integration test transfer",
-			["__RequestVerificationToken"] = antiForgery
+			["__RequestVerificationToken"] = antiForgery,
 		};
 
 		using var content = new FormUrlEncodedContent(form);
@@ -89,52 +79,34 @@ public sealed class OrderPageTests(WebAppFactory factory)
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
-	static string ExtractFirstSelectValue(string html, string selectName)
+	async Task<(string SourceInventoryId, string DestinationLocationId)> CreateTransferScenarioAsync(
+		CancellationToken cancellationToken
+	)
 	{
-		var marker = $"name=\"{selectName}\"";
-		var selectStart = html.IndexOf(marker, StringComparison.Ordinal);
-		if (selectStart == -1) return string.Empty;
+		await using var scope = factory.Services.CreateAsyncScope();
+		var store = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
 
-		var searchFrom = selectStart;
-		while (true)
-		{
-			var optionStart = html.IndexOf("<option value=\"", searchFrom, StringComparison.Ordinal);
-			if (optionStart == -1) return string.Empty;
+		var sourceLocationId = $"LOC-TEST-SRC-{Guid.NewGuid():N}";
+		var sourceLocation = await store.CreateAsync<LocationAggregate>(sourceLocationId, cancellationToken);
+		sourceLocation.Initialize(sourceLocationId, $"Transfer Source {Guid.NewGuid():N}");
+		await store.SaveAsync(sourceLocation, null, cancellationToken);
 
-			var valueStart = optionStart + 15;
-			var valueEnd = html.IndexOf('"', valueStart);
-			if (valueEnd == -1) return string.Empty;
+		var destinationLocationId = $"LOC-TEST-DST-{Guid.NewGuid():N}";
+		var destinationLocation = await store.CreateAsync<LocationAggregate>(destinationLocationId, cancellationToken);
+		destinationLocation.Initialize(destinationLocationId, $"Transfer Destination {Guid.NewGuid():N}");
+		await store.SaveAsync(destinationLocation, null, cancellationToken);
 
-			var value = html[valueStart..valueEnd];
-			if (!string.IsNullOrEmpty(value))
-				return value;
+		var inventory = await store.CreateAsync<InventoryAggregate>(null, cancellationToken);
+		inventory.Initialize(
+			$"SKU-TRANSFER-{Guid.NewGuid():N}",
+			"Transfer Test Widget",
+			sourceLocationId,
+			sourceLocation.LocationName,
+			initialQuantity: 10
+		);
 
-			searchFrom = valueEnd + 1;
-		}
-	}
-
-	static string ExtractSecondSelectValue(string html, string selectName, string excludeValue)
-	{
-		var marker = $"name=\"{selectName}\"";
-		var selectStart = html.IndexOf(marker, StringComparison.Ordinal);
-		if (selectStart == -1) return string.Empty;
-
-		var searchFrom = selectStart;
-		while (true)
-		{
-			var optionStart = html.IndexOf("<option value=\"", searchFrom, StringComparison.Ordinal);
-			if (optionStart == -1) return string.Empty;
-
-			var valueStart = optionStart + 15;
-			var valueEnd = html.IndexOf('"', valueStart);
-			if (valueEnd == -1) return string.Empty;
-
-			var value = html[valueStart..valueEnd];
-			if (!string.IsNullOrEmpty(value) && value != excludeValue)
-				return value;
-
-			searchFrom = valueEnd + 1;
-		}
+		var saveResult = await store.SaveAsync(inventory, null, cancellationToken);
+		return (saveResult.Aggregate.Id(), destinationLocationId);
 	}
 
 	async Task<string> GetAntiForgeryTokenAsync(string url, CancellationToken cancellationToken)
@@ -143,7 +115,8 @@ public sealed class OrderPageTests(WebAppFactory factory)
 		var html = await response.Content.ReadAsStringAsync(cancellationToken);
 
 		var start = html.IndexOf("__RequestVerificationToken", StringComparison.Ordinal);
-		if (start == -1) return string.Empty;
+		if (start == -1)
+			return string.Empty;
 
 		var valueStart = html.IndexOf("value=\"", start, StringComparison.Ordinal) + 7;
 		var valueEnd = html.IndexOf('"', valueStart);

@@ -9,10 +9,17 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
-	[BindProperty(SupportsGet = true)] public string? Search { get; set; }
-	[BindProperty(SupportsGet = true)] public bool ShowInactive { get; set; }
-	[BindProperty(SupportsGet = true)] public new int Page { get; set; } = 1;
-	[BindProperty(SupportsGet = true)] public int PageSize { get; set; } = DefaultPageSize;
+	[BindProperty(SupportsGet = true)]
+	public string? Search { get; set; }
+
+	[BindProperty(SupportsGet = true)]
+	public bool ShowInactive { get; set; }
+
+	[BindProperty(SupportsGet = true)]
+	public new int Page { get; set; } = 1;
+
+	[BindProperty(SupportsGet = true)]
+	public int PageSize { get; set; } = DefaultPageSize;
 
 	public IReadOnlyList<CustomerAggregate> Customers { get; private set; } = [];
 	public long TotalCount { get; private set; }
@@ -22,23 +29,29 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 	public async Task OnGetAsync()
 	{
-		if (Page < 1) Page = 1;
-		if (PageSize < 5 || PageSize > 100) PageSize = DefaultPageSize;
+		if (Page < 1)
+			Page = 1;
+		if (PageSize < 5 || PageSize > 100)
+			PageSize = DefaultPageSize;
 
 		var ct = HttpContext.RequestAborted;
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
 			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
-			MaxRecords = PageSize
+			MaxRecords = PageSize,
 		};
 
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
 		var hasFilter = !string.IsNullOrEmpty(search) || !ShowInactive;
 
 		Expression<Func<CustomerAggregate, bool>> where = hasFilter
-			? c => (string.IsNullOrEmpty(search) || c.Name.ToLower().Contains(search) || c.Email.ToLower().Contains(search))
-				&& (ShowInactive || c.IsActive)
+			? c =>
+				(
+					string.IsNullOrEmpty(search)
+					|| c.Name.ToLower().Contains(search)
+					|| c.Email.ToLower().Contains(search)
+				) && (ShowInactive || c.IsActive)
 			: c => true;
 
 		TotalCount = await store.CountAsync<CustomerAggregate>(where, ct);
@@ -57,4 +70,3 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		return RedirectToPage("/Customer/Catalog/Index");
 	}
 }
-

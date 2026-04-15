@@ -7,17 +7,23 @@ using Purview.EventSourcing.SqlServer.Exceptions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class TransferModel(
-	IStockTransferService transferService,
-	IQueryableEventStore inventoryStore
-) : PageModel
+public sealed class TransferModel(IStockTransferService transferService, IQueryableEventStore inventoryStore)
+	: PageModel
 {
-	[BindProperty] public string SourceId { get; set; } = string.Empty;
-	[BindProperty] public string DestinationId { get; set; } = string.Empty;
-	[BindProperty] public int Quantity { get; set; } = 1;
-	[BindProperty] public string Reason { get; set; } = string.Empty;
+	[BindProperty]
+	public string SourceInventoryId { get; set; } = string.Empty;
 
-	public IReadOnlyList<SelectListItem> InventoryItems { get; private set; } = [];
+	[BindProperty]
+	public string DestinationLocationId { get; set; } = string.Empty;
+
+	[BindProperty]
+	public int Quantity { get; set; } = 1;
+
+	[BindProperty]
+	public string Reason { get; set; } = string.Empty;
+
+	public IReadOnlyList<SelectListItem> SourceInventoryItems { get; private set; } = [];
+	public IReadOnlyList<SelectListItem> LocationItems { get; private set; } = [];
 
 	public async Task OnGetAsync()
 	{
@@ -28,12 +34,10 @@ public sealed class TransferModel(
 	{
 		var ct = HttpContext.RequestAborted;
 
-		if (string.IsNullOrWhiteSpace(SourceId))
-			ModelState.AddModelError(nameof(SourceId), "Please select a source item.");
-		if (string.IsNullOrWhiteSpace(DestinationId))
-			ModelState.AddModelError(nameof(DestinationId), "Please select a destination item.");
-		if (!string.IsNullOrWhiteSpace(SourceId) && SourceId == DestinationId)
-			ModelState.AddModelError(nameof(DestinationId), "Source and destination must be different items.");
+		if (string.IsNullOrWhiteSpace(SourceInventoryId))
+			ModelState.AddModelError(nameof(SourceInventoryId), "Please select stock to transfer.");
+		if (string.IsNullOrWhiteSpace(DestinationLocationId))
+			ModelState.AddModelError(nameof(DestinationLocationId), "Please select a destination location.");
 		if (Quantity < 1)
 			ModelState.AddModelError(nameof(Quantity), "Quantity must be at least 1.");
 		if (string.IsNullOrWhiteSpace(Reason))
@@ -48,12 +52,20 @@ public sealed class TransferModel(
 		StockTransferResult result;
 		try
 		{
-			result = await transferService.TransferAsync(SourceId, DestinationId, Quantity, Reason.Trim(), ct);
+			result = await transferService.TransferAsync(
+				SourceInventoryId,
+				DestinationLocationId,
+				Quantity,
+				Reason.Trim(),
+				ct
+			);
 		}
 		catch (ConcurrencyException)
 		{
-			ModelState.AddModelError(string.Empty,
-				"Another user modified the inventory concurrently. Please refresh and try again.");
+			ModelState.AddModelError(
+				string.Empty,
+				"Another user modified the stock concurrently. Please refresh and try again."
+			);
 			await LoadDropdownsAsync(ct);
 			return Page();
 		}
@@ -66,25 +78,37 @@ public sealed class TransferModel(
 		}
 
 		TempData["Success"] =
-			$"Transferred {result.Quantity} unit(s) from '{result.Source!.ProductName}' " +
-			$"to '{result.Destination!.ProductName}'.";
+			$"Transferred {result.Quantity} unit(s) of '{result.Source!.ProductName}' "
+			+ $"from '{result.Source.LocationName}' to '{result.Destination!.LocationName}'.";
 		return RedirectToPage("Index");
 	}
 
 	async Task LoadDropdownsAsync(CancellationToken ct)
 	{
-		var request = new ContinuationRequest { MaxRecords = 500 };
-		var result = await inventoryStore.QueryAsync<InventoryAggregate>(
-			_ => true,
-			q => q.OrderBy(i => i.ProductName),
-			request, ct
+		var sourceItems = await inventoryStore.QueryAsync<InventoryAggregate>(
+			i => i.AvailableQuantity > 0,
+			q => q.OrderBy(i => i.ProductName).ThenBy(i => i.LocationName),
+			new ContinuationRequest { MaxRecords = 500 },
+			ct
 		);
-		InventoryItems = result.Results
-			.Select(i => new SelectListItem(
-				$"{i.ProductName} — {i.LocationName} (on hand: {i.QuantityOnHand}, available: {i.AvailableQuantity})",
+
+		SourceInventoryItems = sourceItems
+			.Results.Select(i => new SelectListItem(
+				$"{i.ProductName} — {i.LocationName} (available: {i.AvailableQuantity})",
 				i.Id()
+			))
+			.ToList();
+
+		var locations = await inventoryStore.ListAsync<LocationAggregate>(
+			q => q.OrderBy(i => i.LocationName),
+			new ContinuationRequest { MaxRecords = 500 },
+			ct
+		);
+		LocationItems = locations
+			.Results.Select(location => new SelectListItem(
+				$"{location.LocationName} ({location.LocationId})",
+				location.LocationId
 			))
 			.ToList();
 	}
 }
-

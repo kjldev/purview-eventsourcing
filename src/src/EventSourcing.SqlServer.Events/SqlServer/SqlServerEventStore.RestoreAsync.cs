@@ -27,7 +27,14 @@ partial class SqlServerEventStore<T>
 		if (aggregate.IsNew())
 			return false;
 
-		var result = await SaveCoreAsync(aggregate, operationContext, null, null, cancellationToken, restoreAggregateEvent);
+		var result = await SaveCoreAsync(
+			aggregate,
+			operationContext,
+			null,
+			null,
+			cancellationToken,
+			restoreAggregateEvent
+		);
 		await result.AfterCommitAsync(cancellationToken);
 		return result.Result.Saved;
 	}

@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.MongoDB.Snapshot;
 public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEventStore<T>, IDisposable
 	where T : AggregateBase, new()
 {
-	readonly IEventStoreImpl<T> _eventStore;
+	readonly IEventStoreCore<T> _eventStore;
 	readonly MongoDBClient _mongoDbClient;
 	readonly IOptions<MongoDBEventStoreOptions> _mongoDbOptions;
 	readonly IMongoDBSnapshotEventStoreTelemetry _telemetry;

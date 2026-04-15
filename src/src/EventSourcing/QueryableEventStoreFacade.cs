@@ -9,7 +9,8 @@ namespace Purview.EventSourcing;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class QueryableEventStoreFacade(IServiceProvider serviceProvider)
-	: IQueryableEventStore, IQueryableEventStoreImplementationAccessor
+	: IQueryableEventStore,
+		IQueryableEventStoreImplementationAccessor
 {
 	readonly ConcurrentDictionary<Type, object> _queryableEventStores = new();
 
@@ -81,8 +82,7 @@ public sealed class QueryableEventStoreFacade(IServiceProvider serviceProvider)
 		GetQueryableEventStore<T>().GetAggregateIdsAsync(includeDeleted, cancellationToken);
 
 	public Task<ExistsState> ExistsAsync<T>(string aggregateId, CancellationToken cancellationToken = default)
-		where T : class, IAggregate, new() =>
-		GetQueryableEventStore<T>().ExistsAsync(aggregateId, cancellationToken);
+		where T : class, IAggregate, new() => GetQueryableEventStore<T>().ExistsAsync(aggregateId, cancellationToken);
 
 	public T FulfilRequirements<T>(T aggregate)
 		where T : class, IAggregate, new() => GetQueryableEventStore<T>().FulfilRequirements(aggregate);
@@ -94,7 +94,8 @@ public sealed class QueryableEventStoreFacade(IServiceProvider serviceProvider)
 		CancellationToken cancellationToken = default
 	)
 		where T : class, IAggregate, new() =>
-		GetQueryableEventStore<T>().GetQueryEnumerableAsync(whereClause, orderByClause, maxRecordsPerIteration, cancellationToken);
+		GetQueryableEventStore<T>()
+			.GetQueryEnumerableAsync(whereClause, orderByClause, maxRecordsPerIteration, cancellationToken);
 
 	public IAsyncEnumerable<T> GetListEnumerableAsync<T>(
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
@@ -125,8 +126,7 @@ public sealed class QueryableEventStoreFacade(IServiceProvider serviceProvider)
 		Expression<Func<T, bool>>? whereClause,
 		CancellationToken cancellationToken = default
 	)
-		where T : class, IAggregate, new() =>
-		GetQueryableEventStore<T>().CountAsync(whereClause, cancellationToken);
+		where T : class, IAggregate, new() => GetQueryableEventStore<T>().CountAsync(whereClause, cancellationToken);
 
 	public Task<T?> SingleOrDefaultAsync<T>(
 		Expression<Func<T, bool>> whereClause,
@@ -143,13 +143,14 @@ public sealed class QueryableEventStoreFacade(IServiceProvider serviceProvider)
 		where T : class, IAggregate, new() =>
 		GetQueryableEventStore<T>().FirstOrDefaultAsync(whereClause, orderByClause, cancellationToken);
 
-	public IEventStoreImpl<T> GetEventStore<T>()
+	public IEventStoreCore<T> GetEventStore<T>()
 		where T : class, IAggregate, new() => GetQueryableEventStore<T>();
 
-	public IQueryableEventStoreImpl<T> GetQueryableEventStore<T>()
+	public IQueryableEventStoreCore<T> GetQueryableEventStore<T>()
 		where T : class, IAggregate, new() =>
-		(IQueryableEventStoreImpl<T>)_queryableEventStores.GetOrAdd(
-			typeof(T),
-			_ => serviceProvider.GetRequiredService<IQueryableEventStoreImpl<T>>()
-		);
+		(IQueryableEventStoreCore<T>)
+			_queryableEventStores.GetOrAdd(
+				typeof(T),
+				_ => serviceProvider.GetRequiredService<IQueryableEventStoreCore<T>>()
+			);
 }

@@ -609,7 +609,9 @@ public sealed class EventStoreTransactionTests
 	sealed record SaveBehavior(bool Saved, bool Skipped, Exception? Exception = null);
 
 	sealed class FakeTransactionalEventStore(string transactionBoundaryKey, SaveBehavior? behavior = null)
-		: ITransactionalEventStore<TestAggregate>, IEventStore, IEventStoreImplementationAccessor
+		: ITransactionalEventStore<TestAggregate>,
+			IEventStore,
+			IEventStoreImplementationAccessor
 	{
 		readonly SaveBehavior _behavior = behavior ?? new SaveBehavior(true, false);
 
@@ -626,7 +628,7 @@ public sealed class EventStoreTransactionTests
 
 		public Task EnsureTransactionConfiguredAsync(
 			DbConnection connection,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		)
 		{
 			EnsureConfiguredCalls++;
@@ -638,7 +640,7 @@ public sealed class EventStoreTransactionTests
 			EventStoreOperationContext? operationContext,
 			DbConnection connection,
 			DbTransaction transaction,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		)
 		{
 			SaveInTransactionCalls++;
@@ -652,7 +654,7 @@ public sealed class EventStoreTransactionTests
 		public Task<SaveResult<TestAggregate>> SaveAsync(
 			TestAggregate aggregate,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		)
 		{
 			SaveAsyncCalls++;
@@ -669,34 +671,30 @@ public sealed class EventStoreTransactionTests
 			CancellationToken cancellationToken
 		)
 		{
-			if (aggregate is not TestAggregate testAggregate || typeof(T) != typeof(TestAggregate))
-				throw new NotSupportedException();
-
-			return (Task<SaveResult<T>>)(object)SaveAsync(testAggregate, operationContext, cancellationToken);
+			return aggregate is TestAggregate testAggregate && typeof(T) == typeof(TestAggregate)
+				? (Task<SaveResult<T>>)(object)SaveAsync(testAggregate, operationContext, cancellationToken)
+				: throw new NotSupportedException();
 		}
 
-		IEventStoreImpl<T> IEventStoreImplementationAccessor.GetEventStore<T>()
+		IEventStoreCore<T> IEventStoreImplementationAccessor.GetEventStore<T>()
 		{
-			if (typeof(T) != typeof(TestAggregate))
-				throw new NotSupportedException();
-
-			return (IEventStoreImpl<T>)(object)this;
+			return typeof(T) == typeof(TestAggregate) ? (IEventStoreCore<T>)(object)this : throw new NotSupportedException();
 		}
 
-		Task<T> IEventStore.CreateAsync<T>(string? aggregateId, CancellationToken cancellationToken) =>
+		Task<T> IEventStore.CreateAsync<T>(string? aggregateId, CancellationToken _) =>
 			throw new NotSupportedException();
 
 		Task<T?> IEventStore.GetOrCreateAsync<T>(
 			string? aggregateId,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken
+			CancellationToken _
 		)
 			where T : class => throw new NotSupportedException();
 
 		Task<T?> IEventStore.GetAsync<T>(
 			string aggregateId,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken
+			CancellationToken _
 		)
 			where T : class => throw new NotSupportedException();
 
@@ -704,39 +702,38 @@ public sealed class EventStoreTransactionTests
 			string aggregateId,
 			int version,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken
+			CancellationToken _
 		)
 			where T : class => throw new NotSupportedException();
 
-		Task<bool> IEventStore.IsDeletedAsync<T>(string aggregateId, CancellationToken cancellationToken) =>
+		Task<bool> IEventStore.IsDeletedAsync<T>(string aggregateId, CancellationToken _) =>
 			throw new NotSupportedException();
 
-		Task<T?> IEventStore.GetDeletedAsync<T>(string aggregateId, CancellationToken cancellationToken)
-			where T : class =>
-			throw new NotSupportedException();
+		Task<T?> IEventStore.GetDeletedAsync<T>(string aggregateId, CancellationToken _)
+			where T : class => throw new NotSupportedException();
 
 		Task<bool> IEventStore.DeleteAsync<T>(
 			T aggregate,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken
+			CancellationToken _
 		) => throw new NotSupportedException();
 
 		Task<bool> IEventStore.RestoreAsync<T>(
 			T aggregate,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken
+			CancellationToken _
 		) => throw new NotSupportedException();
 
 		async IAsyncEnumerable<string> IEventStore.GetAggregateIdsAsync<T>(
 			bool includeDeleted,
-			[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken
+			[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken _
 		)
 		{
 			await Task.CompletedTask;
 			yield break;
 		}
 
-		Task<ExistsState> IEventStore.ExistsAsync<T>(string aggregateId, CancellationToken cancellationToken) =>
+		Task<ExistsState> IEventStore.ExistsAsync<T>(string aggregateId, CancellationToken _) =>
 			throw new NotSupportedException();
 
 		T IEventStore.FulfilRequirements<T>(T aggregate) => aggregate;
@@ -763,57 +760,57 @@ public sealed class EventStoreTransactionTests
 
 		public Task<TestAggregate> CreateAsync(
 			string? aggregateId = null,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
 		public Task<TestAggregate?> GetOrCreateAsync(
 			string? aggregateId,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
 		public Task<TestAggregate?> GetAsync(
 			string aggregateId,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
 		public Task<TestAggregate?> GetAtAsync(
 			string aggregateId,
 			int version,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
-		public Task<bool> IsDeletedAsync(string aggregateId, CancellationToken cancellationToken = default) =>
+		public Task<bool> IsDeletedAsync(string aggregateId, CancellationToken _ = default) =>
 			throw new NotSupportedException();
 
 		public Task<TestAggregate?> GetDeletedAsync(
 			string aggregateId,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
 		public Task<bool> DeleteAsync(
 			TestAggregate aggregate,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
 		public Task<bool> RestoreAsync(
 			TestAggregate aggregate,
 			EventStoreOperationContext? operationContext,
-			CancellationToken cancellationToken = default
+			CancellationToken _ = default
 		) => throw new NotSupportedException();
 
 		public async IAsyncEnumerable<string> GetAggregateIdsAsync(
 			bool includeDeleted,
-			[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default
+			[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken _ = default
 		)
 		{
 			yield break;
 		}
 
-		public Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken cancellationToken = default) =>
+		public Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken _ = default) =>
 			throw new NotSupportedException();
 
 		public TestAggregate FulfilRequirements(TestAggregate aggregate) => aggregate;
@@ -836,7 +833,7 @@ public sealed class EventStoreTransactionTests
 
 		public override void Open() => _state = ConnectionState.Open;
 
-		public override Task OpenAsync(CancellationToken cancellationToken)
+		public override Task OpenAsync(CancellationToken _)
 		{
 			Open();
 			return Task.CompletedTask;
@@ -858,9 +855,8 @@ public sealed class EventStoreTransactionTests
 
 		public override void Rollback() { }
 
-		public override Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+		public override Task CommitAsync(CancellationToken _ = default) => Task.CompletedTask;
 
-		public override Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+		public override Task RollbackAsync(CancellationToken _ = default) => Task.CompletedTask;
 	}
 }
-

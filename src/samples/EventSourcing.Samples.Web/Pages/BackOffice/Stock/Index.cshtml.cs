@@ -9,11 +9,20 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
-	[BindProperty(SupportsGet = true)] public string? Search { get; set; }
-	[BindProperty(SupportsGet = true)] public new int Page { get; set; } = 1;
-	[BindProperty(SupportsGet = true)] public int PageSize { get; set; } = DefaultPageSize;
-	[BindProperty(SupportsGet = true)] public string SortBy { get; set; } = "available";
-	[BindProperty(SupportsGet = true)] public string SortDir { get; set; } = "desc";
+	[BindProperty(SupportsGet = true)]
+	public string? Search { get; set; }
+
+	[BindProperty(SupportsGet = true)]
+	public new int Page { get; set; } = 1;
+
+	[BindProperty(SupportsGet = true)]
+	public int PageSize { get; set; } = DefaultPageSize;
+
+	[BindProperty(SupportsGet = true)]
+	public string SortBy { get; set; } = "available";
+
+	[BindProperty(SupportsGet = true)]
+	public string SortDir { get; set; } = "desc";
 
 	public IReadOnlyList<InventoryAggregate> Items { get; private set; } = [];
 	public long TotalCount { get; private set; }
@@ -23,22 +32,24 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 	public async Task OnGetAsync()
 	{
-		if (Page < 1) Page = 1;
-		if (PageSize < 5 || PageSize > 100) PageSize = DefaultPageSize;
+		if (Page < 1)
+			Page = 1;
+		if (PageSize < 5 || PageSize > 100)
+			PageSize = DefaultPageSize;
 
 		var ct = HttpContext.RequestAborted;
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
 			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
-			MaxRecords = PageSize
+			MaxRecords = PageSize,
 		};
 
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
 		var hasFilter = !string.IsNullOrEmpty(search);
 
-		Expression<Func<InventoryAggregate, bool>> where =
-			i => i.ProductId.ToLower().Contains(search) || i.ProductName.ToLower().Contains(search);
+		Expression<Func<InventoryAggregate, bool>> where = i =>
+			i.ProductId.ToLower().Contains(search) || i.ProductName.ToLower().Contains(search);
 
 		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (SortBy, SortDir) switch
 		{
@@ -49,7 +60,7 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 			("name", "asc") => q => q.OrderBy(i => i.ProductName),
 			("name", _) => q => q.OrderByDescending(i => i.ProductName),
 			("available", "asc") => q => q.OrderBy(i => i.AvailableQuantity),
-			_ => q => q.OrderByDescending(i => i.AvailableQuantity)
+			_ => q => q.OrderByDescending(i => i.AvailableQuantity),
 		};
 
 		TotalCount = await store.CountAsync<InventoryAggregate>(hasFilter ? where : null, ct);
@@ -60,10 +71,10 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		Items = result.Results;
 	}
 
-	public string SortLink(string column) =>
-		column == SortBy && SortDir == "asc" ? "desc" : "asc";
+	public string SortLink(string column) => column == SortBy && SortDir == "asc" ? "desc" : "asc";
 
 	public string SortIcon(string column) =>
-		SortBy != column ? "↕" : SortDir == "asc" ? "↑" : "↓";
+		SortBy != column ? "↕"
+		: SortDir == "asc" ? "↑"
+		: "↓";
 }
-

@@ -2,6 +2,7 @@ using Azure.Storage.Blobs;
 using Purview.EventSourcing;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Services;
+using Purview.EventSourcing.SqlServer.Exceptions;
 
 // No authentication in this sample — allow all operations without a principal identifier
 EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
@@ -60,7 +61,19 @@ app.MapDefaultEndpoints();
 using (var scope = app.Services.CreateScope())
 {
 	var seeder = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
-	await seeder.SeedAsync();
+	for (var attempt = 0; ; attempt++)
+	{
+		try
+		{
+			await seeder.SeedAsync();
+			break;
+		}
+		catch (ConcurrencyException) when (attempt < 2)
+		{
+			// Another app instance may be seeding the demo store at the same time.
+			await Task.Delay(TimeSpan.FromMilliseconds(100 * (attempt + 1)));
+		}
+	}
 }
 
 app.Run();

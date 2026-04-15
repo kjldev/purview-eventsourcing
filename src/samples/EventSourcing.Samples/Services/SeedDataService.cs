@@ -2,29 +2,67 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class SeedDataService(
-	IQueryableEventStore store
-) : ISeedDataService
+public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataService
 {
-	static readonly string[] _firstNames =
+	static readonly string[] FirstNames =
 	[
-		"Alice", "Bob", "Carol", "David", "Emma",
-		"Frank", "Grace", "Henry", "Iris", "James",
-		"Karen", "Liam", "Mia", "Noah", "Olivia",
-		"Peter", "Quinn", "Rachel", "Sam", "Tara",
-		"Uma", "Victor", "Wendy", "Xavier", "Yara",
-		"Zach", "Abby", "Ben", "Clara", "Dan"
+		"Alice",
+		"Bob",
+		"Carol",
+		"David",
+		"Emma",
+		"Frank",
+		"Grace",
+		"Henry",
+		"Iris",
+		"James",
+		"Karen",
+		"Liam",
+		"Mia",
+		"Noah",
+		"Olivia",
+		"Peter",
+		"Quinn",
+		"Rachel",
+		"Sam",
+		"Tara",
+		"Uma",
+		"Victor",
+		"Wendy",
+		"Xavier",
+		"Yara",
+		"Zach",
+		"Abby",
+		"Ben",
+		"Clara",
+		"Dan",
 	];
-
-	static readonly string[] _lastNames =
-	[
-		"Smith", "Johnson", "Williams", "Brown", "Jones",
-		"Garcia", "Miller", "Davis", "Wilson", "Moore",
-		"Taylor", "Anderson", "Thomas", "Jackson", "White",
-		"Harris", "Martin", "Thompson", "Young", "Lewis"
+	static readonly string[] Value = [
+			"Smith",
+		"Johnson",
+		"Williams",
+		"Brown",
+		"Jones",
+		"Garcia",
+		"Miller",
+		"Davis",
+		"Wilson",
+		"Moore",
+		"Taylor",
+		"Anderson",
+		"Thomas",
+		"Jackson",
+		"White",
+		"Harris",
+		"Martin",
+		"Thompson",
+		"Young",
+		"Lewis",
 	];
+	static readonly string[] LastNames =
+	Value;
 
-	static readonly (string ProductId, string ProductName, int InitialQty, int ReorderQty)[] _products =
+	static readonly (string ProductId, string ProductName, int InitialQty, int ReorderQty)[] Products =
 	[
 		("SKU-001", "Wireless Keyboard", 150, 25),
 		("SKU-002", "USB-C Hub 7-Port", 200, 30),
@@ -40,10 +78,10 @@ public sealed class SeedDataService(
 		("SKU-012", "USB-C Power Bank 20k", 85, 15),
 		("SKU-013", "Cable Management Kit", 250, 40),
 		("SKU-014", "Monitor Arm Single", 55, 10),
-		("SKU-015", "Smart LED Desk Lamp", 90, 20)
+		("SKU-015", "Smart LED Desk Lamp", 90, 20),
 	];
 
-	static readonly (string LocationId, string LocationName)[] _locations =
+	static readonly (string LocationId, string LocationName)[] Locations =
 	[
 		("LOC-001", "Warehouse North"),
 		("LOC-002", "Warehouse South"),
@@ -51,14 +89,26 @@ public sealed class SeedDataService(
 		("LOC-004", "Fulfilment Hub West"),
 	];
 
-	static readonly decimal[] _unitPrices =
+	static readonly decimal[] UnitPrices =
 	[
-		49.99m, 39.99m, 399.99m, 129.99m, 29.99m,
-		59.99m, 79.99m, 149.99m, 89.99m, 12.99m,
-		24.99m, 49.99m, 19.99m, 69.99m, 34.99m
+		49.99m,
+		39.99m,
+		399.99m,
+		129.99m,
+		29.99m,
+		59.99m,
+		79.99m,
+		149.99m,
+		89.99m,
+		12.99m,
+		24.99m,
+		49.99m,
+		19.99m,
+		69.99m,
+		34.99m,
 	];
 
-	static readonly string[] _addresses =
+	static readonly string[] Addresses =
 	[
 		"1 King Street, London, EC1A 1BB",
 		"42 Queen's Road, Manchester, M1 2AB",
@@ -69,11 +119,13 @@ public sealed class SeedDataService(
 		"56 Bridge Road, Bristol, BS1 1AA",
 		"8 Market Square, Cambridge, CB1 1AA",
 		"33 Station Road, Oxford, OX1 1AA",
-		"77 Church Lane, Liverpool, L1 1AA"
+		"77 Church Lane, Liverpool, L1 1AA",
 	];
 
 	public async Task SeedAsync(CancellationToken cancellationToken = default)
 	{
+		await EnsureLocationsAsync(cancellationToken);
+
 		var customerCount = await store.CountAsync<CustomerAggregate>(null, cancellationToken);
 		if (customerCount > 0)
 			return;
@@ -83,15 +135,48 @@ public sealed class SeedDataService(
 		await SeedOrdersAsync(customerIds, inventoryIds, cancellationToken);
 	}
 
+	async Task EnsureLocationsAsync(CancellationToken cancellationToken)
+	{
+		var existingLocationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		await foreach (
+			var location in store.GetListEnumerableAsync<LocationAggregate>(cancellationToken: cancellationToken)
+		)
+		{
+			existingLocationIds.Add(location.LocationId);
+		}
+
+		var knownLocations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var (locationId, locationName) in Locations)
+			knownLocations[locationId] = locationName;
+
+		await foreach (
+			var inventory in store.GetListEnumerableAsync<InventoryAggregate>(cancellationToken: cancellationToken)
+		)
+		{
+			if (!knownLocations.ContainsKey(inventory.LocationId))
+				knownLocations[inventory.LocationId] = inventory.LocationName;
+		}
+
+		foreach (var (locationId, locationName) in knownLocations)
+		{
+			if (existingLocationIds.Contains(locationId))
+				continue;
+
+			var location = await store.CreateAsync<LocationAggregate>(locationId, cancellationToken);
+			location.Initialize(locationId, locationName);
+			await store.SaveAsync(location, null, cancellationToken);
+		}
+	}
+
 	async Task<string[]> SeedCustomersAsync(CancellationToken cancellationToken)
 	{
 		var ids = new List<string>();
 		var phones = new[] { "+44 7700 900000", "+44 7700 900001", null, "+44 7700 900002", null };
 
-		for (var i = 0; i < _firstNames.Length; i++)
+		for (var i = 0; i < FirstNames.Length; i++)
 		{
-			var first = _firstNames[i];
-			var last = _lastNames[i % _lastNames.Length];
+			var first = FirstNames[i];
+			var last = LastNames[i % LastNames.Length];
 			var email = $"{first.ToLowerInvariant()}.{last.ToLowerInvariant()}@example.com";
 			var phone = phones[i % phones.Length];
 
@@ -115,10 +200,10 @@ public sealed class SeedDataService(
 	{
 		var ids = new List<(string, int)>();
 
-		for (var i = 0; i < _products.Length; i++)
+		for (var i = 0; i < Products.Length; i++)
 		{
-			var (productId, productName, initialQty, _) = _products[i];
-			var (locationId, locationName) = _locations[i % _locations.Length];
+			var (productId, productName, initialQty, _) = Products[i];
+			var (locationId, locationName) = Locations[i % Locations.Length];
 
 			var item = await store.CreateAsync<InventoryAggregate>(null, cancellationToken);
 			item.Initialize(productId, productName, locationId, locationName, initialQty);
@@ -142,11 +227,11 @@ public sealed class SeedDataService(
 		for (var i = 0; i < 50; i++)
 		{
 			var customerId = customerIds[i % customerIds.Length];
-			var (invId, invIdx) = inventoryItems[i % inventoryItems.Length];
-			var (productId, productName, _, _) = _products[invIdx];
-			var unitPrice = _unitPrices[invIdx];
+			var (_, invIdx) = inventoryItems[i % inventoryItems.Length];
+			var (productId, productName, _, _) = Products[invIdx];
+			var unitPrice = UnitPrices[invIdx];
 			var qty = rng.Next(1, 5);
-			var address = _addresses[i % _addresses.Length];
+			var address = Addresses[i % Addresses.Length];
 
 			var order = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
 			order.CreateOrder(customerId);
@@ -155,9 +240,12 @@ public sealed class SeedDataService(
 
 			// Advance some orders through the lifecycle for variety.
 			var stage = i % 5;
-			if (stage >= 1) order.ConfirmOrder();
-			if (stage >= 2) order.ShipOrder();
-			if (stage >= 3) order.CompleteOrder();
+			if (stage >= 1)
+				order.ConfirmOrder();
+			if (stage >= 2)
+				order.ShipOrder();
+			if (stage >= 3)
+				order.CompleteOrder();
 			if (stage == 4)
 			{
 				// Already completed above; create a separate cancelled one.

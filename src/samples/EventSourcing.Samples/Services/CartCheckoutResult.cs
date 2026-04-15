@@ -8,9 +8,7 @@ public sealed class CartCheckoutResult
 	public string? ErrorMessage { get; private init; }
 	public OrderAggregate? Order { get; private init; }
 
-	public static CartCheckoutResult Success(OrderAggregate order) =>
-		new() { Succeeded = true, Order = order };
+	public static CartCheckoutResult Success(OrderAggregate order) => new() { Succeeded = true, Order = order };
 
-	public static CartCheckoutResult Fail(string message) =>
-		new() { Succeeded = false, ErrorMessage = message };
+	public static CartCheckoutResult Fail(string message) => new() { Succeeded = false, ErrorMessage = message };
 }

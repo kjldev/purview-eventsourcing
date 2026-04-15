@@ -11,7 +11,9 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 	public async Task OnGetAsync()
 	{
 		var deleted = new List<CustomerAggregate>();
-		await foreach (var id in store.GetAggregateIdsAsync<CustomerAggregate>(includeDeleted: true, HttpContext.RequestAborted))
+		await foreach (
+			var id in store.GetAggregateIdsAsync<CustomerAggregate>(includeDeleted: true, HttpContext.RequestAborted)
+		)
 		{
 			if (await store.IsDeletedAsync<CustomerAggregate>(id, HttpContext.RequestAborted))
 			{
@@ -27,7 +29,8 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 	public async Task<IActionResult> OnPostRestoreAsync(string id)
 	{
 		var customer = await store.GetDeletedAsync<CustomerAggregate>(id, HttpContext.RequestAborted);
-		if (customer == null) return NotFound();
+		if (customer == null)
+			return NotFound();
 
 		await store.RestoreAsync(customer, null, HttpContext.RequestAborted);
 
@@ -35,4 +38,3 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 		return RedirectToPage("Deleted");
 	}
 }
-

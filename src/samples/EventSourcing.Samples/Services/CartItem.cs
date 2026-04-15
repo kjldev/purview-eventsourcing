@@ -5,4 +5,5 @@ public sealed record CartItem(
 	string ProductName,
 	string InventoryId,
 	int Quantity,
-	decimal UnitPrice);
+	decimal UnitPrice
+);

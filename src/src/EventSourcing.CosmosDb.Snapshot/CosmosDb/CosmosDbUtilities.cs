@@ -1,14 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using System.Dynamic;
 using System.Reflection;
-using System.Text;
 using System.Text.Json.Serialization;
 
 namespace Purview.EventSourcing.CosmosDb;
 
 static class CosmosDbUtilities
 {
-	static readonly ConcurrentDictionary<Type, SerializeProcessData> _documentSerializers = new();
+	static readonly ConcurrentDictionary<Type, SerializeProcessData> DocumentSerializers = new();
 
 	public static string GetDocumentId(object document)
 	{
@@ -30,7 +29,7 @@ static class CosmosDbUtilities
 
 	static SerializeProcessData GetOrCreateSerializeProcess(Type documentType)
 	{
-		if (!_documentSerializers.TryGetValue(documentType, out var processData))
+		if (!DocumentSerializers.TryGetValue(documentType, out var processData))
 		{
 			var properties = documentType.GetProperties();
 			var idProperties = FindIdProperties(properties);
@@ -38,8 +37,8 @@ static class CosmosDbUtilities
 				throw new NullReferenceException($"Unable to locate an `Id` property on {documentType.FullName}.");
 
 			processData = new SerializeProcessData([.. idProperties], properties);
-			if (!_documentSerializers.TryAdd(documentType, processData))
-				processData = _documentSerializers[documentType];
+			if (!DocumentSerializers.TryAdd(documentType, processData))
+				processData = DocumentSerializers[documentType];
 		}
 
 		return processData;
@@ -66,7 +65,7 @@ static class CosmosDbUtilities
 
 	sealed class SerializeProcessData
 	{
-		const string _idPropertyName = "id";
+		const string IdPropertyName = "id";
 
 		readonly PropertyInfo[] _idProperties;
 		readonly PropertyInfo[] _properties;
@@ -76,10 +75,10 @@ static class CosmosDbUtilities
 			if (idProperties.Length == 1)
 			{
 				var p = idProperties.Single();
-				if (p.Name != _idPropertyName)
+				if (p.Name != IdPropertyName)
 				{
 					var jsonAttrib = p.GetCustomAttribute<JsonPropertyNameAttribute>();
-					if (jsonAttrib?.Name != _idPropertyName)
+					if (jsonAttrib?.Name != IdPropertyName)
 						throw new NullReferenceException(
 							"Unable to process object, missing property with name 'id' or System.Text.Json.Serialization.JsonPropertyNameAttribute using that name."
 						);
@@ -99,7 +98,12 @@ static class CosmosDbUtilities
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var memoryStream = new MemoryStream();
-			await JsonHelpers.SerializeAsync(memoryStream, documentResponse, documentResponse.GetType(), cancellationToken);
+			await JsonHelpers.SerializeAsync(
+				memoryStream,
+				documentResponse,
+				documentResponse.GetType(),
+				cancellationToken
+			);
 
 			cancellationToken.ThrowIfCancellationRequested();
 
@@ -114,9 +118,7 @@ static class CosmosDbUtilities
 			for (var i = 0; i < _idProperties.Length; i++)
 			{
 				var idProperty = _idProperties[i];
-				currentItem = idProperty.GetValue(currentItem);
-				if (currentItem == null)
-					throw new NullReferenceException("Some or all of id parts are null.");
+				currentItem = idProperty.GetValue(currentItem) ?? throw new NullReferenceException("Some or all of id parts are null.");
 			}
 
 			var id = currentItem.ToString() ?? throw new NullReferenceException("Some or all of id parts are null.");
@@ -129,7 +131,7 @@ static class CosmosDbUtilities
 				return document;
 
 			var documentResponse = new ExpandoObject();
-			documentResponse.TryAdd(_idPropertyName, GetId(document));
+			documentResponse.TryAdd(IdPropertyName, GetId(document));
 
 			object? currentItem;
 			for (var i = 0; i < _properties.Length; i++)

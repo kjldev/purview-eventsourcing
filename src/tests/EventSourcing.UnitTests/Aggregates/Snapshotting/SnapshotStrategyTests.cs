@@ -17,15 +17,14 @@ public sealed class SnapshotStrategyTests
 	[Arguments(1, 1, true)]
 	[Arguments(2, 1, true)]
 	[Arguments(5, 5, true)]
-	[Arguments(10, 5, true)]   // 10 % 5 == 0
-	[Arguments(15, 5, true)]   // 15 % 5 == 0
-	[Arguments(3, 5, false)]   // 3 % 5 != 0
-	[Arguments(7, 5, false)]   // 7 % 5 != 0
+	[Arguments(10, 5, true)] // 10 % 5 == 0
+	[Arguments(15, 5, true)] // 15 % 5 == 0
+	[Arguments(3, 5, false)] // 3 % 5 != 0
+	[Arguments(7, 5, false)] // 7 % 5 != 0
 	public async Task IntervalStrategy_GivenSavedVersionAndInterval_ReturnsExpected(
 		int savedVersion,
 		int interval,
-		bool expectedResult,
-		CancellationToken cancellationToken
+		bool expectedResult
 	)
 	{
 		// Arrange
@@ -40,7 +39,7 @@ public sealed class SnapshotStrategyTests
 	}
 
 	[Test]
-	public async Task IntervalStrategy_GivenZeroEventsApplied_ReturnsFalse(CancellationToken cancellationToken)
+	public async Task IntervalStrategy_GivenZeroEventsApplied_ReturnsFalse()
 	{
 		// Arrange — interval of 1 would normally always snapshot, but 0 events means nothing was saved
 		var strategy = new IntervalSnapshotStrategy<TestAggregate>(1);
@@ -54,7 +53,7 @@ public sealed class SnapshotStrategyTests
 	}
 
 	[Test]
-	public async Task IntervalStrategy_GivenNullAggregate_ThrowsArgumentNullException(CancellationToken cancellationToken)
+	public async Task IntervalStrategy_GivenNullAggregate_ThrowsArgumentNullException()
 	{
 		// Arrange
 		var strategy = new IntervalSnapshotStrategy<TestAggregate>(1);
@@ -68,12 +67,12 @@ public sealed class SnapshotStrategyTests
 	[Arguments(-1)]
 	[Arguments(-100)]
 	public async Task IntervalStrategy_GivenIntervalLessThanOne_ThrowsArgumentOutOfRangeException(
-		int interval,
-		CancellationToken cancellationToken
+		int interval
 	)
 	{
 		// Act & Assert
-		await Assert.That(() => new IntervalSnapshotStrategy<TestAggregate>(interval))
+		await Assert
+			.That(() => new IntervalSnapshotStrategy<TestAggregate>(interval))
 			.Throws<ArgumentOutOfRangeException>();
 	}
 
@@ -86,8 +85,7 @@ public sealed class SnapshotStrategyTests
 	[Arguments(5)]
 	[Arguments(100)]
 	public async Task AlwaysStrategy_GivenEventsApplied_AlwaysReturnsTrue(
-		int eventsApplied,
-		CancellationToken cancellationToken
+		int eventsApplied
 	)
 	{
 		// Arrange
@@ -102,7 +100,7 @@ public sealed class SnapshotStrategyTests
 	}
 
 	[Test]
-	public async Task AlwaysStrategy_GivenZeroEventsApplied_ReturnsFalse(CancellationToken cancellationToken)
+	public async Task AlwaysStrategy_GivenZeroEventsApplied_ReturnsFalse()
 	{
 		// Arrange
 		var strategy = new AlwaysSnapshotStrategy<TestAggregate>();
@@ -124,8 +122,7 @@ public sealed class SnapshotStrategyTests
 	[Arguments(1)]
 	[Arguments(100)]
 	public async Task NeverStrategy_GivenAnyInput_AlwaysReturnsFalse(
-		int eventsApplied,
-		CancellationToken cancellationToken
+		int eventsApplied
 	)
 	{
 		// Arrange
@@ -141,3 +138,4 @@ public sealed class SnapshotStrategyTests
 
 	#endregion
 }
+

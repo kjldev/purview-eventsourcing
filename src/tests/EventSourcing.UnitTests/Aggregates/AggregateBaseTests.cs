@@ -9,7 +9,8 @@ public partial class AggregateBaseTests
 	public async Task GetHashCode_GivenIdentificationEvents_GeneratesIdenticalHashCodes()
 	{
 		// Arrange
-		static AppendToReadOnlyDictionaryEvent Generate() => new() { Key = "a-key", Values = ["a-value", "another-value"] };
+		static AppendToReadOnlyDictionaryEvent Generate() =>
+			new() { Key = "a-key", Values = ["a-value", "another-value"] };
 
 		var event1 = Generate();
 		var event2 = Generate();

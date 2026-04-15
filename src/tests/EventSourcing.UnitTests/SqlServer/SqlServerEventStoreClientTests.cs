@@ -14,13 +14,15 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenDefaultOptions_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act
-		using var client = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
-		{
-			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-			SchemaName = "dbo",
-			TableName = "EventStore",
-			AutoCreateTable = false,
-		});
+		using var client = new SqlServerEventStoreClient(
+			new SqlServerEventStoreOptions
+			{
+				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+				SchemaName = "dbo",
+				TableName = "EventStore",
+				AutoCreateTable = false,
+			}
+		);
 
 		// Assert
 		await Assert.That(client).IsNotNull();
@@ -30,13 +32,15 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenCustomSchemaAndTable_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act
-		using var client = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
-		{
-			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-			SchemaName = "orders",
-			TableName = "DomainEvents",
-			AutoCreateTable = false,
-		});
+		using var client = new SqlServerEventStoreClient(
+			new SqlServerEventStoreOptions
+			{
+				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+				SchemaName = "orders",
+				TableName = "DomainEvents",
+				AutoCreateTable = false,
+			}
+		);
 
 		// Assert
 		await Assert.That(client).IsNotNull();
@@ -46,13 +50,15 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenIdentifierWithHyphen_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act — hyphens are valid in SQL identifiers when quoted
-		using var client = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
-		{
-			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-			SchemaName = "my-schema",
-			TableName = "my-table",
-			AutoCreateTable = false,
-		});
+		using var client = new SqlServerEventStoreClient(
+			new SqlServerEventStoreOptions
+			{
+				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+				SchemaName = "my-schema",
+				TableName = "my-table",
+				AutoCreateTable = false,
+			}
+		);
 
 		// Assert
 		await Assert.That(client).IsNotNull();
@@ -62,64 +68,80 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenEmptySchemaName_ThrowsArgumentException()
 	{
 		// Arrange & Act
-		await Assert.That(() =>
-		{
-			using var _ = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
+		await Assert
+			.That(() =>
 			{
-				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-				SchemaName = "",
-				TableName = "EventStore",
-				AutoCreateTable = false,
-			});
-		}).Throws<ArgumentException>();
+				using var _ = new SqlServerEventStoreClient(
+					new SqlServerEventStoreOptions
+					{
+						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+						SchemaName = "",
+						TableName = "EventStore",
+						AutoCreateTable = false,
+					}
+				);
+			})
+			.Throws<ArgumentException>();
 	}
 
 	[Test]
 	public async Task Constructor_GivenWhitespaceTableName_ThrowsArgumentException()
 	{
 		// Arrange & Act
-		await Assert.That(() =>
-		{
-			using var _ = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
+		await Assert
+			.That(() =>
 			{
-				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-				SchemaName = "dbo",
-				TableName = "   ",
-				AutoCreateTable = false,
-			});
-		}).Throws<ArgumentException>();
+				using var _ = new SqlServerEventStoreClient(
+					new SqlServerEventStoreOptions
+					{
+						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+						SchemaName = "dbo",
+						TableName = "   ",
+						AutoCreateTable = false,
+					}
+				);
+			})
+			.Throws<ArgumentException>();
 	}
 
 	[Test]
 	public async Task Constructor_GivenIdentifierWithSemicolon_ThrowsArgumentException()
 	{
 		// Arrange & Act — semicolons are not valid identifier characters
-		await Assert.That(() =>
-		{
-			using var _ = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
+		await Assert
+			.That(() =>
 			{
-				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-				SchemaName = "dbo; DROP TABLE EventStore --",
-				TableName = "EventStore",
-				AutoCreateTable = false,
-			});
-		}).Throws<ArgumentException>();
+				using var _ = new SqlServerEventStoreClient(
+					new SqlServerEventStoreOptions
+					{
+						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+						SchemaName = "dbo; DROP TABLE EventStore --",
+						TableName = "EventStore",
+						AutoCreateTable = false,
+					}
+				);
+			})
+			.Throws<ArgumentException>();
 	}
 
 	[Test]
 	public async Task Constructor_GivenIdentifierWithSingleQuote_ThrowsArgumentException()
 	{
 		// Arrange & Act
-		await Assert.That(() =>
-		{
-			using var _ = new SqlServerEventStoreClient(new SqlServerEventStoreOptions
+		await Assert
+			.That(() =>
 			{
-				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
-				SchemaName = "dbo",
-				TableName = "Event'Store",
-				AutoCreateTable = false,
-			});
-		}).Throws<ArgumentException>();
+				using var _ = new SqlServerEventStoreClient(
+					new SqlServerEventStoreOptions
+					{
+						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+						SchemaName = "dbo",
+						TableName = "Event'Store",
+						AutoCreateTable = false,
+					}
+				);
+			})
+			.Throws<ArgumentException>();
 	}
 
 	#endregion
@@ -148,8 +170,8 @@ public sealed class SqlServerEventStoreClientTests
 			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
 			AggregateTableOverrides = new(StringComparer.OrdinalIgnoreCase)
 			{
-				["Order"] = new SqlServerAggregateTableOverride { SchemaName = "orders" }
-			}
+				["Order"] = new SqlServerAggregateTableOverride { SchemaName = "orders" },
+			},
 		};
 
 		// Act & Assert — both casings should find the entry

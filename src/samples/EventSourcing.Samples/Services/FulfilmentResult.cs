@@ -10,8 +10,12 @@ public sealed class FulfilmentResult
 	public InventoryAggregate? Inventory { get; private init; }
 
 	public static FulfilmentResult Success(OrderAggregate order, InventoryAggregate inventory) =>
-		new() { Succeeded = true, Order = order, Inventory = inventory };
+		new()
+		{
+			Succeeded = true,
+			Order = order,
+			Inventory = inventory,
+		};
 
-	public static FulfilmentResult Fail(string message) =>
-		new() { Succeeded = false, ErrorMessage = message };
+	public static FulfilmentResult Fail(string message) => new() { Succeeded = false, ErrorMessage = message };
 }

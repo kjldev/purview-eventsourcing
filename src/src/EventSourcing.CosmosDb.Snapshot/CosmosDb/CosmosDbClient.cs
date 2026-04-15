@@ -207,53 +207,49 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 
 	async Task<Container> InitializeContainerAsync(CancellationToken cancellationToken)
 	{
-		return await CreatedContainers.GetOrAdd(
-			_containerCreatedKey,
-			_ => new AsyncLazy<Container>(async ct =>
-			{
-				var response =
-					await GetOrCreateContainerAsync(ct)
-					?? throw new NullReferenceException($"Unable to get the container response for '{_containerName}'");
-				if (
-					!(
-						response.StatusCode == System.Net.HttpStatusCode.OK
-						|| response.StatusCode == System.Net.HttpStatusCode.Accepted
-					)
-				)
-					throw new InvalidOperationException(
-						$"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}"
-					);
-
-				return response.Container;
-			})
-		).GetValueAsync(cancellationToken);
+		return await CreatedContainers
+			.GetOrAdd(
+				_containerCreatedKey,
+				_ => new AsyncLazy<Container>(async ct =>
+				{
+					var response =
+						await GetOrCreateContainerAsync(ct)
+						?? throw new NullReferenceException(
+							$"Unable to get the container response for '{_containerName}'"
+						);
+					return response.StatusCode is System.Net.HttpStatusCode.OK
+							or System.Net.HttpStatusCode.Accepted
+						? response.Container
+						: throw new InvalidOperationException(
+							$"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}"
+						);
+				})
+			)
+			.GetValueAsync(cancellationToken);
 	}
 
 	async Task<Database> InitializeDatabase(CosmosClient client, CancellationToken cancellationToken)
 	{
-		return _database = await CreatedDatabases.GetOrAdd(
-			_databaseCreatedKey,
-			_ => new AsyncLazy<Database>(async ct =>
-			{
-				var response = await client.CreateDatabaseIfNotExistsAsync(
-					_cosmosDbOptions.Database,
-					throughput: _cosmosDbOptions.DatabaseThroughput,
-					cancellationToken: ct
-				);
-				if (
-					!(
-						response.StatusCode == System.Net.HttpStatusCode.OK
-						|| response.StatusCode == System.Net.HttpStatusCode.Accepted
-						|| response.StatusCode == System.Net.HttpStatusCode.Created
-					)
-				)
-					throw new InvalidOperationException(
-						$"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}"
+		return _database = await CreatedDatabases
+			.GetOrAdd(
+				_databaseCreatedKey,
+				_ => new AsyncLazy<Database>(async ct =>
+				{
+					var response = await client.CreateDatabaseIfNotExistsAsync(
+						_cosmosDbOptions.Database,
+						throughput: _cosmosDbOptions.DatabaseThroughput,
+						cancellationToken: ct
 					);
-
-				return response.Database;
-			})
-		).GetValueAsync(cancellationToken);
+					return response.StatusCode is System.Net.HttpStatusCode.OK
+							or System.Net.HttpStatusCode.Accepted
+							or System.Net.HttpStatusCode.Created
+						? response.Database
+						: throw new InvalidOperationException(
+							$"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}"
+						);
+				})
+			)
+			.GetValueAsync(cancellationToken);
 	}
 
 	CosmosClient GetOrCreateClient() => GetOrCreateClient(_cosmosDbOptions);

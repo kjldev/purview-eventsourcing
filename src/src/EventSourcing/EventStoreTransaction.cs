@@ -52,7 +52,11 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 	}
 
 	/// <inheritdoc/>
-	public void Enlist<T>(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext = null)
+	public void Enlist<T>(
+		T aggregate,
+		IEventStoreCore<T> eventStore,
+		EventStoreOperationContext? operationContext = null
+	)
 		where T : class, IAggregate, new()
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
@@ -76,13 +80,11 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 
 		_committed = true;
 
-		if (_enlisted.Count == 0)
-			return new TransactionResult([]);
-
-		if (CanUseNativeTransactionCoordinator())
-			return await CommitWithNativeTransactionAsync(cancellationToken);
-
-		return await CommitSequentiallyAsync(cancellationToken);
+		return _enlisted.Count == 0
+			? new TransactionResult([])
+			: CanUseNativeTransactionCoordinator()
+				? await CommitWithNativeTransactionAsync(cancellationToken)
+				: await CommitSequentiallyAsync(cancellationToken);
 	}
 
 	bool CanUseNativeTransactionCoordinator()
@@ -109,24 +111,24 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 
 	async Task<TransactionResult> CommitSequentiallyAsync(CancellationToken cancellationToken)
 	{
-		var results = new List<TransactionResult.AggregateResult>(_enlisted.Count);
+		var results = new List<TransactionAggregateResult>(_enlisted.Count);
 
 		foreach (var enlisted in _enlisted)
 		{
 			try
 			{
-				var saveResult = await enlisted.SaveAsync(CorrelationId, cancellationToken);
+				var (saved, skipped) = await enlisted.SaveAsync(CorrelationId, cancellationToken);
 				results.Add(
-					new TransactionResult.AggregateResult(
+					new TransactionAggregateResult(
 						enlisted.Aggregate,
-						saved: saveResult.saved,
-						skipped: saveResult.skipped,
+						saved: saved,
+						skipped: skipped,
 						error: null
 					)
 				);
 
 				// Stop processing remaining aggregates on first failure.
-				if (!saveResult.saved && !saveResult.skipped)
+				if (!saved && !skipped)
 					break;
 			}
 #pragma warning disable CA1031
@@ -134,7 +136,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 #pragma warning restore CA1031
 			{
 				results.Add(
-					new TransactionResult.AggregateResult(enlisted.Aggregate, saved: false, skipped: false, error: ex)
+					new TransactionAggregateResult(enlisted.Aggregate, saved: false, skipped: false, error: ex)
 				);
 
 				// Stop on first exception — don't persist remaining aggregates.
@@ -192,7 +194,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		{
 			await transaction.CommitAsync(cancellationToken);
 
-			var committedResults = new List<TransactionResult.AggregateResult>(processed.Count);
+			var committedResults = new List<TransactionAggregateResult>(processed.Count);
 			foreach (var operation in processed)
 			{
 				Exception? postCommitError = null;
@@ -208,7 +210,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 				}
 
 				committedResults.Add(
-					new TransactionResult.AggregateResult(
+					new TransactionAggregateResult(
 						operation.Aggregate,
 						operation.Saved,
 						operation.Skipped,
@@ -225,7 +227,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		foreach (var operation in processed)
 			await operation.AfterRollbackAsync(cancellationToken);
 
-		var rollbackResults = new List<TransactionResult.AggregateResult>(processed.Count + 1);
+		var rollbackResults = new List<TransactionAggregateResult>(processed.Count + 1);
 		var rollbackError =
 			failure
 			?? new InvalidOperationException(
@@ -242,10 +244,10 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			var wasRolledBack = operation.Saved;
 
 			rollbackResults.Add(
-				new TransactionResult.AggregateResult(
+				new TransactionAggregateResult(
 					operation.Aggregate,
 					saved: false,
-					skipped: isFailedOperation || wasRolledBack ? false : operation.Skipped,
+					skipped: !isFailedOperation && !wasRolledBack && operation.Skipped,
 					error: isFailedOperation || operation.Skipped ? null : rollbackError
 				)
 			);
@@ -257,7 +259,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		)
 		{
 			rollbackResults.Add(
-				new TransactionResult.AggregateResult(
+				new TransactionAggregateResult(
 					failedEnlisted.Aggregate,
 					saved: false,
 					skipped: false,
@@ -313,7 +315,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 	{
 		readonly T _aggregate;
 		readonly IEventStore? _eventStore;
-		readonly IEventStoreImpl<T>? _eventStoreImpl;
+		readonly IEventStoreCore<T>? _eventStoreImpl;
 		readonly ITransactionalEventStore<T>? _transactionalEventStore;
 		readonly EventStoreOperationContext? _operationContext;
 
@@ -326,7 +328,11 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			_operationContext = operationContext;
 		}
 
-		public EnlistedAggregate(T aggregate, IEventStoreImpl<T> eventStore, EventStoreOperationContext? operationContext)
+		public EnlistedAggregate(
+			T aggregate,
+			IEventStoreCore<T> eventStore,
+			EventStoreOperationContext? operationContext
+		)
 		{
 			_aggregate = aggregate;
 			_eventStore = null;
