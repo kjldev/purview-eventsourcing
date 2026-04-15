@@ -183,8 +183,6 @@ public sealed class SqlServerSnapshotEventStoreTests
 		return new(eventStore, wrappedOptions, telemetry);
 	}
 
-	static IOptions<SqlServerSnapshotEventStoreOptions> CreateOptions() => Options.Create(CreateDefaultOptions());
-
 	static SqlServerSnapshotEventStoreOptions CreateDefaultOptions() =>
 		new()
 		{
