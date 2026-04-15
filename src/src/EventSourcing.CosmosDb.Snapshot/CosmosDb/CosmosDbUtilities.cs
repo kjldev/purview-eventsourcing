@@ -81,7 +81,7 @@ static class CosmosDbUtilities
 					var jsonAttrib = p.GetCustomAttribute<JsonPropertyNameAttribute>();
 					if (jsonAttrib?.Name != _idPropertyName)
 						throw new NullReferenceException(
-							"Unable to process object, missing property with name 'id' or JsonPropertyNameAttribute using that name."
+							"Unable to process object, missing property with name 'id' or System.Text.Json.Serialization.JsonPropertyNameAttribute using that name."
 						);
 				}
 			}
