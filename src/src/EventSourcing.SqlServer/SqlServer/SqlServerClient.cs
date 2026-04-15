@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
-using Newtonsoft.Json;
 
 namespace Purview.EventSourcing.SqlServer;
 
@@ -135,7 +134,7 @@ sealed partial class SqlServerClient : IDisposable
 	{
 		await EnsureConfiguredAsync(cancellationToken);
 
-		var json = JsonConvert.SerializeObject(aggregate, JsonHelpers.JsonSerializerSettings);
+		var json = JsonHelpers.Serialize(aggregate, aggregate!.GetType());
 
 		await using var connection = CreateConnection();
 		await connection.OpenAsync(cancellationToken);
@@ -163,7 +162,7 @@ sealed partial class SqlServerClient : IDisposable
 		ArgumentNullException.ThrowIfNull(connection);
 		ArgumentNullException.ThrowIfNull(transaction);
 
-		var json = JsonConvert.SerializeObject(aggregate, JsonHelpers.JsonSerializerSettings);
+		var json = JsonHelpers.Serialize(aggregate, aggregate!.GetType());
 
 		await using var command = connection.CreateCommand();
 		command.Transaction = transaction;
@@ -229,7 +228,7 @@ sealed partial class SqlServerClient : IDisposable
 		while (await reader.ReadAsync(cancellationToken))
 		{
 			var payload = reader.GetString(0);
-			var item = JsonConvert.DeserializeObject<T>(payload, JsonHelpers.JsonSerializerSettings);
+			var item = JsonHelpers.Deserialize<T>(payload);
 			if (item != null)
 				results.Add(item);
 		}
@@ -253,7 +252,7 @@ sealed partial class SqlServerClient : IDisposable
 		if (await reader.ReadAsync(cancellationToken))
 		{
 			var payload = reader.GetString(0);
-			return JsonConvert.DeserializeObject<T>(payload, JsonHelpers.JsonSerializerSettings);
+			return JsonHelpers.Deserialize<T>(payload);
 		}
 
 		return null;

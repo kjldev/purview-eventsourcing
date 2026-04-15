@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
 using Purview.EventSourcing.Aggregates.Persistence.Events;
 
@@ -7,18 +8,27 @@ namespace Purview.EventSourcing.Aggregates.Persistence;
 public sealed class PersistenceAggregate : AggregateBase, IAggregateTest
 {
 	[Range(0, int.MaxValue)]
+	[JsonInclude]
 	public int IncrementInt32 { get; private set; }
 
+	[JsonInclude]
 	public int Int32Value { get; private set; }
 
+	[JsonInclude]
 	public Guid? OldEventValue { get; private set; }
 
+	[JsonInclude]
 	public string StringProperty { get; private set; } = default!;
 
+	[JsonInclude]
+	[JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]
 	public Dictionary<string, StringValues> StringValuesDictionary { get; } = [];
 
+	[JsonInclude]
+	[JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]
 	public Dictionary<string, string> StringsDictionary { get; } = [];
 
+	[JsonInclude]
 	public ComplexTestType? ComplexTestType { get; private set; }
 
 	public void RegisterOldEventType()

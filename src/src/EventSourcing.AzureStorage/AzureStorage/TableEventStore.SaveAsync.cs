@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Text;
 using Azure;
 using FluentValidation.Results;
-using Newtonsoft.Json;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.AzureStorage.Entities;
@@ -326,7 +325,7 @@ partial class TableEventStore<T>
 			EventIds = [.. changeEvents.Select(m => m.Details.AggregateVersion).OrderBy(m => m)],
 		};
 
-		marker.Events = JsonConvert.SerializeObject(eventObject, Formatting.None);
+		marker.Events = JsonHelpers.Serialize(eventObject);
 
 		return marker;
 	}

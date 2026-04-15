@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json;
 
 namespace Purview.EventSourcing.MongoDB.Entities;
 
@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.MongoDB.Entities;
 public sealed class StreamVersionEntity : IEntity
 {
 	[BsonId]
-	[JsonProperty("id")]
+	[JsonPropertyName("id")]
 	public string Id { get; set; } = default!;
 
 	public string AggregateId { get; set; } = default!;

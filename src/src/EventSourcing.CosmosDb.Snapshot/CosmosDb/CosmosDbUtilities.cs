@@ -2,7 +2,7 @@
 using System.Dynamic;
 using System.Reflection;
 using System.Text;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Purview.EventSourcing.CosmosDb;
 
@@ -78,10 +78,10 @@ static class CosmosDbUtilities
 				var p = idProperties.Single();
 				if (p.Name != _idPropertyName)
 				{
-					var jsonAttrib = p.GetCustomAttribute<JsonPropertyAttribute>();
-					if (jsonAttrib?.PropertyName != _idPropertyName)
+					var jsonAttrib = p.GetCustomAttribute<JsonPropertyNameAttribute>();
+					if (jsonAttrib?.Name != _idPropertyName)
 						throw new NullReferenceException(
-							"Unable to process object, missing property with name 'id' or JsonPropertyAttribute using that name."
+							"Unable to process object, missing property with name 'id' or JsonPropertyNameAttribute using that name."
 						);
 				}
 			}
@@ -99,9 +99,7 @@ static class CosmosDbUtilities
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var memoryStream = new MemoryStream();
-			var value = JsonConvert.SerializeObject(documentResponse, JsonHelpers.JsonSerializerSettings);
-			using (var writer = new StreamWriter(memoryStream, Encoding.Default, 2048, true))
-				await writer.WriteAsync(value);
+			await JsonHelpers.SerializeAsync(memoryStream, documentResponse, documentResponse.GetType(), cancellationToken);
 
 			cancellationToken.ThrowIfCancellationRequested();
 

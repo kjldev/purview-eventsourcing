@@ -2,7 +2,6 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
-using Newtonsoft.Json;
 
 namespace Purview.EventSourcing.AzureStorage.StorageClients.Blob;
 
@@ -51,7 +50,7 @@ sealed class AzureBlobClient : IAsyncDisposable
 		using (StreamReader streamReader = new(responseStream))
 			content = await streamReader.ReadToEndAsync(cancellationToken);
 
-		return JsonConvert.DeserializeObject<T>(content);
+		return JsonHelpers.Deserialize<T>(content);
 	}
 
 	public async Task<Stream?> GetStreamAsync(string blobName, CancellationToken cancellationToken = default)

@@ -1,58 +1,46 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
-using Newtonsoft.Json.Linq;
 
-namespace Newtonsoft.Json.Converters;
+namespace Purview.EventSourcing;
 
 /// <summary>
 /// Converts values to the <see cref="StringValues"/> type.
 /// </summary>
-sealed class StringValuesConverter : JsonConverter
+sealed class StringValuesConverter : JsonConverter<StringValues>
 {
 	/// <inheritdoc/>
-	public override bool CanConvert(Type objectType) => objectType == typeof(StringValues);
-
-	/// <inheritdoc/>
-	public override object? ReadJson(
-		[NotNull] JsonReader reader,
-		Type objectType,
-		object? existingValue,
-		JsonSerializer serializer
-	)
+	public override StringValues Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 	{
-		if (reader!.TokenType == JsonToken.StartArray)
+		if (reader.TokenType == JsonTokenType.StartArray)
 		{
-			var stringValues = JArray.Load(reader);
-			return new StringValues(stringValues.ToObject<string[]>());
-		}
-		else if (reader.TokenType == JsonToken.String)
-		{
-			var value = JToken.Load(reader);
-			return new StringValues(value.Value<string>());
+			var values = JsonSerializer.Deserialize<string[]>(ref reader, options) ?? [];
+			return new(values);
 		}
 
-		return new StringValues();
+		if (reader.TokenType == JsonTokenType.String)
+		{
+			return new(reader.GetString());
+		}
+
+		if (reader.TokenType == JsonTokenType.Null)
+			return new StringValues();
+
+		throw new JsonException($"Unable to deserialize {nameof(StringValues)} from token type {reader.TokenType}.");
 	}
 
 	/// <inheritdoc/>
-	public override void WriteJson([NotNull] JsonWriter writer, object? value, JsonSerializer serializer)
+	public override void Write(Utf8JsonWriter writer, StringValues value, JsonSerializerOptions options)
 	{
-		var stringValues = (StringValues)value!;
-		if (stringValues.Count == 0)
-			writer!.WriteNull();
-		else if (stringValues.Count == 1)
+		if (value.Count == 0)
+			writer.WriteNullValue();
+		else if (value.Count == 1)
 		{
-			var singularStringValue = (string)stringValues!;
-			writer.WriteValue(singularStringValue);
+			writer.WriteStringValue(value[0]);
 		}
 		else
 		{
-			writer.WriteStartArray();
-
-			for (var i = 0; i < stringValues.Count; i++)
-				writer.WriteValue(stringValues[i]);
-
-			writer.WriteEndArray();
+			JsonSerializer.Serialize(writer, value.ToArray(), options);
 		}
 	}
 }

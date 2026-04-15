@@ -9,18 +9,33 @@ sealed class AggregateInfo
 		string? namespaceName,
 		string className,
 		Accessibility accessibility,
+		List<AggregateStatePropertyInfo> properties,
 		List<AggregateEventMethodInfo> methods)
 	{
 		Namespace = namespaceName;
 		ClassName = className;
 		Accessibility = accessibility;
+		Properties = properties;
 		Methods = methods;
 	}
 
 	public string? Namespace { get; }
 	public string ClassName { get; }
 	public Accessibility Accessibility { get; }
+	public List<AggregateStatePropertyInfo> Properties { get; }
 	public List<AggregateEventMethodInfo> Methods { get; }
+}
+
+sealed class AggregateStatePropertyInfo
+{
+	public AggregateStatePropertyInfo(string propertyName, string typeName)
+	{
+		PropertyName = propertyName;
+		TypeName = typeName;
+	}
+
+	public string PropertyName { get; }
+	public string TypeName { get; }
 }
 
 sealed class AggregateEventMethodInfo

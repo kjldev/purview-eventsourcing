@@ -18,6 +18,7 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 			MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
 			MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
 			MetadataReference.CreateFromFile(System.Reflection.Assembly.Load("System.Runtime").Location),
+			MetadataReference.CreateFromFile(typeof(System.Text.Json.JsonSerializer).Assembly.Location),
 		};
 
 		// Add netstandard reference
@@ -50,5 +51,28 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 		}
 
 		return (result, outputCompilation);
+	}
+
+	protected static async Task<global::System.Reflection.Assembly> CompileToAssemblyAsync(
+		string source,
+		CancellationToken cancellationToken = default)
+	{
+		var (_, compilation) = await GenerateAsync(source, cancellationToken);
+		await using var assemblyStream = new MemoryStream();
+		var emitResult = compilation.Emit(assemblyStream, cancellationToken: cancellationToken);
+		if (!emitResult.Success)
+		{
+			var diagnostics = string.Join(
+				Environment.NewLine,
+				emitResult.Diagnostics
+					.Where(d => d.Severity == DiagnosticSeverity.Error)
+					.Select(d => d.ToString())
+			);
+
+			throw new InvalidOperationException(diagnostics);
+		}
+
+		assemblyStream.Position = 0;
+		return global::System.Reflection.Assembly.Load(assemblyStream.ToArray());
 	}
 }

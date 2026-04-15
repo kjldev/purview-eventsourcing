@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing</RootNamespace>
+		<AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
 	</PropertyGroup>
 
 	<PropertyGroup Label="NuGet Package Values">

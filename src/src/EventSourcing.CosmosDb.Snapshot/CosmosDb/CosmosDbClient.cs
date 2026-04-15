@@ -270,7 +270,7 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 					RequestTimeout = TimeSpan.FromSeconds(
 						configuration.RequestTimeoutInSeconds ?? CosmosDbOptions.DefaultRequestTimeout
 					),
-					Serializer = new CosmosJsonNetSerializer(JsonHelpers.JsonSerializerSettings),
+					Serializer = new CosmosSystemTextJsonSerializer(),
 				};
 
 				if (configuration.IgnoreSSLWarnings)

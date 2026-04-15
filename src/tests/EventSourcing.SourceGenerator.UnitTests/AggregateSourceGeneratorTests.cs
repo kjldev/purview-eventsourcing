@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.CodeAnalysis;
 
 namespace Purview.EventSourcing.SourceGenerator;
@@ -9,18 +11,41 @@ public class AggregateSourceGeneratorTests
 	const string AggregateBaseStub = @"
 namespace Purview.EventSourcing.Aggregates
 {
+	public sealed class AggregateDetails
+	{
+		public string? Id { get; set; }
+	}
+
 	public abstract class AggregateBase
 	{
+		readonly System.Collections.Generic.Dictionary<System.Type, System.Delegate> _appliers = new();
+
+		protected AggregateBase()
+		{
+			RegisterEvents();
+		}
+
+		public AggregateDetails Details { get; init; } = new();
 		protected abstract void RegisterEvents();
-		protected void Register<TEvent>(System.Action<TEvent> applier) where TEvent : class { }
-		protected AggregateBase RecordAndApply<TEvent>(TEvent @event) where TEvent : class => this;
+		protected void Register<TEvent>(System.Action<TEvent> applier) where TEvent : class => _appliers[typeof(TEvent)] = applier;
+		protected AggregateBase RecordAndApply<TEvent>(TEvent @event) where TEvent : class
+		{
+			((System.Action<TEvent>)_appliers[typeof(TEvent)])(@event);
+			return this;
+		}
 	}
 }
 
 namespace Purview.EventSourcing.Aggregates.Events
 {
+	public sealed class EventDetails
+	{
+		public string? CorrelationId { get; set; }
+	}
+
 	public abstract class EventBase
 	{
+		public EventDetails Details { get; init; } = new();
 		public virtual int SchemaVersion => 1;
 		protected abstract void BuildEventHash(ref System.HashCode hash);
 	}
@@ -249,6 +274,32 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("namespace Testing.Events");
 		await Assert.That(generatedSource).Contains("public sealed class CreateOrderEvent");
 		await Assert.That(generatedSource).Contains(": global::Purview.EventSourcing.Aggregates.Events.EventBase");
+	}
+
+	[Test]
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsJsonConverterSupport(CancellationToken cancellationToken)
+	{
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("JsonConverter(typeof(OrderAggregateJsonConverter))");
+		await Assert.That(generatedSource).Contains("internal static OrderAggregate CreateFromJsonModel(OrderAggregateJsonModel jsonModel)");
+		await Assert.That(generatedSource).Contains("sealed class OrderAggregateJsonConverter");
+		await Assert.That(generatedSource).Contains("sealed class OrderAggregateJsonModel");
 	}
 
 	[Test]
@@ -1070,6 +1121,78 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("public partial void SetContent(string content)");
 		// Assert — RecordAndApply creates event with property
 		await Assert.That(generatedSource).Contains("Content = content,");
+	}
+
+	[Test]
+	public async Task Generate_GivenSimpleAggregate_CanRoundTripPrivateSetterStateWithSystemTextJson(CancellationToken cancellationToken)
+	{
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+		public decimal Total { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId, decimal total);
+	}
+}
+";
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var aggregateType = assembly.GetType("Testing.OrderAggregate")!;
+		var instance = Activator.CreateInstance(aggregateType)!;
+		aggregateType.GetMethod("CreateOrder")!.Invoke(instance, ["customer-1", 12.5m]);
+
+		var detailsProperty = aggregateType.GetProperty("Details")!;
+		var detailsType = detailsProperty.PropertyType;
+		var details = Activator.CreateInstance(detailsType)!;
+		detailsType.GetProperty("Id")!.SetValue(details, "aggregate-1");
+		detailsProperty.SetValue(instance, details);
+
+		var json = JsonSerializer.Serialize(instance, aggregateType);
+		var roundTripped = JsonSerializer.Deserialize(json, aggregateType)!;
+
+		await Assert.That(aggregateType.GetProperty("CustomerId")!.GetValue(roundTripped)).IsEqualTo("customer-1");
+		await Assert.That(aggregateType.GetProperty("Total")!.GetValue(roundTripped)).IsEqualTo(12.5m);
+		var roundTrippedDetails = detailsProperty.GetValue(roundTripped)!;
+		await Assert.That(detailsType.GetProperty("Id")!.GetValue(roundTrippedDetails)).IsEqualTo("aggregate-1");
+	}
+
+	[Test]
+	public async Task Generate_GivenGeneratedEvent_CanRoundTripEventDetailsWithSystemTextJson(CancellationToken cancellationToken)
+	{
+		var source = AggregateBaseStub + @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var eventType = assembly.GetType("Testing.Events.CreateOrderEvent")!;
+		var instance = Activator.CreateInstance(eventType)!;
+		eventType.GetProperty("CustomerId")!.SetValue(instance, "customer-2");
+
+		var detailsProperty = eventType.GetProperty("Details", BindingFlags.Public | BindingFlags.Instance)!;
+		var detailsType = detailsProperty.PropertyType;
+		var details = Activator.CreateInstance(detailsType)!;
+		detailsType.GetProperty("CorrelationId")!.SetValue(details, "corr-1");
+		detailsProperty.SetValue(instance, details);
+
+		var json = JsonSerializer.Serialize(instance, eventType);
+		var roundTripped = JsonSerializer.Deserialize(json, eventType)!;
+
+		await Assert.That(eventType.GetProperty("CustomerId")!.GetValue(roundTripped)).IsEqualTo("customer-2");
+		var roundTrippedDetails = detailsProperty.GetValue(roundTripped)!;
+		await Assert.That(detailsType.GetProperty("CorrelationId")!.GetValue(roundTrippedDetails)).IsEqualTo("corr-1");
 	}
 
 	#endregion

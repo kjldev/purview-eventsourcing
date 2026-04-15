@@ -55,7 +55,7 @@ public sealed class CosmosDbSnapshotEventStoreContext(
 				HttpClientFactory = () => cosmosDbHttpClient,
 				ConnectionMode = config.ConnectionMode,
 				LimitToEndpoint = true,
-				Serializer = new CosmosDb.CosmosDbClient.CosmosJsonNetSerializer(JsonHelpers.JsonSerializerSettings),
+				Serializer = new CosmosDb.CosmosDbClient.CosmosSystemTextJsonSerializer(),
 			}
 		);
 

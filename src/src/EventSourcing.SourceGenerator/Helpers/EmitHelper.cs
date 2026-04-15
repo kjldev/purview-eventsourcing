@@ -44,8 +44,12 @@ static class EmitHelper
 
 		var indent = info.Namespace is not null ? "\t" : "";
 
+		sb.AppendLine(
+			$"{indent}[global::System.Text.Json.Serialization.JsonConverter(typeof({info.ClassName}JsonConverter))]");
 		sb.AppendLine($"{indent}{accessModifier} partial class {info.ClassName}");
 		sb.AppendLine($"{indent}{{");
+
+		GenerateJsonSerializationSupport(sb, info, indent);
 
 		// Generate RegisterEvents override
 		GenerateRegisterEvents(sb, info, indent);
@@ -63,6 +67,9 @@ static class EmitHelper
 		}
 
 		sb.AppendLine($"{indent}}}");
+
+		GenerateJsonConverter(sb, info, indent);
+		GenerateJsonModel(sb, info, indent);
 
 		if (info.Namespace is not null)
 		{
@@ -121,6 +128,34 @@ static class EmitHelper
 		}
 
 		sb.AppendLine($"{indent}\t}}");
+		sb.AppendLine();
+	}
+
+	static void GenerateJsonSerializationSupport(StringBuilder sb, AggregateInfo info, string indent)
+	{
+		sb.AppendLine($"{indent}\tinternal static {info.ClassName} CreateFromJsonModel({info.ClassName}JsonModel jsonModel) => new()");
+		sb.AppendLine($"{indent}\t\t{{");
+		sb.AppendLine(
+			$"{indent}\t\t\tDetails = jsonModel.Details ?? new global::Purview.EventSourcing.Aggregates.AggregateDetails(),");
+
+		foreach (var property in info.Properties)
+		{
+			sb.AppendLine($"{indent}\t\t\t{property.PropertyName} = jsonModel.{property.PropertyName},");
+		}
+
+		sb.AppendLine($"{indent}\t\t}};");
+		sb.AppendLine();
+
+		sb.AppendLine($"{indent}\tinternal {info.ClassName}JsonModel ToJsonModel() => new()");
+		sb.AppendLine($"{indent}\t\t{{");
+		sb.AppendLine($"{indent}\t\t\tDetails = Details,");
+
+		foreach (var property in info.Properties)
+		{
+			sb.AppendLine($"{indent}\t\t\t{property.PropertyName} = {property.PropertyName},");
+		}
+
+		sb.AppendLine($"{indent}\t\t}};");
 		sb.AppendLine();
 	}
 
@@ -204,5 +239,48 @@ static class EmitHelper
 			default:
 				return "internal";
 		}
+	}
+
+	static void GenerateJsonConverter(StringBuilder sb, AggregateInfo info, string indent)
+	{
+		sb.AppendLine();
+		sb.AppendLine(
+			$"{indent}sealed class {info.ClassName}JsonConverter : global::System.Text.Json.Serialization.JsonConverter<{info.ClassName}>");
+		sb.AppendLine($"{indent}{{");
+		sb.AppendLine(
+			$"{indent}\tpublic override {info.ClassName}? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)");
+		sb.AppendLine($"{indent}\t{{");
+		sb.AppendLine(
+			$"{indent}\t\tvar jsonModel = global::System.Text.Json.JsonSerializer.Deserialize<{info.ClassName}JsonModel>(ref reader, options);");
+		sb.AppendLine($"{indent}\t\tif (jsonModel is null)");
+		sb.AppendLine(
+			$"{indent}\t\t\tthrow new global::System.Text.Json.JsonException(\"Unable to deserialize {info.ClassName}.\");");
+		sb.AppendLine();
+		sb.AppendLine($"{indent}\t\treturn {info.ClassName}.CreateFromJsonModel(jsonModel);");
+		sb.AppendLine($"{indent}\t}}");
+		sb.AppendLine();
+		sb.AppendLine(
+			$"{indent}\tpublic override void Write(global::System.Text.Json.Utf8JsonWriter writer, {info.ClassName} value, global::System.Text.Json.JsonSerializerOptions options)");
+		sb.AppendLine($"{indent}\t{{");
+		sb.AppendLine(
+			$"{indent}\t\tglobal::System.Text.Json.JsonSerializer.Serialize(writer, value.ToJsonModel(), options);");
+		sb.AppendLine($"{indent}\t}}");
+		sb.AppendLine($"{indent}}}");
+	}
+
+	static void GenerateJsonModel(StringBuilder sb, AggregateInfo info, string indent)
+	{
+		sb.AppendLine();
+		sb.AppendLine($"{indent}sealed class {info.ClassName}JsonModel");
+		sb.AppendLine($"{indent}{{");
+		sb.AppendLine(
+			$"{indent}\tpublic global::Purview.EventSourcing.Aggregates.AggregateDetails? Details {{ get; set; }} = new();");
+
+		foreach (var property in info.Properties)
+		{
+			sb.AppendLine($"{indent}\tpublic {property.TypeName} {property.PropertyName} {{ get; set; }} = default!;");
+		}
+
+		sb.AppendLine($"{indent}}}");
 	}
 }

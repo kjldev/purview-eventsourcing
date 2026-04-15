@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json;
 
 namespace Purview.EventSourcing.MongoDB.Entities;
 
@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.MongoDB.Entities;
 public sealed class IdempotencyMarkerEntity : IEntity
 {
 	[BsonId]
-	[JsonProperty("id")]
+	[JsonPropertyName("id")]
 	public string Id { get; set; } = default!;
 
 	public int EntityType { get; set; } = EntityTypes.IdempotencyMarkerType;

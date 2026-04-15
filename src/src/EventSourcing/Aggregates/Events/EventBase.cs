@@ -6,7 +6,7 @@
 public abstract class EventBase : IEvent
 {
 	///<inheritdoc cref="IEvent.Details"/>
-	public EventDetails Details { get; internal set; } = new EventDetails();
+	public EventDetails Details { get; init; } = new EventDetails();
 
 	/// <summary>
 	/// Gets the schema version of this event type. Increment this when the event's

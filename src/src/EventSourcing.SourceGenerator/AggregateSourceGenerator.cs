@@ -73,6 +73,29 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			? null
 			: classSymbol.ContainingNamespace.ToDisplayString();
 
+		var properties = new List<AggregateStatePropertyInfo>();
+		foreach (var member in classSymbol.GetMembers())
+		{
+			ct.ThrowIfCancellationRequested();
+
+			if (member is not IPropertySymbol propertySymbol)
+				continue;
+
+			if (propertySymbol.IsStatic || propertySymbol.IsIndexer || propertySymbol.IsImplicitlyDeclared)
+				continue;
+
+			if (propertySymbol.SetMethod is null)
+				continue;
+
+			properties.Add(new AggregateStatePropertyInfo(
+				propertySymbol.Name,
+				propertySymbol.Type.ToDisplayString(
+					SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+						SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier))
+			));
+		}
+
 		var methods = new List<AggregateEventMethodInfo>();
 
 		foreach (var member in classSymbol.GetMembers())
@@ -164,6 +187,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			namespaceName,
 			classSymbol.Name,
 			classSymbol.DeclaredAccessibility,
+			properties,
 			methods
 		);
 	}
