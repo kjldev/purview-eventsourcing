@@ -8,7 +8,8 @@ public class AggregateSourceGeneratorTests
 	: SourceGeneratorTestBase<AggregateSourceGenerator>
 {
 	// Stub for AggregateBase so the source generator can find the base class
-	const string AggregateBaseStub = @"
+	const string AggregateBaseStub = @"#nullable enable
+
 namespace Purview.EventSourcing.Aggregates
 {
 	public sealed class AggregateDetails
@@ -1170,6 +1171,8 @@ namespace Testing
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
 	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
 	{
+		public string CustomerId { get; private set; } = string.Empty;
+
 		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
 		public partial void CreateOrder(string customerId);
 	}

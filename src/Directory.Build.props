@@ -10,5 +10,6 @@
 
 	<PropertyGroup>
 		<NoWarn>$(NoWarn);CS0436;</NoWarn>
+		<AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
 	</PropertyGroup>
 </Project>

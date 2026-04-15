@@ -18,7 +18,7 @@ partial class CosmosDbClient
 		public override Stream ToStream<T>(T input)
 		{
 			var streamPayload = new MemoryStream();
-			JsonHelpers.SerializeAsync(streamPayload, input, typeof(T)).GetAwaiter().GetResult();
+			JsonHelpers.SerializeAsync(streamPayload, input).GetAwaiter().GetResult();
 
 			streamPayload.Position = 0;
 			return streamPayload;
