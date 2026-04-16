@@ -1,7 +1,9 @@
 <Project>
 	<PropertyGroup>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-		<RoslynVersion>5.3.0</RoslynVersion>
+		<!-- Keep compiler-facing Roslyn packages aligned with the minimum SDK pinned in global.json so analyzer ProjectReferences load on build machines. -->
+		<RoslynCompilerVersion>5.0.0</RoslynCompilerVersion>
+		<RoslynAnalyzersVersion>5.3.0</RoslynAnalyzersVersion>
 		<TUnitVersion>1.34.5</TUnitVersion>
 	</PropertyGroup>
 	<ItemGroup>
@@ -16,13 +18,13 @@
 		<PackageVersion Include="Purview.Telemetry.SourceGenerator" Version="4.0.0" />
 		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.202" />
 		<PackageVersion Include="FluentValidation" Version="12.1.1" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersion)" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynVersion)" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynAnalyzersVersion)" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynCompilerVersion)" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynCompilerVersion)" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynCompilerVersion)" />
 		<PackageVersion
 			Include="Microsoft.CodeAnalysis.Workspaces.MSBuild"
-			Version="$(RoslynVersion)"
+			Version="$(RoslynCompilerVersion)"
 		/>
 		<PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.6" />
 		<PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.6" />
