@@ -2,14 +2,16 @@
 
 partial class GenericTableEventStoreTests<TAggregate>
 {
-	public async Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 3);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 		await eventStore.DeleteAsync(aggregate, cancellationToken: cancellationToken);

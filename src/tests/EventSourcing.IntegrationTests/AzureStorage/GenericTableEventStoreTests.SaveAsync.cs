@@ -7,7 +7,9 @@ namespace Purview.EventSourcing.AzureStorage;
 
 partial class GenericTableEventStoreTests<TAggregate>
 {
-	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -28,7 +30,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 			.IsEqualTo(nameof(IAggregateTest.IncrementInt32));
 	}
 
-	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -39,6 +43,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		await Assert.That(result.Saved).IsTrue();
 
 		// Act
 		var aggregateGetResult = await eventStore.GetAsync(aggregateId, cancellationToken: cancellationToken);
@@ -147,7 +152,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await Assert.That(streamVersionVersion).IsEqualTo(eventsToGenerate);
 	}
 
-	public async Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -189,7 +196,9 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await Assert.That(sizeIsLessThan32K).IsFalse();
 	}
 
-	public async Task SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
@@ -221,10 +230,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		// Delete the snapshot to ensure the events are replayed.
 		var blobName = eventStore.GenerateSnapshotBlobName(aggregateId);
-		var deleteResult = await blobClient.DeleteBlobIfExistsAsync(
-			blobName,
-			cancellationToken: cancellationToken
-		);
+		var deleteResult = await blobClient.DeleteBlobIfExistsAsync(blobName, cancellationToken: cancellationToken);
 
 		await Assert.That(deleteResult).IsTrue();
 
@@ -310,9 +316,10 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
-		var func = async () => await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		async Task<SaveResult<TAggregate>?> Func() =>
+			await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Get and update stream version to remove the Version property.
-		await Assert.That(func).Throws<ArgumentOutOfRangeException>();
+		await Assert.That(Func).Throws<ArgumentOutOfRangeException>();
 	}
 }

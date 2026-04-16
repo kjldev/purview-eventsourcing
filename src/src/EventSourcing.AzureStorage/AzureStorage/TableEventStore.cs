@@ -9,7 +9,7 @@ using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.AzureStorage;
 
-public sealed partial class TableEventStore<T> : ITableEventStore<T>
+public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisposable
 	where T : class, IAggregate, new()
 {
 	const int SerializationBufferSize = 4096;
@@ -104,7 +104,9 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
 			}
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 		}
@@ -172,7 +174,9 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 					result.IsDeleted
 				);
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, TableEventStoreConstants.StreamVersionRowKey, ex);
 		}
@@ -218,4 +222,10 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>
 		$"{_aggregateTypeShortName}/{aggregateId}".ToLowerSafe();
 
 	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+
+	public async ValueTask DisposeAsync()
+	{
+		await _tableClient.DisposeAsync();
+		await _blobClient.DisposeAsync();
+	}
 }

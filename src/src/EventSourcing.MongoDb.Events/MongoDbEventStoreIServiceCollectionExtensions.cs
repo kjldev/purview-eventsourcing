@@ -15,9 +15,10 @@ public static class MongoDBEventStoreIServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IEventStore<>), typeof(MongoDBEventStore<>))
+			.AddTransient(typeof(IEventStoreCore<>), typeof(MongoDBEventStore<>))
 			.AddTransient(typeof(INonQueryableEventStore<>), typeof(MongoDBEventStore<>))
 			.AddTransient(typeof(IMongoDBEventStore<>), typeof(MongoDBEventStore<>))
+			.AddTransient<IEventStore, EventStoreFacade>()
 			.AddMongoDBEventStoreTelemetry();
 
 		services.AddMongoDBClientTelemetry();

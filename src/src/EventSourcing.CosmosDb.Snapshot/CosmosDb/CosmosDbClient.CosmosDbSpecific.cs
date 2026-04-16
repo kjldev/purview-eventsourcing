@@ -49,7 +49,7 @@ partial class CosmosDbClient
 		CancellationToken cancellationToken = default
 	)
 	{
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 
 		QueryRequestOptions requestOptions = new() { MaxItemCount = 1, PartitionKey = partitionKey };
 
@@ -107,7 +107,7 @@ partial class CosmosDbClient
 	)
 		where T : class
 	{
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 
 		cancellationToken.ThrowIfCancellationRequested();
 
@@ -129,7 +129,7 @@ partial class CosmosDbClient
 		CancellationToken cancellationToken = default
 	)
 	{
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 		var c = whereClause.Expand();
 
 		cancellationToken.ThrowIfCancellationRequested();
@@ -152,7 +152,7 @@ partial class CosmosDbClient
 		where T : class
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(id, nameof(id));
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 
 		var response = await container.ReadItemStreamAsync(id, partitionKey, cancellationToken: cancellationToken);
 		if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -213,7 +213,7 @@ partial class CosmosDbClient
 		if (ids.Length == 0)
 			return [];
 
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 		return await Task.WhenAll(
 			ids.Where(m => m != null)
 				.Select(async id =>
@@ -253,7 +253,7 @@ partial class CosmosDbClient
 		if (documents.Length == 0)
 			return [];
 
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 		return await Task.WhenAll(
 			documents.Select(async document =>
 			{
@@ -293,7 +293,7 @@ partial class CosmosDbClient
 		if (documents.Length == 0)
 			return [];
 
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 		return await Task.WhenAll(
 			documents
 				.Where(m => m != null)
@@ -335,7 +335,7 @@ partial class CosmosDbClient
 		if (documents.Length == 0)
 			return [];
 
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 
 		return await Task.WhenAll(
 			documents
@@ -358,7 +358,7 @@ partial class CosmosDbClient
 
 	public async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)
 	{
-		await _container;
+		await _container.GetValueAsync(cancellationToken);
 		await _database.DeleteAsync(cancellationToken: cancellationToken);
 
 		_ = CreatedDatabases.TryRemove(_databaseCreatedKey, out _);
@@ -366,7 +366,7 @@ partial class CosmosDbClient
 
 	public async Task DeleteContainerAsync(CancellationToken cancellationToken = default)
 	{
-		var container = await _container;
+		var container = await _container.GetValueAsync(cancellationToken);
 		await container.DeleteContainerAsync(cancellationToken: cancellationToken);
 
 		_ = CreatedContainers.TryRemove(_containerCreatedKey, out _);

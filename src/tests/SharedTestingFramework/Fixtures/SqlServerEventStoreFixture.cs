@@ -24,14 +24,12 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 
 	public SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)
-		where TAggregate : class, IAggregate, new()
-		=> CreateEventStoreContext<TAggregate>(
+		where TAggregate : class, IAggregate, new() =>
+		CreateEventStoreContext(
 			aggregateChangeNotifier,
-			correlationIdsToGenerate,
 			removeFromCacheOnDelete,
 			snapshotRecalculationInterval
 		).EventStore;
@@ -43,7 +41,6 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 		ISqlServerEventStoreTelemetry Telemetry
 	) CreateEventStoreContext<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)
@@ -100,7 +97,6 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 
 	public async ValueTask DisposeAsync()
 	{
-		Client?.Dispose();
 		await _msSqlContainer.DisposeAsync();
 	}
 }

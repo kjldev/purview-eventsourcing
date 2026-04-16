@@ -204,7 +204,9 @@ sealed class AggregateChangeFeedNotifier<T>(
 		{
 			await process();
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			successful = false;
 			logs.ProcessingFailed(aggregate.Id(), processorType, ex);

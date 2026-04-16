@@ -28,7 +28,7 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 		ArgumentNullException.ThrowIfNull(descriptors);
 
 		// Last-registered wins when the same source type appears more than once.
-		_upcastersBySourceType = new Dictionary<Type, IEventUpcasterDescriptor>();
+		_upcastersBySourceType = [];
 		foreach (var descriptor in descriptors)
 			_upcastersBySourceType[descriptor.SourceType] = descriptor;
 	}
@@ -56,7 +56,8 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 			var currentType = current.GetType();
 			if (!visitedTypes.Add(currentType))
 				throw new InvalidOperationException(
-					$"Detected a cycle or degenerate upcast chain involving event type '{currentType.FullName}'.");
+					$"Detected a cycle or degenerate upcast chain involving event type '{currentType.FullName}'."
+				);
 		}
 
 		return current;

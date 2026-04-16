@@ -31,11 +31,10 @@ public sealed class EventUpcasterDescriptor<TSource, TTarget> : IEventUpcasterDe
 	{
 		ArgumentNullException.ThrowIfNull(source);
 
-		if (source is not TSource typed)
-			throw new InvalidOperationException(
+		return source is TSource typed
+			? (IEvent)_upcaster.Upcast(typed)
+			: throw new InvalidOperationException(
 				$"Cannot upcast event of type '{source.GetType().FullName}' using upcaster for '{typeof(TSource).FullName}'."
 			);
-
-		return _upcaster.Upcast(typed);
 	}
 }

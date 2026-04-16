@@ -11,7 +11,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 	public async Task Constructor_GivenValidParameters_CreatesInstance()
 	{
 		// Arrange & Act
-		using var store = CreateStore();
+		var store = CreateStore();
 
 		// Assert
 		await Assert.That(store).IsNotNull();
@@ -25,7 +25,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
 		eventStore.CreateAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(expectedAggregate);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.CreateAsync("test-id");
@@ -45,7 +45,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 			.GetAsync(Arg.Any<string>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(expectedAggregate);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.GetAsync("test-id", null);
@@ -65,7 +65,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 			.GetOrCreateAsync(Arg.Any<string?>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
 			.Returns(expectedAggregate);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.GetOrCreateAsync("test-id", null);
@@ -90,7 +90,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 			)
 			.Returns(expectedAggregate);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.GetAtAsync("test-id", 5, null);
@@ -107,7 +107,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
 		eventStore.IsDeletedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.IsDeletedAsync("test-id");
@@ -125,7 +125,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
 		eventStore.GetDeletedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(expectedAggregate);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.GetDeletedAsync("test-id");
@@ -143,7 +143,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
 		eventStore.ExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(expectedState);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = await store.ExistsAsync("test-id");
@@ -161,7 +161,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
 		eventStore.FulfilRequirements(Arg.Any<TestAggregate>()).Returns(expectedAggregate);
 
-		using var store = CreateStore(eventStore);
+		var store = CreateStore(eventStore);
 
 		// Act
 		var result = store.FulfilRequirements(expectedAggregate);
@@ -182,9 +182,6 @@ public sealed class SqlServerSnapshotEventStoreTests
 
 		return new(eventStore, wrappedOptions, telemetry);
 	}
-
-	static IOptions<SqlServerSnapshotEventStoreOptions> CreateOptions() =>
-		Options.Create(CreateDefaultOptions());
 
 	static SqlServerSnapshotEventStoreOptions CreateDefaultOptions() =>
 		new()
@@ -207,7 +204,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		};
 
 		// Act & Assert — should not throw
-		using var store = CreateStore(options: options);
+		var store = CreateStore(options: options);
 		await Assert.That(store).IsNotNull();
 	}
 
@@ -223,7 +220,7 @@ public sealed class SqlServerSnapshotEventStoreTests
 		};
 
 		// Act & Assert — should not throw
-		using var store = CreateStore(options: options);
+		var store = CreateStore(options: options);
 		await Assert.That(store).IsNotNull();
 	}
 }

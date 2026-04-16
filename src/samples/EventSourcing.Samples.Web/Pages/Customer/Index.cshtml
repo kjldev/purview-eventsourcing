@@ -1,0 +1,88 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.Customer.IndexModel
+@{
+    ViewData["Title"] = "Choose Your Profile";
+}
+
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <a asp-page="/Index" class="text-sm text-slate-500 hover:underline">← Back to Portal</a>
+        <p class="text-sm text-gray-500 mt-1">@Model.TotalCount customer(s) — page @Model.Page of @Model.TotalPages</p>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<form method="get" class="mb-6 flex gap-3">
+    <input type="text" name="search" value="@Model.Search" placeholder="Search by name or email..."
+           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <label class="flex items-center gap-2 text-sm text-gray-600 px-3">
+        <input type="checkbox" name="showInactive" value="true" @(Model.ShowInactive ? "checked" : "") class="rounded" />
+        Show inactive
+    </label>
+    <button type="submit" class="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">Search</button>
+    @if (!string.IsNullOrEmpty(Model.Search) || Model.ShowInactive)
+    {
+        <a asp-page="Index" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 underline self-center">Clear</a>
+    }
+</form>
+
+@if (Model.Customers.Count == 0)
+{
+    <div class="text-center py-16 text-gray-400">
+        <p class="text-5xl mb-3">👤</p>
+        <p class="text-lg font-medium">No customers found</p>
+        <p class="text-sm mt-1">Try a different search.</p>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var customer in Model.Customers)
+        {
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <p class="font-semibold text-gray-900">@customer.Name</p>
+                        <p class="text-sm text-gray-500">@customer.Email</p>
+                        @if (customer.PhoneNumber != null)
+                        {
+                            <p class="text-xs text-gray-400">@customer.PhoneNumber</p>
+                        }
+                    </div>
+                    @if (customer.IsActive)
+                    {
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                    }
+                    else
+                    {
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Inactive</span>
+                    }
+                </div>
+                <form method="post" asp-page-handler="Select" class="mt-auto">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@customer.Id()" />
+                    <button type="submit"
+                            class="w-full px-4 py-2 @(customer.IsActive ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed") text-white text-sm rounded-lg transition-colors"
+                            @(!customer.IsActive ? "disabled" : "")>
+                        Select Profile →
+                    </button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-6 text-sm text-gray-600">
+        <span>Showing @((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, (int)Model.TotalCount)) of @Model.TotalCount</span>
+        <div class="flex gap-2">
+            @if (Model.HasPrevPage)
+            {
+                <a href="@Model.PaginationLink(Model.Page - 1)" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">← Prev</a>
+            }
+            @if (Model.HasNextPage)
+            {
+                <a href="@Model.PaginationLink(Model.Page + 1)" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next →</a>
+            }
+        </div>
+    </div>
+}

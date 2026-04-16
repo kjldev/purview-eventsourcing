@@ -1,0 +1,15 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.2">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>Purview.EventSourcing.Samples.AppHost</RootNamespace>
+		<ExcludePurviewTelemetry>true</ExcludePurviewTelemetry>
+		<NoWarn>$(NoWarn);CA1515;CA1062;</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Aspire.Hosting" />
+		<PackageReference Include="Aspire.Hosting.Azure.Storage" />
+		<PackageReference Include="Aspire.Hosting.Redis" />
+		<PackageReference Include="Aspire.Hosting.SqlServer" />
+		<ProjectReference Include="..\EventSourcing.Samples.Web\EventSourcing.Samples.Web.csproj" />
+	</ItemGroup>
+</Project>

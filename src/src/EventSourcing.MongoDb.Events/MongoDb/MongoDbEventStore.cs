@@ -119,7 +119,9 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
 			}
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 		}
@@ -135,7 +137,10 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 	{
 		Expression<Func<StreamVersionEntity, bool>> whereClause = includeDeleted
 			? m => m.AggregateType == _aggregateTypeShortName && m.EntityType == EntityTypes.StreamVersionType
-			: m => m.AggregateType == _aggregateTypeShortName && m.EntityType == EntityTypes.StreamVersionType && !m.IsDeleted;
+			: m =>
+				m.AggregateType == _aggregateTypeShortName
+				&& m.EntityType == EntityTypes.StreamVersionType
+				&& !m.IsDeleted;
 
 		var query = _eventClient.QueryEnumerableAsync<StreamVersionEntity>(
 			whereClause,
@@ -185,7 +190,9 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 					result.IsDeleted
 				);
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, ex);
 		}

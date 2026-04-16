@@ -3,7 +3,9 @@
 partial class CosmosDbSnapshotEventStoreTests
 {
 	[Test]
-	public async Task SingleOrDefaultAsync_GivenMultipleMatchingAggregates_ThrowsException(CancellationToken cancellationToken)
+	public async Task SingleOrDefaultAsync_GivenMultipleMatchingAggregates_ThrowsException(
+		CancellationToken cancellationToken
+	)
 	{
 		const int matchingIncrement = 10;
 
@@ -23,19 +25,21 @@ partial class CosmosDbSnapshotEventStoreTests
 		}
 
 		// Act
-		Func<Task> func = async () =>
+		async Task Func() =>
 			await context.EventStore.SingleOrDefaultAsync(
 				m => m.IncrementInt32 == matchingIncrement,
 				cancellationToken: cancellationToken
 			);
 
 		// Assert
-		var ex = await Assert.That(func).Throws<InvalidOperationException>();
+		var ex = await Assert.That(Func).Throws<InvalidOperationException>();
 		await Assert.That(ex!.Message).IsEqualTo("Sequence contains more than one element");
 	}
 
 	[Test]
-	public async Task SingleOrDefaultAsync_GivenSingleMatchingAggregates_ReturnsAggregate(CancellationToken cancellationToken)
+	public async Task SingleOrDefaultAsync_GivenSingleMatchingAggregates_ReturnsAggregate(
+		CancellationToken cancellationToken
+	)
 	{
 		const int matchingIncrement = 10;
 

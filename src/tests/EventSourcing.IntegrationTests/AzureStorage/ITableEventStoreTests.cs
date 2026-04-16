@@ -1,4 +1,4 @@
-﻿namespace Purview.EventSourcing.AzureStorage;
+namespace Purview.EventSourcing.AzureStorage;
 
 public interface ITableEventStoreTests
 {
@@ -10,9 +10,14 @@ public interface ITableEventStoreTests
 
 	Task DeleteAsync_GivenPreviouslySavedAggregate_MarksAsDeleted(CancellationToken cancellationToken);
 
-	Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(CancellationToken cancellationToken);
+	Task DeleteAsync_WhenTableStoreConfigRemoveDeletedFromCacheIsTrueAndPreviouslySavedAggregate_RemovesFromCache(
+		CancellationToken cancellationToken
+	);
 
-	Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount, CancellationToken cancellationToken);
+	Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(
+		int aggregateCount,
+		CancellationToken cancellationToken
+	);
 
 	Task GetAggregateIdsAsync_GivenNonDeletedAggregatesAndDeletedAggregatesInTheStoreAndRequestingAll_CorrectlyReturnsAllIds(
 		int nonDeletedAggregateIdCount,
@@ -26,9 +31,14 @@ public interface ITableEventStoreTests
 		CancellationToken cancellationToken
 	);
 
-	Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(CancellationToken cancellationToken);
+	Task GetAsync_GivenAggregateIsDeletedAndDeletedModeIsSetToThrow_ThrowsEventStoreAggregateDeletedException(
+		CancellationToken cancellationToken
+	);
 
-	Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken);
+	Task GetAsync_GivenAnAggregateWithMoreEventsThanTheSnapshot_RecreatesAggregate(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
 
 	Task GetAsync_GivenAnAggregateWithNonRegisteredEventType_RecreatesAggregateAndLogsCannotApplyEvent(
 		int eventsToCreate,
@@ -36,7 +46,10 @@ public interface ITableEventStoreTests
 		CancellationToken cancellationToken
 	);
 
-	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(int eventsToCreate, CancellationToken cancellationToken);
+	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
 
 	Task GetAsync_GivenAnAggregateWithUnknownEventType_RecreatesAggregateAndLogsUnknown(
 		int eventsToCreate,
@@ -44,7 +57,10 @@ public interface ITableEventStoreTests
 		CancellationToken cancellationToken
 	);
 
-	Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(int previousEventsToCreate, CancellationToken cancellationToken);
+	Task GetAtAsync_GivenAnAggregateWithSavedEvents_RecreatesAggregateToPreviousVersion(
+		int previousEventsToCreate,
+		CancellationToken cancellationToken
+	);
 
 	Task GetDeletedAsync_GivenDeletedAggregate_ReturnsAggregate(CancellationToken cancellationToken);
 
@@ -71,9 +87,14 @@ public interface ITableEventStoreTests
 
 	Task RestoreAsync_GivenPreviouslySavedAndDeletedAggregate_MarksAsNotDeleted(CancellationToken cancellationToken);
 
-	Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(int eventsToCreate, CancellationToken cancellationToken);
+	Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
 
-	Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(CancellationToken cancellationToken);
+	Task SaveAsync_GivenAggregateWithDataAnnotationsAndInvalidProperties_NoChangesAreMadeAndNotSaved(
+		CancellationToken cancellationToken
+	);
 
 	Task SaveAsync_GivenAggregateWithNoChanges_DoesNotNotifyChangeFeed(CancellationToken cancellationToken);
 
@@ -81,11 +102,18 @@ public interface ITableEventStoreTests
 
 	Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(CancellationToken cancellationToken);
 
-	Task SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(CancellationToken cancellationToken);
+	Task SaveAsync_GivenNewAggregateWithLargeChangesAndNoSnapshot_ReadsAggregateFromEvents(
+		CancellationToken cancellationToken
+	);
 
-	Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(CancellationToken cancellationToken);
+	Task SaveAsync_GivenNewAggregateWithLargeChanges_SavesAggregateWithLargeEventRecord(
+		CancellationToken cancellationToken
+	);
 
-	Task SaveAsync_GivenStreamVersionWithoutVersionSetWhenSaved_StreamVersionHasCorrectEvent(int eventsToGenerate, CancellationToken cancellationToken);
+	Task SaveAsync_GivenStreamVersionWithoutVersionSetWhenSaved_StreamVersionHasCorrectEvent(
+		int eventsToGenerate,
+		CancellationToken cancellationToken
+	);
 
 	Task SaveAsync_GivenAggregateWithComplexProperty_SavesEventWithComplexProperty(CancellationToken cancellationToken);
 

@@ -7,8 +7,11 @@ namespace Purview.EventSourcing.SqlServer;
 // SQL strings are built from validated identifiers at construction time, not from user input.
 #pragma warning disable CA2100
 
-sealed partial class SqlServerEventStoreClient : IDisposable
+sealed partial class SqlServerEventStoreClient
 {
+	const int MinimumSqlServerMajorVersion = 16; // SQL Server 2022
+	const string MinimumSqlServerVersionName = "SQL Server 2022";
+
 	readonly SqlServerEventStoreOptions _options;
 	readonly string _ensureTableSql;
 	readonly string _insertSql;
@@ -41,7 +44,7 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 					[AggregateType] NVARCHAR(450) NOT NULL,
 					[Version] INT NOT NULL DEFAULT 0,
 					[IsDeleted] BIT NOT NULL DEFAULT 0,
-					[Payload] NVARCHAR(MAX) NULL,
+					[Payload] json NULL,
 					[EventType] NVARCHAR(450) NULL,
 					[IdempotencyId] NVARCHAR(450) NULL,
 					[Timestamp] DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
@@ -113,6 +116,8 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await using var connection = CreateConnection();
 		await connection.OpenAsync(cancellationToken);
 
+		await CheckServerVersionAsync(connection, cancellationToken);
+
 		await using var command = connection.CreateCommand();
 		command.CommandText = _ensureTableSql;
 		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
@@ -122,6 +127,41 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 
 		await command.ExecuteNonQueryAsync(cancellationToken);
 		_tableCreated = true;
+	}
+
+	public async Task EnsureTableExistsAsync(SqlConnection connection, CancellationToken cancellationToken = default)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		if (_tableCreated)
+			return;
+
+		await CheckServerVersionAsync(connection, cancellationToken);
+
+		await using var command = connection.CreateCommand();
+		command.CommandText = _ensureTableSql;
+		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
+		command.Parameters.Add(
+			new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName }
+		);
+
+		await command.ExecuteNonQueryAsync(cancellationToken);
+		_tableCreated = true;
+	}
+
+	static async Task CheckServerVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
+	{
+		await using var command = connection.CreateCommand();
+		command.CommandText = "SELECT CAST(SERVERPROPERTY('ProductMajorVersion') AS INT)";
+
+		var result = await command.ExecuteScalarAsync(cancellationToken);
+		var majorVersion = result is int v ? v : 0;
+
+		if (majorVersion < MinimumSqlServerMajorVersion)
+			throw new InvalidOperationException(
+				$"SQL Server {MinimumSqlServerVersionName} ({MinimumSqlServerMajorVersion}.x) or later is required "
+					+ $"for native JSON column support. The connected server reports major version {majorVersion}."
+			);
 	}
 
 	public async Task InsertAsync(
@@ -243,6 +283,45 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await command.ExecuteNonQueryAsync(cancellationToken);
 	}
 
+	public async Task UpsertAsync(
+		string id,
+		int entityType,
+		string aggregateId,
+		string aggregateType,
+		int version,
+		bool isDeleted,
+		string? payload,
+		string? eventType,
+		string? idempotencyId,
+		DateTimeOffset timestamp,
+		SqlConnection connection,
+		SqlTransaction transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+		ArgumentNullException.ThrowIfNull(transaction);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
+		command.CommandText = _upsertSql;
+		AddRowParameters(
+			command,
+			id,
+			entityType,
+			aggregateId,
+			aggregateType,
+			version,
+			isDeleted,
+			payload,
+			eventType,
+			idempotencyId,
+			timestamp
+		);
+
+		await command.ExecuteNonQueryAsync(cancellationToken);
+	}
+
 	public async Task UpsertWithBatchAsync(
 		string id,
 		int entityType,
@@ -320,6 +399,70 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		}
 	}
 
+	public async Task UpsertWithBatchAsync(
+		string id,
+		int entityType,
+		string aggregateId,
+		string aggregateType,
+		int version,
+		bool isDeleted,
+		string? payload,
+		string? eventType,
+		string? idempotencyId,
+		DateTimeOffset timestamp,
+		List<RowData> additionalInserts,
+		SqlConnection connection,
+		SqlTransaction transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+		ArgumentNullException.ThrowIfNull(transaction);
+
+		await using (var upsertCommand = connection.CreateCommand())
+		{
+			upsertCommand.Transaction = transaction;
+			upsertCommand.CommandText = _upsertSql;
+			AddRowParameters(
+				upsertCommand,
+				id,
+				entityType,
+				aggregateId,
+				aggregateType,
+				version,
+				isDeleted,
+				payload,
+				eventType,
+				idempotencyId,
+				timestamp
+			);
+			await upsertCommand.ExecuteNonQueryAsync(cancellationToken);
+		}
+
+		await using var insertCommand = connection.CreateCommand();
+		insertCommand.Transaction = transaction;
+		insertCommand.CommandText = _insertSql;
+
+		foreach (var row in additionalInserts)
+		{
+			insertCommand.Parameters.Clear();
+			AddRowParameters(
+				insertCommand,
+				row.Id,
+				row.EntityType,
+				row.AggregateId,
+				row.AggregateType,
+				row.Version,
+				row.IsDeleted,
+				row.Payload,
+				row.EventType,
+				row.IdempotencyId,
+				row.Timestamp
+			);
+			await insertCommand.ExecuteNonQueryAsync(cancellationToken);
+		}
+	}
+
 	public async Task<bool> DeleteByIdAsync(string id, CancellationToken cancellationToken = default)
 	{
 		await EnsureConfiguredAsync(cancellationToken);
@@ -364,6 +507,24 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
 	}
 
+	public async Task<RowData?> GetByIdAsync(
+		string id,
+		SqlConnection connection,
+		SqlTransaction? transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
+		command.CommandText = _getByIdSql;
+		command.Parameters.Add(new SqlParameter("@Id", SqlDbType.NVarChar, 450) { Value = id });
+
+		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+		return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
+	}
+
 	public async Task<RowData?> GetByAggregateIdAndEntityTypeAsync(
 		string aggregateId,
 		int entityType,
@@ -376,6 +537,26 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 		await connection.OpenAsync(cancellationToken);
 
 		await using var command = connection.CreateCommand();
+		command.CommandText = _getByAggregateIdAndEntityTypeSql;
+		command.Parameters.Add(new SqlParameter("@AggregateId", SqlDbType.NVarChar, 450) { Value = aggregateId });
+		command.Parameters.Add(new SqlParameter("@EntityType", SqlDbType.Int) { Value = entityType });
+
+		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+		return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
+	}
+
+	public async Task<RowData?> GetByAggregateIdAndEntityTypeAsync(
+		string aggregateId,
+		int entityType,
+		SqlConnection connection,
+		SqlTransaction? transaction,
+		CancellationToken cancellationToken = default
+	)
+	{
+		ArgumentNullException.ThrowIfNull(connection);
+
+		await using var command = connection.CreateCommand();
+		command.Transaction = transaction;
 		command.CommandText = _getByAggregateIdAndEntityTypeSql;
 		command.Parameters.Add(new SqlParameter("@AggregateId", SqlDbType.NVarChar, 450) { Value = aggregateId });
 		command.Parameters.Add(new SqlParameter("@EntityType", SqlDbType.Int) { Value = entityType });
@@ -504,11 +685,6 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 
 	[GeneratedRegex(@"^[\w\-\.]+$")]
 	private static partial Regex IdentifierRegex();
-
-	public void Dispose()
-	{
-		// No persistent connections to dispose - connections are created per-operation.
-	}
 
 	internal sealed class RowData
 	{

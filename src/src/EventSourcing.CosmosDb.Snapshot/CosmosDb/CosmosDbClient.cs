@@ -5,7 +5,7 @@ using Purview.EventSourcing.CosmosDb.Snapshot;
 
 namespace Purview.EventSourcing.CosmosDb;
 
-sealed partial class CosmosDbClient
+sealed partial class CosmosDbClient : IAsyncDisposable
 {
 	Database _database = default!;
 
@@ -37,10 +37,10 @@ sealed partial class CosmosDbClient
 		_databaseCreatedKey = $"{cosmosDbOptions.ConnectionString}-{cosmosDbOptions.Database}";
 		_containerCreatedKey = $"{cosmosDbOptions.ConnectionString}-{_containerName}";
 
-		_container = new AsyncLazy<Container>(() => InitializeAsync(cosmosClient));
+		_container = new AsyncLazy<Container>(token => InitializeAsync(cosmosClient, token));
 	}
 
-	async Task<ContainerResponse?> GetOrCreateContainerAsync(CancellationToken cancellationToken = default)
+	async Task<ContainerResponse?> GetOrCreateContainerAsync(CancellationToken cancellationToken)
 	{
 		var client = GetOrCreateClient();
 		var database = await InitializeDatabase(client, cancellationToken);
@@ -116,7 +116,7 @@ sealed partial class CosmosDbClient
 				if (!existingSet)
 				{
 					containerResponse.Resource.IndexingPolicy.CompositeIndexes.Add(
-						new System.Collections.ObjectModel.Collection<CompositePath>([.. compositeIndexSetFromConfig])
+						new([.. compositeIndexSetFromConfig])
 					);
 					containerRequiresUpdate = true;
 				}
@@ -134,7 +134,9 @@ sealed partial class CosmosDbClient
 					);
 					return await container.ReadContainerAsync(cancellationToken: cancellationToken);
 				}
+#pragma warning disable CA1031
 				catch
+#pragma warning restore CA1031
 				{
 					// Hopefully this is just because it was already created, perhaps when running in a multi-instance environment...
 					// Should we do something with this?
@@ -195,7 +197,7 @@ sealed partial class CosmosDbClient
 		}
 	}
 
-	async Task<Container> InitializeAsync(CosmosClient? cosmosClient, CancellationToken cancellationToken = default)
+	async Task<Container> InitializeAsync(CosmosClient? cosmosClient, CancellationToken cancellationToken)
 	{
 		var client = cosmosClient ?? GetOrCreateClient();
 		await InitializeDatabase(client, cancellationToken);
@@ -205,53 +207,50 @@ sealed partial class CosmosDbClient
 
 	async Task<Container> InitializeContainerAsync(CancellationToken cancellationToken)
 	{
-		return await CreatedContainers.GetOrAdd(
-			_containerCreatedKey,
-			_ => new AsyncLazy<Container>(async () =>
-			{
-				var response =
-					await GetOrCreateContainerAsync(cancellationToken)
-					?? throw new NullReferenceException($"Unable to get the container response for '{_containerName}'");
-				if (
-					!(
-						response.StatusCode == System.Net.HttpStatusCode.OK
-						|| response.StatusCode == System.Net.HttpStatusCode.Accepted
-					)
-				)
-					throw new InvalidOperationException(
-						$"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}"
-					);
-
-				return response.Container;
-			})
-		);
+		return await CreatedContainers
+			.GetOrAdd(
+				_containerCreatedKey,
+				_ => new AsyncLazy<Container>(async ct =>
+				{
+					var response =
+						await GetOrCreateContainerAsync(ct)
+						?? throw new NullReferenceException(
+							$"Unable to get the container response for '{_containerName}'"
+						);
+					return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Accepted
+						? response.Container
+						: throw new InvalidOperationException(
+							$"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}"
+						);
+				})
+			)
+			.GetValueAsync(cancellationToken);
 	}
 
 	async Task<Database> InitializeDatabase(CosmosClient client, CancellationToken cancellationToken)
 	{
-		return _database = await CreatedDatabases.GetOrAdd(
-			_databaseCreatedKey,
-			_ => new AsyncLazy<Database>(async () =>
-			{
-				var response = await client.CreateDatabaseIfNotExistsAsync(
-					_cosmosDbOptions.Database,
-					throughput: _cosmosDbOptions.DatabaseThroughput,
-					cancellationToken: cancellationToken
-				);
-				if (
-					!(
-						response.StatusCode == System.Net.HttpStatusCode.OK
-						|| response.StatusCode == System.Net.HttpStatusCode.Accepted
-						|| response.StatusCode == System.Net.HttpStatusCode.Created
-					)
-				)
-					throw new InvalidOperationException(
-						$"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}"
+		return _database = await CreatedDatabases
+			.GetOrAdd(
+				_databaseCreatedKey,
+				_ => new AsyncLazy<Database>(async ct =>
+				{
+					var response = await client.CreateDatabaseIfNotExistsAsync(
+						_cosmosDbOptions.Database,
+						throughput: _cosmosDbOptions.DatabaseThroughput,
+						cancellationToken: ct
 					);
-
-				return response.Database;
-			})
-		);
+					return
+						response.StatusCode
+							is System.Net.HttpStatusCode.OK
+								or System.Net.HttpStatusCode.Accepted
+								or System.Net.HttpStatusCode.Created
+						? response.Database
+						: throw new InvalidOperationException(
+							$"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}"
+						);
+				})
+			)
+			.GetValueAsync(cancellationToken);
 	}
 
 	CosmosClient GetOrCreateClient() => GetOrCreateClient(_cosmosDbOptions);
@@ -268,7 +267,7 @@ sealed partial class CosmosDbClient
 					RequestTimeout = TimeSpan.FromSeconds(
 						configuration.RequestTimeoutInSeconds ?? CosmosDbOptions.DefaultRequestTimeout
 					),
-					Serializer = new CosmosJsonNetSerializer(JsonHelpers.JsonSerializerSettings),
+					Serializer = new CosmosSystemTextJsonSerializer(),
 				};
 
 				if (configuration.IgnoreSSLWarnings)
@@ -288,5 +287,11 @@ sealed partial class CosmosDbClient
 				return new(configuration.ConnectionString, clientOptions);
 			}
 		);
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (_container.IsValueCreated)
+			await _container.DisposeAsync();
 	}
 }

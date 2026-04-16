@@ -11,6 +11,6 @@
 		<ProjectReference Remove="../SharedTestingFramework/SharedTestingFramework.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 	</ItemGroup>
 </Project>

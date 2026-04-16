@@ -25,7 +25,7 @@
 		<ProjectReference Include="..\..\src\EventSourcing.MongoDb.Snapshot\EventSourcing.MongoDB.Snapshot.csproj">
 			<Aliases>MongoDBSnapshots</Aliases>
 		</ProjectReference>
-		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Snapshot\EventSourcing.SqlServer.Snapshot.csproj" />
 		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
 	</ItemGroup>
 </Project>

@@ -1,7 +1,6 @@
-using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Domain.Events;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Domain;
+namespace Purview.EventSourcing.Samples.Domain;
 
 public class CustomerAggregateTests
 {
@@ -16,7 +15,7 @@ public class CustomerAggregateTests
 	#region RegisterCustomer Tests
 
 	[Test]
-	public async Task RegisterCustomer_GivenValidData_SetsPropertiesCorrectly(CancellationToken cancellationToken)
+	public async Task RegisterCustomer_GivenValidData_SetsPropertiesCorrectly()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -31,7 +30,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task RegisterCustomer_GivenValidData_RecordsOneEvent(CancellationToken cancellationToken)
+	public async Task RegisterCustomer_GivenValidData_RecordsOneEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -66,10 +65,69 @@ public class CustomerAggregateTests
 
 	#endregion
 
+	#region ChangeName Tests
+
+	[Test]
+	public async Task ChangeName_GivenNewName_UpdatesName()
+	{
+		// Arrange
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+
+		// Act
+		customer.ChangeName("Jane Doe");
+
+		// Assert
+		await Assert.That(customer.Name).IsEqualTo("Jane Doe");
+	}
+
+	[Test]
+	public async Task ChangeName_GivenNewName_RecordsEvent()
+	{
+		// Arrange
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+		var countBefore = customer.GetUnsavedEvents().Count();
+
+		// Act
+		customer.ChangeName("Jane Doe");
+
+		// Assert
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 1);
+	}
+
+	[Test]
+	public async Task ChangeName_GivenSameName_DoesNotRecordEvent()
+	{
+		// Arrange
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+		var countBefore = customer.GetUnsavedEvents().Count();
+
+		// Act
+		customer.ChangeName("Jane Smith");
+
+		// Assert — no new event recorded
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+	}
+
+	[Test]
+	public void ChangeName_GivenEmptyName_ThrowsArgumentException()
+	{
+		// Arrange
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+
+		// Act & Assert
+		Assert.Throws<ArgumentException>(() => customer.ChangeName("  "));
+	}
+
+	#endregion
+
 	#region ChangeEmail Tests
 
 	[Test]
-	public async Task ChangeEmail_GivenNewEmail_UpdatesEmail(CancellationToken cancellationToken)
+	public async Task ChangeEmail_GivenNewEmail_UpdatesEmail()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -83,7 +141,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task ChangeEmail_GivenSameEmail_DoesNotRecordEvent(CancellationToken cancellationToken)
+	public async Task ChangeEmail_GivenSameEmail_DoesNotRecordEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -113,7 +171,7 @@ public class CustomerAggregateTests
 	#region Deactivate/Reactivate Tests
 
 	[Test]
-	public async Task Deactivate_GivenActiveCustomer_SetsIsActiveFalse(CancellationToken cancellationToken)
+	public async Task Deactivate_GivenActiveCustomer_SetsIsActiveFalse()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -127,7 +185,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task Deactivate_GivenAlreadyInactive_DoesNotRecordEvent(CancellationToken cancellationToken)
+	public async Task Deactivate_GivenAlreadyInactive_DoesNotRecordEvent()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -143,7 +201,7 @@ public class CustomerAggregateTests
 	}
 
 	[Test]
-	public async Task Reactivate_GivenInactiveCustomer_SetsIsActiveTrue(CancellationToken cancellationToken)
+	public async Task Reactivate_GivenInactiveCustomer_SetsIsActiveTrue()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");
@@ -159,10 +217,78 @@ public class CustomerAggregateTests
 
 	#endregion
 
+	#region UpdateDetails Tests
+
+	[Test]
+	public async Task UpdateDetails_GivenNameAndEmail_RaisesTwoEvents()
+	{
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+		var countBefore = customer.GetUnsavedEvents().Count();
+
+		customer.UpdateDetails(name: "Jane Doe", email: "janedoe@test.com");
+
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 2);
+		await Assert.That(customer.Name).IsEqualTo("Jane Doe");
+		await Assert.That(customer.Email).IsEqualTo("janedoe@test.com");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenAllThreeFields_RaisesThreeEvents()
+	{
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+		var countBefore = customer.GetUnsavedEvents().Count();
+
+		customer.UpdateDetails(name: "Jane Doe", email: "janedoe@test.com", phoneNumber: "+44 7700 900123");
+
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 3);
+		await Assert.That(customer.Name).IsEqualTo("Jane Doe");
+		await Assert.That(customer.Email).IsEqualTo("janedoe@test.com");
+		await Assert.That(customer.PhoneNumber).IsEqualTo("+44 7700 900123");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenOnlyName_RaisesOneEvent()
+	{
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+		var countBefore = customer.GetUnsavedEvents().Count();
+
+		customer.UpdateDetails(name: "Jane Doe");
+
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 1);
+		await Assert.That(customer.Name).IsEqualTo("Jane Doe");
+		await Assert.That(customer.Email).IsEqualTo("jane@test.com");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents()
+	{
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+		var countBefore = customer.GetUnsavedEvents().Count();
+
+		customer.UpdateDetails(name: "Jane Smith", email: "jane@test.com");
+
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+	}
+
+	[Test]
+	public void UpdateDetails_GivenWhitespaceName_ThrowsArgumentException()
+	{
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+
+		Assert.Throws<ArgumentException>(() => customer.UpdateDetails(name: "  "));
+	}
+
+	#endregion
+
 	#region Version Tracking Tests
 
 	[Test]
-	public async Task MultipleOperations_TracksVersionCorrectly(CancellationToken cancellationToken)
+	public async Task MultipleOperations_TracksVersionCorrectly()
 	{
 		// Arrange
 		var customer = CreateCustomer("cust-1");

@@ -30,9 +30,17 @@ partial class SqlServerEventStore<T>
 		};
 		aggregate.ApplyEvent(deleteAggregateEvent);
 
-		var result = await SaveCoreAsync(aggregate, operationContext, cancellationToken, deleteAggregateEvent);
+		var result = await SaveCoreAsync(
+			aggregate,
+			operationContext,
+			null,
+			null,
+			cancellationToken,
+			deleteAggregateEvent
+		);
+		await result.AfterCommitAsync(cancellationToken);
 
-		return result.Saved;
+		return result.Result.Saved;
 	}
 
 	async Task<bool> PermanentlyDeleteAsync(
@@ -63,7 +71,9 @@ partial class SqlServerEventStore<T>
 
 			return true;
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.PermanentDeleteFailed(aggregateId, ex);
 

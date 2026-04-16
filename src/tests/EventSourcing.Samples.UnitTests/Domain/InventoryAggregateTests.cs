@@ -1,7 +1,7 @@
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Domain.Events;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Domain;
+namespace Purview.EventSourcing.Samples.Domain;
 
 public class InventoryAggregateTests
 {
@@ -10,14 +10,14 @@ public class InventoryAggregateTests
 		var inv = new InventoryAggregate();
 		if (id is not null)
 			inv.Details.Id = id;
-		inv.Initialize("prod-1", "Widget A", initialQty);
+		inv.Initialize("prod-1", "Widget A", "loc-1", "Main Warehouse", initialQty);
 		return inv;
 	}
 
 	#region Initialize Tests
 
 	[Test]
-	public async Task Initialize_GivenValidData_SetsProperties(CancellationToken cancellationToken)
+	public async Task Initialize_GivenValidData_SetsProperties()
 	{
 		// Arrange & Act
 		var inv = CreateInventory("inv-1", initialQty: 50);
@@ -25,6 +25,8 @@ public class InventoryAggregateTests
 		// Assert
 		await Assert.That(inv.ProductId).IsEqualTo("prod-1");
 		await Assert.That(inv.ProductName).IsEqualTo("Widget A");
+		await Assert.That(inv.LocationId).IsEqualTo("loc-1");
+		await Assert.That(inv.LocationName).IsEqualTo("Main Warehouse");
 		await Assert.That(inv.QuantityOnHand).IsEqualTo(50);
 		await Assert.That(inv.ReservedQuantity).IsEqualTo(0);
 		await Assert.That(inv.AvailableQuantity).IsEqualTo(50);
@@ -34,14 +36,21 @@ public class InventoryAggregateTests
 	public void Initialize_GivenNullProductId_ThrowsArgumentException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentException>(() => inv.Initialize(null!, "name"));
+		Assert.Throws<ArgumentException>(() => inv.Initialize(null!, "name", "loc-1", "Main Warehouse"));
+	}
+
+	[Test]
+	public void Initialize_GivenNullLocationId_ThrowsArgumentException()
+	{
+		var inv = new InventoryAggregate();
+		Assert.Throws<ArgumentException>(() => inv.Initialize("p1", "name", null!, "Main Warehouse"));
 	}
 
 	[Test]
 	public void Initialize_GivenNegativeQuantity_ThrowsArgumentOutOfRangeException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Initialize("p1", "name", -1));
+		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Initialize("p1", "name", "loc-1", "Main Warehouse", -1));
 	}
 
 	#endregion
@@ -49,7 +58,7 @@ public class InventoryAggregateTests
 	#region ReceiveStock Tests
 
 	[Test]
-	public async Task ReceiveStock_GivenPositiveQuantity_IncreasesOnHand(CancellationToken cancellationToken)
+	public async Task ReceiveStock_GivenPositiveQuantity_IncreasesOnHand()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 50);
 		inv.ReceiveStock(25);
@@ -69,7 +78,7 @@ public class InventoryAggregateTests
 	#region ReserveStock Tests
 
 	[Test]
-	public async Task ReserveStock_GivenAvailableQuantity_ReservesSuccessfully(CancellationToken cancellationToken)
+	public async Task ReserveStock_GivenAvailableQuantity_ReservesSuccessfully()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -87,7 +96,7 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public async Task ReserveStock_GivenMultipleReservations_AccumulatesReserved(CancellationToken cancellationToken)
+	public async Task ReserveStock_GivenMultipleReservations_AccumulatesReserved()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -102,7 +111,7 @@ public class InventoryAggregateTests
 	#region ShipStock Tests
 
 	[Test]
-	public async Task ShipStock_GivenReservedQuantity_DeductsFromBoth(CancellationToken cancellationToken)
+	public async Task ShipStock_GivenReservedQuantity_DeductsFromBoth()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -126,7 +135,7 @@ public class InventoryAggregateTests
 	#region ReleaseReservation Tests
 
 	[Test]
-	public async Task ReleaseReservation_GivenReservedQuantity_ReleasesCorrectly(CancellationToken cancellationToken)
+	public async Task ReleaseReservation_GivenReservedQuantity_ReleasesCorrectly()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(10, "order-1");
@@ -149,7 +158,7 @@ public class InventoryAggregateTests
 	#region AdjustStock Tests
 
 	[Test]
-	public async Task AdjustStock_GivenNewQuantity_SetsQuantityDirectly(CancellationToken cancellationToken)
+	public async Task AdjustStock_GivenNewQuantity_SetsQuantityDirectly()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.AdjustStock(50, "Physical count correction");
@@ -158,7 +167,7 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public async Task AdjustStock_GivenQuantityBelowReserved_CapsReservedQuantity(CancellationToken cancellationToken)
+	public async Task AdjustStock_GivenQuantityBelowReserved_CapsReservedQuantity()
 	{
 		var inv = CreateInventory("inv-1", initialQty: 100);
 		inv.ReserveStock(20, "order-1");
@@ -171,10 +180,59 @@ public class InventoryAggregateTests
 
 	#endregion
 
+	#region UpdateDetails Tests
+
+	[Test]
+	public async Task UpdateDetails_GivenProductNameAndLocationName_RaisesTwoEvents()
+	{
+		var inv = CreateInventory("inv-1");
+		var countBefore = inv.GetUnsavedEvents().Count();
+
+		inv.UpdateDetails(productName: "Widget A Pro", locationName: "Warehouse East");
+
+		await Assert.That(inv.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 2);
+		await Assert.That(inv.ProductName).IsEqualTo("Widget A Pro");
+		await Assert.That(inv.LocationName).IsEqualTo("Warehouse East");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenOnlyProductName_UpdatesProductNameOnly()
+	{
+		var inv = CreateInventory("inv-1");
+		var countBefore = inv.GetUnsavedEvents().Count();
+
+		inv.UpdateDetails(productName: "Widget A Pro");
+
+		await Assert.That(inv.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 1);
+		await Assert.That(inv.ProductName).IsEqualTo("Widget A Pro");
+		await Assert.That(inv.LocationName).IsEqualTo("Main Warehouse");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents()
+	{
+		var inv = CreateInventory("inv-1");
+		var countBefore = inv.GetUnsavedEvents().Count();
+
+		inv.UpdateDetails(productName: "Widget A", locationName: "Main Warehouse");
+
+		await Assert.That(inv.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+	}
+
+	[Test]
+	public void UpdateDetails_GivenWhitespaceProductName_ThrowsArgumentException()
+	{
+		var inv = CreateInventory("inv-1");
+
+		Assert.Throws<ArgumentException>(() => inv.UpdateDetails(productName: "  "));
+	}
+
+	#endregion
+
 	#region Multi-Aggregate Workflow Test
 
 	[Test]
-	public async Task FullOrderFulfillmentWorkflow_TracksCorrectState(CancellationToken cancellationToken)
+	public async Task FullOrderFulfillmentWorkflow_TracksCorrectState()
 	{
 		// Simulate order fulfillment across inventory
 		var inv = CreateInventory("inv-1", initialQty: 100);

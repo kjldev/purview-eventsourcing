@@ -86,7 +86,9 @@ partial class SqlServerEventStore<T>
 
 			return @event;
 		}
+#pragma warning disable CA1031
 		catch (Exception ex)
+#pragma warning restore CA1031
 		{
 			_eventStoreTelemetry.EventDeserializationFailed(eventRow.AggregateId, _aggregateTypeFullName, ex);
 

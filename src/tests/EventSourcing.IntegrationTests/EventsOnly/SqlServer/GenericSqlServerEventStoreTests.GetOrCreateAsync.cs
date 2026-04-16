@@ -2,9 +2,11 @@
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate(CancellationToken cancellationToken)
+	public async Task GetOrCreateAsync_GivenAggregateDoesNotExist_CreatesNewAggregate(
+		CancellationToken cancellationToken
+	)
 	{
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.GetOrCreateAsync(null, null, cancellationToken: cancellationToken);
 

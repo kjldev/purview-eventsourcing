@@ -1,21 +1,42 @@
 # Purview EventSourcing
 
-A comprehensive, production-ready event sourcing framework for .NET with support for multiple storage backends.
+Purview EventSourcing is a .NET event sourcing framework with provider-agnostic store facades, source-generated aggregates, multi-aggregate transaction coordination, and sample applications that show how to use the framework with SQL Server, Redis, Azure Blob Storage, and Aspire.
+
+## What the repository contains
+
+| Area | Purpose |
+| --- | --- |
+| `src/src` | Packable framework packages and shared infrastructure |
+| `src/samples/EventSourcing.Samples` | Sample domain and application services |
+| `src/samples/EventSourcing.Samples.Web` | Razor Pages sample that uses the non-generic store facades |
+| `src/samples/EventSourcing.Samples.AppHost` | Aspire host for the sample environment |
+| `src/samples/EventSourcing.Samples.ServiceDefaults` | OpenTelemetry, health check, and service discovery defaults for the sample |
+| `src/tests` | Unit, integration, source generator, and sample-focused test projects |
+| `docs/sql-server.md` | SQL Server and Azure SQL setup and provider guidance |
+| `Justfile` | Local build, test, versioning, packing, and release workflows |
 
 ## Packages
 
-| Package | Description |
-|---------|-------------|
-| `Purview.EventSourcing` | Core abstractions: `IEventStore<T>`, `AggregateBase`, `EventBase` |
-| `Purview.EventSourcing.SourceGenerator` | Roslyn source generator for boilerplate-free aggregate definitions |
-| `Purview.EventSourcing.SqlServer.Events` | SQL Server / Azure SQL event store |
-| `Purview.EventSourcing.SqlServer` | SQL Server / Azure SQL queryable snapshot store |
-| `Purview.EventSourcing.AzureStorage` | Azure Table Storage event store |
-| `Purview.EventSourcing.MongoDb.Events` | MongoDB event store |
-| `Purview.EventSourcing.MongoDb.Snapshot` | MongoDB queryable snapshot store |
-| `Purview.EventSourcing.CosmosDb.Snapshot` | Azure Cosmos DB queryable snapshot store |
+| Package ID | Purpose |
+| --- | --- |
+| `EventSourcing` | Core abstractions, aggregate base types, facades, transactions, and extensions |
+| `Purview.EventSourcing.SourceGenerator` | Source generator for aggregate event classes, registration, and partial command methods |
+| `EventSourcing.SqlServer.Events` | SQL Server / Azure SQL event stream store |
+| `EventSourcing.SqlServer.Snapshot` | SQL Server / Azure SQL queryable snapshot store |
+| `EventSourcing.AzureStorage` | Azure Table / Blob-backed event store |
+| `EventSourcing.MongoDB.Events` | MongoDB event store |
+| `EventSourcing.MongoDB.Snapshot` | MongoDB queryable snapshot store |
+| `EventSourcing.CosmosDb.Snapshot` | Azure Cosmos DB queryable snapshot store |
 
-## Quick Start
+## Core concepts
+
+- **Provider-agnostic facades**: use `IEventStore` for create/get/save/delete flows and `IQueryableEventStore` for query/list/count flows.
+- **Generated aggregates**: annotate partial aggregate methods and let the source generator create event types and registration boilerplate.
+- **Transactions**: coordinate multiple aggregate saves with `IEventStoreTransactionFactory` and `IEventStoreTransaction`.
+- **Queryable read models**: pair an event stream store with a snapshot/queryable store when your application needs filtering, paging, or projection-style reads.
+- **Provider-native coordination when possible**: `EventStoreTransaction` uses a native transaction boundary when all enlisted stores support the same one, and otherwise falls back to shared-correlation logical coordination.
+
+## Quick start
 
 ### 1. Define an aggregate
 
@@ -25,90 +46,189 @@ using Purview.EventSourcing.Aggregates;
 [GenerateAggregate]
 public partial class OrderAggregate : AggregateBase
 {
-    public string  CustomerId { get; private set; } = default!;
-    public decimal Total      { get; private set; }
+    public string CustomerId { get; private set; } = default!;
+    public decimal Total { get; private set; }
 
     [GenerateAggregateEvent]
-    public partial void CreateOrder(string customerId, decimal total);
+    public partial void CreateOrder(string customerId);
 
     [GenerateAggregateEvent]
-    public partial void UpdateTotal(decimal total);
+    public partial void AddLineItem(string productId, string productName, int quantity, decimal unitPrice);
 }
 ```
 
-The `[GenerateAggregate]` / `[GenerateAggregateEvent]` source generator creates the event classes, `RegisterEvents()`, `Apply()` methods and partial command method bodies automatically.
-
-### 2. Register the store
+### 2. Register a store
 
 ```csharp
 builder.Services.AddSqlServerEventStore();
+builder.Services.AddSqlServerSnapshotQueryableEventStore();
 ```
 
 ```json
 {
-  "EventStore:SqlServer": {
-    "ConnectionString": "Server=.;Database=MyApp;Trusted_Connection=True;"
+  "ConnectionStrings": {
+    "eventstore-sqlserver": "Server=.;Database=MyApp;Trusted_Connection=True;"
   }
 }
 ```
 
-### 3. Use the store
+### 3. Use the non-generic facades
 
 ```csharp
-public class OrderService(IEventStore<OrderAggregate> store)
+public sealed class OrderService(IEventStore store)
 {
-    public async Task PlaceOrderAsync(string orderId, string customerId, decimal total)
+    public async Task PlaceOrderAsync(string orderId, string customerId, CancellationToken cancellationToken)
     {
-        var order = await store.GetOrCreateAsync(orderId);
-        order.CreateOrder(customerId, total);
-        await store.SaveAsync(order);
+        var order = await store.GetAsync<OrderAggregate>(orderId, cancellationToken)
+            ?? await store.CreateAsync<OrderAggregate>(orderId, cancellationToken: cancellationToken);
+
+        order.CreateOrder(customerId);
+        order.AddLineItem("SKU-1", "Demo product", 1, 19.99m);
+
+        await store.SaveAsync(order, cancellationToken);
     }
 }
 ```
 
+### 4. Query through the queryable facade
+
+```csharp
+public sealed class OrderQueries(IQueryableEventStore store)
+{
+    public Task<long> CountActiveOrdersAsync(CancellationToken cancellationToken) =>
+        store.CountAsync<OrderAggregate>(o => !o.Details.IsDeleted, cancellationToken);
+}
+```
+
+### 5. Coordinate a transaction
+
+```csharp
+public sealed class CheckoutService(
+    IEventStoreTransactionFactory transactionFactory,
+    IQueryableEventStore store)
+{
+    public async Task<bool> CheckoutAsync(
+        OrderAggregate order,
+        InventoryAggregate inventory,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = transactionFactory.Create();
+        transaction.Enlist(order, store);
+        transaction.Enlist(inventory, store);
+
+        var result = await transaction.CommitAsync(cancellationToken);
+        return result.Success;
+    }
+}
+```
+
+## Sample application
+
+The sample is a small order, customer, and inventory workflow application that demonstrates how the framework is intended to be consumed:
+
+- `EventSourcing.Samples.Web` uses **non-generic** `IEventStore` / `IQueryableEventStore` facades with the extension methods on those interfaces.
+- Multi-aggregate workflows such as checkout, order fulfilment, and stock transfer use `IEventStoreTransactionFactory`.
+- The sample registers:
+  - `AddSqlServerEventStore()`
+  - `AddSqlServerSnapshotQueryableEventStore()`
+  - Redis distributed cache when available
+  - Azure Blob Storage-backed product images when configured
+- `EventSourcing.Samples.AppHost` wires up SQL Server, Redis, Azurite, and the web app for Aspire-driven local runs.
+
+### Sample services worth reading
+
+| Service | What it demonstrates |
+| --- | --- |
+| `CartCheckoutService` | Multi-item checkout with transactional order + inventory reservation |
+| `OrderFulfillmentService` | Order placement + stock reservation through a single transaction |
+| `StockTransferService` | Multi-aggregate stock movement between locations |
+| `SeedDataService` | Non-generic create, list, count, and save usage across the sample domain |
+
+## Storage providers
+
+| Provider | Registration API | Notes |
+| --- | --- | --- |
+| SQL Server events | `AddSqlServerEventStore()` | Event stream persistence |
+| SQL Server queryable snapshots | `AddSqlServerSnapshotQueryableEventStore()` | Query/list/count support backed by snapshots |
+| Azure Table / Blob | `AddAzureTableEventStore()` | Table events with Blob support for large payloads and snapshots |
+| MongoDB events | `AddMongoDBEventStore()` | Event stream persistence |
+| MongoDB queryable snapshots | `AddMongoDBSnapshotQueryableEventStore()` | Queryable snapshot store |
+| Cosmos DB queryable snapshots | `AddCosmosDbQueryableEventStore()` | Queryable snapshot store |
+
+For SQL Server and Azure SQL configuration, permissions, schema routing, and event versioning guidance, see [docs/sql-server.md](docs/sql-server.md).
+
+## Transactions
+
+`EventStoreTransaction` coordinates multiple aggregate saves under a shared correlation ID.
+
+- Enlist aggregates against either the non-generic facade or the typed core store.
+- If all enlisted stores share the same native transaction boundary, the framework uses that native coordinator.
+- If they do not, the framework falls back to sequential saves under a shared correlation ID.
+- On logical fallback, already-saved aggregates are not rolled back; `TransactionResult` reports what succeeded, skipped, or failed.
+
+This lets application code keep a stable API:
+
+```csharp
+await using var transaction = transactionFactory.Create();
+transaction.Enlist(order, store);
+transaction.Enlist(inventory, store);
+
+var result = await transaction.CommitAsync(cancellationToken);
+if (!result.Success)
+{
+    // inspect result.Results for per-aggregate outcomes
+}
+```
+
+## Development workflow
+
+The repository uses [`just`](https://github.com/casey/just) to wrap the common local workflows.
+
+```text
+lefthook install
+just tools
+just restore
+just build
+just test
+just check
+just pack
+just version
+just version-next
+just version-bump
+```
+
+### Notes
+
+- Run `lefthook install` once per clone. The hook definitions live in `.config/lefthook.yml`, but Git will not run them until Lefthook writes the actual scripts into `.git/hooks`.
+- The `pre-commit` hook runs `just check`, so formatting issues should be blocked locally once Lefthook is installed.
+- The `commit-msg` hook runs `bunx --bun commitlint --edit {1}`, so Bun must be available locally for commit message validation.
+- CI runs `just check` directly, so formatting issues are still caught on the build machine even if local hooks were never installed.
+- `just test` runs the executable test projects individually with shell-neutral `just` recipes; do **not** rely on solution-level `dotnet test` here because `src/tests/SharedTestingFramework` is a helper library, not a runnable test project.
+- Integration tests use Testcontainers and generally require Docker.
+- `package.json` is the release version source of truth; MSBuild reads that version when it builds and packs the .NET packages.
+- `just pack` builds the packable packages into `artifacts/packages` using the version from `package.json`.
+
+### Release workflow
+
+1. Install the Node tooling once with `npm install` or `bun install`.
+2. Create the release commit locally with `npm run release` or `bun run release`.
+3. Review the generated `package.json`, `package-lock.json`, and `CHANGELOG.md` updates, then push the release commit to `main`.
+4. GitHub Actions reads the `package.json` version, fails immediately if the tag or GitHub release already exists, packs the `.nupkg` / `.snupkg` artifacts, creates the remote tag, and publishes the GitHub release.
+
+Do **not** push release tags manually. The CD workflow is the canonical tag and GitHub release creator.
+
+## Testing structure
+
+| Project | Purpose |
+| --- | --- |
+| `EventSourcing.UnitTests` | Core framework unit tests |
+| `EventSourcing.IntegrationTests` | Provider-backed integration tests |
+| `EventSourcing.SourceGenerator.UnitTests` | Source generator behavior |
+| `EventSourcing.Samples.UnitTests` | Sample domain and service behavior |
+| `EventSourcing.Samples.IntegrationTests` | Sample aggregate integration scenarios |
+| `EventSourcing.Samples.Web.IntegrationTests` | End-to-end sample web behavior |
+
 ## Documentation
 
-- [SQL Server — setup, permissions, schema routing, versioning](docs/sql-server.md)
-
-## Building
-
-```bash
-dotnet build src/Purview.EventSourcing.slnx --configuration Release
-```
-
-## Testing
-
-```bash
-dotnet test src/Purview.EventSourcing.slnx
-```
-
-Integration tests use [Testcontainers](https://dotnet.testcontainers.org/) and require Docker.
-
-### Filtering Tests
-
-Tests use [TUnit](https://tunit.dev). To filter by test name, class, or namespace, use `--treenode-filter` passed after `--`:
-
-```bash
-# Run a specific test by name
-dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/*/*/MyTestName*"
-
-# Run all tests in a class
-dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/*/MyClassName/*"
-
-# Run all tests in a namespace
-dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/My.Namespace.Tests/*/*"
-
-# Filter by test property (e.g. category)
-dotnet test src/Purview.EventSourcing.slnx -- --treenode-filter "/*/*/*/*[Category=Smoke]"
-```
-
-Filter format: `/<Assembly>/<Namespace>/<ClassName>/<TestName>`. Use `*` as a wildcard at any segment.
-
-### Running Tests Serially
-
-To disable parallelism (useful for debugging flaky tests):
-
-```bash
-dotnet test src/Purview.EventSourcing.slnx -- --maximum-parallel-tests 1
-```
-
+- [SQL Server event store guide](docs/sql-server.md)
+- Repository wiki content is being prepared to cover getting started, transactions, providers, the sample app, and development workflows.

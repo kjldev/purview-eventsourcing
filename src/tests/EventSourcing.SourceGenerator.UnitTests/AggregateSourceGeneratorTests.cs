@@ -1,26 +1,52 @@
+using System.Reflection;
+using System.Text.Json;
 using Microsoft.CodeAnalysis;
 
 namespace Purview.EventSourcing.SourceGenerator;
 
-public class AggregateSourceGeneratorTests
-	: SourceGeneratorTestBase<AggregateSourceGenerator>
+public class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
 	// Stub for AggregateBase so the source generator can find the base class
-	const string AggregateBaseStub = @"
+	const string AggregateBaseStub =
+		@"#nullable enable
+
 namespace Purview.EventSourcing.Aggregates
 {
+	public sealed class AggregateDetails
+	{
+		public string? Id { get; set; }
+	}
+
 	public abstract class AggregateBase
 	{
+		readonly System.Collections.Generic.Dictionary<System.Type, System.Delegate> _appliers = new();
+
+		protected AggregateBase()
+		{
+			RegisterEvents();
+		}
+
+		public AggregateDetails Details { get; init; } = new();
 		protected abstract void RegisterEvents();
-		protected void Register<TEvent>(System.Action<TEvent> applier) where TEvent : class { }
-		protected AggregateBase RecordAndApply<TEvent>(TEvent @event) where TEvent : class => this;
+		protected void Register<TEvent>(System.Action<TEvent> applier) where TEvent : class => _appliers[typeof(TEvent)] = applier;
+		protected AggregateBase RecordAndApply<TEvent>(TEvent @event) where TEvent : class
+		{
+			((System.Action<TEvent>)_appliers[typeof(TEvent)])(@event);
+			return this;
+		}
 	}
 }
 
 namespace Purview.EventSourcing.Aggregates.Events
 {
+	public sealed class EventDetails
+	{
+		public string? CorrelationId { get; set; }
+	}
+
 	public abstract class EventBase
 	{
+		public EventDetails Details { get; init; } = new();
 		public virtual int SchemaVersion => 1;
 		protected abstract void BuildEventHash(ref System.HashCode hash);
 	}
@@ -32,10 +58,10 @@ namespace Purview.EventSourcing.Aggregates.Events
 	/// </summary>
 	static string GetAggregateGeneratedSource(GeneratorDriverRunResult result)
 	{
-		var aggregateTree = result.GeneratedTrees
-			.FirstOrDefault(t =>
-				!t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal) &&
-				!t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal));
+		var aggregateTree = result.GeneratedTrees.FirstOrDefault(t =>
+			!t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+			&& !t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
+		);
 
 		return aggregateTree?.GetText().ToString() ?? string.Empty;
 	}
@@ -46,7 +72,8 @@ namespace Purview.EventSourcing.Aggregates.Events
 	public async Task Generate_GivenEmptySource_GeneratesAttributesOnly(CancellationToken cancellationToken)
 	{
 		// Arrange
-		const string source = @"
+		const string source =
+			@"
 namespace Testing
 {
 	public class Empty { }
@@ -64,7 +91,9 @@ namespace Testing
 	public async Task Generate_GivenSimpleAggregate_GeneratesExpectedCode(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -90,10 +119,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenAggregateWithNoEvents_GeneratesEmptyRegisterEvents(CancellationToken cancellationToken)
+	public async Task Generate_GivenAggregateWithNoEvents_GeneratesEmptyRegisterEvents(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -111,10 +144,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenAggregateWithParameterlessEvent_GeneratesCorrectly(CancellationToken cancellationToken)
+	public async Task Generate_GivenAggregateWithParameterlessEvent_GeneratesCorrectly(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -139,7 +176,9 @@ namespace Testing
 	public async Task Generate_GivenNonPartialClass_DoesNotGenerate(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -161,7 +200,9 @@ namespace Testing
 	public async Task Generate_GivenMultipleParameters_GeneratesAllProperties(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -188,7 +229,9 @@ namespace Testing
 	public async Task Generate_ProducesNoDiagnosticErrors(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -212,7 +255,8 @@ namespace Testing
 		}
 
 		// Assert — no errors in the output compilation (excluding pre-existing diagnostic warnings)
-		var errors = outputCompilation.GetDiagnostics(cancellationToken)
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
 			.Where(d => d.Severity == DiagnosticSeverity.Error)
 			.ToArray();
 
@@ -224,10 +268,14 @@ namespace Testing
 	#region Generated Content Verification Tests
 
 	[Test]
-	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsEventClass(CancellationToken cancellationToken)
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsEventClass(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -252,10 +300,46 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsEventProperties(CancellationToken cancellationToken)
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsJsonConverterSupport(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("JsonConverter(typeof(OrderAggregateJsonConverter))");
+		await Assert
+			.That(generatedSource)
+			.Contains("internal static OrderAggregate CreateFromJsonModel(OrderAggregateJsonModel jsonModel)");
+		await Assert.That(generatedSource).Contains("sealed class OrderAggregateJsonConverter");
+		await Assert.That(generatedSource).Contains("sealed class OrderAggregateJsonModel");
+	}
+
+	[Test]
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsEventProperties(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -280,10 +364,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsBuildEventHash(CancellationToken cancellationToken)
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsBuildEventHash(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -303,16 +391,22 @@ namespace Testing
 		var generatedSource = GetAggregateGeneratedSource(result);
 
 		// Assert — BuildEventHash adds each property
-		await Assert.That(generatedSource).Contains("protected override void BuildEventHash(ref global::System.HashCode hash)");
+		await Assert
+			.That(generatedSource)
+			.Contains("protected override void BuildEventHash(ref global::System.HashCode hash)");
 		await Assert.That(generatedSource).Contains("hash.Add(Name);");
 		await Assert.That(generatedSource).Contains("hash.Add(Count);");
 	}
 
 	[Test]
-	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsRegisterEvents(CancellationToken cancellationToken)
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsRegisterEvents(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -340,10 +434,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsApplyMethods(CancellationToken cancellationToken)
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsApplyMethods(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -367,10 +465,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsCommandMethod(CancellationToken cancellationToken)
+	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsCommandMethod(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -390,17 +492,23 @@ namespace Testing
 		var generatedSource = GetAggregateGeneratedSource(result);
 
 		// Assert — command method calls RecordAndApply with a new event
-		await Assert.That(generatedSource).Contains("public partial void CreateOrder(string customerId, decimal total)");
+		await Assert
+			.That(generatedSource)
+			.Contains("public partial void CreateOrder(string customerId, decimal total)");
 		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.CreateOrderEvent");
 		await Assert.That(generatedSource).Contains("CustomerId = customerId,");
 		await Assert.That(generatedSource).Contains("Total = total,");
 	}
 
 	[Test]
-	public async Task Generate_GivenParameterlessEvent_GeneratedSourceContainsEmptyEventAndRecordAndApplyWithNew(CancellationToken cancellationToken)
+	public async Task Generate_GivenParameterlessEvent_GeneratedSourceContainsEmptyEventAndRecordAndApplyWithNew(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -415,19 +523,32 @@ namespace Testing
 ";
 
 		// Act
-		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetAggregateGeneratedSource(result);
+		var warnings = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Warning)
+			.ToArray();
 
 		// Assert — parameterless event uses () constructor
 		await Assert.That(generatedSource).Contains("public partial void Increment()");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.Events.IncrementEvent _)");
+		await Assert
+			.That(generatedSource)
+			.Contains("protected override void BuildEventHash(ref global::System.HashCode _)");
 		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.IncrementEvent());");
+		await Assert.That(warnings).IsEmpty();
 	}
 
 	[Test]
-	public async Task Generate_GivenAggregateWithNoEvents_GeneratedSourceContainsEmptyRegisterEvents(CancellationToken cancellationToken)
+	public async Task Generate_GivenAggregateWithNoEvents_GeneratedSourceContainsEmptyRegisterEvents(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -448,10 +569,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenMultipleEvents_GeneratedSourceContainsAllEventClasses(CancellationToken cancellationToken)
+	public async Task Generate_GivenMultipleEvents_GeneratedSourceContainsAllEventClasses(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -486,7 +611,9 @@ namespace Testing
 	public async Task Generate_GivenClassNotInheritingAggregateBase_DoesNotGenerate(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -509,7 +636,9 @@ namespace Testing
 	public async Task Generate_GivenNonPartialMethod_MethodIsSkipped(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -537,10 +666,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenInternalAggregate_GeneratesInternalAccessModifier(CancellationToken cancellationToken)
+	public async Task Generate_GivenInternalAggregate_GeneratesInternalAccessModifier(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -563,10 +696,13 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenAttributeFiles_ContainsGenerateAggregateAttribute(CancellationToken cancellationToken)
+	public async Task Generate_GivenAttributeFiles_ContainsGenerateAggregateAttribute(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		const string source = @"
+		const string source =
+			@"
 namespace Testing
 {
 	public class Empty { }
@@ -577,10 +713,11 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert — attribute files are generated
-		var attributeSources = result.GeneratedTrees
-			.Where(t =>
-				t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal) ||
-				t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal))
+		var attributeSources = result
+			.GeneratedTrees.Where(t =>
+				t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+				|| t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
+			)
 			.Select(t => t.GetText().ToString())
 			.ToList();
 
@@ -595,7 +732,9 @@ namespace Testing
 	public async Task Generate_GivenSimpleAggregate_OutputCompilationHasNoErrors(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -623,7 +762,8 @@ namespace Testing
 		}
 
 		// Assert — no compilation errors
-		var errors = outputCompilation.GetDiagnostics(cancellationToken)
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
 			.Where(d => d.Severity == DiagnosticSeverity.Error)
 			.ToArray();
 
@@ -634,7 +774,9 @@ namespace Testing
 	public async Task Generate_GivenGeneratedFile_HasAutoGeneratedHeader(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -660,10 +802,14 @@ namespace Testing
 	#region Versioning Tests
 
 	[Test]
-	public async Task Generate_GivenEventWithDefaultVersion_GeneratesSchemaVersionOverrideOfOne(CancellationToken cancellationToken)
+	public async Task Generate_GivenEventWithDefaultVersion_GeneratesSchemaVersionOverrideOfOne(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -686,10 +832,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenEventWithExplicitVersion_GeneratesCorrectSchemaVersionOverride(CancellationToken cancellationToken)
+	public async Task Generate_GivenEventWithExplicitVersion_GeneratesCorrectSchemaVersionOverride(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -712,10 +862,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenMultipleEventsWithDifferentVersions_GeneratesCorrectSchemaVersionForEach(CancellationToken cancellationToken)
+	public async Task Generate_GivenMultipleEventsWithDifferentVersions_GeneratesCorrectSchemaVersionForEach(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -745,10 +899,13 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenVersionedEvent_GeneratedAttributeTemplateContainsVersionProperty(CancellationToken cancellationToken)
+	public async Task Generate_GivenVersionedEvent_GeneratedAttributeTemplateContainsVersionProperty(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		const string source = @"
+		const string source =
+			@"
 namespace Testing
 {
 	public class Empty { }
@@ -759,8 +916,9 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert — the generated attribute file exposes a Version property
-		var attributeTree = result.GeneratedTrees
-			.First(t => t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal));
+		var attributeTree = result.GeneratedTrees.First(t =>
+			t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
+		);
 		var attributeSource = (await attributeTree.GetTextAsync(cancellationToken)).ToString();
 
 		await Assert.That(attributeSource).Contains("int Version");
@@ -771,10 +929,14 @@ namespace Testing
 	#region Complex Scenario Tests
 
 	[Test]
-	public async Task Generate_GivenAggregateWithManyEvents_GeneratesAllEventsAndRegistrations(CancellationToken cancellationToken)
+	public async Task Generate_GivenAggregateWithManyEvents_GeneratesAllEventsAndRegistrations(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange — aggregate with 5 events covering full lifecycle
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -822,17 +984,22 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CancelOrderEvent>(Apply);");
 
 		// Assert — compiles without errors
-		var errors = outputCompilation.GetDiagnostics(cancellationToken)
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
 			.Where(d => d.Severity == DiagnosticSeverity.Error)
 			.ToArray();
 		await Assert.That(errors).IsEmpty();
 	}
 
 	[Test]
-	public async Task Generate_GivenEventWithMultipleParameterTypes_GeneratesCorrectProperties(CancellationToken cancellationToken)
+	public async Task Generate_GivenEventWithMultipleParameterTypes_GeneratesCorrectProperties(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange — event with int, decimal, string, bool parameters
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -873,10 +1040,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenAggregateWithTransitiveInheritance_GeneratesCode(CancellationToken cancellationToken)
+	public async Task Generate_GivenAggregateWithTransitiveInheritance_GeneratesCode(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange — aggregate inherits through an intermediate base class
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	public abstract class DomainAggregateBase : Purview.EventSourcing.Aggregates.AggregateBase
@@ -909,7 +1080,9 @@ namespace Testing
 	public async Task Generate_GivenNestedNamespace_GeneratesCorrectEventsNamespace(CancellationToken cancellationToken)
 	{
 		// Arrange — deeply nested namespace
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Company.Domain.Orders
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -929,15 +1102,21 @@ namespace Company.Domain.Orders
 
 		// Assert — events namespace follows the pattern
 		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders.Events");
-		await Assert.That(generatedSource).Contains("Register<global::Company.Domain.Orders.Events.CreateOrderEvent>(Apply);");
+		await Assert
+			.That(generatedSource)
+			.Contains("Register<global::Company.Domain.Orders.Events.CreateOrderEvent>(Apply);");
 		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders");
 	}
 
 	[Test]
-	public async Task Generate_GivenParameterlessAndParameterizedEvents_GeneratesBothCorrectly(CancellationToken cancellationToken)
+	public async Task Generate_GivenParameterlessAndParameterizedEvents_GeneratesBothCorrectly(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange — mix of parameterless and parameterized events
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -978,7 +1157,8 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.ResetEvent>(Apply);");
 
 		// Assert — compiles without errors
-		var errors = outputCompilation.GetDiagnostics(cancellationToken)
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
 			.Where(d => d.Severity == DiagnosticSeverity.Error)
 			.ToArray();
 		await Assert.That(errors).IsEmpty();
@@ -988,7 +1168,9 @@ namespace Testing
 	public async Task Generate_GivenNullableParameter_GeneratesNullableProperty(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1010,13 +1192,17 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("Bio");
 		await Assert.That(generatedSource).Contains("Bio = @event.Bio;");
 		await Assert.That(generatedSource).Contains("public sealed class UpdateBioEvent");
+		await Assert.That(generatedSource).Contains("public string? Bio { get; set; } = default!;");
+		await Assert.That(generatedSource).Contains("public partial void UpdateBio(string? bio)");
 	}
 
 	[Test]
 	public async Task Generate_GivenPublicAccessibility_GeneratesPublicPartialClass(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1037,10 +1223,14 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenEventWithSingleParameter_CommandMethodHasCorrectSignature(CancellationToken cancellationToken)
+	public async Task Generate_GivenEventWithSingleParameter_CommandMethodHasCorrectSignature(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
-		var source = AggregateBaseStub + @"
+		var source =
+			AggregateBaseStub
+			+ @"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1062,6 +1252,88 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("public partial void SetContent(string content)");
 		// Assert — RecordAndApply creates event with property
 		await Assert.That(generatedSource).Contains("Content = content,");
+	}
+
+	[Test]
+	public async Task Generate_GivenSimpleAggregate_CanRoundTripPrivateSetterStateWithSystemTextJson(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+		public decimal Total { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId, decimal total);
+	}
+}
+";
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var aggregateType = assembly.GetType("Testing.OrderAggregate")!;
+		var instance = Activator.CreateInstance(aggregateType)!;
+		aggregateType.GetMethod("CreateOrder")!.Invoke(instance, ["customer-1", 12.5m]);
+
+		var detailsProperty = aggregateType.GetProperty("Details")!;
+		var detailsType = detailsProperty.PropertyType;
+		var details = Activator.CreateInstance(detailsType)!;
+		detailsType.GetProperty("Id")!.SetValue(details, "aggregate-1");
+		detailsProperty.SetValue(instance, details);
+
+		var json = JsonSerializer.Serialize(instance, aggregateType);
+		var roundTripped = JsonSerializer.Deserialize(json, aggregateType)!;
+
+		await Assert.That(aggregateType.GetProperty("CustomerId")!.GetValue(roundTripped)).IsEqualTo("customer-1");
+		await Assert.That(aggregateType.GetProperty("Total")!.GetValue(roundTripped)).IsEqualTo(12.5m);
+		var roundTrippedDetails = detailsProperty.GetValue(roundTripped)!;
+		await Assert.That(detailsType.GetProperty("Id")!.GetValue(roundTrippedDetails)).IsEqualTo("aggregate-1");
+	}
+
+	[Test]
+	public async Task Generate_GivenGeneratedEvent_CanRoundTripEventDetailsWithSystemTextJson(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var eventType = assembly.GetType("Testing.Events.CreateOrderEvent")!;
+		var instance = Activator.CreateInstance(eventType)!;
+		eventType.GetProperty("CustomerId")!.SetValue(instance, "customer-2");
+
+		var detailsProperty = eventType.GetProperty("Details", BindingFlags.Public | BindingFlags.Instance)!;
+		var detailsType = detailsProperty.PropertyType;
+		var details = Activator.CreateInstance(detailsType)!;
+		detailsType.GetProperty("CorrelationId")!.SetValue(details, "corr-1");
+		detailsProperty.SetValue(instance, details);
+
+		var json = JsonSerializer.Serialize(instance, eventType);
+		var roundTripped = JsonSerializer.Deserialize(json, eventType)!;
+
+		await Assert.That(eventType.GetProperty("CustomerId")!.GetValue(roundTripped)).IsEqualTo("customer-2");
+		var roundTrippedDetails = detailsProperty.GetValue(roundTripped)!;
+		await Assert.That(detailsType.GetProperty("CorrelationId")!.GetValue(roundTrippedDetails)).IsEqualTo("corr-1");
 	}
 
 	#endregion

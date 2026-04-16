@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.EventsOnly.SqlServer;
 
 namespace Purview.EventSourcing.SqlServer;
 
@@ -23,7 +24,7 @@ public partial class GenericSqlServerEventStoreTests<TAggregate>(SqlServerEventS
 
 	public Task SaveAsync_GivenEventCountIsGreaterThanMaximumNumberOfAllowedInBatchOperation_BatchesEvents(
 		int eventsToGenerate,
-		CancellationToken cancellationToken
+		CancellationToken _
 	)
 	{
 		throw new NotImplementedException();

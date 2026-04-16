@@ -5,7 +5,9 @@ namespace Purview.EventSourcing.MongoDB.Snapshot;
 partial class MongoDBSnapshotEventStoreTests
 {
 	[Test]
-	public async Task DeleteAsync_GivenExistingAggregateMarkedAsDeleted_DeletesFromMongoDB(CancellationToken cancellationToken)
+	public async Task DeleteAsync_GivenExistingAggregateMarkedAsDeleted_DeletesFromMongoDB(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var context = fixture.CreateContext();

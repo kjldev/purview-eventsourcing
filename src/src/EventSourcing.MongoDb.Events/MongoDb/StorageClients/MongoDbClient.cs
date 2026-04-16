@@ -34,7 +34,9 @@ sealed partial class MongoDBClient : IDisposable
 
 			BsonSerializer.RegisterSerializer(new ObjectSerializer(iEntityType.IsAssignableFrom));
 		}
+#pragma warning disable CA1031
 		catch
+#pragma warning restore CA1031
 		{
 			return false;
 		}
@@ -58,7 +60,9 @@ sealed partial class MongoDBClient : IDisposable
 
 			BsonSerializer.RegisterSerializer(new ObjectSerializer(t => Array.IndexOf(entityType, t) > -1));
 		}
+#pragma warning disable CA1031
 		catch
+#pragma warning restore CA1031
 		{
 			return false;
 		}
@@ -98,10 +102,9 @@ sealed partial class MongoDBClient : IDisposable
 	{
 		var builder = new FilterDefinitionBuilder<T>();
 
-		if (entityType == null)
-			return builder.Eq("_id", id);
-
-		return builder.And(builder.Eq("_id", id), builder.Eq(nameof(IEntity.EntityType), entityType));
+		return entityType == null
+			? builder.Eq("_id", id)
+			: builder.And(builder.Eq("_id", id), builder.Eq(nameof(IEntity.EntityType), entityType));
 	}
 
 	sealed class StringObjectIdIdGeneratorConventionThatWorks : ConventionBase, IPostProcessingConvention

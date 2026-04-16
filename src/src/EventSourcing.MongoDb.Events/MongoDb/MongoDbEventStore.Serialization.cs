@@ -1,19 +1,15 @@
-﻿using Newtonsoft.Json;
-using Purview.EventSourcing.Aggregates.Events;
+﻿using Purview.EventSourcing.Aggregates.Events;
 
 namespace Purview.EventSourcing.MongoDB;
 
 partial class MongoDBEventStore<T>
 {
 	static IEvent? DeserializeEvent(string eventContent, Type eventType) =>
-		JsonConvert.DeserializeObject(eventContent, eventType, JsonHelpers.JsonSerializerSettings) as IEvent;
+		JsonHelpers.Deserialize(eventContent, eventType) as IEvent;
 
-	static string SerializeSnapshot(T aggregate) =>
-		JsonConvert.SerializeObject(aggregate, aggregate.GetType(), JsonHelpers.JsonSerializerSettings);
+	static string SerializeSnapshot(T aggregate) => JsonHelpers.Serialize(aggregate, aggregate.GetType());
 
-	static string SerializeEvent(IEvent @event) =>
-		JsonConvert.SerializeObject(@event, @event.GetType(), JsonHelpers.JsonSerializerSettings);
+	static string SerializeEvent(IEvent @event) => JsonHelpers.Serialize(@event, @event.GetType());
 
-	static T DeserializeSnapshot(string aggregateContent) =>
-		JsonConvert.DeserializeObject<T>(aggregateContent, JsonHelpers.JsonSerializerSettings)!;
+	static T DeserializeSnapshot(string aggregateContent) => JsonHelpers.Deserialize<T>(aggregateContent)!;
 }

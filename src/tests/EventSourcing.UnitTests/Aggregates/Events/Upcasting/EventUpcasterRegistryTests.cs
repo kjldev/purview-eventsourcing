@@ -10,48 +10,45 @@ public sealed class EventUpcasterRegistryTests
 	{
 		public string OldField { get; set; } = default!;
 
-		protected override void BuildEventHash(ref HashCode hash)
-			=> hash.Add(OldField);
+		protected override void BuildEventHash(ref HashCode hash) => hash.Add(OldField);
 	}
 
 	sealed class CurrentEvent : EventBase
 	{
 		public string NewField { get; set; } = default!;
 
-		protected override void BuildEventHash(ref HashCode hash)
-			=> hash.Add(NewField);
+		protected override void BuildEventHash(ref HashCode hash) => hash.Add(NewField);
 	}
 
 	sealed class IntermediateEvent : EventBase
 	{
 		public string MidField { get; set; } = default!;
 
-		protected override void BuildEventHash(ref HashCode hash)
-			=> hash.Add(MidField);
+		protected override void BuildEventHash(ref HashCode hash) => hash.Add(MidField);
 	}
 
 	sealed class LegacyToCurrentUpcaster : IEventUpcaster<LegacyEvent, CurrentEvent>
 	{
-		public CurrentEvent Upcast(LegacyEvent source)
-			=> new() { Details = source.Details, NewField = source.OldField + "_upgraded" };
+		public CurrentEvent Upcast(LegacyEvent source) =>
+			new() { Details = source.Details, NewField = source.OldField + "_upgraded" };
 	}
 
 	sealed class LegacyToIntermediateUpcaster : IEventUpcaster<LegacyEvent, IntermediateEvent>
 	{
-		public IntermediateEvent Upcast(LegacyEvent source)
-			=> new() { Details = source.Details, MidField = source.OldField + "_mid" };
+		public IntermediateEvent Upcast(LegacyEvent source) =>
+			new() { Details = source.Details, MidField = source.OldField + "_mid" };
 	}
 
 	sealed class IntermediateToCurrentUpcaster : IEventUpcaster<IntermediateEvent, CurrentEvent>
 	{
-		public CurrentEvent Upcast(IntermediateEvent source)
-			=> new() { Details = source.Details, NewField = source.MidField + "_final" };
+		public CurrentEvent Upcast(IntermediateEvent source) =>
+			new() { Details = source.Details, NewField = source.MidField + "_final" };
 	}
 
 	#endregion
 
 	[Test]
-	public async Task CanUpcast_GivenNoUpcasterRegistered_ReturnsFalse(CancellationToken cancellationToken)
+	public async Task CanUpcast_GivenNoUpcasterRegistered_ReturnsFalse()
 	{
 		// Arrange
 		var registry = new EventUpcasterRegistry([]);
@@ -65,7 +62,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task CanUpcast_GivenUpcasterRegistered_ReturnsTrue(CancellationToken cancellationToken)
+	public async Task CanUpcast_GivenUpcasterRegistered_ReturnsTrue()
 	{
 		// Arrange
 		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
@@ -80,7 +77,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task Upcast_GivenNoUpcasterRegistered_ReturnsSameInstance(CancellationToken cancellationToken)
+	public async Task Upcast_GivenNoUpcasterRegistered_ReturnsSameInstance()
 	{
 		// Arrange
 		var registry = new EventUpcasterRegistry([]);
@@ -94,7 +91,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task Upcast_GivenSingleUpcaster_ReturnsUpcastEvent(CancellationToken cancellationToken)
+	public async Task Upcast_GivenSingleUpcaster_ReturnsUpcastEvent()
 	{
 		// Arrange
 		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
@@ -111,11 +108,15 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task Upcast_GivenChainedUpcasters_AppliesChainInOrder(CancellationToken cancellationToken)
+	public async Task Upcast_GivenChainedUpcasters_AppliesChainInOrder()
 	{
 		// Arrange: LegacyEvent → IntermediateEvent → CurrentEvent
-		var legacyToMid = new EventUpcasterDescriptor<LegacyEvent, IntermediateEvent>(new LegacyToIntermediateUpcaster());
-		var midToCurrent = new EventUpcasterDescriptor<IntermediateEvent, CurrentEvent>(new IntermediateToCurrentUpcaster());
+		var legacyToMid = new EventUpcasterDescriptor<LegacyEvent, IntermediateEvent>(
+			new LegacyToIntermediateUpcaster()
+		);
+		var midToCurrent = new EventUpcasterDescriptor<IntermediateEvent, CurrentEvent>(
+			new IntermediateToCurrentUpcaster()
+		);
 		var registry = new EventUpcasterRegistry([legacyToMid, midToCurrent]);
 
 		var legacyEvent = new LegacyEvent { OldField = "v1" };
@@ -130,7 +131,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task Upcast_GivenAlreadyCurrentEvent_ReturnsUnchanged(CancellationToken cancellationToken)
+	public async Task Upcast_GivenAlreadyCurrentEvent_ReturnsUnchanged()
 	{
 		// Arrange: only LegacyEvent → CurrentEvent upcaster registered
 		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
@@ -147,7 +148,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task CanUpcast_GivenNullEvent_ThrowsArgumentNullException(CancellationToken cancellationToken)
+	public async Task CanUpcast_GivenNullEvent_ThrowsArgumentNullException()
 	{
 		// Arrange
 		var registry = new EventUpcasterRegistry([]);
@@ -157,7 +158,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task Upcast_GivenNullEvent_ThrowsArgumentNullException(CancellationToken cancellationToken)
+	public async Task Upcast_GivenNullEvent_ThrowsArgumentNullException()
 	{
 		// Arrange
 		var registry = new EventUpcasterRegistry([]);
@@ -167,7 +168,7 @@ public sealed class EventUpcasterRegistryTests
 	}
 
 	[Test]
-	public async Task Descriptor_GivenWrongSourceType_ThrowsInvalidOperationException(CancellationToken cancellationToken)
+	public async Task Descriptor_GivenWrongSourceType_ThrowsInvalidOperationException()
 	{
 		// Arrange
 		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());

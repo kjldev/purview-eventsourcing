@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.SqlServer;
 
@@ -15,10 +16,12 @@ public static class SqlServerEventStoreIServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IEventStore<>), typeof(SqlServerEventStore<>))
+			.AddTransient(typeof(IEventStoreCore<>), typeof(SqlServerEventStore<>))
 			.AddTransient(typeof(INonQueryableEventStore<>), typeof(SqlServerEventStore<>))
 			.AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
-			.AddSqlServerEventStoreTelemetry();
+			.AddTransient<IEventStore, EventStoreFacade>()
+			.TryAddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>();
+		services.AddSqlServerEventStoreTelemetry();
 
 		services
 			.AddOptions<SqlServerEventStoreOptions>()
@@ -30,7 +33,8 @@ public static class SqlServerEventStoreIServiceCollectionExtensions
 					if (string.IsNullOrWhiteSpace(options.ConnectionString))
 					{
 						options.ConnectionString =
-							configuration.GetConnectionString("EventStore_SqlServer")
+							configuration.GetConnectionString("eventstore-sqlserver")
+							?? configuration.GetConnectionString("EventStore_SqlServer")
 							?? configuration.GetConnectionString("SqlServer")
 							// This will get picked up by the validation.
 							?? default!;

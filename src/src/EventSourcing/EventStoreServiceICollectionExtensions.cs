@@ -1,5 +1,6 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Events.Upcasting;
 using Purview.EventSourcing.ChangeFeed;
@@ -26,12 +27,17 @@ public static class EventStoreServiceICollectionExtensions
 			.AddScoped(typeof(IAggregateChangeFeedNotifier<>), typeof(AggregateChangeFeedNotifier<>))
 			.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
 
+		services.TryAddSingleton<IEventStoreCorrelationIdProvider, ActivityEventStoreCorrelationIdProvider>();
+		services.TryAddSingleton<IEventStoreTransactionFactory, EventStoreTransactionFactory>();
+
 		return services;
 	}
 
 	public static IServiceCollection AddNullQueryableEventStore(this IServiceCollection services)
 	{
-		services.AddTransient(typeof(IQueryableEventStore<>), typeof(NullQueryableEventStore<>));
+		services
+			.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(NullQueryableEventStore<>))
+			.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		return services;
 	}
@@ -52,20 +58,16 @@ public static class EventStoreServiceICollectionExtensions
 	/// <see cref="AddEventSourcing"/> must be called before (or after) this method on the same
 	/// <paramref name="services"/> collection.
 	/// </remarks>
-	public static IServiceCollection AddEventUpcaster<TSource, TTarget, TUpcaster>(
-		this IServiceCollection services
-	)
+	public static IServiceCollection AddEventUpcaster<TSource, TTarget, TUpcaster>(this IServiceCollection services)
 		where TSource : IEvent
 		where TTarget : IEvent
 		where TUpcaster : class, IEventUpcaster<TSource, TTarget>
 	{
 		services
 			.AddSingleton<IEventUpcaster<TSource, TTarget>, TUpcaster>()
-			.AddSingleton<IEventUpcasterDescriptor>(
-				sp => new EventUpcasterDescriptor<TSource, TTarget>(
-					sp.GetRequiredService<IEventUpcaster<TSource, TTarget>>()
-				)
-			);
+			.AddSingleton<IEventUpcasterDescriptor>(sp => new EventUpcasterDescriptor<TSource, TTarget>(
+				sp.GetRequiredService<IEventUpcaster<TSource, TTarget>>()
+			));
 
 		return services;
 	}

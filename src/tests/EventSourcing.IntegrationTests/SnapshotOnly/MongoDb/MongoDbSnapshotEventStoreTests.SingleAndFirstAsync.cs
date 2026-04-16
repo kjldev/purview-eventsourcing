@@ -10,7 +10,10 @@ partial class MongoDBSnapshotEventStoreTests
 	[Arguments(10)]
 	[Arguments(15)]
 	[Arguments(50)]
-	public async Task SingleOrDefaultAsync_GivenAggregatesExist_ReturnsAggregate(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task SingleOrDefaultAsync_GivenAggregatesExist_ReturnsAggregate(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		string? firstId = null;
 
@@ -55,7 +58,10 @@ partial class MongoDBSnapshotEventStoreTests
 	[Arguments(10)]
 	[Arguments(15)]
 	[Arguments(50)]
-	public async Task FirstOrDefaultAsync_GivenAggregatesExist_ReturnsAggregate(int numberOfAggregates, CancellationToken cancellationToken)
+	public async Task FirstOrDefaultAsync_GivenAggregatesExist_ReturnsAggregate(
+		int numberOfAggregates,
+		CancellationToken cancellationToken
+	)
 	{
 		const int numberOfEvents = 5;
 

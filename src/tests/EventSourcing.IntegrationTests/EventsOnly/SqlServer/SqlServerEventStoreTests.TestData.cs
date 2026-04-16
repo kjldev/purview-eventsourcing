@@ -1,3 +1,5 @@
+using Purview.EventSourcing.EventsOnly.SqlServer;
+
 namespace Purview.EventSourcing.SqlServer;
 
 partial class SqlServerEventStoreTests
@@ -105,7 +107,7 @@ partial class SqlServerEventStoreTests
 		return data;
 	}
 
-	public ISqlServerEventStoreTests CreateSqlServerStoreTests(Type aggregateType)
+	internal ISqlServerEventStoreTests CreateSqlServerStoreTests(Type aggregateType)
 	{
 		var testType = typeof(GenericSqlServerEventStoreTests<>).MakeGenericType(aggregateType);
 		return (ISqlServerEventStoreTests)Activator.CreateInstance(testType, args: [fixture])!;

@@ -7,10 +7,14 @@ namespace Purview.EventSourcing.SqlServer.EntityFramework;
 /// Provides model-first design with migrations for the event store table,
 /// matching the same schema and indices as the ADO.NET auto-create path.
 /// </summary>
-public class EventStoreDbContext : DbContext
+/// <remarks>
+/// Creates a new <see cref="EventStoreDbContext"/> with explicit schema and table names.
+/// </remarks>
+public class EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName)
+	: DbContext(options)
 {
-	readonly string _schemaName;
-	readonly string _tableName;
+	readonly string _schemaName = schemaName;
+	readonly string _tableName = tableName;
 
 	/// <summary>
 	/// All event store rows (stream versions, events, idempotency markers, snapshots).
@@ -23,16 +27,6 @@ public class EventStoreDbContext : DbContext
 	/// </summary>
 	public EventStoreDbContext(DbContextOptions<EventStoreDbContext> options)
 		: this(options, "dbo", "EventStore") { }
-
-	/// <summary>
-	/// Creates a new <see cref="EventStoreDbContext"/> with explicit schema and table names.
-	/// </summary>
-	public EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName)
-		: base(options)
-	{
-		_schemaName = schemaName;
-		_tableName = tableName;
-	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
@@ -49,7 +43,7 @@ public class EventStoreDbContext : DbContext
 			entity.Property(e => e.AggregateType).HasMaxLength(450).IsRequired();
 			entity.Property(e => e.Version).HasDefaultValue(0).IsRequired();
 			entity.Property(e => e.IsDeleted).HasDefaultValue(false).IsRequired();
-			entity.Property(e => e.Payload).HasColumnType("NVARCHAR(MAX)");
+			entity.Property(e => e.Payload).HasColumnType("json");
 			entity.Property(e => e.EventType).HasMaxLength(450);
 			entity.Property(e => e.IdempotencyId).HasMaxLength(450);
 			entity.Property(e => e.Timestamp).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();

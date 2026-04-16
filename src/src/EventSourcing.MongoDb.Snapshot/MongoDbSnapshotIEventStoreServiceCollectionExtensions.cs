@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.MongoDB.Snapshot;
 
-namespace Purview;
+namespace Purview.EventSourcing;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class MongoDBSnapshotIEventStoreServiceCollectionExtensions
@@ -16,12 +17,16 @@ public static class MongoDBSnapshotIEventStoreServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IQueryableEventStore<>), typeof(MongoDBSnapshotEventStore<>))
+			.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(MongoDBSnapshotEventStore<>))
 			.AddTransient(typeof(IMongoDBSnapshotEventStore<>), typeof(MongoDBSnapshotEventStore<>))
 			.AddMongoDBSnapshotEventStoreTelemetry();
+		services.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		if (registerAsIEventStore)
-			services.AddTransient(typeof(IEventStore<>), typeof(MongoDBSnapshotEventStore<>));
+		{
+			services.AddTransient(typeof(IEventStoreCore<>), typeof(MongoDBSnapshotEventStore<>));
+			services.TryAddTransient<IEventStore, EventStoreFacade>();
+		}
 
 		services
 			.AddOptions<MongoDBEventStoreOptions>()

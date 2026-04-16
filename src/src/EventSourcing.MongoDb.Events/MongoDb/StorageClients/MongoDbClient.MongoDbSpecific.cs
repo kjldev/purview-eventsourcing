@@ -140,10 +140,7 @@ partial class MongoDBClient
 			options: new() { Limit = 1 },
 			cancellationToken: cancellationToken
 		);
-		if (!await result.MoveNextAsync(cancellationToken))
-			return null;
-
-		return result.Current.FirstOrDefault();
+		return await result.MoveNextAsync(cancellationToken) ? result.Current.FirstOrDefault() : null;
 	}
 
 	public async Task<bool> UpsertAsync<T>(

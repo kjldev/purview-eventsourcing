@@ -1,10 +1,14 @@
-﻿using Purview.EventSourcing.ChangeFeed;
+﻿using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.ChangeFeed;
 
 namespace Purview.EventSourcing.SqlServer;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {
-	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(int eventsToCreate, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	)
 	{
 		var aggregateChangeNotifier = Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>();
 		var beforeWasCalled = false;
@@ -14,13 +18,15 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
 
-		using var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
+		var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
 
 		aggregateChangeNotifier
 			.When(m => m.BeforeSaveAsync(aggregate, true, Arg.Any<CancellationToken>()))
 			.Do(_ => beforeWasCalled = true);
 		aggregateChangeNotifier
-			.When(m => m.AfterSaveAsync(aggregate, Arg.Any<int>(), true, Arg.Any<Aggregates.Events.IEvent[]>()))
+			.When(m =>
+				m.AfterSaveAsync(aggregate, Arg.Any<int>(), true, Arg.Any<IEvent[]>(), Arg.Any<CancellationToken>())
+			)
 			.Do(_ => afterWasCalled = true);
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -32,7 +38,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		await aggregateChangeNotifier.Received(1).BeforeSaveAsync(aggregate, true, Arg.Any<CancellationToken>());
 		await aggregateChangeNotifier
 			.Received(1)
-			.AfterSaveAsync(aggregate, Arg.Any<int>(), true, Arg.Any<Aggregates.Events.IEvent[]>(), Arg.Any<CancellationToken>());
+			.AfterSaveAsync(aggregate, Arg.Any<int>(), true, Arg.Any<IEvent[]>(), Arg.Any<CancellationToken>());
 	}
 
 	public async Task SaveAsync_GivenAggregateWithNoChanges_DoesNotNotifyChangeFeed(CancellationToken cancellationToken)
@@ -41,7 +47,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 
-		using var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
+		var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
@@ -52,6 +58,12 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 			.BeforeSaveAsync(Arg.Any<TAggregate>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
 		await aggregateChangeNotifier
 			.DidNotReceive()
-			.AfterSaveAsync(Arg.Any<TAggregate>(), Arg.Any<int>(), Arg.Any<bool>(), Arg.Any<Aggregates.Events.IEvent[]>(), Arg.Any<CancellationToken>());
+			.AfterSaveAsync(
+				Arg.Any<TAggregate>(),
+				Arg.Any<int>(),
+				Arg.Any<bool>(),
+				Arg.Any<IEvent[]>(),
+				Arg.Any<CancellationToken>()
+			);
 	}
 }

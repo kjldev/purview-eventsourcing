@@ -7,7 +7,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		var result = await eventStore.ExistsAsync(aggregateId, cancellationToken: cancellationToken);

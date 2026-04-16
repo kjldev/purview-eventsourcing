@@ -3,7 +3,7 @@ namespace Purview.EventSourcing;
 public class ExistsStateTests
 {
 	[Test]
-	public async Task ImplicitBoolConversion_GivenExists_ReturnsTrue(CancellationToken cancellationToken)
+	public async Task ImplicitBoolConversion_GivenExists_ReturnsTrue()
 	{
 		// Act
 		bool result = ExistsState.Exists;
@@ -13,7 +13,7 @@ public class ExistsStateTests
 	}
 
 	[Test]
-	public async Task ImplicitBoolConversion_GivenDoesNotExist_ReturnsFalse(CancellationToken cancellationToken)
+	public async Task ImplicitBoolConversion_GivenDoesNotExist_ReturnsFalse()
 	{
 		// Act
 		bool result = ExistsState.DoesNotExists;
@@ -23,7 +23,7 @@ public class ExistsStateTests
 	}
 
 	[Test]
-	public async Task ImplicitBoolConversion_GivenExistsInDeletedState_ReturnsTrue(CancellationToken cancellationToken)
+	public async Task ImplicitBoolConversion_GivenExistsInDeletedState_ReturnsTrue()
 	{
 		// Act
 		bool result = ExistsState.ExistsInDeletedState;

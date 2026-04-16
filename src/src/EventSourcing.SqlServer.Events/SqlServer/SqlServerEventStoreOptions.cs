@@ -150,6 +150,6 @@ public sealed class SqlServerEventStoreOptions
 	/// </code>
 	/// </example>
 	/// </remarks>
-	public Dictionary<string, SqlServerAggregateTableOverride> AggregateTableOverrides { get; init; }
-		= new(StringComparer.OrdinalIgnoreCase);
+	public Dictionary<string, SqlServerAggregateTableOverride> AggregateTableOverrides { get; init; } =
+		new(StringComparer.OrdinalIgnoreCase);
 }

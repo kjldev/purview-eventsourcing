@@ -1,5 +1,4 @@
 using Purview.EventSourcing.Aggregates;
-using Purview.EventSourcing.Samples.Domain.Events;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -7,21 +6,13 @@ namespace Purview.EventSourcing.Samples.Domain;
 /// Simple aggregate demonstrating basic customer management.
 /// Shows: single-property events, string manipulation, validation.
 /// </summary>
-public sealed class CustomerAggregate : AggregateBase
+[GenerateAggregate]
+public sealed partial class CustomerAggregate : AggregateBase
 {
 	public string Name { get; private set; } = default!;
 	public string Email { get; private set; } = default!;
 	public string? PhoneNumber { get; private set; }
 	public bool IsActive { get; private set; }
-
-	protected override void RegisterEvents()
-	{
-		Register<CustomerRegisteredEvent>(Apply);
-		Register<CustomerEmailChangedEvent>(Apply);
-		Register<CustomerPhoneChangedEvent>(Apply);
-		Register<CustomerDeactivatedEvent>(Apply);
-		Register<CustomerReactivatedEvent>(Apply);
-	}
 
 	// Commands
 	public void RegisterCustomer(string name, string email)
@@ -29,44 +20,85 @@ public sealed class CustomerAggregate : AggregateBase
 		ArgumentException.ThrowIfNullOrWhiteSpace(name);
 		ArgumentException.ThrowIfNullOrWhiteSpace(email);
 
-		RecordAndApply(new CustomerRegisteredEvent { Name = name, Email = email });
+		CustomerRegistered(name, email, isActive: true);
+	}
+
+	public void ChangeName(string newName)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(newName);
+		if (newName == Name)
+			return;
+
+		CustomerNameChanged(newName);
 	}
 
 	public void ChangeEmail(string newEmail)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
-		if (newEmail == Email) return;
+		if (newEmail == Email)
+			return;
 
-		RecordAndApply(new CustomerEmailChangedEvent { Email = newEmail });
+		CustomerEmailChanged(newEmail);
 	}
 
-	public void ChangePhoneNumber(string? phoneNumber)
+	public void ChangePhoneNumber(string? phoneNumber) => CustomerPhoneChanged(phoneNumber);
+
+	/// <summary>
+	/// Updates one or more customer details in a single operation, raising a granular event
+	/// for each field that has actually changed. Pass <see langword="null"/> for any field
+	/// that should remain unchanged. To clear the phone number, use <see cref="ChangePhoneNumber"/> directly.
+	/// </summary>
+	public void UpdateDetails(string? name = null, string? email = null, string? phoneNumber = null)
 	{
-		RecordAndApply(new CustomerPhoneChangedEvent { PhoneNumber = phoneNumber });
+		if (name is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(name);
+			if (name != Name)
+				CustomerNameChanged(name);
+		}
+
+		if (email is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(email);
+			if (email != Email)
+				CustomerEmailChanged(email);
+		}
+
+		if (phoneNumber is not null && phoneNumber != PhoneNumber)
+			CustomerPhoneChanged(phoneNumber);
 	}
 
 	public void Deactivate()
 	{
-		if (!IsActive) return;
-		RecordAndApply(new CustomerDeactivatedEvent());
+		if (!IsActive)
+			return;
+
+		CustomerDeactivated(isActive: false);
 	}
 
 	public void Reactivate()
 	{
-		if (IsActive) return;
-		RecordAndApply(new CustomerReactivatedEvent());
+		if (IsActive)
+			return;
+
+		CustomerReactivated(isActive: true);
 	}
 
-	// Apply methods
-	void Apply(CustomerRegisteredEvent @event)
-	{
-		Name = @event.Name;
-		Email = @event.Email;
-		IsActive = true;
-	}
+	[GenerateAggregateEvent]
+	public partial void CustomerRegistered(string name, string email, bool isActive);
 
-	void Apply(CustomerEmailChangedEvent @event) => Email = @event.Email;
-	void Apply(CustomerPhoneChangedEvent @event) => PhoneNumber = @event.PhoneNumber;
-	void Apply(CustomerDeactivatedEvent _) => IsActive = false;
-	void Apply(CustomerReactivatedEvent _) => IsActive = true;
+	[GenerateAggregateEvent]
+	public partial void CustomerNameChanged(string name);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerEmailChanged(string email);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerPhoneChanged(string? phoneNumber);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerDeactivated(bool isActive);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerReactivated(bool isActive);
 }

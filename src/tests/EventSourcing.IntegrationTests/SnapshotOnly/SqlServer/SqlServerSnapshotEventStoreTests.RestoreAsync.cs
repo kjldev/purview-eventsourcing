@@ -5,7 +5,9 @@ namespace Purview.EventSourcing.SqlServer.Snapshot;
 partial class SqlServerSnapshotEventStoreTests
 {
 	[Test]
-	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInSqlServerWhenRestore_SnapshotCreatedInSqlServer(CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInSqlServerWhenRestore_SnapshotCreatedInSqlServer(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var context = fixture.CreateContext();

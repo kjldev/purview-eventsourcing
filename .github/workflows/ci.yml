@@ -9,58 +9,55 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  build-test-pack:
+    name: Build, test, and pack
+    runs-on: t-x-kjldev
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
-      - name: Restore dependencies
-        working-directory: src
-        run: |
-          dotnet restore tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj
-          dotnet restore tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj
-          dotnet restore tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj
+      - name: Setup just
+        uses: extractions/setup-just@v4
+
+      - name: Restore tools
+        run: just tools
+        
+      - name: Check formatting
+        run: just check
+  
+      - name: Restore packages
+        run: just restore
 
       - name: Build
-        working-directory: src
-        run: |
-          dotnet build tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj --configuration Release --no-restore
-          dotnet build tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj --configuration Release --no-restore
-          dotnet build tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj --configuration Release --no-restore
+        run: just build
 
-      - name: Unit Tests
-        working-directory: src
-        run: |
-          dotnet test --project tests/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj --configuration Release --no-build
-          dotnet test --project tests/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj --configuration Release --no-build
-          dotnet test --project tests/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj --configuration Release --no-build
+      - name: Test
+        run: just test
 
-  integration-tests:
-    runs-on: ubuntu-latest
+  ci:
+    name: CI
+    if: ${{ always() }}
+    needs:
+      - build-test-pack
+    runs-on: t-x-kjldev
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Restore dependencies
-        working-directory: src
-        run: dotnet restore tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj
-
-      - name: Build
-        working-directory: src
-        run: dotnet build tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-restore
-
-      - name: Integration Tests
-        working-directory: src
-        run: dotnet test --project tests/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj --configuration Release --no-build
+      - name: Check all required jobs passed or were skipped
+        env:
+          RESULT: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          if [[ "$RESULT" == "true" ]]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required jobs passed or were skipped."

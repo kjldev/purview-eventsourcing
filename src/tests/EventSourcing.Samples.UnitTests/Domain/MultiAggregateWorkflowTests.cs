@@ -1,6 +1,6 @@
 using Purview.EventSourcing.Samples.Domain;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Domain;
+namespace Purview.EventSourcing.Samples.Domain;
 
 /// <summary>
 /// Tests demonstrating cross-aggregate business workflows.
@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.Samples.UnitTests.Domain;
 public class MultiAggregateWorkflowTests
 {
 	[Test]
-	public async Task OrderFulfillment_CustomerPlacesOrderWithInventoryReservation_AllAggregatesHaveCorrectState(CancellationToken cancellationToken)
+	public async Task OrderFulfillment_CustomerPlacesOrderWithInventoryReservation_AllAggregatesHaveCorrectState()
 	{
 		// Arrange — set up customer, inventory, and order
 		var customer = new CustomerAggregate();
@@ -17,7 +17,7 @@ public class MultiAggregateWorkflowTests
 
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = "inv-widget";
-		inventory.Initialize("widget-1", "Premium Widget", initialQuantity: 100);
+		inventory.Initialize("widget-1", "Premium Widget", "warehouse-1", "Main Warehouse", initialQuantity: 100);
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-1";
@@ -47,12 +47,12 @@ public class MultiAggregateWorkflowTests
 	}
 
 	[Test]
-	public async Task OrderCancellation_ReleasesInventoryReservation_InventoryRestored(CancellationToken cancellationToken)
+	public async Task OrderCancellation_ReleasesInventoryReservation_InventoryRestored()
 	{
 		// Arrange
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = "inv-gadget";
-		inventory.Initialize("gadget-1", "Gadget", initialQuantity: 50);
+		inventory.Initialize("gadget-1", "Gadget", "warehouse-1", "Main Warehouse", initialQuantity: 50);
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-cancel";
@@ -74,7 +74,7 @@ public class MultiAggregateWorkflowTests
 	}
 
 	[Test]
-	public async Task CustomerDeactivation_DoesNotAffectExistingOrders(CancellationToken cancellationToken)
+	public async Task CustomerDeactivation_DoesNotAffectExistingOrders()
 	{
 		// Arrange
 		var customer = new CustomerAggregate();

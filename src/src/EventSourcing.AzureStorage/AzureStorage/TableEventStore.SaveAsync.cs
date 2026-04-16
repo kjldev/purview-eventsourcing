@@ -5,7 +5,6 @@ using System.Security.Claims;
 using System.Text;
 using Azure;
 using FluentValidation.Results;
-using Newtonsoft.Json;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.AzureStorage.Entities;
@@ -35,7 +34,7 @@ partial class TableEventStore<T>
 
 		FulfilRequirements(aggregate);
 
-		var idempotencyId = Activity.Current?.Id ?? $"{Guid.NewGuid()}";
+		var idempotencyId = operationContext.CorrelationId ?? Activity.Current?.Id ?? $"{Guid.NewGuid()}";
 		var validationResult = await GuardAsync(aggregate, cancellationToken);
 
 		static SaveResult<T> ReturnSaveResult(
@@ -178,7 +177,13 @@ partial class TableEventStore<T>
 			if (operationContext.UseIdempotencyMarker)
 				batchOperation.Add(idempotencyMarkerOperation, recordAt: 0);
 
-			await SubmitBatchOperationsAsync(aggregate, idempotencyId, batchOperation, operationContext.UseIdempotencyMarker, cancellationToken);
+			await SubmitBatchOperationsAsync(
+				aggregate,
+				idempotencyId,
+				batchOperation,
+				operationContext.UseIdempotencyMarker,
+				cancellationToken
+			);
 
 			if (largeChangeEvents.Count > 0)
 			{
@@ -262,11 +267,10 @@ partial class TableEventStore<T>
 
 	bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
-		if (aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any())
-			return true;
-
-		return (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
-			>= _eventStoreOptions.Value.SnapshotInterval;
+		return aggregate.Details.IsDeleted
+			|| events.OfType<RestoreEvent>().Any()
+			|| (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
+				>= _eventStoreOptions.Value.SnapshotInterval;
 	}
 
 	async Task WriteLargeEventEntitiesAsync(
@@ -326,7 +330,7 @@ partial class TableEventStore<T>
 			EventIds = [.. changeEvents.Select(m => m.Details.AggregateVersion).OrderBy(m => m)],
 		};
 
-		marker.Events = JsonConvert.SerializeObject(eventObject, Formatting.None);
+		marker.Events = JsonHelpers.Serialize(eventObject);
 
 		return marker;
 	}
@@ -474,7 +478,9 @@ partial class TableEventStore<T>
 				// Do not pass in the cancellation token. We want this to carry on as long as possible.
 				await _distributedCache.RemoveAsync(cacheKey);
 			}
+#pragma warning disable CA1031
 			catch (Exception ex)
+#pragma warning restore CA1031
 			{
 				_eventStoreTelemetry.CacheRemovalFailure(aggregate.Id(), _aggregateTypeFullName, ex);
 			}

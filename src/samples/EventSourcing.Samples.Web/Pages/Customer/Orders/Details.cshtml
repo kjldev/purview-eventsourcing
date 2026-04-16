@@ -1,0 +1,174 @@
+@page "{id}"
+@model Purview.EventSourcing.Samples.Web.Pages.Customer.Orders.DetailsModel
+@using Purview.EventSourcing.Samples.Domain
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+@if (Model.Order == null)
+{
+    <p class="text-gray-500">Order not found.</p>
+    return;
+}
+
+<a asp-page="Index" class="text-sm text-slate-500 hover:underline mb-4 inline-block">← Back to My Orders</a>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-8">
+        <div class="flex items-start justify-between mb-6">
+            <div>
+                <h2 class="text-xl font-semibold font-mono">@(Model.Order.Id().Length >= 8 ? Model.Order.Id()[..8] : Model.Order.Id())…</h2>
+                <span class="mt-1 px-2 py-1 rounded-full text-xs font-medium @StatusBadge(Model.Order.Status)">@Model.Order.Status</span>
+                @if (Model.Order.Status == OrderStatus.Draft)
+                {
+                    <span class="ml-2 text-xs text-amber-600">✏ You can still edit this order</span>
+                }
+            </div>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+            <div>
+                <dt class="font-medium text-gray-500">Total Amount</dt>
+                <dd class="mt-1 text-lg font-semibold">@Model.Order.TotalAmount.ToString("C")</dd>
+            </div>
+            @if (Model.Order.ShippingAddress != null)
+            {
+                <div>
+                    <dt class="font-medium text-gray-500">Shipping Address</dt>
+                    <dd class="mt-1">@Model.Order.ShippingAddress</dd>
+                </div>
+            }
+            @if (Model.Order.Notes != null)
+            {
+                <div>
+                    <dt class="font-medium text-gray-500">Notes</dt>
+                    <dd class="mt-1">@Model.Order.Notes</dd>
+                </div>
+            }
+            @if (Model.Order.ShippedAt.HasValue)
+            {
+                <div>
+                    <dt class="font-medium text-gray-500">Shipped At</dt>
+                    <dd class="mt-1">@Model.Order.ShippedAt.Value.ToString("g")</dd>
+                </div>
+            }
+            @if (Model.Order.CompletedAt.HasValue)
+            {
+                <div>
+                    <dt class="font-medium text-gray-500">Completed At</dt>
+                    <dd class="mt-1">@Model.Order.CompletedAt.Value.ToString("g")</dd>
+                </div>
+            }
+        </dl>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-sm font-semibold text-gray-600 mb-4">Order Info</h3>
+        <dl class="space-y-3 text-sm">
+            <div>
+                <dt class="text-gray-500 text-xs">Version</dt>
+                <dd class="font-mono font-medium">v@(Model.Order.Details.SavedVersion)</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500 text-xs">Full ID</dt>
+                <dd class="font-mono text-xs text-gray-400 break-all">@Model.Order.Id()</dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- Line items -->
+@if (Model.Order.LineItems.Length > 0)
+{
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="text-base font-semibold">Line Items (@Model.Order.LineItems.Length)</h3>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                    <th class="text-left px-5 py-3 font-medium text-gray-600">Product</th>
+                    <th class="text-right px-5 py-3 font-medium text-gray-600">Qty</th>
+                    <th class="text-right px-5 py-3 font-medium text-gray-600">Unit Price</th>
+                    <th class="text-right px-5 py-3 font-medium text-gray-600">Subtotal</th>
+                    @if (Model.Order.Status == OrderStatus.Draft)
+                    {
+                        <th class="px-5 py-3"></th>
+                    }
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach (var item in Model.Order.LineItems)
+                {
+                    <tr>
+                        <td class="px-5 py-3 font-medium">@item.ProductName<br/><span class="font-mono text-xs text-gray-400">@item.ProductId</span></td>
+                        <td class="px-5 py-3 text-right">@item.Quantity</td>
+                        <td class="px-5 py-3 text-right">@item.UnitPrice.ToString("C")</td>
+                        <td class="px-5 py-3 text-right font-medium">@((item.Quantity * item.UnitPrice).ToString("C"))</td>
+                        @if (Model.Order.Status == OrderStatus.Draft)
+                        {
+                            <td class="px-5 py-3 text-right">
+                                <form method="post" asp-page-handler="RemoveLineItem" class="inline">
+                                    <input type="hidden" name="id" value="@Model.Order.Id()" />
+                                    <input type="hidden" name="productId" value="@item.ProductId" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="text-red-400 hover:text-red-600 text-xs hover:underline"
+                                            onclick="return confirm('Remove this item?')">Remove</button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+                <tr class="bg-gray-50 font-semibold">
+                    <td colspan="@(Model.Order.Status == OrderStatus.Draft ? 5 : 4)" class="px-5 py-3 text-right">Total: @Model.Order.TotalAmount.ToString("C")</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Edit forms for Draft orders only -->
+@if (Model.Order.Status == OrderStatus.Draft)
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Set Shipping Address -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-base font-semibold mb-4">Set Shipping Address</h2>
+            <form method="post" asp-page-handler="SetShippingAddress">
+                <input type="hidden" name="id" value="@Model.Order.Id()" />
+                <textarea name="address" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400" required>@Model.Order.ShippingAddress</textarea>
+                <button type="submit" class="w-full px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">Set Address</button>
+            </form>
+        </div>
+
+        <!-- Update Notes -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-base font-semibold mb-4">Notes</h2>
+            <form method="post" asp-page-handler="UpdateNotes">
+                <input type="hidden" name="id" value="@Model.Order.Id()" />
+                <textarea name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400">@Model.Order.Notes</textarea>
+                <button type="submit" class="w-full px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">Update Notes</button>
+            </form>
+        </div>
+
+        <!-- Cancel Order -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-base font-semibold mb-4 text-red-600">Cancel Order</h2>
+            <p class="text-sm text-gray-500 mb-4">This will cancel your draft order. This action cannot be undone.</p>
+            <form method="post" asp-page-handler="Cancel">
+                <input type="hidden" name="id" value="@Model.Order.Id()" />
+                <button type="submit" class="w-full px-4 py-2 bg-red-50 text-red-700 text-sm rounded-lg hover:bg-red-100 transition-colors"
+                        onclick="return confirm('Cancel this order?')">✗ Cancel Order</button>
+            </form>
+        </div>
+    </div>
+}
+
+@functions {
+    static string StatusBadge(OrderStatus status) => status switch {
+        OrderStatus.Draft => "bg-gray-100 text-gray-600",
+        OrderStatus.Confirmed => "bg-blue-100 text-blue-700",
+        OrderStatus.Shipped => "bg-amber-100 text-amber-700",
+        OrderStatus.Completed => "bg-green-100 text-green-700",
+        OrderStatus.Cancelled => "bg-red-100 text-red-600",
+        _ => "bg-gray-100 text-gray-500"
+    };
+}

@@ -11,10 +11,10 @@ partial class AggregateBaseTests
 		var aggregate = CreateTestAggregate("Aggregate-Id");
 
 		// Act
-		var action = () => aggregate.Details.Id = "Another Id";
+		string Action() => aggregate.Details.Id = "Another Id";
 
 		// Assert
-		await Assert.That(action).Throws<IdAlreadySetException>();
+		await Assert.That(Action).Throws<IdAlreadySetException>();
 	}
 
 	[Test]
@@ -26,9 +26,9 @@ partial class AggregateBaseTests
 		var aggregate = CreateTestAggregate(aggregateId);
 
 		// Act
-		var action = () => aggregate.Details.Id = aggregateId;
+		string Action() => aggregate.Details.Id = aggregateId;
 
 		// Assert
-		await Assert.That(action).ThrowsNothing();
+		await Assert.That(Action).ThrowsNothing();
 	}
 }

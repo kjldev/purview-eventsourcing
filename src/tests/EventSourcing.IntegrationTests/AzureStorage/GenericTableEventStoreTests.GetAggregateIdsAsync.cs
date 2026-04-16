@@ -2,11 +2,14 @@
 
 partial class GenericTableEventStoreTests<TAggregate>
 {
-	public async Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(int aggregateCount, CancellationToken cancellationToken)
+	public async Task GetAggregateIdsAsync_GivenNAggregatesInTheStore_CorrectlyReturnsTheirIds(
+		int aggregateCount,
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: aggregateCount);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < aggregateCount; i++)
 		{
@@ -37,9 +40,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 	{
 		// Arrange
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(
-			correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2)
-		);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{
@@ -80,9 +81,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 	{
 		// Arrange
 		List<string> generatedIds = [];
-		var eventStore = fixture.CreateEventStore<TAggregate>(
-			correlationIdsToGenerate: nonDeletedAggregateIdCount + (deletedAggregateIdCount * 2)
-		);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{

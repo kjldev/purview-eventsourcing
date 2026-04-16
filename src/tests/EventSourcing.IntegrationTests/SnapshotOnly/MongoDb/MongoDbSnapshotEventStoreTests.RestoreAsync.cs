@@ -3,7 +3,9 @@
 partial class MongoDBSnapshotEventStoreTests
 {
 	[Test]
-	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInMongoDBWhenRestore_SnapshotCreatedInMongoDB(CancellationToken cancellationToken)
+	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInMongoDBWhenRestore_SnapshotCreatedInMongoDB(
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var context = fixture.CreateContext();

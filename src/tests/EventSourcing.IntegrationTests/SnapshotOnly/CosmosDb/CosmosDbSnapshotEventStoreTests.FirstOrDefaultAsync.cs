@@ -3,7 +3,9 @@
 partial class CosmosDbSnapshotEventStoreTests
 {
 	[Test]
-	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregatesHonoursDescendingOrder_ReturnsCorrectAggregate(CancellationToken cancellationToken)
+	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregatesHonoursDescendingOrder_ReturnsCorrectAggregate(
+		CancellationToken cancellationToken
+	)
 	{
 		const int aggregateCount = 10;
 		const int matchingIncrement = 10;
@@ -37,7 +39,9 @@ partial class CosmosDbSnapshotEventStoreTests
 	}
 
 	[Test]
-	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregatesHonoursAscendingOrder_ReturnsCorrectAggregate(CancellationToken cancellationToken)
+	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregatesHonoursAscendingOrder_ReturnsCorrectAggregate(
+		CancellationToken cancellationToken
+	)
 	{
 		const int aggregateCount = 10;
 		const int matchingIncrement = 10;
@@ -71,7 +75,9 @@ partial class CosmosDbSnapshotEventStoreTests
 	}
 
 	[Test]
-	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregates_ShouldNotThrowException(CancellationToken cancellationToken)
+	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregates_ShouldNotThrowException(
+		CancellationToken cancellationToken
+	)
 	{
 		const int aggregateCount = 10;
 		const int matchingIncrement = 10;
@@ -93,18 +99,20 @@ partial class CosmosDbSnapshotEventStoreTests
 		}
 
 		// Act
-		Func<Task> func = async () =>
+		async Task Func() =>
 			await context.EventStore.FirstOrDefaultAsync(
 				m => m.IncrementInt32 == matchingIncrement,
 				cancellationToken: cancellationToken
 			);
 
 		// Assert
-		await Assert.That(func).ThrowsNothing();
+		await Assert.That(Func).ThrowsNothing();
 	}
 
 	[Test]
-	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregates_ShouldNotReturnNull(CancellationToken cancellationToken)
+	public async Task FirstOrDefaultAsync_GivenMultipleMatchingAggregates_ShouldNotReturnNull(
+		CancellationToken cancellationToken
+	)
 	{
 		const int matchingIncrement = 10;
 
@@ -133,7 +141,9 @@ partial class CosmosDbSnapshotEventStoreTests
 	}
 
 	[Test]
-	public async Task FirstOrDefaultAsync_GivenSingleMatchingAggregates_ReturnsAggregate(CancellationToken cancellationToken)
+	public async Task FirstOrDefaultAsync_GivenSingleMatchingAggregates_ReturnsAggregate(
+		CancellationToken cancellationToken
+	)
 	{
 		const int matchingIncrement = 10;
 

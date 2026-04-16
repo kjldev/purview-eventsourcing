@@ -1,0 +1,89 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.Customer.Catalog.IndexModel
+@{
+    ViewData["Title"] = "Product Catalog";
+}
+
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        @if (Model.CurrentCustomer != null)
+        {
+            <p class="text-gray-600">Welcome, <span class="font-semibold">@Model.CurrentCustomer.Name</span></p>
+        }
+        <p class="text-sm text-gray-400">@Model.Products.Count product(s) available</p>
+    </div>
+    <a asp-page="/Customer/Cart/Index" class="relative flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 text-sm rounded-lg hover:bg-blue-100 transition-colors border border-blue-200">
+        🛒 Cart
+        @if (Model.CartCount > 0)
+        {
+            <span class="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-blue-600 text-white rounded-full">@Model.CartCount</span>
+        }
+    </a>
+</div>
+
+<!-- Search -->
+<form method="get" class="mb-6 flex gap-3">
+    <input type="text" name="search" value="@Model.Search" placeholder="Search products..."
+           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+    <button type="submit" class="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">Search</button>
+    @if (!string.IsNullOrEmpty(Model.Search))
+    {
+        <a asp-page="Index" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 underline self-center">Clear</a>
+    }
+</form>
+
+@if (Model.Products.Count == 0)
+{
+    <div class="text-center py-16 text-gray-400">
+        <p class="text-5xl mb-3">🛒</p>
+        <p class="text-lg font-medium">No products available</p>
+        <p class="text-sm mt-1">Check back later or clear your search.</p>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        @foreach (var product in Model.Products)
+        {
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <!-- Product image -->
+                @if (product.ImageUrl != null)
+                {
+                    <img src="@product.ImageUrl" alt="@product.ProductName"
+                         class="w-full h-48 object-cover" />
+                }
+                else
+                {
+                    <div class="w-full h-48 bg-gray-100 flex flex-col items-center justify-center text-gray-400">
+                        <span class="text-5xl mb-1">📦</span>
+                        <span class="text-xs">No image</span>
+                    </div>
+                }
+                <div class="p-5 flex flex-col flex-1">
+                    <div class="mb-3">
+                        <h3 class="font-semibold text-gray-900">@product.ProductName</h3>
+                        <p class="text-xs text-gray-400 font-mono">@product.ProductId</p>
+                    </div>
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-2xl font-bold text-slate-800">@product.UnitPrice.ToString("C")</span>
+                        <span class="text-sm @(product.TotalAvailable < 5 ? "text-amber-600 font-semibold" : "text-gray-500")">
+                            @product.TotalAvailable in stock
+                        </span>
+                    </div>
+                    <form method="post" asp-page-handler="AddToCart" class="mt-auto flex gap-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="inventoryId" value="@product.BestInventoryId" />
+                        <input type="hidden" name="productId" value="@product.ProductId" />
+                        <input type="hidden" name="productName" value="@product.ProductName" />
+                        <input type="hidden" name="unitPrice" value="@product.UnitPrice" />
+                        <input type="number" name="quantity" value="1" min="1" max="@product.TotalAvailable"
+                               class="w-16 px-2 py-2 border border-gray-300 rounded-lg text-sm text-center" />
+                        <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                            + Add to Cart
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+}

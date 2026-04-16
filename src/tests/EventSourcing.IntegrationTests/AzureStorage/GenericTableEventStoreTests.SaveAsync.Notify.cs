@@ -5,7 +5,10 @@ namespace Purview.EventSourcing.AzureStorage;
 
 partial class GenericTableEventStoreTests<TAggregate>
 {
-	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(int eventsToCreate, CancellationToken cancellationToken)
+	public async Task SaveAsync_GivenAggregateWithChanges_NotifiesChangeFeed(
+		int eventsToCreate,
+		CancellationToken cancellationToken
+	)
 	{
 		// Arrange
 		var aggregateChangeNotifier = Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>();

@@ -30,14 +30,12 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 
 	public MongoDBEventStore<TAggregate> CreateEventStore<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)
-		where TAggregate : class, IAggregate, new()
-		=> CreateEventStoreContext<TAggregate>(
+		where TAggregate : class, IAggregate, new() =>
+		CreateEventStoreContext(
 			aggregateChangeNotifier,
-			correlationIdsToGenerate,
 			removeFromCacheOnDelete,
 			snapshotRecalculationInterval
 		).EventStore;
@@ -50,7 +48,6 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 		MongoDBClient SnapshotClient
 	) CreateEventStoreContext<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)

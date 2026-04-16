@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.CosmosDb.Snapshot;
 
-namespace Purview;
+namespace Purview.EventSourcing;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class CosmosDbSnapshotIEventStoreServiceCollectionExtensions
@@ -16,11 +17,15 @@ public static class CosmosDbSnapshotIEventStoreServiceCollectionExtensions
 		services.AddEventSourcing();
 
 		services
-			.AddTransient(typeof(IQueryableEventStore<>), typeof(CosmosDbSnapshotEventStore<>))
+			.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(CosmosDbSnapshotEventStore<>))
 			.AddTransient(typeof(ICosmosDbSnapshotEventStore<>), typeof(CosmosDbSnapshotEventStore<>));
+		services.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 		if (registerAsIEventStore)
-			services.AddTransient(typeof(IEventStore<>), typeof(CosmosDbSnapshotEventStore<>));
+		{
+			services.AddTransient(typeof(IEventStoreCore<>), typeof(CosmosDbSnapshotEventStore<>));
+			services.TryAddTransient<IEventStore, EventStoreFacade>();
+		}
 
 		services
 			.AddOptions<CosmosDbEventStoreOptions>()

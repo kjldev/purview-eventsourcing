@@ -1,7 +1,7 @@
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Domain.Events;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Domain;
+namespace Purview.EventSourcing.Samples.Domain;
 
 public class OrderAggregateTests
 {
@@ -24,7 +24,7 @@ public class OrderAggregateTests
 	#region CreateOrder Tests
 
 	[Test]
-	public async Task CreateOrder_GivenValidCustomerId_SetsProperties(CancellationToken cancellationToken)
+	public async Task CreateOrder_GivenValidCustomerId_SetsProperties()
 	{
 		// Arrange & Act
 		var order = new OrderAggregate();
@@ -50,7 +50,7 @@ public class OrderAggregateTests
 	#region AddLineItem Tests
 
 	[Test]
-	public async Task AddLineItem_GivenValidItem_AddsToLineItems(CancellationToken cancellationToken)
+	public async Task AddLineItem_GivenValidItem_AddsToLineItems()
 	{
 		// Arrange
 		var order = CreateOrder("order-1");
@@ -66,7 +66,7 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public async Task AddLineItem_GivenDuplicateProduct_IncreasesQuantity(CancellationToken cancellationToken)
+	public async Task AddLineItem_GivenDuplicateProduct_IncreasesQuantity()
 	{
 		// Arrange
 		var order = CreateOrder("order-1");
@@ -104,7 +104,7 @@ public class OrderAggregateTests
 	#region RemoveLineItem Tests
 
 	[Test]
-	public async Task RemoveLineItem_GivenExistingProduct_RemovesFromList(CancellationToken cancellationToken)
+	public async Task RemoveLineItem_GivenExistingProduct_RemovesFromList()
 	{
 		// Arrange
 		var order = CreateOrder("order-1", withItems: true);
@@ -129,7 +129,7 @@ public class OrderAggregateTests
 	#region Order Lifecycle Tests
 
 	[Test]
-	public async Task FullLifecycle_DraftToCompleted_TransitionsCorrectly(CancellationToken cancellationToken)
+	public async Task FullLifecycle_DraftToCompleted_TransitionsCorrectly()
 	{
 		// Arrange
 		var order = CreateOrder("order-1", withItems: true);
@@ -183,7 +183,7 @@ public class OrderAggregateTests
 	#region CancelOrder Tests
 
 	[Test]
-	public async Task CancelOrder_GivenDraftOrder_SetsCancelledStatus(CancellationToken cancellationToken)
+	public async Task CancelOrder_GivenDraftOrder_SetsCancelledStatus()
 	{
 		var order = CreateOrder("order-1", withItems: true);
 		order.CancelOrder();
@@ -191,7 +191,7 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public async Task CancelOrder_GivenConfirmedOrder_SetsCancelledStatus(CancellationToken cancellationToken)
+	public async Task CancelOrder_GivenConfirmedOrder_SetsCancelledStatus()
 	{
 		var order = CreateOrder("order-1", withItems: true);
 		order.ConfirmOrder();
@@ -212,10 +212,61 @@ public class OrderAggregateTests
 
 	#endregion
 
+	#region UpdateDetails Tests
+
+	[Test]
+	public async Task UpdateDetails_GivenShippingAddressAndNotes_RaisesTwoEvents()
+	{
+		var order = CreateOrder("order-1");
+		var countBefore = order.GetUnsavedEvents().Count();
+
+		order.UpdateDetails(shippingAddress: "456 New Street", notes: "Handle with care");
+
+		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 2);
+		await Assert.That(order.ShippingAddress).IsEqualTo("456 New Street");
+		await Assert.That(order.Notes).IsEqualTo("Handle with care");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenOnlyShippingAddress_RaisesOneEvent()
+	{
+		var order = CreateOrder("order-1");
+		order.UpdateNotes("Old note");
+		var countBefore = order.GetUnsavedEvents().Count();
+
+		order.UpdateDetails(shippingAddress: "789 Commerce Blvd");
+
+		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(countBefore + 1);
+		await Assert.That(order.ShippingAddress).IsEqualTo("789 Commerce Blvd");
+		await Assert.That(order.Notes).IsEqualTo("Old note");
+	}
+
+	[Test]
+	public async Task UpdateDetails_GivenSameValues_RaisesNoEvents()
+	{
+		var order = CreateOrder("order-1");
+		order.UpdateDetails(shippingAddress: "123 Main St", notes: "Urgent");
+		var countBefore = order.GetUnsavedEvents().Count();
+
+		order.UpdateDetails(shippingAddress: "123 Main St", notes: "Urgent");
+
+		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+	}
+
+	[Test]
+	public void UpdateDetails_GivenWhitespaceAddress_ThrowsArgumentException()
+	{
+		var order = CreateOrder("order-1");
+
+		Assert.Throws<ArgumentException>(() => order.UpdateDetails(shippingAddress: "  "));
+	}
+
+	#endregion
+
 	#region Event Tracking Tests
 
 	[Test]
-	public async Task FullWorkflow_TracksAllEvents(CancellationToken cancellationToken)
+	public async Task FullWorkflow_TracksAllEvents()
 	{
 		// Arrange & Act
 		var order = CreateOrder("order-1");
