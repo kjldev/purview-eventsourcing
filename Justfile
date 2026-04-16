@@ -102,19 +102,24 @@ test-project-serial project:
 # Pack all packable projects using the version from package.json
 pack:
     node -e "const fs = require('node:fs'); const path = require('node:path'); const directory = path.resolve('{{ artifact_folder }}'); fs.mkdirSync(directory, { recursive: true }); for (const entry of fs.readdirSync(directory)) { if (entry.endsWith('.nupkg') || entry.endsWith('.snupkg')) { fs.rmSync(path.join(directory, entry), { force: true }); } }"
-    @just pack-project {{ event_sourcing_azure_storage_package_project }}
-    @just pack-project {{ event_sourcing_cosmos_db_snapshot_package_project }}
-    @just pack-project {{ event_sourcing_mongo_db_events_package_project }}
-    @just pack-project {{ event_sourcing_mongo_db_snapshot_package_project }}
-    @just pack-project {{ event_sourcing_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_azure_storage_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_cosmos_db_snapshot_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_mongo_db_events_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_mongo_db_snapshot_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_package_project }}
     @just pack-project {{ event_sourcing_source_generator_package_project }}
-    @just pack-project {{ event_sourcing_sql_server_events_package_project }}
-    @just pack-project {{ event_sourcing_sql_server_snapshot_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_sql_server_events_package_project }}
+    @just pack-project-with-symbols {{ event_sourcing_sql_server_snapshot_package_project }}
 
 [private]
 pack-project project:
     @echo "==> Packing {{ project }} to {{ artifact_folder }}"
     dotnet pack "{{ project }}" --configuration "{{ configuration }}" --output "{{ artifact_folder }}"
+
+[private]
+pack-project-with-symbols project:
+    @echo "==> Packing {{ project }} to {{ artifact_folder }}"
+    dotnet pack "{{ project }}" --configuration "{{ configuration }}" --output "{{ artifact_folder }}" /p:IncludeSymbols=true /p:SymbolPackageFormat=snupkg
 
 # Publish packed NuGet packages to the specified source
 publish nuget_source api_key:
