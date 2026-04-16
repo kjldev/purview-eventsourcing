@@ -10,12 +10,8 @@ partial class SqlServerEventStore<T>
 			cancellationToken
 		);
 
-		if (aggregate == null)
-			return null;
-
-		if (!aggregate.Details.IsDeleted)
-			throw AggregateNotDeletedException(aggregateId);
-
-		return FulfilRequirements(aggregate);
+		return aggregate == null ? null
+			: aggregate.Details.IsDeleted ? FulfilRequirements(aggregate)
+			: throw AggregateNotDeletedException(aggregateId);
 	}
 }

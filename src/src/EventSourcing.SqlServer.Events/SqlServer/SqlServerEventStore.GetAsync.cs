@@ -160,10 +160,9 @@ partial class SqlServerEventStore<T>
 		{
 			var snapshotId = CreateSnapshotId(aggregateId);
 			var row = await _client.GetByIdAsync(snapshotId, cancellationToken);
-			if (row == null || row.EntityType != SnapshotType || string.IsNullOrWhiteSpace(row.Payload))
-				return null;
-
-			return DeserializeSnapshot(row.Payload);
+			return row == null || row.EntityType != SnapshotType || string.IsNullOrWhiteSpace(row.Payload)
+				? null
+				: DeserializeSnapshot(row.Payload);
 		}
 #pragma warning disable CA1031
 		catch (Exception ex)

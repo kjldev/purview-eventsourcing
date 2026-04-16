@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.MsSql;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Infrastructure;
+namespace Purview.EventSourcing.Samples.Web.Infrastructure;
 
 public sealed class WebAppFactory : WebApplicationFactory<Program>, IAsyncInitializer, IAsyncDisposable
 {

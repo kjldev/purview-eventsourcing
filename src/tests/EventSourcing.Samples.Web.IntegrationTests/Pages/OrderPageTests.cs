@@ -1,9 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.Samples.Web.IntegrationTests.Infrastructure;
+using Purview.EventSourcing.Samples.Web.Infrastructure;
 
-namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Pages;
+namespace Purview.EventSourcing.Samples.Web.Pages;
 
 [ClassDataSource<WebAppFactory>(Shared = SharedType.PerTestSession)]
 public sealed class OrderPageTests(WebAppFactory factory)
@@ -37,13 +36,13 @@ public sealed class OrderPageTests(WebAppFactory factory)
 	[Test]
 	public async Task BackOfficeStockTransfer_Post_WithValidData_Redirects(CancellationToken cancellationToken)
 	{
-		var (SourceInventoryId, DestinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
+		var (sourceInventoryId, destinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Stock/Transfer", cancellationToken);
 
 		var form = new Dictionary<string, string>
 		{
-			["SourceInventoryId"] = SourceInventoryId,
-			["DestinationLocationId"] = DestinationLocationId,
+			["SourceInventoryId"] = sourceInventoryId,
+			["DestinationLocationId"] = destinationLocationId,
 			["Quantity"] = "1",
 			["Reason"] = "Integration test transfer",
 			["__RequestVerificationToken"] = antiForgery,

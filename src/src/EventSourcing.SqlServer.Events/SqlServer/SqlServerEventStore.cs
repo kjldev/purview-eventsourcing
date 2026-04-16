@@ -13,7 +13,7 @@ namespace Purview.EventSourcing.SqlServer;
 // SQL strings are built from validated identifiers at construction time, not from user input.
 #pragma warning disable CA2100
 
-public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ITransactionalEventStore<T>, IDisposable
+public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, ITransactionalEventStore<T>
 	where T : class, IAggregate, new()
 {
 	const int StreamVersionType = 0;
@@ -295,13 +295,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 				DefaultCacheSlidingDuration = options.DefaultCacheSlidingDuration,
 				RequiresValidPrincipalIdentifier = options.RequiresValidPrincipalIdentifier,
 			};
-	}
-
-	public void Dispose()
-	{
-		GC.SuppressFinalize(this);
-
-		_client?.Dispose();
 	}
 
 	internal sealed class StreamVersionData

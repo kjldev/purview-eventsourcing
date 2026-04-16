@@ -1,5 +1,3 @@
-using Purview.EventSourcing.SqlServer;
-
 namespace Purview.EventSourcing.SqlServer;
 
 /// <summary>
@@ -14,7 +12,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenDefaultOptions_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act
-		using var client = new SqlServerEventStoreClient(
+		var client = new SqlServerEventStoreClient(
 			new SqlServerEventStoreOptions
 			{
 				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -32,7 +30,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenCustomSchemaAndTable_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act
-		using var client = new SqlServerEventStoreClient(
+		var client = new SqlServerEventStoreClient(
 			new SqlServerEventStoreOptions
 			{
 				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -50,7 +48,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenIdentifierWithHyphen_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act — hyphens are valid in SQL identifiers when quoted
-		using var client = new SqlServerEventStoreClient(
+		var client = new SqlServerEventStoreClient(
 			new SqlServerEventStoreOptions
 			{
 				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -71,7 +69,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				using var _ = new SqlServerEventStoreClient(
+				var _ = new SqlServerEventStoreClient(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -91,7 +89,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				using var _ = new SqlServerEventStoreClient(
+				var _ = new SqlServerEventStoreClient(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -111,7 +109,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				using var _ = new SqlServerEventStoreClient(
+				var _ = new SqlServerEventStoreClient(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -131,7 +129,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				using var _ = new SqlServerEventStoreClient(
+				var _ = new SqlServerEventStoreClient(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",

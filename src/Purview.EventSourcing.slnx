@@ -7,12 +7,12 @@
 	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src\EventSourcing\EventSourcing.csproj" />
+		<Project Path="src/EventSourcing.SqlServer.Snapshot/EventSourcing.SqlServer.Snapshot.csproj" />
 		<Project Path="src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
 		<Project Path="src\EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
 		<Project Path="src\EventSourcing.MongoDb.Events\EventSourcing.MongoDB.Events.csproj" />
 		<Project Path="src\EventSourcing.MongoDb.Snapshot\EventSourcing.MongoDB.Snapshot.csproj" />
 		<Project Path="src\EventSourcing.Shared\EventSourcing.Shared.csproj" />
-		<Project Path="src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
 		<Project Path="src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
 		<Project Path="src\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" />
 	</Folder>

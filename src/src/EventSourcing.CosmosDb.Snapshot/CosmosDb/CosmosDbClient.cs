@@ -116,7 +116,7 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 				if (!existingSet)
 				{
 					containerResponse.Resource.IndexingPolicy.CompositeIndexes.Add(
-						new System.Collections.ObjectModel.Collection<CompositePath>([.. compositeIndexSetFromConfig])
+						new([.. compositeIndexSetFromConfig])
 					);
 					containerRequiresUpdate = true;
 				}
@@ -217,8 +217,7 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 						?? throw new NullReferenceException(
 							$"Unable to get the container response for '{_containerName}'"
 						);
-					return response.StatusCode is System.Net.HttpStatusCode.OK
-							or System.Net.HttpStatusCode.Accepted
+					return response.StatusCode is System.Net.HttpStatusCode.OK or System.Net.HttpStatusCode.Accepted
 						? response.Container
 						: throw new InvalidOperationException(
 							$"Unable to get or create the container '{_containerName}', with status code: {response.StatusCode}"
@@ -240,9 +239,11 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 						throughput: _cosmosDbOptions.DatabaseThroughput,
 						cancellationToken: ct
 					);
-					return response.StatusCode is System.Net.HttpStatusCode.OK
-							or System.Net.HttpStatusCode.Accepted
-							or System.Net.HttpStatusCode.Created
+					return
+						response.StatusCode
+							is System.Net.HttpStatusCode.OK
+								or System.Net.HttpStatusCode.Accepted
+								or System.Net.HttpStatusCode.Created
 						? response.Database
 						: throw new InvalidOperationException(
 							$"Unable to get or create the database '{_cosmosDbOptions.Database}', with status code: {response.StatusCode}"

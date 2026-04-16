@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.EventsOnly.MongoDb;
 
 namespace Purview.EventSourcing.MongoDB;
 

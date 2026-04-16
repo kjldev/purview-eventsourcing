@@ -65,7 +65,6 @@ partial class GenericTableEventStoreTests<TAggregate>
 		);
 
 		// Assert
-		List<IEvent> eventList = [];
 		await foreach ((var @event, _) in results)
 			await Assert.That(@event.Details.AggregateVersion).IsEqualTo(startEvent++);
 	}

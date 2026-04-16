@@ -13,7 +13,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var eventClient = fixture.EventClient;
 		var snapshotClient = fixture.SnapshotClient;
 
@@ -59,7 +59,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var eventClient = fixture.EventClient;
 		var snapshotClient = fixture.SnapshotClient;
 

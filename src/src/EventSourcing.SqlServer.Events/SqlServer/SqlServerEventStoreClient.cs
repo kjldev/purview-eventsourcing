@@ -7,7 +7,7 @@ namespace Purview.EventSourcing.SqlServer;
 // SQL strings are built from validated identifiers at construction time, not from user input.
 #pragma warning disable CA2100
 
-sealed partial class SqlServerEventStoreClient : IDisposable
+sealed partial class SqlServerEventStoreClient
 {
 	const int MinimumSqlServerMajorVersion = 16; // SQL Server 2022
 	const string MinimumSqlServerVersionName = "SQL Server 2022";
@@ -685,11 +685,6 @@ sealed partial class SqlServerEventStoreClient : IDisposable
 
 	[GeneratedRegex(@"^[\w\-\.]+$")]
 	private static partial Regex IdentifierRegex();
-
-	public void Dispose()
-	{
-		// No persistent connections to dispose - connections are created per-operation.
-	}
 
 	internal sealed class RowData
 	{

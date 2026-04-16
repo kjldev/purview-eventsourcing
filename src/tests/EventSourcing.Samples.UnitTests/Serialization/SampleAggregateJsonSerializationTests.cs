@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Purview.EventSourcing.Samples.Domain;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Serialization;
+namespace Purview.EventSourcing.Samples.Serialization;
 
 public sealed class SampleAggregateJsonSerializationTests
 {

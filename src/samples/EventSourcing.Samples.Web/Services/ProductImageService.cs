@@ -9,6 +9,7 @@ public sealed class ProductImageService(BlobServiceClient blobServiceClient) : I
 
 	public async Task<string?> GetImageUrlAsync(string productId, CancellationToken cancellationToken = default)
 	{
+#pragma warning disable CA1031 // Do not catch general exception types
 		try
 		{
 			var container = blobServiceClient.GetBlobContainerClient(ContainerName);
@@ -19,6 +20,7 @@ public sealed class ProductImageService(BlobServiceClient blobServiceClient) : I
 		{
 			return null;
 		}
+#pragma warning restore CA1031 // Do not catch general exception types
 	}
 
 	public async Task UploadImageAsync(

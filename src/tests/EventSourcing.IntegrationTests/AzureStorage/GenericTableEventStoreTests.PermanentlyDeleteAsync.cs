@@ -14,7 +14,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var tableClient = fixture.TableClient;
 		var blobClient = fixture.BlobClient;
 
@@ -61,7 +61,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var tableClient = fixture.TableClient;
 		var blobClient = fixture.BlobClient;
 

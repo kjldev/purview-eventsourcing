@@ -20,10 +20,7 @@ public sealed class DetailsModel(IQueryableEventStore customerStore, IQueryableE
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
 		Order = await orderStore.GetAsync<OrderAggregate>(id, null, ct);
 
-		if (Order == null || Order.CustomerId != customerId)
-			return NotFound();
-
-		return Page();
+		return Order == null || Order.CustomerId != customerId ? NotFound() : Page();
 	}
 
 	public async Task<IActionResult> OnPostAddLineItemAsync(

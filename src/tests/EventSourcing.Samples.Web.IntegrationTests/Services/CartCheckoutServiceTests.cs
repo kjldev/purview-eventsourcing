@@ -2,9 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
-using Purview.EventSourcing.Samples.Web.IntegrationTests.Infrastructure;
+using Purview.EventSourcing.Samples.Web.Infrastructure;
 
-namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Services;
+namespace Purview.EventSourcing.Samples.Web.Services;
 
 [ClassDataSource<WebAppFactory>(Shared = SharedType.PerTestSession)]
 public sealed class CartCheckoutServiceTests(WebAppFactory factory)
@@ -59,7 +59,6 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 		var inventoryId = string.Empty;
 
 		using var customizedFactory = factory.WithWebHostBuilder(builder =>
-		{
 			builder.ConfigureServices(services =>
 			{
 				var descriptor = services.Last(service => service.ServiceType == typeof(IEventStoreTransactionFactory));
@@ -80,8 +79,8 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 						await inventoryStore.SaveAsync<InventoryAggregate>(inventory, null, hookCancellationToken);
 					}
 				));
-			});
-		});
+			})
+		);
 
 		await using var scope = customizedFactory.Services.CreateAsyncScope();
 		var serviceProvider = scope.ServiceProvider;
@@ -119,13 +118,10 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 	static T CreateService<T>(IServiceProvider serviceProvider, ServiceDescriptor descriptor)
 		where T : class
 	{
-		if (descriptor.ImplementationInstance is T instance)
-			return instance;
-
-		if (descriptor.ImplementationFactory is not null)
-			return (T)descriptor.ImplementationFactory(serviceProvider);
-
-		return (T)ActivatorUtilities.CreateInstance(serviceProvider, descriptor.ImplementationType!);
+		return descriptor.ImplementationInstance is T instance ? instance
+			: descriptor.ImplementationFactory is null
+				? (T)ActivatorUtilities.CreateInstance(serviceProvider, descriptor.ImplementationType!)
+			: (T)descriptor.ImplementationFactory(serviceProvider);
 	}
 
 	static async Task<CustomerAggregate> CreateCustomerAsync(

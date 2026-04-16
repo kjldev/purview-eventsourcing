@@ -2,9 +2,8 @@ using System.Linq.Expressions;
 using FluentValidation.Results;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.Samples.Services;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Services;
+namespace Purview.EventSourcing.Samples.Services;
 
 public sealed class StockTransferServiceTests
 {
@@ -89,9 +88,7 @@ public sealed class StockTransferServiceTests
 	}
 
 	[Test]
-	public async Task TransferAsync_GivenMissingSourceLocationAggregate_ReturnsFail(
-		CancellationToken cancellationToken
-	)
+	public async Task TransferAsync_GivenMissingSourceLocationAggregate_ReturnsFail(CancellationToken cancellationToken)
 	{
 		var source = StockedItem("inv-1", "LOC-001", "Warehouse North", 100, productId: "SKU-001");
 		var destinationLocation = Location("LOC-002", "Warehouse South");

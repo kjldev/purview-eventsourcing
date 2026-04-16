@@ -99,14 +99,14 @@ partial class CosmosDbSnapshotEventStoreTests
 		}
 
 		// Act
-		Func<Task> func = async () =>
+		async Task Func() =>
 			await context.EventStore.FirstOrDefaultAsync(
 				m => m.IncrementInt32 == matchingIncrement,
 				cancellationToken: cancellationToken
 			);
 
 		// Assert
-		await Assert.That(func).ThrowsNothing();
+		await Assert.That(Func).ThrowsNothing();
 	}
 
 	[Test]

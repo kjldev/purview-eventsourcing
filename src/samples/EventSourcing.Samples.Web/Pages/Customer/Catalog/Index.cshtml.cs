@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -64,7 +63,7 @@ public sealed class IndexModel(
 				var unitPrice = Math.Round(9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m, 2);
 				return (
 					ProductId: g.Key,
-					ProductName: best.ProductName,
+					best.ProductName,
 					TotalAvailable: totalAvailable,
 					BestInventoryId: best.Id(),
 					UnitPrice: unitPrice

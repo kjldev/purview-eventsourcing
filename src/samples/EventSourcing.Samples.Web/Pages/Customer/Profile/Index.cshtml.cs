@@ -31,18 +31,17 @@ public sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageMo
 		}
 
 		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
-		if (customer == null)
-			return NotFound();
-
-		return await TrySaveAsync(
-			async () =>
-			{
-				customer.ChangeName(newName.Trim());
-				await store.SaveAsync(customer, null, HttpContext.RequestAborted);
-			},
-			"Name updated.",
-			RedirectToPage()
-		);
+		return customer == null
+			? NotFound()
+			: await TrySaveAsync(
+				async () =>
+				{
+					customer.ChangeName(newName.Trim());
+					await store.SaveAsync(customer, null, HttpContext.RequestAborted);
+				},
+				"Name updated.",
+				RedirectToPage()
+			);
 	}
 
 	public async Task<IActionResult> OnPostChangeEmailAsync(string newEmail)
@@ -52,18 +51,17 @@ public sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageMo
 			return RedirectToPage("/Customer/Index");
 
 		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
-		if (customer == null)
-			return NotFound();
-
-		return await TrySaveAsync(
-			async () =>
-			{
-				customer.ChangeEmail(newEmail.Trim().ToLowerInvariant());
-				await store.SaveAsync(customer, null, HttpContext.RequestAborted);
-			},
-			"Email updated.",
-			RedirectToPage()
-		);
+		return customer == null
+			? NotFound()
+			: await TrySaveAsync(
+				async () =>
+				{
+					customer.ChangeEmail(newEmail.Trim().ToLowerInvariant());
+					await store.SaveAsync(customer, null, HttpContext.RequestAborted);
+				},
+				"Email updated.",
+				RedirectToPage()
+			);
 	}
 
 	public async Task<IActionResult> OnPostChangePhoneAsync(string? phoneNumber)
@@ -73,18 +71,17 @@ public sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageMo
 			return RedirectToPage("/Customer/Index");
 
 		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
-		if (customer == null)
-			return NotFound();
-
-		return await TrySaveAsync(
-			async () =>
-			{
-				customer.ChangePhoneNumber(string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim());
-				await store.SaveAsync(customer, null, HttpContext.RequestAborted);
-			},
-			"Phone number updated.",
-			RedirectToPage()
-		);
+		return customer == null
+			? NotFound()
+			: await TrySaveAsync(
+				async () =>
+				{
+					customer.ChangePhoneNumber(string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim());
+					await store.SaveAsync(customer, null, HttpContext.RequestAborted);
+				},
+				"Phone number updated.",
+				RedirectToPage()
+			);
 	}
 
 	public async Task<IActionResult> OnPostUpdateAllAsync(string newName, string newEmail, string? phoneNumber)
@@ -105,21 +102,20 @@ public sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageMo
 		}
 
 		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
-		if (customer == null)
-			return NotFound();
-
-		return await TrySaveAsync(
-			async () =>
-			{
-				customer.UpdateDetails(
-					name: newName.Trim(),
-					email: newEmail.Trim().ToLowerInvariant(),
-					phoneNumber: string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
-				);
-				await store.SaveAsync(customer, null, HttpContext.RequestAborted);
-			},
-			"Profile updated.",
-			RedirectToPage()
-		);
+		return customer == null
+			? NotFound()
+			: await TrySaveAsync(
+				async () =>
+				{
+					customer.UpdateDetails(
+						name: newName.Trim(),
+						email: newEmail.Trim().ToLowerInvariant(),
+						phoneNumber: string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
+					);
+					await store.SaveAsync(customer, null, HttpContext.RequestAborted);
+				},
+				"Profile updated.",
+				RedirectToPage()
+			);
 	}
 }

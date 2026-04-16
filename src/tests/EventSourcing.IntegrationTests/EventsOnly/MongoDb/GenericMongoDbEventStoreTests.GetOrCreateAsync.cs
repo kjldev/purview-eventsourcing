@@ -8,7 +8,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	{
 		// Arrange
 		var aggregateId = $"{Guid.NewGuid()}";
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var result = await eventStore.GetOrCreateAsync(aggregateId, cancellationToken: cancellationToken);

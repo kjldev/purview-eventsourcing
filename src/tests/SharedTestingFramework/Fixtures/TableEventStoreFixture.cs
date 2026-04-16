@@ -34,14 +34,12 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 
 	public TableEventStore<TAggregate> CreateEventStore<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)
 		where TAggregate : class, IAggregate, new() =>
-		CreateEventStoreContext<TAggregate>(
+		CreateEventStoreContext(
 			aggregateChangeNotifier,
-			correlationIdsToGenerate,
 			removeFromCacheOnDelete,
 			snapshotRecalculationInterval
 		).EventStore;
@@ -54,7 +52,6 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 		AzureBlobClient BlobClient
 	) CreateEventStoreContext<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		int correlationIdsToGenerate = 1,
 		bool removeFromCacheOnDelete = false,
 		int snapshotRecalculationInterval = 1
 	)

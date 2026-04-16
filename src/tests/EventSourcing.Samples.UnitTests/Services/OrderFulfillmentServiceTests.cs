@@ -3,7 +3,7 @@ using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Services;
+namespace Purview.EventSourcing.Samples.Services;
 
 public sealed class OrderFulfillmentServiceTests
 {

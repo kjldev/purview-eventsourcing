@@ -1,3 +1,5 @@
+using Purview.EventSourcing.EventsOnly.SqlServer;
+
 namespace Purview.EventSourcing.SqlServer;
 
 partial class SqlServerEventStoreTests

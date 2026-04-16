@@ -9,7 +9,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>(correlationIdsToGenerate: 2);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 		var aggregateResult =
 			await eventStore.GetAsync(aggregateId, cancellationToken: cancellationToken)
@@ -29,11 +29,8 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		var ctx = fixture.CreateEventStoreContext<TAggregate>(
-			correlationIdsToGenerate: 2,
-			removeFromCacheOnDelete: true
-		);
-		using var eventStore = ctx.EventStore;
+		var ctx = fixture.CreateEventStoreContext<TAggregate>(removeFromCacheOnDelete: true);
+		var eventStore = ctx.EventStore;
 		var cache = ctx.Cache;
 		var cacheKey = eventStore.CreateCacheKey(aggregateId);
 		await eventStore.SaveAsync(aggregate, cancellationToken);
@@ -55,7 +52,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
+		var eventStore = fixture.CreateEventStore(aggregateChangeNotifier: aggregateChangeNotifier);
 		aggregateChangeNotifier
 			.When(m => m.BeforeDeleteAsync(aggregate, Arg.Any<CancellationToken>()))
 			.Do(_ => beforeWasCalled = true);
@@ -77,7 +74,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		var result = await eventStore.DeleteAsync(

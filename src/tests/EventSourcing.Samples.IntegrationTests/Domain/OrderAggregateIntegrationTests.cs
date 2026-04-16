@@ -24,7 +24,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var id = $"{Guid.NewGuid()}";
 		var order = CreateDraftWithItems(id);
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -50,7 +50,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.AddLineItem("prod-1", "Widget", 1, 10m);
 		order.UpdateNotes("Rush delivery");
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -66,7 +66,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var order = CreateDraftWithItems(id);
 		order.ConfirmOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -84,7 +84,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ConfirmOrder();
 		order.ShipOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -105,7 +105,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ShipOrder();
 		order.CompleteOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -125,7 +125,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ConfirmOrder();
 		order.CancelOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -143,7 +143,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var order = CreateDraftWithItems(id); // 2 items
 		order.RemoveLineItem("prod-1");
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -169,7 +169,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ShipOrder();
 		order.CompleteOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
@@ -190,7 +190,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var order = CreateDraftWithItems(id); // v1=Created, v2=AddItem, v3=AddItem
 		order.ConfirmOrder(); // v4
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		// At version 1, only CreateOrder has been applied
@@ -212,7 +212,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var order = CreateDraftWithItems(id);
 		order.ConfirmOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>();
+		var store = fixture.CreateEventStore<OrderAggregate>();
 		await store.SaveAsync(order, null, cancellationToken);
 
 		// At version 3 (after two AddLineItem), status is still Draft
@@ -237,7 +237,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.SetShippingAddress("1 Event Replay Rd");
 		order.ConfirmOrder();
 
-		using var store = fixture.CreateEventStore<OrderAggregate>(snapshotRecalculationInterval: int.MaxValue);
+		var store = fixture.CreateEventStore<OrderAggregate>(snapshotRecalculationInterval: int.MaxValue);
 		await store.SaveAsync(order, null, cancellationToken);
 
 		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);

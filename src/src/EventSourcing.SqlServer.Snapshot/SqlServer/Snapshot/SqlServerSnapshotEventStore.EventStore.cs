@@ -51,10 +51,9 @@ partial class SqlServerSnapshotEventStore<T>
 
 	DbConnection ITransactionalEventStore<T>.CreateTransactionConnection()
 	{
-		if (_eventStore is ITransactionalEventStore<T> transactionalEventStore)
-			return transactionalEventStore.CreateTransactionConnection();
-
-		return new SqlConnection(_sqlServerEventStoreOptions.Value.ConnectionString);
+		return _eventStore is ITransactionalEventStore<T> transactionalEventStore
+			? transactionalEventStore.CreateTransactionConnection()
+			: new SqlConnection(_sqlServerEventStoreOptions.Value.ConnectionString);
 	}
 
 	async Task ITransactionalEventStore<T>.EnsureTransactionConfiguredAsync(

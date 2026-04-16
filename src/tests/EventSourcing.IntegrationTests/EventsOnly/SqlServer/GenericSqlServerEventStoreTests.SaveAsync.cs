@@ -10,7 +10,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 	{
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId, a => a.SetValidatedProperty(-1));
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
@@ -31,8 +31,9 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.SetComplexProperty(complexProperty);
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		await Assert.That(result.Saved).IsTrue();
 
 		var aggregateGetResult = await eventStore.GetAsync(aggregateId, cancellationToken: cancellationToken);
 
@@ -45,7 +46,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		var ctx = fixture.CreateEventStoreContext<TAggregate>();
-		using var eventStore = ctx.EventStore;
+		var eventStore = ctx.EventStore;
 		var telemetry = ctx.Telemetry;
 
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -59,7 +60,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
@@ -86,10 +87,11 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToGenerate; i++)
 			aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
-		var func = async () => await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		async Task<SaveResult<TAggregate>?> Func() =>
+			await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
-		await Assert.That(func).Throws<ArgumentOutOfRangeException>();
+		await Assert.That(Func).Throws<ArgumentOutOfRangeException>();
 	}
 }

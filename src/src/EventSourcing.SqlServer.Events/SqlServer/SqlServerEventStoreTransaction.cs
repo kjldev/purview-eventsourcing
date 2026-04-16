@@ -23,9 +23,10 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		ArgumentNullException.ThrowIfNull(aggregate);
 		ArgumentNullException.ThrowIfNull(eventStore);
 
-		var transactionalEventStore =
-			(eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>() as ITransactionalEventStore<T>;
-		if (transactionalEventStore is null)
+		if (
+			(eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>()
+			is not ITransactionalEventStore<T> transactionalEventStore
+		)
 		{
 			throw new InvalidOperationException(
 				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
@@ -86,6 +87,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 
 		foreach (var enlisted in _enlisted)
 		{
+#pragma warning disable CA1031 // Do not catch general exception types
 			try
 			{
 				var operation = await enlisted.SaveInTransactionAsync(
@@ -109,6 +111,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 				failure = ex;
 				break;
 			}
+#pragma warning restore CA1031 // Do not catch general exception types
 		}
 
 		if (failedEnlisted is null)
@@ -119,6 +122,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 			foreach (var operation in processed)
 			{
 				Exception? postCommitError = null;
+#pragma warning disable CA1031 // Do not catch general exception types
 				try
 				{
 					await operation.AfterCommitAsync(cancellationToken);
@@ -127,6 +131,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 				{
 					postCommitError = ex;
 				}
+#pragma warning restore CA1031 // Do not catch general exception types
 
 				committedResults.Add(new(operation.Aggregate, operation.Saved, operation.Skipped, postCommitError));
 			}
@@ -171,12 +176,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		)
 		{
 			rollbackResults.Add(
-				new TransactionAggregateResult(
-					failedEnlisted.Aggregate,
-					saved: false,
-					skipped: false,
-					error: failure
-				)
+				new TransactionAggregateResult(failedEnlisted.Aggregate, saved: false, skipped: false, error: failure)
 			);
 		}
 

@@ -26,7 +26,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 	{
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 50);
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
@@ -47,7 +47,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		var inv = CreateInitialized($"{Guid.NewGuid()}", qty: 100);
 		inv.ReserveStock(15, "order-1");
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
@@ -68,7 +68,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ShipStock(10, "order-1");
 		inv.ReceiveStock(50);
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
@@ -88,7 +88,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReserveStock(30, "order-2");
 		inv.AdjustStock(20, "Physical count"); // reserves capped to 20
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
@@ -108,7 +108,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReserveStock(25, "order-3");
 		inv.ReleaseReservation(25, "order-3");
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
@@ -129,7 +129,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ReceiveStock(50); // v2
 		inv.ReserveStock(10, "order-x"); // v3
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);
@@ -152,7 +152,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		var inv = CreateInitialized(id, qty: 100); // v1
 		inv.ReceiveStock(50); // v2
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>();
+		var store = fixture.CreateEventStore<InventoryAggregate>();
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var atV1 = await store.GetAtAsync<InventoryAggregate>(id, 1, null, cancellationToken);
@@ -176,7 +176,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ShipStock(50, "order-snap");
 		inv.ReceiveStock(100);
 
-		using var store = fixture.CreateEventStore<InventoryAggregate>(snapshotRecalculationInterval: int.MaxValue);
+		var store = fixture.CreateEventStore<InventoryAggregate>(snapshotRecalculationInterval: int.MaxValue);
 		await store.SaveAsync(inv, null, cancellationToken);
 
 		var loaded = await store.GetAsync<InventoryAggregate>(inv.Id(), null, cancellationToken);

@@ -25,15 +25,17 @@ partial class SqlServerSnapshotEventStoreTests
 		}
 
 		// Act
-		Func<Task> func = async () =>
+		async Task Func() =>
 			await context.EventStore.SingleOrDefaultAsync(
 				m => m.IncrementInt32 == matchingIncrement,
 				cancellationToken: cancellationToken
 			);
 
 		// Assert
-		var ex = await Assert.That(func).Throws<InvalidOperationException>();
-		await Assert.That(ex!.Message).IsEqualTo("Sequence contains more than one element");
+		await Assert
+			.That(Func)
+			.Throws<InvalidOperationException>()
+			.WithMessage("Sequence contains more than one element", StringComparison.Ordinal);
 	}
 
 	[Test]

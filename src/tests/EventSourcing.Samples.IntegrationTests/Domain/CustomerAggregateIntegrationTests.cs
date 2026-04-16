@@ -1,4 +1,3 @@
-using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.SqlServer;
 
 namespace Purview.EventSourcing.Samples.Domain;
@@ -16,7 +15,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
@@ -37,7 +36,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.RegisterCustomer("Bob Jones", "bob@test.com");
 		customer.ChangePhoneNumber("+1-555-0199");
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
@@ -58,7 +57,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.ChangeEmail("v2@test.com");
 		customer.ChangeEmail("v3@test.com");
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
@@ -76,7 +75,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.RegisterCustomer("Eve", "eve@test.com");
 		customer.Deactivate();
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
@@ -95,7 +94,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Deactivate();
 		customer.Reactivate();
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
@@ -118,7 +117,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.ChangeEmail("david2@test.com"); // v2
 		customer.ChangePhoneNumber("+44-20-0000-0001"); // v3
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);
@@ -140,7 +139,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Frank", "frank@test.com");
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 		await store.DeleteAsync(customer, null, cancellationToken);
 
@@ -159,7 +158,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Grace", "grace@test.com");
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 		await store.DeleteAsync(customer, null, cancellationToken);
 
@@ -188,7 +187,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.RegisterCustomer("Heidi", "original@test.com"); // v1
 		customer.ChangeEmail("updated@test.com"); // v2
 
-		using var store = fixture.CreateEventStore<CustomerAggregate>();
+		var store = fixture.CreateEventStore<CustomerAggregate>();
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var atVersion1 = await store.GetAtAsync<CustomerAggregate>(id, 1, null, cancellationToken);
@@ -215,7 +214,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Deactivate();
 
 		// Use a very high snapshot interval to force pure event replay
-		using var store = fixture.CreateEventStore<CustomerAggregate>(snapshotRecalculationInterval: int.MaxValue);
+		var store = fixture.CreateEventStore<CustomerAggregate>(snapshotRecalculationInterval: int.MaxValue);
 		await store.SaveAsync(customer, null, cancellationToken);
 
 		var loaded = await store.GetAsync<CustomerAggregate>(id, null, cancellationToken);

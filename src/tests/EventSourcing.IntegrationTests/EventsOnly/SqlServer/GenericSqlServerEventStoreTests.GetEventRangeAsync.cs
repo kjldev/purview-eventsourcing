@@ -13,7 +13,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		var events = new List<(Aggregates.Events.IEvent @event, string eventType)>();
@@ -39,7 +39,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		for (var i = 0; i < eventsToCreate; i++)
 			aggregate.IncrementInt32Value();
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		var events = new List<(Aggregates.Events.IEvent @event, string eventType)>();

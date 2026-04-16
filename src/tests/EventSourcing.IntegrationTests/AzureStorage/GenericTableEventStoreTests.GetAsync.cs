@@ -21,7 +21,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 		await eventStore.DeleteAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Act
-		var func = () =>
+		Task<TAggregate?> Func() =>
 			eventStore.GetAsync(
 				aggregateId,
 				new EventStoreOperationContext { DeleteMode = DeleteHandlingMode.ThrowsException },
@@ -29,7 +29,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 			);
 
 		// Assert
-		await Assert.That(func).Throws<AggregateIsDeletedException>();
+		await Assert.That(Func).Throws<AggregateIsDeletedException>();
 	}
 
 	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(

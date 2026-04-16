@@ -14,7 +14,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregateId = $"{Guid.NewGuid()}";
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId, a => a.SetValidatedProperty(-1));
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -41,9 +41,10 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.SetComplexProperty(complexProperty);
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		await Assert.That(result.Saved).IsTrue();
 
 		// Act
 		var aggregateGetResult = await eventStore.GetAsync(aggregateId, cancellationToken: cancellationToken);
@@ -60,7 +61,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 
 		var ctx = fixture.CreateEventStoreContext<TAggregate>();
-		using var eventStore = ctx.EventStore;
+		var eventStore = ctx.EventStore;
 		var telemetry = ctx.Telemetry;
 
 		// Act
@@ -79,7 +80,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -123,7 +124,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		bool result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -167,7 +168,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		aggregate.AppendString(value);
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var snapshotClient = fixture.SnapshotClient;
 
 		// Act
@@ -208,12 +209,13 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		for (var i = 0; i < eventsToGenerate; i++)
 			aggregate.IncrementInt32Value();
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
-		var func = async () => await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		async Task<SaveResult<TAggregate>?> Func() =>
+			await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Get and update stream version to remove the Version property.
-		await Assert.That(func).Throws<ArgumentOutOfRangeException>();
+		await Assert.That(Func).Throws<ArgumentOutOfRangeException>();
 	}
 }

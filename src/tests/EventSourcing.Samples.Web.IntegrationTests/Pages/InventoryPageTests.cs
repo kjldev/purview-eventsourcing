@@ -1,6 +1,6 @@
-using Purview.EventSourcing.Samples.Web.IntegrationTests.Infrastructure;
+using Purview.EventSourcing.Samples.Web.Infrastructure;
 
-namespace Purview.EventSourcing.Samples.Web.IntegrationTests.Pages;
+namespace Purview.EventSourcing.Samples.Web.Pages;
 
 [ClassDataSource<WebAppFactory>(Shared = SharedType.PerTestSession)]
 public sealed class InventoryPageTests(WebAppFactory factory)

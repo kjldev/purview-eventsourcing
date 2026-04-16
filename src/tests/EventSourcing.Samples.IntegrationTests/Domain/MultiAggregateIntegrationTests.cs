@@ -1,4 +1,3 @@
-using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.SqlServer;
 
 namespace Purview.EventSourcing.Samples.Domain;
@@ -17,9 +16,9 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	)
 	{
 		// Arrange: set up independent stores (each with their own isolated table)
-		using var customerStore = fixture.CreateEventStore<CustomerAggregate>();
-		using var inventoryStore = fixture.CreateEventStore<InventoryAggregate>();
-		using var orderStore = fixture.CreateEventStore<OrderAggregate>();
+		var customerStore = fixture.CreateEventStore<CustomerAggregate>();
+		var inventoryStore = fixture.CreateEventStore<InventoryAggregate>();
+		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 
 		// --- Phase 1: Register customer ---
 		var customer = new CustomerAggregate();
@@ -91,8 +90,8 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		CancellationToken cancellationToken
 	)
 	{
-		using var inventoryStore = fixture.CreateEventStore<InventoryAggregate>();
-		using var orderStore = fixture.CreateEventStore<OrderAggregate>();
+		var inventoryStore = fixture.CreateEventStore<InventoryAggregate>();
+		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 
 		// --- Set up inventory ---
 		var inventory = new InventoryAggregate();
@@ -141,8 +140,8 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		CancellationToken cancellationToken
 	)
 	{
-		using var customerStore = fixture.CreateEventStore<CustomerAggregate>();
-		using var orderStore = fixture.CreateEventStore<OrderAggregate>();
+		var customerStore = fixture.CreateEventStore<CustomerAggregate>();
+		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 
 		var customer = new CustomerAggregate();
 		customer.Details.Id = $"{Guid.NewGuid()}";

@@ -1,3 +1,5 @@
+using Purview.EventSourcing.EventsOnly.MongoDb;
+
 namespace Purview.EventSourcing.MongoDB;
 
 partial class MongoDBEventStoreTests

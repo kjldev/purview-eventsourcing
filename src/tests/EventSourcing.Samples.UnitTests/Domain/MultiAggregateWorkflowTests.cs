@@ -1,6 +1,6 @@
 using Purview.EventSourcing.Samples.Domain;
 
-namespace Purview.EventSourcing.Samples.UnitTests.Domain;
+namespace Purview.EventSourcing.Samples.Domain;
 
 /// <summary>
 /// Tests demonstrating cross-aggregate business workflows.

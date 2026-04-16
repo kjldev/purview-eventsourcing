@@ -16,13 +16,13 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 		await eventStore.DeleteAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Act
-		var func = () =>
+		Task<TAggregate?> Func() =>
 			eventStore.GetAsync(
 				aggregateId,
 				new EventStoreOperationContext { DeleteMode = DeleteHandlingMode.ThrowsException },
@@ -30,7 +30,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			);
 
 		// Assert
-		await Assert.That(func).Throws<AggregateIsDeletedException>();
+		await Assert.That(Func).Throws<AggregateIsDeletedException>();
 	}
 
 	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
@@ -45,7 +45,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			aggregate.IncrementInt32Value();
 
 		var ctx = fixture.CreateEventStoreContext<TAggregate>();
-		using var eventStore = ctx.EventStore;
+		var eventStore = ctx.EventStore;
 		var snapshotClient = ctx.SnapshotClient;
 
 		await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
@@ -107,7 +107,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
-		using var eventStore = fixture.CreateEventStore<TAggregate>(snapshotRecalculationInterval: snapshotInterval);
+		var eventStore = fixture.CreateEventStore<TAggregate>(snapshotRecalculationInterval: snapshotInterval);
 
 		// Act
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
@@ -156,7 +156,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
 		var ctx = fixture.CreateEventStoreContext<TAggregate>();
-		using var eventStore = ctx.EventStore;
+		var eventStore = ctx.EventStore;
 		var telemetry = ctx.Telemetry;
 
 		// Act
@@ -216,7 +216,7 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 			aggregate.SetOldEventValue(Guid.NewGuid());
 
 		var ctx = fixture.CreateEventStoreContext<TAggregate>();
-		using var eventStore = ctx.EventStore;
+		var eventStore = ctx.EventStore;
 		var eventClient = ctx.EventClient;
 		var telemetry = ctx.Telemetry;
 

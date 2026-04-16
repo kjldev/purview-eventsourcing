@@ -43,6 +43,7 @@ partial class GenericTableEventStoreTests<TAggregate>
 
 		var eventStore = fixture.CreateEventStore<TAggregate>();
 		var result = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		await Assert.That(result.Saved).IsTrue();
 
 		// Act
 		var aggregateGetResult = await eventStore.GetAsync(aggregateId, cancellationToken: cancellationToken);
@@ -315,9 +316,10 @@ partial class GenericTableEventStoreTests<TAggregate>
 		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
-		var func = async () => await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		async Task<SaveResult<TAggregate>?> Func() =>
+			await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Get and update stream version to remove the Version property.
-		await Assert.That(func).Throws<ArgumentOutOfRangeException>();
+		await Assert.That(Func).Throws<ArgumentOutOfRangeException>();
 	}
 }

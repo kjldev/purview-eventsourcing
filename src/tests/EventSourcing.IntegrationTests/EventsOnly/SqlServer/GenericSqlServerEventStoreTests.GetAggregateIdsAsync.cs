@@ -7,7 +7,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		CancellationToken cancellationToken
 	)
 	{
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var expectedIds = new List<string>();
 		for (var i = 0; i < aggregateCount; i++)
@@ -34,7 +34,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		CancellationToken cancellationToken
 	)
 	{
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{
@@ -64,7 +64,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		CancellationToken cancellationToken
 	)
 	{
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		for (var i = 0; i < nonDeletedAggregateIdCount; i++)
 		{

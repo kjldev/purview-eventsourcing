@@ -6,7 +6,7 @@ partial class GenericSqlServerEventStoreTests<TAggregate>
 		CancellationToken cancellationToken
 	)
 	{
-		using var eventStore = fixture.CreateEventStore<TAggregate>();
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		var result = await eventStore.GetOrCreateAsync(null, null, cancellationToken: cancellationToken);
 

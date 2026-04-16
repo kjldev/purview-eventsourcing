@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -21,18 +20,17 @@ public sealed class EditModel(IQueryableEventStore store, IProductImageService i
 	public async Task<IActionResult> OnPostUpdateProductNameAsync(string id, string productName)
 	{
 		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
-		if (item == null)
-			return NotFound();
-
-		return await TrySaveAsync(
-			async () =>
-			{
-				item.UpdateDetails(productName: productName.Trim());
-				await store.SaveAsync(item, null, HttpContext.RequestAborted);
-			},
-			"Product name updated.",
-			RedirectToPage(new { id })
-		);
+		return item == null
+			? NotFound()
+			: await TrySaveAsync(
+				async () =>
+				{
+					item.UpdateDetails(productName: productName.Trim());
+					await store.SaveAsync(item, null, HttpContext.RequestAborted);
+				},
+				"Product name updated.",
+				RedirectToPage(new { id })
+			);
 	}
 
 	public async Task<IActionResult> OnPostUploadImageAsync(string id, IFormFile? imageFile)

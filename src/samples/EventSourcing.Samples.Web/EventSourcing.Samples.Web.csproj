@@ -9,7 +9,7 @@
 		<PackageReference Include="Azure.Storage.Blobs" />
 		<ProjectReference Include="..\EventSourcing.Samples\EventSourcing.Samples.csproj" />
 		<ProjectReference Include="..\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Snapshot\EventSourcing.SqlServer.Snapshot.csproj" />
 		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
 	</ItemGroup>
 </Project>
