@@ -12,13 +12,13 @@ partial class CosmosDbClient
 				return (T)(object)stream;
 
 			using (stream)
-				return JsonHelpers.DeserializeAsync<T>(stream).AsTask().GetAwaiter().GetResult()!;
+				return System.Text.Json.JsonSerializer.Deserialize<T>(stream)!;
 		}
 
 		public override Stream ToStream<T>(T input)
 		{
 			var streamPayload = new MemoryStream();
-			JsonHelpers.SerializeAsync(streamPayload, input).GetAwaiter().GetResult();
+			System.Text.Json.JsonSerializer.Serialize(streamPayload, input);
 
 			streamPayload.Position = 0;
 			return streamPayload;
