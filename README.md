@@ -13,7 +13,7 @@ Purview EventSourcing is a .NET event sourcing framework with provider-agnostic 
 | `src/samples/EventSourcing.Samples.ServiceDefaults` | OpenTelemetry, health check, and service discovery defaults for the sample |
 | `src/tests` | Unit, integration, source generator, and sample-focused test projects |
 | `docs/sql-server.md` | SQL Server and Azure SQL setup and provider guidance |
-| `Justfile` | Local build, test, versioning, packing, and publish workflows |
+| `Justfile` | Local build, test, versioning, packing, and release workflows |
 
 ## Packages
 
@@ -184,7 +184,7 @@ if (!result.Success)
 
 The repository uses [`just`](https://github.com/casey/just) to wrap the common local workflows.
 
-```powershell
+```text
 lefthook install
 just tools
 just restore
@@ -203,9 +203,19 @@ just version-bump
 - The `pre-commit` hook runs `just check`, so formatting issues should be blocked locally once Lefthook is installed.
 - The `commit-msg` hook runs `bunx --bun commitlint --edit {1}`, so Bun must be available locally for commit message validation.
 - CI runs `just check` directly, so formatting issues are still caught on the build machine even if local hooks were never installed.
-- `just test` runs the executable test projects individually; do **not** rely on solution-level `dotnet test` here because `src/tests/SharedTestingFramework` is a helper library, not a runnable test project.
+- `just test` runs the executable test projects individually with shell-neutral `just` recipes; do **not** rely on solution-level `dotnet test` here because `src/tests/SharedTestingFramework` is a helper library, not a runnable test project.
 - Integration tests use Testcontainers and generally require Docker.
-- `just pack` builds the packable packages into `artifacts/packages`.
+- `package.json` is the release version source of truth; MSBuild reads that version when it builds and packs the .NET packages.
+- `just pack` builds the packable packages into `artifacts/packages` using the version from `package.json`.
+
+### Release workflow
+
+1. Install the Node tooling once with `npm install` or `bun install`.
+2. Create the release commit locally with `npm run release` or `bun run release`.
+3. Review the generated `package.json`, `package-lock.json`, and `CHANGELOG.md` updates, then push the release commit to `main`.
+4. GitHub Actions reads the `package.json` version, fails immediately if the tag or GitHub release already exists, packs the `.nupkg` / `.snupkg` artifacts, creates the remote tag, and publishes the GitHub release.
+
+Do **not** push release tags manually. The CD workflow is the canonical tag and GitHub release creator.
 
 ## Testing structure
 

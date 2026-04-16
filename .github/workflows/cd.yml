@@ -1,23 +1,32 @@
 name: CD
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - package.json
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
 
 concurrency:
-  group: cd-${{ github.ref }}
+  group: cd-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  publish-packages:
+  release:
+    name: Create release
     runs-on: t-x-kjldev
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -27,91 +36,80 @@ jobs:
       - name: Setup just
         uses: extractions/setup-just@v3
 
-      - name: Restore tools
-        run: just tools
+      - id: version
+        name: Read version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(node -p "require('./package.json').version")"
+          echo "value=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${version}" >> "${GITHUB_OUTPUT}"
+
+          if [[ "${version}" == *-* ]]; then
+            echo "prerelease=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "prerelease=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Block duplicate version
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" > /dev/null 2>&1; then
+            echo "::error::Tag ${RELEASE_TAG} already exists."
+            exit 1
+          fi
+
+          release_status="$(
+            curl -sS \
+              -o release.json \
+              -w "%{http_code}" \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
+          )"
+
+          if [[ "${release_status}" == "200" ]]; then
+            echo "::error::Release ${RELEASE_TAG} already exists."
+            cat release.json
+            exit 1
+          fi
+
+          if [[ "${release_status}" != "404" ]]; then
+            echo "::error::Unexpected GitHub API response: ${release_status}"
+            cat release.json
+            exit 1
+          fi
+
+          rm -f release.json
 
       - name: Restore packages
         run: just restore
 
-      - name: Print version
-        run: just version
+      - name: Build
+        run: just build
+
+      - name: Test
+        run: just test
 
       - name: Pack
         run: just pack
 
-      - name: Fail if package version already exists
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-          $headers = @{
-            Authorization         = "Bearer $env:GITHUB_TOKEN"
-            Accept                = "application/vnd.github+json"
-            "X-GitHub-Api-Version" = "2022-11-28"
-          }
-
-          $owner = "${{ github.repository_owner }}"
-          $ownerDetails = Invoke-RestMethod -Uri "https://api.github.com/users/$owner" -Headers $headers
-          $packageApiBase = if ($ownerDetails.type -eq "Organization") {
-            "https://api.github.com/orgs/$owner/packages/nuget"
-          } else {
-            "https://api.github.com/users/$owner/packages/nuget"
-          }
-
-          function Get-PackageMetadata([string]$packagePath) {
-            $archive = [System.IO.Compression.ZipFile]::OpenRead($packagePath)
-            try {
-              $nuspecEntry = $archive.Entries | Where-Object FullName -like "*.nuspec" | Select-Object -First 1
-              if ($null -eq $nuspecEntry) {
-                throw "No nuspec found in $packagePath."
-              }
-
-              $reader = [System.IO.StreamReader]::new($nuspecEntry.Open())
-              try {
-                [xml]$nuspec = $reader.ReadToEnd()
-              } finally {
-                $reader.Dispose()
-              }
-
-              return [pscustomobject]@{
-                Id      = [string]$nuspec.package.metadata.id
-                Version = [string]$nuspec.package.metadata.version
-              }
-            } finally {
-              $archive.Dispose()
-            }
-          }
-
-          $packages = @(Get-ChildItem -Path "artifacts/packages" -Filter "*.nupkg" | Sort-Object Name)
-          if ($packages.Count -eq 0) {
-            throw "No packages found in artifacts/packages."
-          }
-
-          foreach ($packageFile in $packages) {
-            $package = Get-PackageMetadata -packagePath $packageFile.FullName
-            $packageName = [Uri]::EscapeDataString($package.Id.ToLowerInvariant())
-            $uri = "$packageApiBase/$packageName/versions?per_page=100"
-
-            try {
-              $versions = @(Invoke-RestMethod -Uri $uri -Headers $headers)
-            } catch {
-              if ($_.Exception.Response -and $_.Exception.Response.StatusCode -eq 404) {
-                Write-Host "No existing GitHub Package found for $($package.Id)."
-                continue
-              }
-
-              throw
-            }
-
-            if ($versions | Where-Object { $_.name -eq $package.Version }) {
-              throw "Package $($package.Id) version $($package.Version) already exists in GitHub Packages."
-            }
-          }
-
-      - name: Publish packages
-        env:
-          NUGET_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-          NUGET_API_KEY: ${{ secrets.GITHUB_TOKEN }}
-        run: just publish "$env:NUGET_SOURCE" "$env:NUGET_API_KEY"
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg

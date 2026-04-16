@@ -6,10 +6,23 @@ set windows-shell := ["pwsh", "-NoProfile", "-Command"]
 root_folder := "src"
 solution_file := root_folder + "/Purview.EventSourcing.slnx"
 test_root := root_folder + "/tests"
-version_file := ".dotnet/Directory.Build.props"
+package_manifest := "package.json"
 configuration := "Release"
 artifact_folder := "artifacts/packages"
-tag_pattern := "v[0-9]*"
+event_sourcing_package_project := root_folder + "/src/EventSourcing/EventSourcing.csproj"
+event_sourcing_azure_storage_package_project := root_folder + "/src/EventSourcing.AzureStorage/EventSourcing.AzureStorage.csproj"
+event_sourcing_cosmos_db_snapshot_package_project := root_folder + "/src/EventSourcing.CosmosDb.Snapshot/EventSourcing.CosmosDb.Snapshot.csproj"
+event_sourcing_mongo_db_events_package_project := root_folder + "/src/EventSourcing.MongoDb.Events/EventSourcing.MongoDB.Events.csproj"
+event_sourcing_mongo_db_snapshot_package_project := root_folder + "/src/EventSourcing.MongoDb.Snapshot/EventSourcing.MongoDB.Snapshot.csproj"
+event_sourcing_source_generator_package_project := root_folder + "/src/EventSourcing.SourceGenerator/EventSourcing.SourceGenerator.csproj"
+event_sourcing_sql_server_events_package_project := root_folder + "/src/EventSourcing.SqlServer.Events/EventSourcing.SqlServer.Events.csproj"
+event_sourcing_sql_server_snapshot_package_project := root_folder + "/src/EventSourcing.SqlServer.Snapshot/EventSourcing.SqlServer.Snapshot.csproj"
+event_sourcing_integration_tests_project := test_root + "/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj"
+event_sourcing_samples_integration_tests_project := test_root + "/EventSourcing.Samples.IntegrationTests/EventSourcing.Samples.IntegrationTests.csproj"
+event_sourcing_samples_unit_tests_project := test_root + "/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj"
+event_sourcing_samples_web_integration_tests_project := test_root + "/EventSourcing.Samples.Web.IntegrationTests/EventSourcing.Samples.Web.IntegrationTests.csproj"
+event_sourcing_source_generator_unit_tests_project := test_root + "/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj"
+event_sourcing_unit_tests_project := test_root + "/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj"
 
 # Default recipe - list available recipes
 [private]
@@ -32,33 +45,76 @@ tools:
 restore:
     dotnet restore {{ solution_file }}
 
-# Print the current package version from Directory.Build.props
+# Print the current package version from package.json
 version:
-    & { [xml]$xml = Get-Content '{{ version_file }}'; $versionNode = @($xml.Project.PropertyGroup | Where-Object { $_.Version })[0]; if (-not $versionNode) { throw 'Version element not found in {{ version_file }}.' }; Write-Host $versionNode.Version }
+    node -p "require('./{{ package_manifest }}').version"
 
-# Calculate the next semantic version from the latest v* tag and conventional commits since that tag
+# Preview the next semantic version using commit-and-tag-version
 version-next:
-    & { $tag = git --no-pager tag --list '{{ tag_pattern }}' --sort=-version:refname | Select-Object -First 1; if (-not $tag) { $tag = 'v0.0.0'; $range = 'HEAD' } else { $range = "$tag..HEAD" }; $count = [int](git rev-list $range --count); $messages = if ($count -gt 0) { git --no-pager log $range --format=%B%n---END--- } else { '' }; $hasBreaking = $messages -match '(?m)^.+!:' -or $messages -match 'BREAKING CHANGE:'; $hasFeature = $messages -match '(?m)^feat(?:\(.+\))?: '; $match = [regex]::Match($tag, '^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)'); if (-not $match.Success) { throw "Unable to parse semantic version from tag '$tag'." }; $major = [int]$match.Groups['major'].Value; $minor = [int]$match.Groups['minor'].Value; $patch = [int]$match.Groups['patch'].Value; if ($hasBreaking) { $major++; $minor = 0; $patch = 0 } elseif ($hasFeature) { $minor++; $patch = 0 } elseif ($count -gt 0) { $patch++ }; Write-Host "$major.$minor.$patch" }
+    npx commit-and-tag-version --dry-run
 
-# Update Directory.Build.props to the next semantic version
+# Create the local release commit and changelog update without creating a tag
 version-bump:
-    & { $tag = git --no-pager tag --list '{{ tag_pattern }}' --sort=-version:refname | Select-Object -First 1; if (-not $tag) { $tag = 'v0.0.0'; $range = 'HEAD' } else { $range = "$tag..HEAD" }; $count = [int](git rev-list $range --count); $messages = if ($count -gt 0) { git --no-pager log $range --format=%B%n---END--- } else { '' }; $hasBreaking = $messages -match '(?m)^.+!:' -or $messages -match 'BREAKING CHANGE:'; $hasFeature = $messages -match '(?m)^feat(?:\(.+\))?: '; $match = [regex]::Match($tag, '^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)'); if (-not $match.Success) { throw "Unable to parse semantic version from tag '$tag'." }; $major = [int]$match.Groups['major'].Value; $minor = [int]$match.Groups['minor'].Value; $patch = [int]$match.Groups['patch'].Value; if ($hasBreaking) { $major++; $minor = 0; $patch = 0 } elseif ($hasFeature) { $minor++; $patch = 0 } elseif ($count -gt 0) { $patch++ }; $nextVersion = "$major.$minor.$patch"; [xml]$xml = Get-Content '{{ version_file }}'; $versionNode = @($xml.Project.PropertyGroup | Where-Object { $_.Version })[0]; if (-not $versionNode) { throw 'Version element not found in {{ version_file }}.' }; if ($versionNode.Version -ne $nextVersion) { $versionNode.Version = $nextVersion; $resolvedVersionFile = (Resolve-Path '{{ version_file }}').Path; $xml.Save($resolvedVersionFile) }; Write-Host "Updated version to $nextVersion" }
+    npm run release
 
 # Run all executable test projects under src/tests, excluding SharedTestingFramework
 test:
-    & { $projects = @(Get-ChildItem -Path '{{ test_root }}' -Filter '*.csproj' -Recurse | Where-Object { $_.BaseName -ne 'SharedTestingFramework' } | Sort-Object FullName); if ($projects.Count -eq 0) { throw 'No test projects found.' }; foreach ($project in $projects) { Write-Host "==> Testing $($project.FullName)"; dotnet test --project $project.FullName --configuration '{{ configuration }}'; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } } }
+    @just test-project {{ event_sourcing_integration_tests_project }}
+    @just test-project {{ event_sourcing_samples_integration_tests_project }}
+    @just test-project {{ event_sourcing_samples_unit_tests_project }}
+    @just test-project {{ event_sourcing_samples_web_integration_tests_project }}
+    @just test-project {{ event_sourcing_source_generator_unit_tests_project }}
+    @just test-project {{ event_sourcing_unit_tests_project }}
 
 # Run tests with a TUnit treenode filter (e.g.: just test-filter "/*/*/*/MyTest*")
 test-filter filter:
-    & { $projects = @(Get-ChildItem -Path '{{ test_root }}' -Filter '*.csproj' -Recurse | Where-Object { $_.BaseName -ne 'SharedTestingFramework' } | Sort-Object FullName); if ($projects.Count -eq 0) { throw 'No test projects found.' }; foreach ($project in $projects) { Write-Host "==> Testing $($project.FullName) with filter {{ filter }}"; dotnet test --project $project.FullName --configuration '{{ configuration }}' -- --treenode-filter '{{ filter }}'; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } } }
+    @just test-project-filter {{ event_sourcing_integration_tests_project }} "{{ filter }}"
+    @just test-project-filter {{ event_sourcing_samples_integration_tests_project }} "{{ filter }}"
+    @just test-project-filter {{ event_sourcing_samples_unit_tests_project }} "{{ filter }}"
+    @just test-project-filter {{ event_sourcing_samples_web_integration_tests_project }} "{{ filter }}"
+    @just test-project-filter {{ event_sourcing_source_generator_unit_tests_project }} "{{ filter }}"
+    @just test-project-filter {{ event_sourcing_unit_tests_project }} "{{ filter }}"
 
 # Run tests serially (useful for debugging)
 test-serial:
-    & { $projects = @(Get-ChildItem -Path '{{ test_root }}' -Filter '*.csproj' -Recurse | Where-Object { $_.BaseName -ne 'SharedTestingFramework' } | Sort-Object FullName); if ($projects.Count -eq 0) { throw 'No test projects found.' }; foreach ($project in $projects) { Write-Host "==> Testing $($project.FullName) serially"; dotnet test --project $project.FullName --configuration '{{ configuration }}' -- --maximum-parallel-tests 1; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } } }
+    @just test-project-serial {{ event_sourcing_integration_tests_project }}
+    @just test-project-serial {{ event_sourcing_samples_integration_tests_project }}
+    @just test-project-serial {{ event_sourcing_samples_unit_tests_project }}
+    @just test-project-serial {{ event_sourcing_samples_web_integration_tests_project }}
+    @just test-project-serial {{ event_sourcing_source_generator_unit_tests_project }}
+    @just test-project-serial {{ event_sourcing_unit_tests_project }}
 
-# Pack all packable projects using the current version from Directory.Build.props
+[private]
+test-project project:
+    @echo "==> Testing {{ project }}"
+    dotnet test --project {{ project }} --configuration {{ configuration }}
+
+[private]
+test-project-filter project filter:
+    @echo "==> Testing {{ project }} with filter {{ filter }}"
+    dotnet test --project {{ project }} --configuration {{ configuration }} -- --treenode-filter "{{ filter }}"
+
+[private]
+test-project-serial project:
+    @echo "==> Testing {{ project }} serially"
+    dotnet test --project {{ project }} --configuration {{ configuration }} -- --maximum-parallel-tests 1
+
+# Pack all packable projects using the version from package.json
 pack:
-    & { [xml]$xml = Get-Content '{{ version_file }}'; $versionNode = @($xml.Project.PropertyGroup | Where-Object { $_.Version })[0]; if (-not $versionNode) { throw 'Version element not found in {{ version_file }}.' }; $version = $versionNode.Version; $output = Join-Path (Get-Location) '{{ artifact_folder }}'; $projects = @(Get-ChildItem -Path '{{ root_folder }}' -Filter '*.csproj' -Recurse | Where-Object { Select-String -Path $_.FullName -Pattern '<IsPackable>true</IsPackable>' -Quiet } | Sort-Object FullName); if ($projects.Count -eq 0) { throw 'No packable projects found.' }; New-Item -ItemType Directory -Force -Path $output | Out-Null; Get-ChildItem -Path $output -Include '*.nupkg','*.snupkg' -File -ErrorAction SilentlyContinue | Remove-Item -Force; foreach ($project in $projects) { Write-Host "==> Packing $($project.FullName) as version $version to $output"; dotnet pack $project.FullName --configuration '{{ configuration }}' --output $output --property:Version=$version; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } } }
+    node -e "const fs = require('node:fs'); const path = require('node:path'); const directory = path.resolve('{{ artifact_folder }}'); fs.mkdirSync(directory, { recursive: true }); for (const entry of fs.readdirSync(directory)) { if (entry.endsWith('.nupkg') || entry.endsWith('.snupkg')) { fs.rmSync(path.join(directory, entry), { force: true }); } }"
+    @just pack-project {{ event_sourcing_azure_storage_package_project }}
+    @just pack-project {{ event_sourcing_cosmos_db_snapshot_package_project }}
+    @just pack-project {{ event_sourcing_mongo_db_events_package_project }}
+    @just pack-project {{ event_sourcing_mongo_db_snapshot_package_project }}
+    @just pack-project {{ event_sourcing_package_project }}
+    @just pack-project {{ event_sourcing_source_generator_package_project }}
+    @just pack-project {{ event_sourcing_sql_server_events_package_project }}
+    @just pack-project {{ event_sourcing_sql_server_snapshot_package_project }}
+
+[private]
+pack-project project:
+    @echo "==> Packing {{ project }} to {{ artifact_folder }}"
+    dotnet pack "{{ project }}" --configuration "{{ configuration }}" --output "{{ artifact_folder }}"
 
 # Publish packed NuGet packages to the specified source
 publish nuget_source api_key:
