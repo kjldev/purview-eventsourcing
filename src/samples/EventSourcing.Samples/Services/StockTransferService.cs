@@ -3,10 +3,10 @@ using Purview.EventSourcing.Samples.Domain;
 namespace Purview.EventSourcing.Samples.Services;
 
 /// <summary>
-/// Demonstrates multi-aggregate coordination using the saga compensation pattern.
+/// Demonstrates multi-aggregate coordination using a single event-store transaction.
 /// Transfers stock from a source inventory aggregate to a physical destination location,
-/// creating the destination inventory aggregate on demand and compensating the source if the
-/// destination save fails.
+/// creating the destination inventory aggregate on demand and enlisting both aggregates in the
+/// same transaction so the commit succeeds or fails atomically.
 /// </summary>
 public sealed class StockTransferService(IEventStoreTransactionFactory transactionFactory, IQueryableEventStore store)
 	: IStockTransferService
