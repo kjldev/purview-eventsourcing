@@ -123,16 +123,39 @@ jobs:
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           set -euo pipefail
+          trap 'rm -f release.json publish.json' EXIT
 
-          release_payload="$(
+          release_status="$(
             curl -sS \
+              -o release.json \
+              -w "%{http_code}" \
               -H "Authorization: Bearer ${GITHUB_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
           )"
 
-          release_id="$(echo "${release_payload}" | node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));if(!d.id){process.exit(1)};process.stdout.write(String(d.id));")"
+          if [[ "${release_status}" != "200" ]]; then
+            echo "::error::Failed to fetch release ${RELEASE_TAG} (status ${release_status})."
+            jq -c '{message, documentation_url, errors}' release.json || true
+            exit 1
+          fi
+
+          if ! release_id="$(jq -re '.id' release.json)"; then
+            echo "::error::Failed to parse release id for ${RELEASE_TAG}."
+            jq -c '{message, documentation_url, errors}' release.json || true
+            exit 1
+          fi
+
+          case "${PRERELEASE}" in
+            true|false) ;;
+            *)
+              echo "::error::Invalid prerelease value: ${PRERELEASE}"
+              exit 1
+              ;;
+          esac
+
+          publish_payload="$(jq -cn --argjson prerelease "${PRERELEASE}" '{draft: false, prerelease: $prerelease}')"
 
           publish_status="$(
             curl -sS \
@@ -143,13 +166,11 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
-              -d "{\"draft\":false,\"prerelease\":${PRERELEASE}}"
+              -d "${publish_payload}"
           )"
 
           if [[ "${publish_status}" != "200" ]]; then
             echo "::error::Failed to publish release ${RELEASE_TAG} (status ${publish_status})."
-            cat publish.json
+            jq -c '{message, documentation_url, errors}' publish.json || true
             exit 1
           fi
-
-          rm -f publish.json
