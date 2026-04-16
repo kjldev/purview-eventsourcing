@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Purview.EventSourcing.Samples.Domain;
@@ -79,6 +81,22 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		}
 
 		return RedirectToPage("Index");
+	}
+
+	public string PaginationLink(int page)
+	{
+		var query = new QueryBuilder
+		{
+			{ "sortBy", SortBy },
+			{ "sortDir", SortDir },
+			{ "page", page.ToString(CultureInfo.InvariantCulture) },
+			{ "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) },
+		};
+
+		if (!string.IsNullOrWhiteSpace(Search))
+			query.Add("search", Search);
+
+		return $"{HttpContext.Request.PathBase}{HttpContext.Request.Path}{query.ToQueryString()}";
 	}
 
 	public string SortLink(string column) => column == SortBy && SortDir == "asc" ? "desc" : "asc";

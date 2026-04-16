@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Purview.EventSourcing.Samples.Domain;
@@ -68,5 +70,21 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		HttpContext.Session.SetString("selectedCustomerId", id);
 		await HttpContext.Session.CommitAsync(cancellationToken);
 		return RedirectToPage("/Customer/Catalog/Index");
+	}
+
+	public string PaginationLink(int page)
+	{
+		var query = new QueryBuilder
+		{
+			{ "page", page.ToString(CultureInfo.InvariantCulture) },
+			{ "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) },
+		};
+
+		if (!string.IsNullOrWhiteSpace(Search))
+			query.Add("search", Search);
+		if (ShowInactive)
+			query.Add("showInactive", bool.TrueString.ToLowerInvariant());
+
+		return $"{HttpContext.Request.PathBase}{HttpContext.Request.Path}{query.ToQueryString()}";
 	}
 }

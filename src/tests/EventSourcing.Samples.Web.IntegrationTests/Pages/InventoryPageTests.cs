@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages;
@@ -94,6 +96,19 @@ public sealed class InventoryPageTests(WebAppFactory factory)
 	}
 
 	[Test]
+	public async Task BackOfficeCatalogIndex_WithMultiplePages_RendersNextPageLink(CancellationToken cancellationToken)
+	{
+		var prefix = $"paging-catalog-{Guid.NewGuid():N}";
+		await CreateInventoryItemsAsync(prefix, 11, cancellationToken);
+
+		var response = await _client.GetAsync($"/BackOffice/Catalog?search={prefix}&pageSize=10", cancellationToken);
+		var html = await response.Content.ReadAsStringAsync(cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+		await Assert.That(html).Contains("page=2");
+	}
+
+	[Test]
 	public async Task BackOfficeCatalogIndex_WithSorting_Returns200(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/BackOffice/Catalog?sortBy=productid&sortDir=desc", cancellationToken);
@@ -107,6 +122,19 @@ public sealed class InventoryPageTests(WebAppFactory factory)
 		var response = await _client.GetAsync("/BackOffice/Catalog?search=widget", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+	}
+
+	[Test]
+	public async Task BackOfficeStockIndex_WithMultiplePages_RendersNextPageLink(CancellationToken cancellationToken)
+	{
+		var prefix = $"paging-stock-{Guid.NewGuid():N}";
+		await CreateInventoryItemsAsync(prefix, 11, cancellationToken);
+
+		var response = await _client.GetAsync($"/BackOffice/Stock?search={prefix}&pageSize=10", cancellationToken);
+		var html = await response.Content.ReadAsStringAsync(cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+		await Assert.That(html).Contains("page=2");
 	}
 
 	async Task<string> GetAntiForgeryTokenAsync(string url, CancellationToken cancellationToken)
@@ -148,6 +176,30 @@ public sealed class InventoryPageTests(WebAppFactory factory)
 				return value;
 
 			searchFrom = valueEnd + 1;
+		}
+	}
+
+	async Task CreateInventoryItemsAsync(string prefix, int count, CancellationToken cancellationToken)
+	{
+		await using var scope = factory.Services.CreateAsyncScope();
+		var store = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+
+		var locationId = $"LOC-{prefix}";
+		var location = await store.CreateAsync<LocationAggregate>(locationId, cancellationToken);
+		location.Initialize(locationId, $"Location {prefix}");
+		await store.SaveAsync(location, cancellationToken);
+
+		for (var i = 0; i < count; i++)
+		{
+			var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
+			item.Initialize(
+				$"{prefix}-{i:D2}",
+				$"{prefix}-item-{i:D2}",
+				locationId,
+				location.LocationName,
+				initialQuantity: 10 + i
+			);
+			await store.SaveAsync(item, cancellationToken);
 		}
 	}
 }

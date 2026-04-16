@@ -65,11 +65,11 @@ else
         <div class="flex gap-2">
             @if (Model.HasPrevPage)
             {
-                <a asp-page="Index" asp-route-page="@(Model.Page-1)" asp-route-pageSize="@Model.PageSize" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">← Prev</a>
+                <a href="@Model.PaginationLink(Model.Page - 1)" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">← Prev</a>
             }
             @if (Model.HasNextPage)
             {
-                <a asp-page="Index" asp-route-page="@(Model.Page+1)" asp-route-pageSize="@Model.PageSize" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next →</a>
+                <a href="@Model.PaginationLink(Model.Page + 1)" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next →</a>
             }
         </div>
     </div>

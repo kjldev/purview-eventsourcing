@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages;
@@ -57,6 +59,19 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 	}
 
 	[Test]
+	public async Task CustomerSelector_WithMultiplePages_RendersNextPageLink(CancellationToken cancellationToken)
+	{
+		var prefix = $"paging-selector-{Guid.NewGuid():N}";
+		await CreateCustomersAsync(prefix, 11, cancellationToken);
+
+		var response = await _client.GetAsync($"/Customer?search={prefix}&pageSize=10", cancellationToken);
+		var html = await response.Content.ReadAsStringAsync(cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+		await Assert.That(html).Contains("page=2");
+	}
+
+	[Test]
 	public async Task BackOfficeCustomersIndex_Returns200(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/BackOffice/Customers", cancellationToken);
@@ -96,6 +111,21 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 	}
 
 	[Test]
+	public async Task BackOfficeCustomersIndex_WithMultiplePages_RendersNextPageLink(
+		CancellationToken cancellationToken
+	)
+	{
+		var prefix = $"paging-{Guid.NewGuid():N}";
+		await CreateCustomersAsync(prefix, 11, cancellationToken);
+
+		var response = await _client.GetAsync($"/BackOffice/Customers?search={prefix}&pageSize=10", cancellationToken);
+		var html = await response.Content.ReadAsStringAsync(cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+		await Assert.That(html).Contains("page=2");
+	}
+
+	[Test]
 	public async Task CustomerDetails_UnknownId_Returns200OrNotFound(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/Customer/Orders/Details/unknown-id", cancellationToken);
@@ -116,5 +146,18 @@ public sealed class CustomerPageTests(WebAppFactory factory)
 		var valueEnd = html.IndexOf('"', valueStart);
 
 		return html[valueStart..valueEnd];
+	}
+
+	async Task CreateCustomersAsync(string prefix, int count, CancellationToken cancellationToken)
+	{
+		await using var scope = factory.Services.CreateAsyncScope();
+		var store = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+
+		for (var i = 0; i < count; i++)
+		{
+			var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: cancellationToken);
+			customer.RegisterCustomer($"{prefix}-customer-{i:D2}", $"{prefix}-{i:D2}@example.com");
+			await store.SaveAsync(customer, cancellationToken);
+		}
 	}
 }

@@ -26,6 +26,26 @@ public sealed class OrderPageTests(WebAppFactory factory)
 	}
 
 	[Test]
+	public async Task CustomerOrders_WithMultiplePages_RendersNextPageLink(CancellationToken cancellationToken)
+	{
+		var customerId = await CreateCustomerWithOrdersAsync(11, cancellationToken);
+		var antiForgery = await GetAntiForgeryTokenAsync("/Customer", cancellationToken);
+
+		using var content = new FormUrlEncodedContent([
+			new("id", customerId),
+			new("__RequestVerificationToken", antiForgery),
+		]);
+		var selectResponse = await _client.PostAsync("/Customer?handler=Select", content, cancellationToken);
+		await Assert.That((int)selectResponse.StatusCode).IsEqualTo(302);
+
+		var response = await _client.GetAsync("/Customer/Orders?pageSize=10", cancellationToken);
+		var html = await response.Content.ReadAsStringAsync(cancellationToken);
+
+		await Assert.That(response.IsSuccessStatusCode).IsTrue();
+		await Assert.That(html).Contains("page=2");
+	}
+
+	[Test]
 	public async Task BackOfficeStockTransfer_Get_Returns200(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/BackOffice/Stock/Transfer", cancellationToken);
@@ -121,5 +141,27 @@ public sealed class OrderPageTests(WebAppFactory factory)
 		var valueEnd = html.IndexOf('"', valueStart);
 
 		return html[valueStart..valueEnd];
+	}
+
+	async Task<string> CreateCustomerWithOrdersAsync(int orderCount, CancellationToken cancellationToken)
+	{
+		await using var scope = factory.Services.CreateAsyncScope();
+		var store = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+
+		var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: cancellationToken);
+		customer.RegisterCustomer($"paging-orders-{Guid.NewGuid():N}", $"paging-orders-{Guid.NewGuid():N}@example.com");
+		var customerResult = await store.SaveAsync(customer, cancellationToken);
+		var customerId = customerResult.Aggregate.Id();
+
+		for (var i = 0; i < orderCount; i++)
+		{
+			var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
+			order.CreateOrder(customerId);
+			order.AddLineItem($"SKU-PAGING-{i:D2}", $"Paging Item {i:D2}", 1, 9.99m + i);
+			order.SetShippingAddress($"{i + 1} Pagination Road");
+			await store.SaveAsync(order, cancellationToken);
+		}
+
+		return customerId;
 	}
 }

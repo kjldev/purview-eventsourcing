@@ -83,11 +83,11 @@ else
         <div class="flex gap-2">
             @if (Model.HasPrevPage)
             {
-                <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["sortBy"]=Model.SortBy,["sortDir"]=Model.SortDir,["page"]=(Model.Page-1).ToString(),["pageSize"]=Model.PageSize.ToString()})' class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">← Prev</a>
+                <a href="@Model.PaginationLink(Model.Page - 1)" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">← Prev</a>
             }
             @if (Model.HasNextPage)
             {
-                <a asp-page="Index" asp-all-route-data='@(new Dictionary<string,string>{["search"]=Model.Search??"",["sortBy"]=Model.SortBy,["sortDir"]=Model.SortDir,["page"]=(Model.Page+1).ToString(),["pageSize"]=Model.PageSize.ToString()})' class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next →</a>
+                <a href="@Model.PaginationLink(Model.Page + 1)" class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next →</a>
             }
         </div>
     </div>
