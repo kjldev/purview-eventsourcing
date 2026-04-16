@@ -62,6 +62,7 @@ jobs:
           set -euo pipefail
 
           tag_exists=false
+          release_exists=false
           if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" > /dev/null 2>&1; then
             tag_exists=true
           fi
@@ -76,7 +77,6 @@ jobs:
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
           )"
 
-          release_exists=false
           case "${release_status}" in
             200)
               release_exists=true
@@ -84,7 +84,7 @@ jobs:
             404)
               ;;
             *)
-              echo "::error::Unexpected GitHub API response: ${release_status}"
+              echo "::error::Unexpected GitHub API response while checking release ${RELEASE_TAG}: ${release_status} (expected 200 or 404). Check GitHub token permissions, API availability, or rate limits."
               cat release.json
               exit 1
               ;;
@@ -98,7 +98,7 @@ jobs:
           fi
 
           if [[ "${tag_exists}" == "true" || "${release_exists}" == "true" ]]; then
-            echo "::error::Inconsistent release state for ${RELEASE_TAG}: tag_exists=${tag_exists}, release_exists=${release_exists}."
+            echo "::error::Inconsistent release state for ${RELEASE_TAG}: tag_exists=${tag_exists}, release_exists=${release_exists}. Resolve by removing the orphaned tag or release before re-running CD."
             cat release.json
             exit 1
           fi
