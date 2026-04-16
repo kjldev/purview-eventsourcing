@@ -131,13 +131,14 @@ jobs:
           TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          trap 'rm -f tag.json' EXIT
+          tag_response="$(mktemp)"
+          trap 'rm -f "${tag_response}"' EXIT
 
           create_payload="$(jq -cn --arg ref "refs/tags/${RELEASE_TAG}" --arg sha "${TARGET_SHA}" '{ref: $ref, sha: $sha}')"
 
           create_status="$(
             curl -sS \
-              -o tag.json \
+              -o "${tag_response}" \
               -w "%{http_code}" \
               -X POST \
               -H "Authorization: Bearer ${GITHUB_TOKEN}" \
@@ -149,7 +150,7 @@ jobs:
 
           if [[ "${create_status}" != "201" ]]; then
             echo "::error::Failed to create tag ${RELEASE_TAG} (status ${create_status})."
-            jq -c '{message, documentation_url, errors}' tag.json || true
+            jq -c '.' "${tag_response}" || true
             exit 1
           fi
 
