@@ -25,9 +25,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var order = CreateDraftWithItems(id);
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.CustomerId).IsEqualTo("customer-1");
@@ -51,9 +51,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.UpdateNotes("Rush delivery");
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Notes).IsEqualTo("Rush delivery");
@@ -67,9 +67,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ConfirmOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Status).IsEqualTo(OrderStatus.Confirmed);
@@ -85,9 +85,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ShipOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Status).IsEqualTo(OrderStatus.Shipped);
@@ -106,9 +106,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.CompleteOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Status).IsEqualTo(OrderStatus.Completed);
@@ -126,9 +126,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.CancelOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Status).IsEqualTo(OrderStatus.Cancelled);
@@ -144,9 +144,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.RemoveLineItem("prod-1");
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.LineItems).Count().IsEqualTo(1);
@@ -170,9 +170,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.CompleteOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Details.SavedVersion).IsEqualTo(7);
@@ -191,10 +191,10 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ConfirmOrder(); // v4
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
 		// At version 1, only CreateOrder has been applied
-		var atV1 = await store.GetAtAsync<OrderAggregate>(id, 1, null, cancellationToken);
+		var atV1 = await store.GetAtAsync(id, 1, cancellationToken);
 
 		await Assert.That(atV1).IsNotNull();
 		await Assert.That(atV1!.Status).IsEqualTo(OrderStatus.Draft);
@@ -213,10 +213,10 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ConfirmOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>();
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
 		// At version 3 (after two AddLineItem), status is still Draft
-		var atV3 = await store.GetAtAsync<OrderAggregate>(id, 3, null, cancellationToken);
+		var atV3 = await store.GetAtAsync(id, 3, cancellationToken);
 
 		await Assert.That(atV3).IsNotNull();
 		await Assert.That(atV3!.Status).IsEqualTo(OrderStatus.Draft);
@@ -238,9 +238,9 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.ConfirmOrder();
 
 		var store = fixture.CreateEventStore<OrderAggregate>(snapshotRecalculationInterval: int.MaxValue);
-		await store.SaveAsync(order, null, cancellationToken);
+		await store.SaveAsync(order, cancellationToken);
 
-		var loaded = await store.GetAsync<OrderAggregate>(id, null, cancellationToken);
+		var loaded = await store.GetAsync(id, cancellationToken);
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.Status).IsEqualTo(OrderStatus.Confirmed);

@@ -3,7 +3,10 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice;
 
-public sealed class IndexModel(IQueryableEventStore inventoryStore, IQueryableEventStore orderStore) : PageModel
+public sealed class IndexModel(
+	IQueryableEventStore inventoryStore,
+	IQueryableEventStore orderStore
+) : PageModel
 {
 	public int UniqueProductCount { get; private set; }
 	public long InventoryItemCount { get; private set; }

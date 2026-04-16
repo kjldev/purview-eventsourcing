@@ -24,13 +24,13 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var customer = new CustomerAggregate();
 		customer.Details.Id = $"{Guid.NewGuid()}";
 		customer.RegisterCustomer("Alice Johnson", "alice@example.com");
-		await customerStore.SaveAsync(customer, null, cancellationToken);
+		await customerStore.SaveAsync(customer, cancellationToken);
 
 		// --- Phase 2: Initialize inventory ---
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
 		inventory.Initialize("widget-1", "Premium Widget", "loc-1", "Main Warehouse", initialQuantity: 100);
-		await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Phase 3: Create order for the customer ---
 		var order = new OrderAggregate();
@@ -38,31 +38,27 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.CreateOrder(customer.Id());
 		order.AddLineItem("widget-1", "Premium Widget", 5, 19.99m);
 		order.SetShippingAddress("789 Commerce Blvd");
-		await orderStore.SaveAsync(order, null, cancellationToken);
+		await orderStore.SaveAsync(order, cancellationToken);
 
 		// --- Phase 4: Reserve inventory ---
 		inventory.ReserveStock(5, order.Id());
-		await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Phase 5: Confirm, ship, complete ---
 		order.ConfirmOrder();
 		order.ShipOrder();
-		await orderStore.SaveAsync(order, null, cancellationToken);
+		await orderStore.SaveAsync(order, cancellationToken);
 
 		inventory.ShipStock(5, order.Id());
-		await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		order.CompleteOrder();
-		await orderStore.SaveAsync(order, null, cancellationToken);
+		await orderStore.SaveAsync(order, cancellationToken);
 
 		// Act: Reload all three aggregates from their respective stores
-		var loadedCustomer = await customerStore.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken);
-		var loadedInventory = await inventoryStore.GetAsync<InventoryAggregate>(
-			inventory.Id(),
-			null,
-			cancellationToken
-		);
-		var loadedOrder = await orderStore.GetAsync<OrderAggregate>(order.Id(), null, cancellationToken);
+		var loadedCustomer = await customerStore.GetAsync(customer.Id(), cancellationToken);
+		var loadedInventory = await inventoryStore.GetAsync(inventory.Id(), cancellationToken);
+		var loadedOrder = await orderStore.GetAsync(order.Id(), cancellationToken);
 
 		// Assert: Customer
 		await Assert.That(loadedCustomer).IsNotNull();
@@ -97,7 +93,7 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
 		inventory.Initialize("gadget-1", "Super Gadget", "loc-2", "Returns Warehouse", initialQuantity: 50);
-		await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Create and confirm order ---
 		var order = new OrderAggregate();
@@ -107,23 +103,19 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		inventory.ReserveStock(10, order.Id());
 		order.ConfirmOrder();
 
-		await orderStore.SaveAsync(order, null, cancellationToken);
-		await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		await orderStore.SaveAsync(order, cancellationToken);
+		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Cancel order and release inventory ---
 		order.CancelOrder();
 		inventory.ReleaseReservation(10, order.Id());
 
-		await orderStore.SaveAsync(order, null, cancellationToken);
-		await inventoryStore.SaveAsync(inventory, null, cancellationToken);
+		await orderStore.SaveAsync(order, cancellationToken);
+		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// Act: Reload
-		var loadedOrder = await orderStore.GetAsync<OrderAggregate>(order.Id(), null, cancellationToken);
-		var loadedInventory = await inventoryStore.GetAsync<InventoryAggregate>(
-			inventory.Id(),
-			null,
-			cancellationToken
-		);
+		var loadedOrder = await orderStore.GetAsync(order.Id(), cancellationToken);
+		var loadedInventory = await inventoryStore.GetAsync(inventory.Id(), cancellationToken);
 
 		// Assert
 		await Assert.That(loadedOrder).IsNotNull();
@@ -146,7 +138,7 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var customer = new CustomerAggregate();
 		customer.Details.Id = $"{Guid.NewGuid()}";
 		customer.RegisterCustomer("Bob Smith", "bob@example.com");
-		await customerStore.SaveAsync(customer, null, cancellationToken);
+		await customerStore.SaveAsync(customer, cancellationToken);
 
 		var order = new OrderAggregate();
 		order.Details.Id = $"{Guid.NewGuid()}";
@@ -154,15 +146,15 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.AddLineItem("prod-1", "Item", 1, 25m);
 		order.SetShippingAddress("123 Lane");
 		order.ConfirmOrder();
-		await orderStore.SaveAsync(order, null, cancellationToken);
+		await orderStore.SaveAsync(order, cancellationToken);
 
 		// Deactivate customer after the order is confirmed
 		customer.Deactivate();
-		await customerStore.SaveAsync(customer, null, cancellationToken);
+		await customerStore.SaveAsync(customer, cancellationToken);
 
 		// Reload both
-		var loadedCustomer = await customerStore.GetAsync<CustomerAggregate>(customer.Id(), null, cancellationToken);
-		var loadedOrder = await orderStore.GetAsync<OrderAggregate>(order.Id(), null, cancellationToken);
+		var loadedCustomer = await customerStore.GetAsync(customer.Id(), cancellationToken);
+		var loadedOrder = await orderStore.GetAsync(order.Id(), cancellationToken);
 
 		await Assert.That(loadedCustomer).IsNotNull();
 		await Assert.That(loadedCustomer!.IsActive).IsFalse();

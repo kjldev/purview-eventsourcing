@@ -32,8 +32,8 @@ public sealed class OrderModel(
 			return RedirectToPage("/Customer/Index");
 
 		var ct = HttpContext.RequestAborted;
-		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
-		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, ct);
+		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, ct);
 
 		if (InventoryItem != null)
 			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
@@ -89,8 +89,8 @@ public sealed class OrderModel(
 
 	async Task ReloadAsync(string customerId, CancellationToken ct)
 	{
-		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, ct);
-		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, null, ct);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, ct);
+		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, ct);
 		if (InventoryItem != null)
 			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
 	}

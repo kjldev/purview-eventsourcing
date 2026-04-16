@@ -56,7 +56,12 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 		TotalCount = await store.CountAsync<CustomerAggregate>(where, ct);
 
-		var result = await store.QueryAsync<CustomerAggregate>(where, q => q.OrderBy(c => c.Name), request, ct);
+		var result = await store.QueryAsync<CustomerAggregate>(
+			where,
+			q => q.OrderBy(c => c.Name),
+			request,
+			ct
+		);
 		Customers = result.Results;
 	}
 

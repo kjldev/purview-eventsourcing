@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using FluentValidation.Results;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
 
@@ -29,20 +28,20 @@ public sealed class StockTransferServiceTests
 		return location;
 	}
 
-	static SaveResult<T> SuccessResult<T>(T aggregate)
-		where T : class, IAggregate, new() => new(aggregate, new ValidationResult(), saved: true, skipped: false);
-
-	static SaveResult<T> FailResult<T>(T aggregate)
-		where T : class, IAggregate, new() =>
+	static TransactionResult SuccessfulTransaction(params IAggregate[] aggregates) =>
 		new(
-			aggregate,
-			new ValidationResult([new ValidationFailure("field", "Save failed")]),
-			saved: false,
-			skipped: false
-		);
+		[
+			.. aggregates.Select(aggregate => new TransactionAggregateResult(aggregate, saved: true, skipped: false, error: null)),
+		]
+	);
 
-	StockTransferService CreateService(IQueryableEventStore? store = null) =>
-		new(store ?? Substitute.For<IQueryableEventStore>());
+	static TransactionResult FailedTransaction(IAggregate aggregate) =>
+		new([new TransactionAggregateResult(aggregate, saved: false, skipped: false, error: new InvalidOperationException("Commit failed"))]);
+
+	StockTransferService CreateService(
+		IEventStoreTransactionFactory? transactionFactory = null,
+		IQueryableEventStore? store = null
+	) => new(transactionFactory ?? Substitute.For<IEventStoreTransactionFactory>(), store ?? Substitute.For<IQueryableEventStore>());
 
 	[Test]
 	public async Task TransferAsync_GivenSameSourceAndDestinationLocation_ReturnsFail(
@@ -53,7 +52,8 @@ public sealed class StockTransferServiceTests
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-001", 5, "test", cancellationToken);
+		var result = await CreateService(store: store)
+			.TransferAsync("inv-1", "LOC-001", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("different");
@@ -65,7 +65,8 @@ public sealed class StockTransferServiceTests
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
 
-		var result = await CreateService(store).TransferAsync("missing", "inv-2", 5, "test", cancellationToken);
+		var result = await CreateService(store: store)
+			.TransferAsync("missing", "inv-2", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Source");
@@ -81,7 +82,8 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("missing", null, cancellationToken).Returns((LocationAggregate?)null);
 
-		var result = await CreateService(store).TransferAsync("inv-1", "missing", 5, "test", cancellationToken);
+		var result = await CreateService(store: store)
+			.TransferAsync("inv-1", "missing", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Destination");
@@ -97,7 +99,8 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns((LocationAggregate?)null);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-002", 5, "test", cancellationToken);
+		var result = await CreateService(store: store)
+			.TransferAsync("inv-1", "LOC-002", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Source location");
@@ -115,15 +118,11 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns(dest);
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
+		var result = await CreateService(store: store)
+			.TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Insufficient");
@@ -137,22 +136,20 @@ public sealed class StockTransferServiceTests
 		var destinationLocation = Location("LOC-002", "Warehouse South");
 		var dest = StockedItem("inv-2", "LOC-002", "Warehouse South", 20);
 
+		var transactionFactory = Substitute.For<IEventStoreTransactionFactory>();
+		var transaction = Substitute.For<IEventStoreTransaction>();
+		transactionFactory.Create(Arg.Any<string?>()).Returns(transaction);
+		transaction.CommitAsync(cancellationToken).Returns(SuccessfulTransaction(source, dest));
+
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns(dest);
-		store
-			.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
-			.Returns(callInfo => SuccessResult((InventoryAggregate)callInfo[0]));
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-002", 15, "rebalance", cancellationToken);
+		var result = await CreateService(transactionFactory, store)
+			.TransferAsync("inv-1", "LOC-002", 15, "rebalance", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsTrue();
 		await Assert.That(result.Quantity).IsEqualTo(15);
@@ -168,22 +165,20 @@ public sealed class StockTransferServiceTests
 		var destinationLocation = Location("LOC-002", "Warehouse South");
 		var dest = StockedItem("inv-2", "LOC-002", "Warehouse South", 20);
 
+		var transactionFactory = Substitute.For<IEventStoreTransactionFactory>();
+		var transaction = Substitute.For<IEventStoreTransaction>();
+		transactionFactory.Create(Arg.Any<string?>()).Returns(transaction);
+		transaction.CommitAsync(cancellationToken).Returns(SuccessfulTransaction(source, dest));
+
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns(dest);
-		store
-			.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
-			.Returns(callInfo => SuccessResult((InventoryAggregate)callInfo[0]));
 
-		await CreateService(store).TransferAsync("inv-1", "LOC-002", 15, "rebalance", cancellationToken);
+		await CreateService(transactionFactory, store)
+			.TransferAsync("inv-1", "LOC-002", 15, "rebalance", cancellationToken);
 
 		await Assert.That(source.QuantityOnHand).IsEqualTo(85);
 		await Assert.That(dest.QuantityOnHand).IsEqualTo(35);
@@ -200,23 +195,21 @@ public sealed class StockTransferServiceTests
 		var createdDestination = new InventoryAggregate();
 		createdDestination.Details.Id = "inv-2";
 
+		var transactionFactory = Substitute.For<IEventStoreTransactionFactory>();
+		var transaction = Substitute.For<IEventStoreTransaction>();
+		transactionFactory.Create(Arg.Any<string?>()).Returns(transaction);
+		transaction.CommitAsync(cancellationToken).Returns(SuccessfulTransaction(source, createdDestination));
+
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns((InventoryAggregate?)null);
 		store.CreateAsync<InventoryAggregate>(null, cancellationToken).Returns(createdDestination);
-		store
-			.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
-			.Returns(callInfo => SuccessResult((InventoryAggregate)callInfo[0]));
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
+		var result = await CreateService(transactionFactory, store)
+			.TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsTrue();
 		await Assert.That(createdDestination.LocationId).IsEqualTo("LOC-002");
@@ -227,72 +220,58 @@ public sealed class StockTransferServiceTests
 	}
 
 	[Test]
-	public async Task TransferAsync_WhenSourceSaveFails_ReturnsFail(CancellationToken cancellationToken)
+	public async Task TransferAsync_WhenTransactionCommitFails_ReturnsFail(CancellationToken cancellationToken)
 	{
 		var source = StockedItem("inv-1", "LOC-001", "Warehouse North", 100);
 		var sourceLocation = Location("LOC-001", "Warehouse North");
 		var destinationLocation = Location("LOC-002", "Warehouse South");
 		var dest = StockedItem("inv-2", "LOC-002", "Warehouse South", 0);
 
+		var transactionFactory = Substitute.For<IEventStoreTransactionFactory>();
+		var transaction = Substitute.For<IEventStoreTransaction>();
+		transactionFactory.Create(Arg.Any<string?>()).Returns(transaction);
+		transaction.CommitAsync(cancellationToken).Returns(FailedTransaction(source));
+
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns(dest);
-		store
-			.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
-			.Returns(FailResult(source));
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
+		var result = await CreateService(transactionFactory, store)
+			.TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
-		// Destination should never be saved — compensation not needed
-		await store.Received(1).SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken);
+		await Assert.That(result.ErrorMessage).Contains("Nothing was saved");
 	}
 
 	[Test]
-	public async Task TransferAsync_WhenDestinationSaveFails_CompensatesSourceStock(CancellationToken cancellationToken)
+	public async Task TransferAsync_WhenTransactionCommitFails_DoesNotApplyCompensation(CancellationToken cancellationToken)
 	{
 		var source = StockedItem("inv-1", "LOC-001", "Warehouse North", 100);
 		var sourceLocation = Location("LOC-001", "Warehouse North");
 		var destinationLocation = Location("LOC-002", "Warehouse South");
 		var dest = StockedItem("inv-2", "LOC-002", "Warehouse South", 0);
-		var callCount = 0;
+
+		var transactionFactory = Substitute.For<IEventStoreTransactionFactory>();
+		var transaction = Substitute.For<IEventStoreTransaction>();
+		transactionFactory.Create(Arg.Any<string?>()).Returns(transaction);
+		transaction.CommitAsync(cancellationToken).Returns(FailedTransaction(dest));
 
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns(dest);
-		store
-			.SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken)
-			.Returns(callInfo =>
-			{
-				callCount++;
-				var agg = (InventoryAggregate)callInfo[0];
-				// First call (source save) succeeds; second (dest) fails; third (compensation) succeeds.
-				return callCount == 2 ? FailResult(agg) : SuccessResult(agg);
-			});
 
-		var result = await CreateService(store).TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
+		var result = await CreateService(transactionFactory, store)
+			.TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
-		await Assert.That(result.ErrorMessage).Contains("restored");
-		// 3 saves: source, destination (fail), compensation
-		await store.Received(3).SaveAsync<InventoryAggregate>(Arg.Any<InventoryAggregate>(), null, cancellationToken);
-		// Source should be back to its original quantity
-		await Assert.That(source.QuantityOnHand).IsEqualTo(100);
+		await Assert.That(result.ErrorMessage).Contains("Nothing was saved");
+		await Assert.That(source.QuantityOnHand).IsEqualTo(90);
+		await Assert.That(dest.QuantityOnHand).IsEqualTo(10);
 	}
 }

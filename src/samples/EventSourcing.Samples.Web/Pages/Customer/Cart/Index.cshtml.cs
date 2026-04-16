@@ -6,7 +6,10 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Cart;
 
-public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService checkoutService)
+public sealed class IndexModel(
+	IQueryableEventStore customerStore,
+	ICartCheckoutService checkoutService
+)
 	: Microsoft.AspNetCore.Mvc.RazorPages.PageModel
 {
 	public CustomerAggregate? CurrentCustomer { get; private set; }
@@ -22,7 +25,7 @@ public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckout
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, null, HttpContext.RequestAborted);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		CartItems = HttpContext.Session.GetCart();
 		return Page();
 	}

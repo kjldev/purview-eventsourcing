@@ -88,14 +88,14 @@ public sealed class OrderPageTests(WebAppFactory factory)
 		var sourceLocationId = $"LOC-TEST-SRC-{Guid.NewGuid():N}";
 		var sourceLocation = await store.CreateAsync<LocationAggregate>(sourceLocationId, cancellationToken);
 		sourceLocation.Initialize(sourceLocationId, $"Transfer Source {Guid.NewGuid():N}");
-		await store.SaveAsync(sourceLocation, null, cancellationToken);
+		await store.SaveAsync(sourceLocation, cancellationToken);
 
 		var destinationLocationId = $"LOC-TEST-DST-{Guid.NewGuid():N}";
 		var destinationLocation = await store.CreateAsync<LocationAggregate>(destinationLocationId, cancellationToken);
 		destinationLocation.Initialize(destinationLocationId, $"Transfer Destination {Guid.NewGuid():N}");
-		await store.SaveAsync(destinationLocation, null, cancellationToken);
+		await store.SaveAsync(destinationLocation, cancellationToken);
 
-		var inventory = await store.CreateAsync<InventoryAggregate>(null, cancellationToken);
+		var inventory = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
 		inventory.Initialize(
 			$"SKU-TRANSFER-{Guid.NewGuid():N}",
 			"Transfer Test Widget",
@@ -104,7 +104,7 @@ public sealed class OrderPageTests(WebAppFactory factory)
 			initialQuantity: 10
 		);
 
-		var saveResult = await store.SaveAsync(inventory, null, cancellationToken);
+		var saveResult = await store.SaveAsync(inventory, cancellationToken);
 		return (saveResult.Aggregate.Id(), destinationLocationId);
 	}
 

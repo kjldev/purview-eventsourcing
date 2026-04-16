@@ -5,28 +5,31 @@ using Purview.EventSourcing.Samples.Web.Services;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class EditModel(IQueryableEventStore store, IProductImageService imageService) : EventSourcingPageModel
+public sealed class EditModel(
+	IQueryableEventStore store,
+	IProductImageService imageService
+) : EventSourcingPageModel
 {
 	public InventoryAggregate? Item { get; private set; }
 	public string? CurrentImageUrl { get; private set; }
 
 	public async Task OnGetAsync(string id)
 	{
-		Item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
+		Item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		if (Item != null)
 			CurrentImageUrl = await imageService.GetImageUrlAsync(Item.ProductId, HttpContext.RequestAborted);
 	}
 
 	public async Task<IActionResult> OnPostUpdateProductNameAsync(string id, string productName)
 	{
-		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		return item == null
 			? NotFound()
 			: await TrySaveAsync(
 				async () =>
 				{
 					item.UpdateDetails(productName: productName.Trim());
-					await store.SaveAsync(item, null, HttpContext.RequestAborted);
+					await store.SaveAsync(item, HttpContext.RequestAborted);
 				},
 				"Product name updated.",
 				RedirectToPage(new { id })
@@ -41,7 +44,7 @@ public sealed class EditModel(IQueryableEventStore store, IProductImageService i
 			return RedirectToPage(new { id });
 		}
 
-		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		if (item == null)
 			return NotFound();
 
@@ -61,7 +64,7 @@ public sealed class EditModel(IQueryableEventStore store, IProductImageService i
 
 	public async Task<IActionResult> OnPostDeleteImageAsync(string id)
 	{
-		var item = await store.GetAsync<InventoryAggregate>(id, null, HttpContext.RequestAborted);
+		var item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		if (item == null)
 			return NotFound();
 

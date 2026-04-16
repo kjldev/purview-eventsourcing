@@ -8,7 +8,10 @@ namespace Purview.EventSourcing.Samples.Services;
 /// creating the destination inventory aggregate on demand and compensating the source if the
 /// destination save fails.
 /// </summary>
-public sealed class StockTransferService(IQueryableEventStore store) : IStockTransferService
+public sealed class StockTransferService(
+	IEventStoreTransactionFactory transactionFactory,
+	IQueryableEventStore store
+) : IStockTransferService
 {
 	public async Task<StockTransferResult> TransferAsync(
 		string sourceInventoryId,
@@ -23,22 +26,18 @@ public sealed class StockTransferService(IQueryableEventStore store) : IStockTra
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
-		var source = await store.GetAsync<InventoryAggregate>(sourceInventoryId, null, cancellationToken);
+		var source = await store.GetAsync<InventoryAggregate>(sourceInventoryId, cancellationToken);
 		if (source is null || source.Details.IsDeleted)
 			return StockTransferResult.Fail("Source stock item not found.");
 
 		if (string.Equals(source.LocationId, destinationLocationId, StringComparison.OrdinalIgnoreCase))
 			return StockTransferResult.Fail("Source and destination locations must be different.");
 
-		var sourceLocation = await store.GetAsync<LocationAggregate>(source.LocationId, null, cancellationToken);
+		var sourceLocation = await store.GetAsync<LocationAggregate>(source.LocationId, cancellationToken);
 		if (sourceLocation is null || sourceLocation.Details.IsDeleted)
 			return StockTransferResult.Fail($"Source location '{source.LocationId}' not found.");
 
-		var destinationLocation = await store.GetAsync<LocationAggregate>(
-			destinationLocationId,
-			null,
-			cancellationToken
-		);
+		var destinationLocation = await store.GetAsync<LocationAggregate>(destinationLocationId, cancellationToken);
 		if (destinationLocation is null || destinationLocation.Details.IsDeleted)
 			return StockTransferResult.Fail("Destination location not found.");
 
@@ -64,42 +63,20 @@ public sealed class StockTransferService(IQueryableEventStore store) : IStockTra
 			);
 		}
 
-		// Step 1 — reduce source stock.
-		var previousSourceQty = source.QuantityOnHand;
 		source.AdjustStock(
 			source.QuantityOnHand - quantity,
 			$"Transfer to {destinationLocation.LocationName}: {reason}"
 		);
 
-		var sourceSave = await store.SaveAsync(source, null, cancellationToken);
-		if (!sourceSave)
-			return StockTransferResult.Fail($"Failed to save source location '{sourceLocation.LocationName}'.");
-
-		var savedSource = sourceSave.Aggregate;
-
-		// Step 2 — add to destination; compensate if save fails.
 		destination.ReceiveStock(quantity);
-		var destinationSave = await store.SaveAsync(destination, null, cancellationToken);
-		if (!destinationSave)
-		{
-			// Compensate: restore source stock before returning failure.
-			savedSource.AdjustStock(
-				previousSourceQty,
-				$"Compensation rollback: failed transfer to {destinationLocation.LocationName}"
-			);
 
-			var compensationSave = await store.SaveAsync(savedSource, null, cancellationToken);
-			return compensationSave
-				? StockTransferResult.Fail(
-				$"Failed to save destination location '{destinationLocation.LocationName}'. "
-					+ "Source stock has been restored."
-			)
-				: StockTransferResult.Fail(
-					$"Failed to save destination location '{destinationLocation.LocationName}'. "
-						+ $"Compensation to restore source location '{sourceLocation.LocationName}' also failed."
-				);
-		}
+		await using var transaction = transactionFactory.Create();
+		transaction.Enlist(source, store);
+		transaction.Enlist(destination, store);
 
-		return StockTransferResult.Success(savedSource, destinationSave.Aggregate, quantity);
+		var transactionResult = await transaction.CommitAsync(cancellationToken);
+		return transactionResult.Success
+			? StockTransferResult.Success(source, destination, quantity)
+			: StockTransferResult.Fail("Failed to transfer stock. Nothing was saved.");
 	}
 }

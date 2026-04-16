@@ -32,7 +32,7 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 		if (item == null)
 			return NotFound();
 
-		await store.RestoreAsync(item, null, HttpContext.RequestAborted);
+		await store.RestoreAsync(item, HttpContext.RequestAborted);
 
 		TempData["Success"] = $"'{item.ProductName}' restored.";
 		return RedirectToPage("Deleted");

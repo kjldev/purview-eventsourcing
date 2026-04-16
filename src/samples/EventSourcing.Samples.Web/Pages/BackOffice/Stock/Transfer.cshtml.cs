@@ -7,8 +7,10 @@ using Purview.EventSourcing.SqlServer.Exceptions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class TransferModel(IStockTransferService transferService, IQueryableEventStore inventoryStore)
-	: PageModel
+public sealed class TransferModel(
+	IStockTransferService transferService,
+	IQueryableEventStore store
+) : PageModel
 {
 	[BindProperty]
 	public string SourceInventoryId { get; set; } = string.Empty;
@@ -85,7 +87,7 @@ public sealed class TransferModel(IStockTransferService transferService, IQuerya
 
 	async Task LoadDropdownsAsync(CancellationToken ct)
 	{
-		var sourceItems = await inventoryStore.QueryAsync<InventoryAggregate>(
+		var sourceItems = await store.QueryAsync<InventoryAggregate>(
 			i => i.AvailableQuantity > 0,
 			q => q.OrderBy(i => i.ProductName).ThenBy(i => i.LocationName),
 			new ContinuationRequest { MaxRecords = 500 },
@@ -99,7 +101,7 @@ public sealed class TransferModel(IStockTransferService transferService, IQuerya
 			))
 			.ToList();
 
-		var locations = await inventoryStore.ListAsync<LocationAggregate>(
+		var locations = await store.ListAsync<LocationAggregate>(
 			q => q.OrderBy(i => i.LocationName),
 			new ContinuationRequest { MaxRecords = 500 },
 			ct

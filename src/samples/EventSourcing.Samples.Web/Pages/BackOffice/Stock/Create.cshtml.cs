@@ -6,7 +6,9 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class CreateModel(IQueryableEventStore store) : PageModel
+public sealed class CreateModel(
+	IQueryableEventStore store
+) : PageModel
 {
 	[BindProperty, Required, MaxLength(200)]
 	public string ProductId { get; set; } = string.Empty;
@@ -41,7 +43,7 @@ public sealed class CreateModel(IQueryableEventStore store) : PageModel
 		var productName = ProductName.Trim();
 		var locationId = LocationId.Trim();
 
-		var location = await store.GetAsync<LocationAggregate>(locationId, null, ct);
+		var location = await store.GetAsync<LocationAggregate>(locationId, ct);
 		if (location is null || location.Details.IsDeleted)
 		{
 			ModelState.AddModelError(nameof(LocationId), "Please select a valid physical location.");
@@ -65,7 +67,7 @@ public sealed class CreateModel(IQueryableEventStore store) : PageModel
 
 		var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: ct);
 		item.Initialize(productId, productName, location.LocationId, location.LocationName, InitialQuantity);
-		await store.SaveAsync(item, null, ct);
+		await store.SaveAsync(item, ct);
 
 		TempData["Success"] = $"Stock item '{item.ProductName}' created.";
 		return RedirectToPage("Index");

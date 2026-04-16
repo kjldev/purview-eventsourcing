@@ -81,10 +81,10 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 	public async Task<IActionResult> OnPostArchiveAsync(string id)
 	{
-		var customer = await store.GetAsync<CustomerAggregate>(id, null, HttpContext.RequestAborted);
+		var customer = await store.GetAsync<CustomerAggregate>(id, HttpContext.RequestAborted);
 		if (customer != null)
 		{
-			await store.DeleteAsync(customer, null, HttpContext.RequestAborted);
+			await store.DeleteAsync(customer, HttpContext.RequestAborted);
 			TempData["Success"] = $"Customer '{customer.Name}' archived.";
 		}
 

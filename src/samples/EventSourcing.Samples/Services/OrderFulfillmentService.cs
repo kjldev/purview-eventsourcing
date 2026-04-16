@@ -3,7 +3,10 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class OrderFulfillmentService(IQueryableEventStore store) : IOrderFulfillmentService
+public sealed class OrderFulfillmentService(
+	IEventStoreTransactionFactory transactionFactory,
+	IQueryableEventStore store
+) : IOrderFulfillmentService
 {
 	// Thread-safe price cache shared across all instances.
 	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(StringComparer.OrdinalIgnoreCase);
@@ -16,13 +19,13 @@ public sealed class OrderFulfillmentService(IQueryableEventStore store) : IOrder
 		CancellationToken cancellationToken = default
 	)
 	{
-		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, cancellationToken);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, cancellationToken);
 		if (customer is null || customer.Details.IsDeleted)
 			return FulfilmentResult.Fail("Customer not found.");
 		if (!customer.IsActive)
 			return FulfilmentResult.Fail($"Customer '{customer.Name}' is not active.");
 
-		var inventory = await store.GetAsync<InventoryAggregate>(inventoryId, null, cancellationToken);
+		var inventory = await store.GetAsync<InventoryAggregate>(inventoryId, cancellationToken);
 		if (inventory is null || inventory.Details.IsDeleted)
 			return FulfilmentResult.Fail("Inventory item not found.");
 		if (inventory.AvailableQuantity < quantity)
@@ -33,30 +36,23 @@ public sealed class OrderFulfillmentService(IQueryableEventStore store) : IOrder
 		var unitPrice = GetUnitPrice(inventory.ProductId);
 
 		// Create and confirm the order.
-		var order = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
+		var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
 		order.CreateOrder(customerId);
 		order.AddLineItem(inventory.ProductId, inventory.ProductName, quantity, unitPrice);
 		if (!string.IsNullOrWhiteSpace(shippingAddress))
 			order.SetShippingAddress(shippingAddress);
 		order.ConfirmOrder();
 
-		var orderSave = await store.SaveAsync(order, null, cancellationToken);
-		if (!orderSave)
-			return FulfilmentResult.Fail("Failed to save order.");
+		inventory.ReserveStock(quantity, order.Id());
 
-		var savedOrder = orderSave.Aggregate;
+		await using var transaction = transactionFactory.Create();
+		transaction.Enlist(order, store);
+		transaction.Enlist(inventory, store);
 
-		// Reserve stock — if this fails, compensate by cancelling the order.
-		inventory.ReserveStock(quantity, savedOrder.Id());
-		var inventorySave = await store.SaveAsync(inventory, null, cancellationToken);
-		if (!inventorySave)
-		{
-			savedOrder.CancelOrder();
-			await store.SaveAsync(savedOrder, null, cancellationToken);
-			return FulfilmentResult.Fail("Failed to reserve inventory. Order has been cancelled.");
-		}
-
-		return FulfilmentResult.Success(savedOrder, inventorySave.Aggregate);
+		var transactionResult = await transaction.CommitAsync(cancellationToken);
+		return transactionResult.Success
+			? FulfilmentResult.Success(order, inventory)
+			: FulfilmentResult.Fail("Failed to place order. Nothing was saved.");
 	}
 
 	static decimal GetUnitPrice(string productId)

@@ -3,8 +3,10 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class CartCheckoutService(IEventStoreTransactionFactory transactionFactory, IQueryableEventStore store)
-	: ICartCheckoutService
+public sealed class CartCheckoutService(
+	IEventStoreTransactionFactory transactionFactory,
+	IQueryableEventStore store
+) : ICartCheckoutService
 {
 	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(StringComparer.OrdinalIgnoreCase);
 
@@ -18,7 +20,7 @@ public sealed class CartCheckoutService(IEventStoreTransactionFactory transactio
 		if (items.Count == 0)
 			return CartCheckoutResult.Fail("Cart is empty.");
 
-		var customer = await store.GetAsync<CustomerAggregate>(customerId, null, cancellationToken);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, cancellationToken);
 		if (customer is null || customer.Details.IsDeleted)
 			return CartCheckoutResult.Fail("Customer not found.");
 		if (!customer.IsActive)
@@ -29,7 +31,7 @@ public sealed class CartCheckoutService(IEventStoreTransactionFactory transactio
 		{
 			if (!inventoryReservations.TryGetValue(item.InventoryId, out var reservation))
 			{
-				var inventory = await store.GetAsync<InventoryAggregate>(item.InventoryId, null, cancellationToken);
+				var inventory = await store.GetAsync<InventoryAggregate>(item.InventoryId, cancellationToken);
 				if (inventory is null || inventory.Details.IsDeleted)
 					return CartCheckoutResult.Fail($"Product '{item.ProductName}' is no longer available.");
 
@@ -50,7 +52,7 @@ public sealed class CartCheckoutService(IEventStoreTransactionFactory transactio
 			}
 		}
 
-		var order = await store.CreateAsync<OrderAggregate>(null, cancellationToken);
+		var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
 		order.CreateOrder(customerId);
 
 		foreach (var item in items)
