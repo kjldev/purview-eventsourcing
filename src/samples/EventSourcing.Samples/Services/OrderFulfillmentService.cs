@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
@@ -60,8 +62,9 @@ public sealed class OrderFulfillmentService(
 		if (UnitPrices.TryGetValue(productId, out var cached))
 			return cached;
 
-		// Derive a stable price from the product ID hash for demo purposes.
-		var hash = Math.Abs(productId.GetHashCode());
+		// Derive a stable price from the product ID using a deterministic hash for demo purposes.
+		var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(productId));
+		var hash = (int)(BitConverter.ToUInt32(hashBytes, 0) & 0x7FFFFFFF);
 		var price = Math.Round(9.99m + (hash % 9000) / 100m, 2);
 		return UnitPrices.GetOrAdd(productId, price);
 	}
