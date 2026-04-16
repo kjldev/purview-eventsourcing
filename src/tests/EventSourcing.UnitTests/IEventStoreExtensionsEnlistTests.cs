@@ -109,18 +109,27 @@ public sealed class IEventStoreExtensionsEnlistTests
 	[Test]
 	public async Task Enlist_WithNullCorrelationId_GeneratesCorrelationId()
 	{
-		// Arrange
-		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
-		aggregate.Increment();
+		var currentActivity = System.Diagnostics.Activity.Current;
+		System.Diagnostics.Activity.Current = null;
+		try
+		{
+			// Arrange
+			var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
+			aggregate.Increment();
 
-		var eventStore = Substitute.For<IEventStore>();
+			var eventStore = Substitute.For<IEventStore>();
 
-		// Act
-		await using var transaction = eventStore.Enlist(correlationId: null, aggregate);
+			// Act
+			await using var transaction = eventStore.Enlist(correlationId: null, aggregate);
 
-		// Assert — a non-empty correlation ID was auto-generated
-		await Assert.That(transaction.CorrelationId).IsNotEmpty();
-		await Assert.That(Guid.TryParse(transaction.CorrelationId, out _)).IsTrue();
+			// Assert — a non-empty correlation ID was auto-generated
+			await Assert.That(transaction.CorrelationId).IsNotEmpty();
+			await Assert.That(Guid.TryParse(transaction.CorrelationId, out _)).IsTrue();
+		}
+		finally
+		{
+			System.Diagnostics.Activity.Current = currentActivity;
+		}
 	}
 
 	[Test]
@@ -174,8 +183,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 	}
 
 	[Test]
-	public async Task Enlist_WithCorrelationIdAndNullAggregatesArray_ThrowsArgumentNullException(
-	)
+	public async Task Enlist_WithCorrelationIdAndNullAggregatesArray_ThrowsArgumentNullException()
 	{
 		// Arrange
 		var eventStore = Substitute.For<IEventStore>();
@@ -187,8 +195,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 	}
 
 	[Test]
-	public async Task Enlist_WithOperationContextAndNullAggregatesArray_ThrowsArgumentNullException(
-	)
+	public async Task Enlist_WithOperationContextAndNullAggregatesArray_ThrowsArgumentNullException()
 	{
 		// Arrange
 		var eventStore = Substitute.For<IEventStore>();
@@ -263,4 +270,3 @@ public sealed class IEventStoreExtensionsEnlistTests
 			);
 	}
 }
-

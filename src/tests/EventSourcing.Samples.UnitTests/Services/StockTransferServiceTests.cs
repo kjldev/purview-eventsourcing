@@ -29,19 +29,33 @@ public sealed class StockTransferServiceTests
 	}
 
 	static TransactionResult SuccessfulTransaction(params IAggregate[] aggregates) =>
-		new(
-		[
-			.. aggregates.Select(aggregate => new TransactionAggregateResult(aggregate, saved: true, skipped: false, error: null)),
-		]
-	);
+		new([
+			.. aggregates.Select(aggregate => new TransactionAggregateResult(
+				aggregate,
+				saved: true,
+				skipped: false,
+				error: null
+			)),
+		]);
 
 	static TransactionResult FailedTransaction(IAggregate aggregate) =>
-		new([new TransactionAggregateResult(aggregate, saved: false, skipped: false, error: new InvalidOperationException("Commit failed"))]);
+		new([
+			new TransactionAggregateResult(
+				aggregate,
+				saved: false,
+				skipped: false,
+				error: new InvalidOperationException("Commit failed")
+			),
+		]);
 
 	StockTransferService CreateService(
 		IEventStoreTransactionFactory? transactionFactory = null,
 		IQueryableEventStore? store = null
-	) => new(transactionFactory ?? Substitute.For<IEventStoreTransactionFactory>(), store ?? Substitute.For<IQueryableEventStore>());
+	) =>
+		new(
+			transactionFactory ?? Substitute.For<IEventStoreTransactionFactory>(),
+			store ?? Substitute.For<IQueryableEventStore>()
+		);
 
 	[Test]
 	public async Task TransferAsync_GivenSameSourceAndDestinationLocation_ReturnsFail(
@@ -52,8 +66,7 @@ public sealed class StockTransferServiceTests
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 
-		var result = await CreateService(store: store)
-			.TransferAsync("inv-1", "LOC-001", 5, "test", cancellationToken);
+		var result = await CreateService(store: store).TransferAsync("inv-1", "LOC-001", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("different");
@@ -65,8 +78,7 @@ public sealed class StockTransferServiceTests
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<InventoryAggregate>("missing", null, cancellationToken).Returns((InventoryAggregate?)null);
 
-		var result = await CreateService(store: store)
-			.TransferAsync("missing", "inv-2", 5, "test", cancellationToken);
+		var result = await CreateService(store: store).TransferAsync("missing", "inv-2", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Source");
@@ -82,8 +94,7 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("missing", null, cancellationToken).Returns((LocationAggregate?)null);
 
-		var result = await CreateService(store: store)
-			.TransferAsync("inv-1", "missing", 5, "test", cancellationToken);
+		var result = await CreateService(store: store).TransferAsync("inv-1", "missing", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Destination");
@@ -99,8 +110,7 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns((LocationAggregate?)null);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
 
-		var result = await CreateService(store: store)
-			.TransferAsync("inv-1", "LOC-002", 5, "test", cancellationToken);
+		var result = await CreateService(store: store).TransferAsync("inv-1", "LOC-002", 5, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Source location");
@@ -118,11 +128,15 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
+		store
+			.FirstOrDefaultAsync<InventoryAggregate>(
+				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
+				null,
+				cancellationToken
+			)
 			.Returns(dest);
 
-		var result = await CreateService(store: store)
-			.TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
+		var result = await CreateService(store: store).TransferAsync("inv-1", "LOC-002", 10, "test", cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).Contains("Insufficient");
@@ -145,7 +159,12 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
+		store
+			.FirstOrDefaultAsync<InventoryAggregate>(
+				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
+				null,
+				cancellationToken
+			)
 			.Returns(dest);
 
 		var result = await CreateService(transactionFactory, store)
@@ -174,7 +193,12 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
+		store
+			.FirstOrDefaultAsync<InventoryAggregate>(
+				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
+				null,
+				cancellationToken
+			)
 			.Returns(dest);
 
 		await CreateService(transactionFactory, store)
@@ -204,7 +228,12 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
+		store
+			.FirstOrDefaultAsync<InventoryAggregate>(
+				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
+				null,
+				cancellationToken
+			)
 			.Returns((InventoryAggregate?)null);
 		store.CreateAsync<InventoryAggregate>(null, cancellationToken).Returns(createdDestination);
 
@@ -236,7 +265,12 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
+		store
+			.FirstOrDefaultAsync<InventoryAggregate>(
+				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
+				null,
+				cancellationToken
+			)
 			.Returns(dest);
 
 		var result = await CreateService(transactionFactory, store)
@@ -247,7 +281,9 @@ public sealed class StockTransferServiceTests
 	}
 
 	[Test]
-	public async Task TransferAsync_WhenTransactionCommitFails_DoesNotApplyCompensation(CancellationToken cancellationToken)
+	public async Task TransferAsync_WhenTransactionCommitFails_DoesNotApplyCompensation(
+		CancellationToken cancellationToken
+	)
 	{
 		var source = StockedItem("inv-1", "LOC-001", "Warehouse North", 100);
 		var sourceLocation = Location("LOC-001", "Warehouse North");
@@ -263,7 +299,12 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<InventoryAggregate>("inv-1", null, cancellationToken).Returns(source);
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
-		store.FirstOrDefaultAsync<InventoryAggregate>(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
+		store
+			.FirstOrDefaultAsync<InventoryAggregate>(
+				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
+				null,
+				cancellationToken
+			)
 			.Returns(dest);
 
 		var result = await CreateService(transactionFactory, store)

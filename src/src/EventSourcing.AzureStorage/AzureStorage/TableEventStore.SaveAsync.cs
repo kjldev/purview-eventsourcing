@@ -34,7 +34,7 @@ partial class TableEventStore<T>
 
 		FulfilRequirements(aggregate);
 
-		var idempotencyId = Activity.Current?.Id ?? $"{Guid.NewGuid()}";
+		var idempotencyId = operationContext.CorrelationId ?? Activity.Current?.Id ?? $"{Guid.NewGuid()}";
 		var validationResult = await GuardAsync(aggregate, cancellationToken);
 
 		static SaveResult<T> ReturnSaveResult(
@@ -267,8 +267,10 @@ partial class TableEventStore<T>
 
 	bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
-		return aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any() || (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
-			>= _eventStoreOptions.Value.SnapshotInterval;
+		return aggregate.Details.IsDeleted
+			|| events.OfType<RestoreEvent>().Any()
+			|| (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
+				>= _eventStoreOptions.Value.SnapshotInterval;
 	}
 
 	async Task WriteLargeEventEntitiesAsync(

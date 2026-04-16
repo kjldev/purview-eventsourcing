@@ -55,9 +55,7 @@ public class ContinuationTests
 	}
 
 	[Test]
-	public async Task ContinuationResponse_ToRequest_CreatesRequestWithTokenAndCount(
-
-	)
+	public async Task ContinuationResponse_ToRequest_CreatesRequestWithTokenAndCount()
 	{
 		// Arrange
 		var response = new ContinuationResponse<string>
@@ -97,4 +95,3 @@ public class ContinuationTests
 
 	#endregion
 }
-

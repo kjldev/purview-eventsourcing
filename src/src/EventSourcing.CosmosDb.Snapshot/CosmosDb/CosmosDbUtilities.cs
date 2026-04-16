@@ -118,7 +118,9 @@ static class CosmosDbUtilities
 			for (var i = 0; i < _idProperties.Length; i++)
 			{
 				var idProperty = _idProperties[i];
-				currentItem = idProperty.GetValue(currentItem) ?? throw new NullReferenceException("Some or all of id parts are null.");
+				currentItem =
+					idProperty.GetValue(currentItem)
+					?? throw new NullReferenceException("Some or all of id parts are null.");
 			}
 
 			var id = currentItem.ToString() ?? throw new NullReferenceException("Some or all of id parts are null.");

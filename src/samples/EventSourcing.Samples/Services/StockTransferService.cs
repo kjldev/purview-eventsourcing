@@ -8,10 +8,8 @@ namespace Purview.EventSourcing.Samples.Services;
 /// creating the destination inventory aggregate on demand and compensating the source if the
 /// destination save fails.
 /// </summary>
-public sealed class StockTransferService(
-	IEventStoreTransactionFactory transactionFactory,
-	IQueryableEventStore store
-) : IStockTransferService
+public sealed class StockTransferService(IEventStoreTransactionFactory transactionFactory, IQueryableEventStore store)
+	: IStockTransferService
 {
 	public async Task<StockTransferResult> TransferAsync(
 		string sourceInventoryId,

@@ -4,10 +4,7 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
 
-public sealed class DetailsModel(
-	IQueryableEventStore customerStore,
-	IQueryableEventStore orderStore
-)
+public sealed class DetailsModel(IQueryableEventStore customerStore, IQueryableEventStore orderStore)
 	: EventSourcingPageModel
 {
 	public OrderAggregate? Order { get; private set; }

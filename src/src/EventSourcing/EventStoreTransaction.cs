@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Diagnostics;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Internal;
 
@@ -25,16 +26,25 @@ namespace Purview.EventSourcing;
 /// Creates a new transaction with the given correlation ID.
 /// </remarks>
 /// <param name="correlationId">
-/// Optional correlation ID. When <see langword="null"/>, a new GUID is generated.
+/// Optional correlation ID. When <see langword="null"/>, the current activity ID is used when available;
+/// otherwise a new GUID is generated.
 /// </param>
-public sealed class EventStoreTransaction(string? correlationId = null) : IEventStoreTransaction
+public sealed class EventStoreTransaction : IEventStoreTransaction
 {
 	readonly List<IEnlistedAggregate> _enlisted = [];
+	readonly bool _useIdempotencyMarker;
 	bool _committed;
 	bool _disposed;
 
+	public EventStoreTransaction(string? correlationId = null)
+	{
+		var resolvedCorrelationId = correlationId ?? Activity.Current?.Id;
+		CorrelationId = resolvedCorrelationId ?? Guid.NewGuid().ToString();
+		_useIdempotencyMarker = !string.IsNullOrWhiteSpace(resolvedCorrelationId);
+	}
+
 	/// <inheritdoc/>
-	public string CorrelationId { get; } = correlationId ?? Guid.NewGuid().ToString();
+	public string CorrelationId { get; }
 
 	/// <inheritdoc/>
 	public void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
@@ -48,7 +58,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		ArgumentNullException.ThrowIfNull(aggregate);
 		ArgumentNullException.ThrowIfNull(eventStore);
 
-		_enlisted.Add(new EnlistedAggregate<T>(aggregate, eventStore, operationContext));
+		_enlisted.Add(new EnlistedAggregate<T>(aggregate, eventStore, operationContext, _useIdempotencyMarker));
 	}
 
 	/// <inheritdoc/>
@@ -67,7 +77,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		ArgumentNullException.ThrowIfNull(aggregate);
 		ArgumentNullException.ThrowIfNull(eventStore);
 
-		_enlisted.Add(new EnlistedAggregate<T>(aggregate, eventStore, operationContext));
+		_enlisted.Add(new EnlistedAggregate<T>(aggregate, eventStore, operationContext, _useIdempotencyMarker));
 	}
 
 	/// <inheritdoc/>
@@ -80,11 +90,9 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 
 		_committed = true;
 
-		return _enlisted.Count == 0
-			? new TransactionResult([])
-			: CanUseNativeTransactionCoordinator()
-				? await CommitWithNativeTransactionAsync(cancellationToken)
-				: await CommitSequentiallyAsync(cancellationToken);
+		return _enlisted.Count == 0 ? new TransactionResult([])
+			: CanUseNativeTransactionCoordinator() ? await CommitWithNativeTransactionAsync(cancellationToken)
+			: await CommitSequentiallyAsync(cancellationToken);
 	}
 
 	bool CanUseNativeTransactionCoordinator()
@@ -119,12 +127,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			{
 				var (saved, skipped) = await enlisted.SaveAsync(CorrelationId, cancellationToken);
 				results.Add(
-					new TransactionAggregateResult(
-						enlisted.Aggregate,
-						saved: saved,
-						skipped: skipped,
-						error: null
-					)
+					new TransactionAggregateResult(enlisted.Aggregate, saved: saved, skipped: skipped, error: null)
 				);
 
 				// Stop processing remaining aggregates on first failure.
@@ -259,12 +262,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		)
 		{
 			rollbackResults.Add(
-				new TransactionAggregateResult(
-					failedEnlisted.Aggregate,
-					saved: false,
-					skipped: false,
-					error: failure
-				)
+				new TransactionAggregateResult(failedEnlisted.Aggregate, saved: false, skipped: false, error: failure)
 			);
 		}
 
@@ -318,20 +316,28 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		readonly IEventStoreCore<T>? _eventStoreImpl;
 		readonly ITransactionalEventStore<T>? _transactionalEventStore;
 		readonly EventStoreOperationContext? _operationContext;
+		readonly bool _useIdempotencyMarker;
 
-		public EnlistedAggregate(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext)
+		public EnlistedAggregate(
+			T aggregate,
+			IEventStore eventStore,
+			EventStoreOperationContext? operationContext,
+			bool useIdempotencyMarker
+		)
 		{
 			_aggregate = aggregate;
 			_eventStore = eventStore;
 			_eventStoreImpl = (eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>();
 			_transactionalEventStore = _eventStoreImpl as ITransactionalEventStore<T>;
 			_operationContext = operationContext;
+			_useIdempotencyMarker = useIdempotencyMarker;
 		}
 
 		public EnlistedAggregate(
 			T aggregate,
 			IEventStoreCore<T> eventStore,
-			EventStoreOperationContext? operationContext
+			EventStoreOperationContext? operationContext,
+			bool useIdempotencyMarker
 		)
 		{
 			_aggregate = aggregate;
@@ -339,6 +345,7 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			_eventStoreImpl = eventStore;
 			_transactionalEventStore = eventStore as ITransactionalEventStore<T>;
 			_operationContext = operationContext;
+			_useIdempotencyMarker = useIdempotencyMarker;
 		}
 
 		public IAggregate Aggregate => _aggregate;
@@ -350,7 +357,14 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 		)
 		{
 			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext;
-			var context = baseContext with { CorrelationId = baseContext.CorrelationId ?? correlationId };
+			var context = baseContext with
+			{
+				CorrelationId = baseContext.CorrelationId ?? correlationId,
+				UseIdempotencyMarker =
+					baseContext.UseIdempotencyMarker
+					|| _useIdempotencyMarker
+					|| !string.IsNullOrWhiteSpace(baseContext.CorrelationId),
+			};
 
 			var result = _eventStoreImpl is not null
 				? await _eventStoreImpl.SaveAsync(_aggregate, context, cancellationToken)
@@ -385,7 +399,14 @@ public sealed class EventStoreTransaction(string? correlationId = null) : IEvent
 			}
 
 			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext;
-			var context = baseContext with { CorrelationId = baseContext.CorrelationId ?? correlationId };
+			var context = baseContext with
+			{
+				CorrelationId = baseContext.CorrelationId ?? correlationId,
+				UseIdempotencyMarker =
+					baseContext.UseIdempotencyMarker
+					|| _useIdempotencyMarker
+					|| !string.IsNullOrWhiteSpace(baseContext.CorrelationId),
+			};
 
 			var saveOperation = await _transactionalEventStore.SaveInTransactionAsync(
 				_aggregate,

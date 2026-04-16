@@ -146,14 +146,18 @@ public sealed class EventStoreTransactionTests
 			.Received(1)
 			.SaveAsync(
 				agg1,
-				Arg.Is<EventStoreOperationContext>(ctx => ctx.CorrelationId == correlationId),
+				Arg.Is<EventStoreOperationContext>(ctx =>
+					ctx.CorrelationId == correlationId && ctx.UseIdempotencyMarker
+				),
 				Arg.Any<CancellationToken>()
 			);
 		await store2
 			.Received(1)
 			.SaveAsync(
 				agg2,
-				Arg.Is<EventStoreOperationContext>(ctx => ctx.CorrelationId == correlationId),
+				Arg.Is<EventStoreOperationContext>(ctx =>
+					ctx.CorrelationId == correlationId && ctx.UseIdempotencyMarker
+				),
 				Arg.Any<CancellationToken>()
 			);
 	}
@@ -300,6 +304,8 @@ public sealed class EventStoreTransactionTests
 		await Assert.That(store2.AfterCommitCalls).IsEqualTo(1);
 		await Assert.That(store1.LastCorrelationId).IsEqualTo("coordinated");
 		await Assert.That(store2.LastCorrelationId).IsEqualTo("coordinated");
+		await Assert.That(store1.LastUseIdempotencyMarker).IsTrue();
+		await Assert.That(store2.LastUseIdempotencyMarker).IsTrue();
 	}
 
 	[Test]
@@ -331,6 +337,8 @@ public sealed class EventStoreTransactionTests
 		await Assert.That(store2.EnsureConfiguredCalls).IsEqualTo(0);
 		await Assert.That(store1.LastCorrelationId).IsEqualTo("fallback");
 		await Assert.That(store2.LastCorrelationId).IsEqualTo("fallback");
+		await Assert.That(store1.LastUseIdempotencyMarker).IsTrue();
+		await Assert.That(store2.LastUseIdempotencyMarker).IsTrue();
 	}
 
 	[Test]
@@ -425,11 +433,34 @@ public sealed class EventStoreTransactionTests
 	[Test]
 	public async Task CorrelationId_GivenNull_GeneratesNewGuid()
 	{
+		var currentActivity = System.Diagnostics.Activity.Current;
+		System.Diagnostics.Activity.Current = null;
+		try
+		{
+			// Act
+			await using var transaction = new EventStoreTransaction();
+
+			// Assert — should be a valid GUID string
+			await Assert.That(Guid.TryParse(transaction.CorrelationId, out _)).IsTrue();
+		}
+		finally
+		{
+			System.Diagnostics.Activity.Current = currentActivity;
+		}
+	}
+
+	[Test]
+	public async Task CorrelationId_GivenCurrentActivity_UsesActivityId()
+	{
+		// Arrange
+		using var activity = new System.Diagnostics.Activity("event-store-transaction");
+		activity.Start();
+
 		// Act
 		await using var transaction = new EventStoreTransaction();
 
-		// Assert — should be a valid GUID string
-		await Assert.That(Guid.TryParse(transaction.CorrelationId, out _)).IsTrue();
+		// Assert
+		await Assert.That(transaction.CorrelationId).IsEqualTo(activity.Id);
 	}
 
 	[Test]
@@ -601,9 +632,40 @@ public sealed class EventStoreTransactionTests
 			.Received(1)
 			.SaveAsync(
 				aggregate,
-				Arg.Is<EventStoreOperationContext>(ctx => ctx.CorrelationId == customCorrelation),
+				Arg.Is<EventStoreOperationContext>(ctx =>
+					ctx.CorrelationId == customCorrelation && ctx.UseIdempotencyMarker
+				),
 				Arg.Any<CancellationToken>()
 			);
+	}
+
+	[Test]
+	public async Task CommitAsync_GivenGeneratedCorrelationId_DoesNotForceIdempotencyMarker(
+		CancellationToken cancellationToken
+	)
+	{
+		var currentActivity = System.Diagnostics.Activity.Current;
+		System.Diagnostics.Activity.Current = null;
+		try
+		{
+			// Arrange
+			var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
+			aggregate.Increment();
+
+			var eventStore = new FakeTransactionalEventStore("sqlserver:primary");
+
+			// Act
+			await using var transaction = new EventStoreTransaction();
+			transaction.Enlist(aggregate, (IEventStore)eventStore);
+			await transaction.CommitAsync(cancellationToken);
+
+			// Assert
+			await Assert.That(eventStore.LastUseIdempotencyMarker).IsFalse();
+		}
+		finally
+		{
+			System.Diagnostics.Activity.Current = currentActivity;
+		}
 	}
 
 	sealed record SaveBehavior(bool Saved, bool Skipped, Exception? Exception = null);
@@ -621,15 +683,13 @@ public sealed class EventStoreTransactionTests
 		public int AfterCommitCalls { get; private set; }
 		public int AfterRollbackCalls { get; private set; }
 		public string? LastCorrelationId { get; private set; }
+		public bool? LastUseIdempotencyMarker { get; private set; }
 
 		public string TransactionBoundaryKey { get; } = transactionBoundaryKey;
 
 		public DbConnection CreateTransactionConnection() => new FakeDbConnection();
 
-		public Task EnsureTransactionConfiguredAsync(
-			DbConnection connection,
-			CancellationToken _ = default
-		)
+		public Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken _ = default)
 		{
 			EnsureConfiguredCalls++;
 			return Task.CompletedTask;
@@ -645,6 +705,7 @@ public sealed class EventStoreTransactionTests
 		{
 			SaveInTransactionCalls++;
 			LastCorrelationId = operationContext?.CorrelationId;
+			LastUseIdempotencyMarker = operationContext?.UseIdempotencyMarker;
 
 			return _behavior.Exception is not null
 				? throw _behavior.Exception
@@ -659,6 +720,7 @@ public sealed class EventStoreTransactionTests
 		{
 			SaveAsyncCalls++;
 			LastCorrelationId = operationContext?.CorrelationId;
+			LastUseIdempotencyMarker = operationContext?.UseIdempotencyMarker;
 
 			return _behavior.Exception is not null
 				? throw _behavior.Exception
@@ -678,7 +740,9 @@ public sealed class EventStoreTransactionTests
 
 		IEventStoreCore<T> IEventStoreImplementationAccessor.GetEventStore<T>()
 		{
-			return typeof(T) == typeof(TestAggregate) ? (IEventStoreCore<T>)(object)this : throw new NotSupportedException();
+			return typeof(T) == typeof(TestAggregate)
+				? (IEventStoreCore<T>)(object)this
+				: throw new NotSupportedException();
 		}
 
 		Task<T> IEventStore.CreateAsync<T>(string? aggregateId, CancellationToken _) =>
@@ -758,10 +822,8 @@ public sealed class EventStoreTransactionTests
 				}
 			);
 
-		public Task<TestAggregate> CreateAsync(
-			string? aggregateId = null,
-			CancellationToken _ = default
-		) => throw new NotSupportedException();
+		public Task<TestAggregate> CreateAsync(string? aggregateId = null, CancellationToken _ = default) =>
+			throw new NotSupportedException();
 
 		public Task<TestAggregate?> GetOrCreateAsync(
 			string? aggregateId,
@@ -785,10 +847,8 @@ public sealed class EventStoreTransactionTests
 		public Task<bool> IsDeletedAsync(string aggregateId, CancellationToken _ = default) =>
 			throw new NotSupportedException();
 
-		public Task<TestAggregate?> GetDeletedAsync(
-			string aggregateId,
-			CancellationToken _ = default
-		) => throw new NotSupportedException();
+		public Task<TestAggregate?> GetDeletedAsync(string aggregateId, CancellationToken _ = default) =>
+			throw new NotSupportedException();
 
 		public Task<bool> DeleteAsync(
 			TestAggregate aggregate,

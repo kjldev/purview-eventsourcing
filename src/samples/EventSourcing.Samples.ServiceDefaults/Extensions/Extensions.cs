@@ -34,10 +34,12 @@ public static class ServiceDefaultsExtensions
 		builder
 			.Services.AddOpenTelemetry()
 			.WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation().AddHttpClientInstrumentation())
-			.WithTracing(tracing => tracing
+			.WithTracing(tracing =>
+				tracing
 					.AddSource(builder.Environment.ApplicationName)
 					.AddAspNetCoreInstrumentation()
-					.AddHttpClientInstrumentation());
+					.AddHttpClientInstrumentation()
+			);
 
 		builder.AddOpenTelemetryExporters();
 

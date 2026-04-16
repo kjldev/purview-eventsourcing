@@ -6,10 +6,7 @@ using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Cart;
 
-public sealed class IndexModel(
-	IQueryableEventStore customerStore,
-	ICartCheckoutService checkoutService
-)
+public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService checkoutService)
 	: Microsoft.AspNetCore.Mvc.RazorPages.PageModel
 {
 	public CustomerAggregate? CurrentCustomer { get; private set; }

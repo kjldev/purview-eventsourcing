@@ -3,10 +3,8 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class CartCheckoutService(
-	IEventStoreTransactionFactory transactionFactory,
-	IQueryableEventStore store
-) : ICartCheckoutService
+public sealed class CartCheckoutService(IEventStoreTransactionFactory transactionFactory, IQueryableEventStore store)
+	: ICartCheckoutService
 {
 	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(StringComparer.OrdinalIgnoreCase);
 

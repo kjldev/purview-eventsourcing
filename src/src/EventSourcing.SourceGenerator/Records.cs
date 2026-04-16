@@ -8,7 +8,7 @@ sealed class AggregateInfo(
 	Accessibility accessibility,
 	List<AggregateStatePropertyInfo> properties,
 	List<AggregateEventMethodInfo> methods
-	)
+)
 {
 	public string? Namespace { get; } = namespaceName;
 	public string ClassName { get; } = className;
@@ -39,7 +39,8 @@ sealed class AggregateEventMethodInfo(string methodName, List<EventPropertyInfo>
 sealed class EventPropertyInfo(string parameterName, string typeName)
 {
 	public string ParameterName { get; } = parameterName;
-	public string PropertyName { get; } = string.IsNullOrEmpty(parameterName)
+	public string PropertyName { get; } =
+		string.IsNullOrEmpty(parameterName)
 			? parameterName
 			: char.ToUpperInvariant(parameterName[0]) + parameterName.Substring(1);
 	public string TypeName { get; } = typeName;

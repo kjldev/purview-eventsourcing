@@ -6,9 +6,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class CreateModel(
-	IQueryableEventStore store
-) : PageModel
+public sealed class CreateModel(IQueryableEventStore store) : PageModel
 {
 	[BindProperty, Required, MaxLength(200)]
 	public string ProductId { get; set; } = string.Empty;

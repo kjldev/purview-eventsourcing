@@ -10,7 +10,11 @@ namespace Purview.EventSourcing.SqlServer.Snapshot.EntityFramework;
 /// <remarks>
 /// Creates a new <see cref="SnapshotStoreDbContext"/> with explicit schema and table names.
 /// </remarks>
-public class SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options, string schemaName, string tableName) : DbContext(options)
+public class SnapshotStoreDbContext(
+	DbContextOptions<SnapshotStoreDbContext> options,
+	string schemaName,
+	string tableName
+) : DbContext(options)
 {
 	readonly string _schemaName = schemaName;
 	readonly string _tableName = tableName;

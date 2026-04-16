@@ -10,8 +10,7 @@ namespace Purview.EventSourcing.Serialization;
 public sealed class JsonHelpersTests
 {
 	[Test]
-	public async Task SerializeAndDeserialize_GivenAggregateWithPrivateSetterAndGetterOnlyCollections_RestoresState(
-)
+	public async Task SerializeAndDeserialize_GivenAggregateWithPrivateSetterAndGetterOnlyCollections_RestoresState()
 	{
 		string[] value = ["value-2", "value-3"];
 		var aggregate = new SerializerAggregate
@@ -35,15 +34,12 @@ public sealed class JsonHelpersTests
 		await Assert.That(roundTripped.Details.Id).IsEqualTo("aggregate-1");
 		await Assert.That(roundTripped.Details.CurrentVersion).IsEqualTo(3);
 		await Assert.That(roundTripped.StringValuesDictionary["single"].ToString()).IsEqualTo("value-1");
-		await Assert
-			.That(roundTripped.StringValuesDictionary["multi"].ToArray<string>())
-			.IsEquivalentTo(value);
+		await Assert.That(roundTripped.StringValuesDictionary["multi"].ToArray<string>()).IsEquivalentTo(value);
 		await Assert.That(roundTripped.Tags).IsEquivalentTo(["item-1", "item-2"]);
 	}
 
 	[Test]
-	public async Task SerializeAndDeserialize_GivenEventWithDetails_RestoresEventDetails(
-	)
+	public async Task SerializeAndDeserialize_GivenEventWithDetails_RestoresEventDetails()
 	{
 		var @event = new SerializerEvent
 		{
@@ -171,4 +167,3 @@ public sealed class JsonHelpersTests
 			new() { Details = source.Details, NewField = source.OldField + "-upcast" };
 	}
 }
-

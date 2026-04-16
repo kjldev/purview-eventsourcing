@@ -5,10 +5,7 @@ using Purview.EventSourcing.Samples.Web.Services;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class EditModel(
-	IQueryableEventStore store,
-	IProductImageService imageService
-) : EventSourcingPageModel
+public sealed class EditModel(IQueryableEventStore store, IProductImageService imageService) : EventSourcingPageModel
 {
 	public InventoryAggregate? Item { get; private set; }
 	public string? CurrentImageUrl { get; private set; }

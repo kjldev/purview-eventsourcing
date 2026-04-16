@@ -38,4 +38,3 @@ public class AggregateDetailsTests
 		await Assert.That(original.CurrentVersion).IsEqualTo(5);
 	}
 }
-

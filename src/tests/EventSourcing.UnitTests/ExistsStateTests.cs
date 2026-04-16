@@ -32,4 +32,3 @@ public class ExistsStateTests
 		await Assert.That(result).IsTrue();
 	}
 }
-

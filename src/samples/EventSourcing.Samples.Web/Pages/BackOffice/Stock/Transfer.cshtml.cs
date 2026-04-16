@@ -7,10 +7,7 @@ using Purview.EventSourcing.SqlServer.Exceptions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class TransferModel(
-	IStockTransferService transferService,
-	IQueryableEventStore store
-) : PageModel
+public sealed class TransferModel(IStockTransferService transferService, IQueryableEventStore store) : PageModel
 {
 	[BindProperty]
 	public string SourceInventoryId { get; set; } = string.Empty;

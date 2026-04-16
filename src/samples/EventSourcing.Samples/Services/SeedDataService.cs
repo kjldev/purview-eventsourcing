@@ -2,9 +2,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class SeedDataService(
-	IQueryableEventStore store
-) : ISeedDataService
+public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataService
 {
 	static readonly string[] FirstNames =
 	[
@@ -39,8 +37,9 @@ public sealed class SeedDataService(
 		"Clara",
 		"Dan",
 	];
-	static readonly string[] Value = [
-			"Smith",
+	static readonly string[] Value =
+	[
+		"Smith",
 		"Johnson",
 		"Williams",
 		"Brown",
@@ -61,8 +60,7 @@ public sealed class SeedDataService(
 		"Young",
 		"Lewis",
 	];
-	static readonly string[] LastNames =
-	Value;
+	static readonly string[] LastNames = Value;
 
 	static readonly (string ProductId, string ProductName, int InitialQty, int ReorderQty)[] Products =
 	[

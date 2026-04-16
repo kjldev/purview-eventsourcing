@@ -42,4 +42,3 @@ public partial class AggregateBaseTests
 		await Assert.That(aggregate.AggregateType).IsEqualTo("test");
 	}
 }
-

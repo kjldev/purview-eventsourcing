@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   build-test-pack:
+    name: Build, test, and pack
     runs-on: t-x-kjldev
 
     steps:
@@ -42,3 +43,26 @@ jobs:
 
       - name: Test
         run: just test
+
+  ci:
+    name: CI
+    if: ${{ always() }}
+    needs:
+      - build-test-pack
+    runs-on: t-x-kjldev
+
+    steps:
+      - name: Verify required CI jobs
+        shell: pwsh
+        run: |
+          $jobs = @(
+            @{ Name = "build-test-pack"; Result = "${{ needs.build-test-pack.result }}" }
+          )
+
+          $failed = @($jobs | Where-Object { $_.Result -ne "success" })
+          if ($failed.Count -gt 0) {
+            $summary = ($failed | ForEach-Object { "$($_.Name)=$($_.Result)" }) -join ", "
+            throw "CI gate failed because these jobs did not succeed: $summary"
+          }
+
+          Write-Host "All required CI jobs succeeded."

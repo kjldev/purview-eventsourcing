@@ -10,7 +10,8 @@ namespace Purview.EventSourcing.SqlServer.EntityFramework;
 /// <remarks>
 /// Creates a new <see cref="EventStoreDbContext"/> with explicit schema and table names.
 /// </remarks>
-public class EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName) : DbContext(options)
+public class EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, string schemaName, string tableName)
+	: DbContext(options)
 {
 	readonly string _schemaName = schemaName;
 	readonly string _tableName = tableName;

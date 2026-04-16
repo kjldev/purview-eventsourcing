@@ -10,12 +10,14 @@ public interface IEventStoreTransactionFactory
 	/// </summary>
 	/// <param name="correlationId">
 	/// Optional correlation ID shared by all enlisted aggregate saves.
-	/// When <see langword="null"/>, a new correlation ID is generated.
+	/// When <see langword="null"/>, the ambient correlation ID provider is consulted before generating a new correlation ID.
 	/// </param>
 	IEventStoreTransaction Create(string? correlationId = null);
 }
 
-sealed class EventStoreTransactionFactory : IEventStoreTransactionFactory
+sealed class EventStoreTransactionFactory(IEventStoreCorrelationIdProvider correlationIdProvider)
+	: IEventStoreTransactionFactory
 {
-	public IEventStoreTransaction Create(string? correlationId = null) => new EventStoreTransaction(correlationId);
+	public IEventStoreTransaction Create(string? correlationId = null) =>
+		new EventStoreTransaction(correlationId ?? correlationIdProvider.GetCorrelationId());
 }

@@ -284,4 +284,3 @@ public class OrderAggregateTests
 
 	#endregion
 }
-

@@ -37,7 +37,10 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 
 		var savedOrder = await orderStore.GetAsync<OrderAggregate>(result.Order!.Id(), cancellationToken);
 		var savedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), cancellationToken);
-		var orderCount = await orderStore.CountAsync<OrderAggregate>(order => order.CustomerId == customer.Id(), cancellationToken);
+		var orderCount = await orderStore.CountAsync<OrderAggregate>(
+			order => order.CustomerId == customer.Id(),
+			cancellationToken
+		);
 
 		await Assert.That(orderCount).IsEqualTo(1L);
 		await Assert.That(savedOrder).IsNotNull();
@@ -66,7 +69,10 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 					{
 						await using var hookScope = serviceProvider.CreateAsyncScope();
 						var inventoryStore = hookScope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
-						var inventory = await inventoryStore.GetAsync<InventoryAggregate>(inventoryId, hookCancellationToken);
+						var inventory = await inventoryStore.GetAsync<InventoryAggregate>(
+							inventoryId,
+							hookCancellationToken
+						);
 
 						inventory!.ReserveStock(3, "concurrent-order");
 						await inventoryStore.SaveAsync(inventory, hookCancellationToken);
@@ -94,7 +100,10 @@ public sealed class CartCheckoutServiceTests(WebAppFactory factory)
 			cancellationToken
 		);
 
-		var orderCount = await orderStore.CountAsync<OrderAggregate>(order => order.CustomerId == customer.Id(), cancellationToken);
+		var orderCount = await orderStore.CountAsync<OrderAggregate>(
+			order => order.CustomerId == customer.Id(),
+			cancellationToken
+		);
 		var savedInventory = await inventoryStore.GetAsync<InventoryAggregate>(inventory.Id(), cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();

@@ -27,6 +27,7 @@ public static class EventStoreServiceICollectionExtensions
 			.AddScoped(typeof(IAggregateChangeFeedNotifier<>), typeof(AggregateChangeFeedNotifier<>))
 			.AddSingleton<IEventUpcasterRegistry, EventUpcasterRegistry>();
 
+		services.TryAddSingleton<IEventStoreCorrelationIdProvider, ActivityEventStoreCorrelationIdProvider>();
 		services.TryAddSingleton<IEventStoreTransactionFactory, EventStoreTransactionFactory>();
 
 		return services;

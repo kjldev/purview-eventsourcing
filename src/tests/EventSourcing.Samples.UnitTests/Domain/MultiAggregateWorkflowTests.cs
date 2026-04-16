@@ -97,4 +97,3 @@ public class MultiAggregateWorkflowTests
 		await Assert.That(order.CustomerId).IsEqualTo(customer.Id());
 	}
 }
-

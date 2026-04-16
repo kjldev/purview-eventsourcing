@@ -66,9 +66,7 @@ public sealed class SnapshotStrategyTests
 	[Arguments(0)]
 	[Arguments(-1)]
 	[Arguments(-100)]
-	public async Task IntervalStrategy_GivenIntervalLessThanOne_ThrowsArgumentOutOfRangeException(
-		int interval
-	)
+	public async Task IntervalStrategy_GivenIntervalLessThanOne_ThrowsArgumentOutOfRangeException(int interval)
 	{
 		// Act & Assert
 		await Assert
@@ -84,9 +82,7 @@ public sealed class SnapshotStrategyTests
 	[Arguments(1)]
 	[Arguments(5)]
 	[Arguments(100)]
-	public async Task AlwaysStrategy_GivenEventsApplied_AlwaysReturnsTrue(
-		int eventsApplied
-	)
+	public async Task AlwaysStrategy_GivenEventsApplied_AlwaysReturnsTrue(int eventsApplied)
 	{
 		// Arrange
 		var strategy = new AlwaysSnapshotStrategy<TestAggregate>();
@@ -121,9 +117,7 @@ public sealed class SnapshotStrategyTests
 	[Arguments(0)]
 	[Arguments(1)]
 	[Arguments(100)]
-	public async Task NeverStrategy_GivenAnyInput_AlwaysReturnsFalse(
-		int eventsApplied
-	)
+	public async Task NeverStrategy_GivenAnyInput_AlwaysReturnsFalse(int eventsApplied)
 	{
 		// Arrange
 		var strategy = new NeverSnapshotStrategy<TestAggregate>();
@@ -138,4 +132,3 @@ public sealed class SnapshotStrategyTests
 
 	#endregion
 }
-

@@ -50,4 +50,3 @@ public sealed class SampleAggregateJsonSerializationTests
 		await Assert.That(roundTripped.Details.Id).IsEqualTo("customer-9");
 	}
 }
-

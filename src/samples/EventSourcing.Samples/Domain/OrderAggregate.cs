@@ -47,15 +47,17 @@ public sealed partial class OrderAggregate : AggregateBase
 		var existingLineItem = LineItems.FirstOrDefault(lineItem => lineItem.ProductId == productId);
 		var updatedLineItems = existingLineItem is null
 			? LineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice))
-			: [.. LineItems
-				.Select(lineItem =>
+			:
+			[
+				.. LineItems.Select(lineItem =>
 					lineItem.ProductId == productId
 						? lineItem with
 						{
 							Quantity = lineItem.Quantity + quantity,
 						}
 						: lineItem
-				)];
+				),
+			];
 
 		OrderLineItemAdded(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}

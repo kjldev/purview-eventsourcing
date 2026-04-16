@@ -18,11 +18,11 @@ sealed class StringValuesConverter : JsonConverter<StringValues>
 			return new(values);
 		}
 
-		return reader.TokenType == JsonTokenType.String
-			? new(reader.GetString())
-			: reader.TokenType == JsonTokenType.Null
-			? new StringValues()
-			: throw new JsonException($"Unable to deserialize {nameof(StringValues)} from token type {reader.TokenType}.");
+		return reader.TokenType == JsonTokenType.String ? new(reader.GetString())
+			: reader.TokenType == JsonTokenType.Null ? new StringValues()
+			: throw new JsonException(
+				$"Unable to deserialize {nameof(StringValues)} from token type {reader.TokenType}."
+			);
 	}
 
 	/// <inheritdoc/>

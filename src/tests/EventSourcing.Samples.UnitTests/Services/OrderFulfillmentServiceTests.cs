@@ -30,19 +30,33 @@ public sealed class OrderFulfillmentServiceTests
 	}
 
 	static TransactionResult SuccessfulTransaction(params IAggregate[] aggregates) =>
-		new(
-		[
-			.. aggregates.Select(aggregate => new TransactionAggregateResult(aggregate, saved: true, skipped: false, error: null)),
-		]
-	);
+		new([
+			.. aggregates.Select(aggregate => new TransactionAggregateResult(
+				aggregate,
+				saved: true,
+				skipped: false,
+				error: null
+			)),
+		]);
 
 	static TransactionResult FailedTransaction(IAggregate aggregate) =>
-		new([new TransactionAggregateResult(aggregate, saved: false, skipped: false, error: new InvalidOperationException("Commit failed"))]);
+		new([
+			new TransactionAggregateResult(
+				aggregate,
+				saved: false,
+				skipped: false,
+				error: new InvalidOperationException("Commit failed")
+			),
+		]);
 
 	OrderFulfillmentService CreateService(
 		IEventStoreTransactionFactory? transactionFactory = null,
 		IQueryableEventStore? store = null
-	) => new(transactionFactory ?? Substitute.For<IEventStoreTransactionFactory>(), store ?? Substitute.For<IQueryableEventStore>());
+	) =>
+		new(
+			transactionFactory ?? Substitute.For<IEventStoreTransactionFactory>(),
+			store ?? Substitute.For<IQueryableEventStore>()
+		);
 
 	[Test]
 	public async Task PlaceOrderAsync_GivenNullCustomer_ReturnsFail(CancellationToken cancellationToken)
@@ -50,8 +64,7 @@ public sealed class OrderFulfillmentServiceTests
 		var store = Substitute.For<IQueryableEventStore>();
 		store.GetAsync<CustomerAggregate>("missing", null, cancellationToken).Returns((CustomerAggregate?)null);
 
-		var result = await CreateService(store: store)
-			.PlaceOrderAsync("missing", "inv-1", 1, null, cancellationToken);
+		var result = await CreateService(store: store).PlaceOrderAsync("missing", "inv-1", 1, null, cancellationToken);
 
 		await Assert.That(result.Succeeded).IsFalse();
 		await Assert.That(result.ErrorMessage).IsNotNullOrEmpty();

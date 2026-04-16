@@ -10,8 +10,8 @@ partial class TableEventStore<T>
 			cancellationToken
 		);
 
-		return aggregate == null
-			? null
-			: aggregate.Details.IsDeleted ? FulfilRequirements(aggregate) : throw AggregateNotDeletedException(aggregateId);
+		return aggregate == null ? null
+			: aggregate.Details.IsDeleted ? FulfilRequirements(aggregate)
+			: throw AggregateNotDeletedException(aggregateId);
 	}
 }

@@ -178,4 +178,3 @@ public sealed class EventUpcasterRegistryTests
 		await Assert.That(() => descriptor.Upcast(wrongEvent)).Throws<InvalidOperationException>();
 	}
 }
-
