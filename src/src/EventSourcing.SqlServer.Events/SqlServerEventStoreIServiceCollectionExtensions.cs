@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.SqlServer;
 
@@ -19,7 +20,7 @@ public static class SqlServerEventStoreIServiceCollectionExtensions
 			.AddTransient(typeof(INonQueryableEventStore<>), typeof(SqlServerEventStore<>))
 			.AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
 			.AddTransient<IEventStore, EventStoreFacade>()
-			.AddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>()
+			.TryAddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>()
 			.AddSqlServerEventStoreTelemetry();
 
 		services
