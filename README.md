@@ -185,6 +185,7 @@ if (!result.Success)
 The repository uses [`just`](https://github.com/casey/just) to wrap the common local workflows.
 
 ```powershell
+lefthook install
 just tools
 just restore
 just build
@@ -198,6 +199,10 @@ just version-bump
 
 ### Notes
 
+- Run `lefthook install` once per clone. The hook definitions live in `.config/lefthook.yml`, but Git will not run them until Lefthook writes the actual scripts into `.git/hooks`.
+- The `pre-commit` hook runs `just check`, so formatting issues should be blocked locally once Lefthook is installed.
+- The `commit-msg` hook runs `bunx --bun commitlint --edit {1}`, so Bun must be available locally for commit message validation.
+- CI runs `just check` directly, so formatting issues are still caught on the build machine even if local hooks were never installed.
 - `just test` runs the executable test projects individually; do **not** rely on solution-level `dotnet test` here because `src/tests/SharedTestingFramework` is a helper library, not a runnable test project.
 - Integration tests use Testcontainers and generally require Docker.
 - `just pack` builds the packable packages into `artifacts/packages`.

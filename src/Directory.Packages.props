@@ -18,10 +18,16 @@
 		<PackageVersion Include="Purview.Telemetry.SourceGenerator" Version="4.0.0" />
 		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.202" />
 		<PackageVersion Include="FluentValidation" Version="12.1.1" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynAnalyzersVersion)" />
+		<PackageVersion
+			Include="Microsoft.CodeAnalysis.Analyzers"
+			Version="$(RoslynAnalyzersVersion)"
+		/>
 		<PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynCompilerVersion)" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynCompilerVersion)" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynCompilerVersion)" />
+		<PackageVersion
+			Include="Microsoft.CodeAnalysis.CSharp.Workspaces"
+			Version="$(RoslynCompilerVersion)"
+		/>
 		<PackageVersion
 			Include="Microsoft.CodeAnalysis.Workspaces.MSBuild"
 			Version="$(RoslynCompilerVersion)"
