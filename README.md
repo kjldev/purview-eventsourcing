@@ -213,9 +213,9 @@ just version-bump
 1. Install the Node tooling once with `npm install` or `bun install`.
 2. Create the release commit locally with `npm run release` or `bun run release`.
 3. Review the generated `package.json`, `package-lock.json`, and `CHANGELOG.md` updates, then push the release commit to `main`.
-4. GitHub Actions reads the `package.json` version, fails immediately if the tag or GitHub release already exists, packs the `.nupkg` / `.snupkg` artifacts, creates the remote tag, and publishes the GitHub release.
+4. GitHub Actions reads the `package.json` version, fails immediately if the tag or GitHub release already exists, packs the `.nupkg` / `.snupkg` artifacts, creates the remote tag automatically, and publishes the GitHub release.
 
-Do **not** push release tags manually. The CD workflow is the canonical tag and GitHub release creator.
+Do **not** create or push release tags manually. The CD workflow is the canonical tag and GitHub release creator.
 
 ## Testing structure
 
