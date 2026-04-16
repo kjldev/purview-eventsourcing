@@ -27,7 +27,7 @@ jobs:
           global-json-file: global.json
 
       - name: Setup just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - name: Restore tools
         run: just tools
@@ -52,17 +52,12 @@ jobs:
     runs-on: t-x-kjldev
 
     steps:
-      - name: Verify required CI jobs
-        shell: pwsh
+      - name: Check all required jobs passed or were skipped
+        env:
+          RESULT: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
-          $jobs = @(
-            @{ Name = "build-test-pack"; Result = "${{ needs.build-test-pack.result }}" }
-          )
-
-          $failed = @($jobs | Where-Object { $_.Result -ne "success" })
-          if ($failed.Count -gt 0) {
-            $summary = ($failed | ForEach-Object { "$($_.Name)=$($_.Result)" }) -join ", "
-            throw "CI gate failed because these jobs did not succeed: $summary"
-          }
-
-          Write-Host "All required CI jobs succeeded."
+          if [[ "$RESULT" == "true" ]]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required jobs passed or were skipped."

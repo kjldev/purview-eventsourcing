@@ -34,7 +34,7 @@ jobs:
           global-json-file: global.json
 
       - name: Setup just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - id: version
         name: Read version
