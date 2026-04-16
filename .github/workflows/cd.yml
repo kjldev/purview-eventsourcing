@@ -131,7 +131,7 @@ jobs:
           TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          tag_response="$(mktemp -t tag_response.XXXXXX)"
+          tag_response="$(mktemp tag_response.XXXXXX)"
           trap 'rm -f "${tag_response}"' EXIT
 
           create_payload="$(jq -cn --arg ref "refs/tags/${RELEASE_TAG}" --arg sha "${TARGET_SHA}" '{ref: $ref, sha: $sha}')"
@@ -151,7 +151,7 @@ jobs:
           if [[ "${create_status}" != "201" ]]; then
             echo "::error::Failed to create tag ${RELEASE_TAG} (status ${create_status})."
             echo "API response:" >&2
-            jq -c '.' "${tag_response}" >&2 || true
+            jq -c '.' "${tag_response}" >&2 || cat "${tag_response}" >&2 || true
             exit 1
           fi
 
