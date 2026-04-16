@@ -3,9 +3,7 @@ namespace Purview.EventSourcing.SqlServer;
 sealed class SqlServerEventStoreTransactionFactory(IEventStoreCorrelationIdProvider correlationIdProvider)
 	: IEventStoreTransactionFactory
 {
-	private readonly IEventStoreTransactionFactory innerFactory = new EventStoreTransactionFactory(
-		correlationIdProvider
-	);
+	readonly EventStoreTransactionFactory _innerFactory = new(correlationIdProvider);
 
-	public IEventStoreTransaction Create(string? correlationId = null) => innerFactory.Create(correlationId);
+	public IEventStoreTransaction Create(string? correlationId = null) => _innerFactory.Create(correlationId);
 }

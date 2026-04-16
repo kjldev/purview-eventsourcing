@@ -15,7 +15,7 @@ public interface IEventStoreTransactionFactory
 	IEventStoreTransaction Create(string? correlationId = null);
 }
 
-sealed class EventStoreTransactionFactory(IEventStoreCorrelationIdProvider correlationIdProvider)
+public sealed class EventStoreTransactionFactory(IEventStoreCorrelationIdProvider correlationIdProvider)
 	: IEventStoreTransactionFactory
 {
 	public IEventStoreTransaction Create(string? correlationId = null) =>
