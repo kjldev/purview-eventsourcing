@@ -30,12 +30,12 @@ jobs:
 
       - name: Restore tools
         run: just tools
-
-      - name: Restore packages
-        run: just restore
-
+        
       - name: Check formatting
         run: just check
+  
+      - name: Restore packages
+        run: just restore
 
       - name: Build
         run: just build
