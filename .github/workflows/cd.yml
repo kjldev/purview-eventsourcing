@@ -52,7 +52,8 @@ jobs:
             echo "prerelease=false" >> "${GITHUB_OUTPUT}"
           fi
 
-      - name: Block duplicate version
+      - id: release_guard
+        name: Block duplicate version
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -60,9 +61,10 @@ jobs:
         run: |
           set -euo pipefail
 
+          tag_exists=false
+          release_exists=false
           if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" > /dev/null 2>&1; then
-            echo "::error::Tag ${RELEASE_TAG} already exists."
-            exit 1
+            tag_exists=true
           fi
 
           release_status="$(
@@ -75,33 +77,53 @@ jobs:
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
           )"
 
-          if [[ "${release_status}" == "200" ]]; then
-            echo "::error::Release ${RELEASE_TAG} already exists."
-            cat release.json
-            exit 1
+          case "${release_status}" in
+            200)
+              release_exists=true
+              ;;
+            404)
+              ;;
+            *)
+              echo "::error::Unexpected GitHub API response while checking release ${RELEASE_TAG}: ${release_status} (expected 200 or 404). Check GitHub token permissions, API availability, or rate limits."
+              cat release.json
+              exit 1
+              ;;
+          esac
+
+          if [[ "${tag_exists}" == "true" && "${release_exists}" == "true" ]]; then
+            echo "::notice::Tag and release ${RELEASE_TAG} already exist; skipping release pipeline."
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            rm -f release.json
+            exit 0
           fi
 
-          if [[ "${release_status}" != "404" ]]; then
-            echo "::error::Unexpected GitHub API response: ${release_status}"
+          if [[ "${tag_exists}" == "true" || "${release_exists}" == "true" ]]; then
+            echo "::error::Inconsistent release state for ${RELEASE_TAG}: tag_exists=${tag_exists}, release_exists=${release_exists}. Resolve by removing the orphaned tag or release before re-running CD."
             cat release.json
             exit 1
           fi
 
           rm -f release.json
+          echo "skip=false" >> "${GITHUB_OUTPUT}"
 
       - name: Restore packages
+        if: steps.release_guard.outputs.skip != 'true'
         run: just restore
 
       - name: Build
+        if: steps.release_guard.outputs.skip != 'true'
         run: just build
 
       - name: Test
+        if: steps.release_guard.outputs.skip != 'true'
         run: just test
 
       - name: Pack
+        if: steps.release_guard.outputs.skip != 'true'
         run: just pack
 
       - name: Create GitHub release
+        if: steps.release_guard.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -116,6 +138,7 @@ jobs:
             artifacts/packages/*.snupkg
 
       - name: Publish GitHub release
+        if: steps.release_guard.outputs.skip != 'true'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
