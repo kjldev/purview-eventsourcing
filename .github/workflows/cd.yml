@@ -131,7 +131,11 @@ jobs:
           TARGET_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          tag_response="$(mktemp tag_response.XXXXXX)"
+          tag_response="$(mktemp)"
+          if [[ -z "${tag_response}" || ! -f "${tag_response}" ]]; then
+            echo "::error::Failed to allocate a temporary file for the tag creation response."
+            exit 1
+          fi
           trap 'rm -f "${tag_response}"' EXIT
 
           create_payload="$(jq -cn --arg ref "refs/tags/${RELEASE_TAG}" --arg sha "${TARGET_SHA}" '{ref: $ref, sha: $sha}')"
