@@ -4,7 +4,6 @@
 		<LangVersion>12</LangVersion>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<NoPackageAnalysis>true</NoPackageAnalysis>
 		<IsPackable>true</IsPackable>
 		<PackageId>Purview.EventSourcing.SourceGenerator</PackageId>
 		<Title>Purview Event Sourcing Source Generator</Title>
@@ -14,6 +13,9 @@
 		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
+		<!-- snupkg requires standard build output, which this analyzer package suppresses. -->
+		<SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+		<TargetsForTfmSpecificDebugSymbolsInPackage>$(TargetsForTfmSpecificDebugSymbolsInPackage);PackSourceGeneratorSymbols</TargetsForTfmSpecificDebugSymbolsInPackage>
 		<RootNamespace>Purview.EventSourcing.SourceGenerator</RootNamespace>
 		<Nullable>enable</Nullable>
 		<!-- Exclude Purview.Telemetry.SourceGenerator since this is a netstandard2.0 analyzer project -->
@@ -28,7 +30,7 @@
 		<Compile Remove="Templates\Sources\**\*.cs" />
 		<EmbeddedResource Include="Templates\Sources\**\*.cs" />
 	</ItemGroup>
-	<!-- Package the build output into the "analyzer" slot in the NuGet package -->
+	<!-- Pack the generator into the analyzer slot and surface its PDB in the symbols package. -->
 	<ItemGroup>
 		<None
 			Include="$(OutputPath)\$(AssemblyName).dll"
@@ -37,4 +39,12 @@
 			Visible="false"
 		/>
 	</ItemGroup>
+	<Target Name="PackSourceGeneratorSymbols">
+		<ItemGroup>
+			<TfmSpecificDebugSymbolsFile
+				Include="$(OutputPath)\$(AssemblyName).pdb"
+				Condition="Exists('$(OutputPath)\$(AssemblyName).pdb')"
+			/>
+		</ItemGroup>
+	</Target>
 </Project>
