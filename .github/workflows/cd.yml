@@ -165,7 +165,7 @@ jobs:
               ;;
           esac
 
-          publish_payload="$(jq -cn --argjson prerelease "${PRERELEASE}" '{draft: false, prerelease: $prerelease}')"
+          publish_payload="$(jq -cn --arg prerelease "${PRERELEASE}" '{draft: false, prerelease: ($prerelease == "true")}')"
 
           publish_status="$(
             curl -sS \
