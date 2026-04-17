@@ -1,4 +1,6 @@
 ﻿using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 
@@ -11,9 +13,11 @@ sealed partial class SqlServerEventStoreClient
 {
 	const int MinimumSqlServerMajorVersion = 16; // SQL Server 2022
 	const string MinimumSqlServerVersionName = "SQL Server 2022";
+	const int EnsureTableLockTimeoutMilliseconds = 30_000;
 
 	readonly SqlServerEventStoreOptions _options;
 	readonly string _ensureTableSql;
+	readonly string _ensureTableLockResource;
 	readonly string _insertSql;
 	readonly string _upsertSql;
 	readonly string _deleteByIdSql;
@@ -28,6 +32,7 @@ sealed partial class SqlServerEventStoreClient
 	public SqlServerEventStoreClient(SqlServerEventStoreOptions options)
 	{
 		_options = options ?? throw new ArgumentNullException(nameof(options));
+		_ensureTableLockResource = CreateEnsureTableLockResource(options.SchemaName, options.TableName);
 
 		var quotedSchema = QuoteIdentifier(options.SchemaName);
 		var quotedTable = QuoteIdentifier(options.TableName);
@@ -35,42 +40,64 @@ sealed partial class SqlServerEventStoreClient
 		var compression = options.UseDataCompression ? " WITH (DATA_COMPRESSION = PAGE)" : "";
 
 		_ensureTableSql = $"""
-			IF NOT EXISTS (SELECT * FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id WHERE t.name = @TableName AND s.name = @SchemaName)
-			BEGIN
-				CREATE TABLE {quotedFullName} (
-					[Id] NVARCHAR(450) NOT NULL,
-					[EntityType] INT NOT NULL,
-					[AggregateId] NVARCHAR(450) NOT NULL,
-					[AggregateType] NVARCHAR(450) NOT NULL,
-					[Version] INT NOT NULL DEFAULT 0,
-					[IsDeleted] BIT NOT NULL DEFAULT 0,
-					[Payload] json NULL,
-					[EventType] NVARCHAR(450) NULL,
-					[IdempotencyId] NVARCHAR(450) NULL,
-					[Timestamp] DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
-					CONSTRAINT {QuoteIdentifier($"PK_{options.TableName}")} PRIMARY KEY ([Id])
-				){compression};
+			DECLARE @LockResult INT;
 
-				-- Covers: GetByAggregateIdAndEntityType, GetIdempotencyMarkers, DeleteByAggregateId
-				CREATE NONCLUSTERED INDEX {QuoteIdentifier(
-				$"IX_{options.TableName}_AggregateId_EntityType"
-			)}
-					ON {quotedFullName} ([AggregateId], [EntityType])
-					INCLUDE ([Version], [IsDeleted], [AggregateType], [EventType], [IdempotencyId], [Timestamp]){compression};
+			BEGIN TRANSACTION;
+			BEGIN TRY
+				EXEC @LockResult = sp_getapplock
+					@Resource = @LockResource,
+					@LockMode = 'Exclusive',
+					@LockOwner = 'Transaction',
+					@LockTimeout = @LockTimeoutMs;
 
-				-- Covers: GetEventRange (AggregateId + EntityType=1 + Version range, ORDER BY Version)
-				CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_EventRange")}
-					ON {quotedFullName} ([AggregateId], [EntityType], [Version])
-					INCLUDE ([Payload], [EventType], [IdempotencyId], [IsDeleted], [AggregateType], [Timestamp])
-					WHERE [EntityType] = 1{(options.UseDataCompression ? " WITH (DATA_COMPRESSION = PAGE)" : "")};
+				IF @LockResult < 0
+					THROW 50000, 'Failed to acquire the table creation lock.', 1;
 
-				-- Covers: GetAggregateIdsAsync (AggregateType + EntityType + optional IsDeleted filter)
-				CREATE NONCLUSTERED INDEX {QuoteIdentifier(
-				$"IX_{options.TableName}_AggregateType_EntityType"
-			)}
-					ON {quotedFullName} ([AggregateType], [EntityType], [IsDeleted])
-					INCLUDE ([AggregateId]){compression};
-			END
+				IF NOT EXISTS (SELECT * FROM sys.tables t JOIN sys.schemas s ON t.schema_id = s.schema_id WHERE t.name = @TableName AND s.name = @SchemaName)
+				BEGIN
+					CREATE TABLE {quotedFullName} (
+						[Id] NVARCHAR(450) NOT NULL,
+						[EntityType] INT NOT NULL,
+						[AggregateId] NVARCHAR(450) NOT NULL,
+						[AggregateType] NVARCHAR(450) NOT NULL,
+						[Version] INT NOT NULL DEFAULT 0,
+						[IsDeleted] BIT NOT NULL DEFAULT 0,
+						[Payload] json NULL,
+						[EventType] NVARCHAR(450) NULL,
+						[IdempotencyId] NVARCHAR(450) NULL,
+						[Timestamp] DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+						CONSTRAINT {QuoteIdentifier($"PK_{options.TableName}")} PRIMARY KEY ([Id])
+					){compression};
+
+					-- Covers: GetByAggregateIdAndEntityType, GetIdempotencyMarkers, DeleteByAggregateId
+					CREATE NONCLUSTERED INDEX {QuoteIdentifier(
+					$"IX_{options.TableName}_AggregateId_EntityType"
+				)}
+						ON {quotedFullName} ([AggregateId], [EntityType])
+						INCLUDE ([Version], [IsDeleted], [AggregateType], [EventType], [IdempotencyId], [Timestamp]){compression};
+
+					-- Covers: GetEventRange (AggregateId + EntityType=1 + Version range, ORDER BY Version)
+					CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{options.TableName}_EventRange")}
+						ON {quotedFullName} ([AggregateId], [EntityType], [Version])
+						INCLUDE ([Payload], [EventType], [IdempotencyId], [IsDeleted], [AggregateType], [Timestamp])
+						WHERE [EntityType] = 1{(options.UseDataCompression ? " WITH (DATA_COMPRESSION = PAGE)" : "")};
+
+					-- Covers: GetAggregateIdsAsync (AggregateType + EntityType + optional IsDeleted filter)
+					CREATE NONCLUSTERED INDEX {QuoteIdentifier(
+					$"IX_{options.TableName}_AggregateType_EntityType"
+				)}
+						ON {quotedFullName} ([AggregateType], [EntityType], [IsDeleted])
+						INCLUDE ([AggregateId]){compression};
+				END
+
+				COMMIT TRANSACTION;
+			END TRY
+			BEGIN CATCH
+				IF XACT_STATE() <> 0
+					ROLLBACK TRANSACTION;
+
+				THROW;
+			END CATCH
 			""";
 
 		_insertSql = $"""
@@ -120,10 +147,7 @@ sealed partial class SqlServerEventStoreClient
 
 		await using var command = connection.CreateCommand();
 		command.CommandText = _ensureTableSql;
-		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
-		command.Parameters.Add(
-			new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName }
-		);
+		AddEnsureTableParameters(command);
 
 		await command.ExecuteNonQueryAsync(cancellationToken);
 		_tableCreated = true;
@@ -140,13 +164,24 @@ sealed partial class SqlServerEventStoreClient
 
 		await using var command = connection.CreateCommand();
 		command.CommandText = _ensureTableSql;
+		AddEnsureTableParameters(command);
+
+		await command.ExecuteNonQueryAsync(cancellationToken);
+		_tableCreated = true;
+	}
+
+	void AddEnsureTableParameters(SqlCommand command)
+	{
 		command.Parameters.Add(new SqlParameter("@TableName", SqlDbType.NVarChar, 450) { Value = _options.TableName });
 		command.Parameters.Add(
 			new SqlParameter("@SchemaName", SqlDbType.NVarChar, 450) { Value = _options.SchemaName }
 		);
-
-		await command.ExecuteNonQueryAsync(cancellationToken);
-		_tableCreated = true;
+		command.Parameters.Add(
+			new SqlParameter("@LockResource", SqlDbType.NVarChar, 255) { Value = _ensureTableLockResource }
+		);
+		command.Parameters.Add(
+			new SqlParameter("@LockTimeoutMs", SqlDbType.Int) { Value = EnsureTableLockTimeoutMilliseconds }
+		);
 	}
 
 	static async Task CheckServerVersionAsync(SqlConnection connection, CancellationToken cancellationToken)
@@ -672,6 +707,13 @@ sealed partial class SqlServerEventStoreClient
 	{
 		ValidateIdentifier(identifier);
 		return $"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
+	}
+
+	static string CreateEnsureTableLockResource(string schemaName, string tableName)
+	{
+		var fullName = $"{schemaName}.{tableName}";
+		var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fullName)));
+		return $"Purview.EventSourcing.SqlServer:{hash}";
 	}
 
 	static void ValidateIdentifier(string identifier)
