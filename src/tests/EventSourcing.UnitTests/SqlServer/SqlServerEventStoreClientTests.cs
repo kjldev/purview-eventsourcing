@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Purview.EventSourcing.SqlServer;
 
 /// <summary>
@@ -60,6 +62,29 @@ public sealed class SqlServerEventStoreClientTests
 
 		// Assert
 		await Assert.That(client).IsNotNull();
+	}
+
+	[Test]
+	public async Task Constructor_GivenDefaultOptions_EnsureTableSqlUsesApplicationLock()
+	{
+		// Arrange & Act
+		var client = new SqlServerEventStoreClient(
+			new SqlServerEventStoreOptions
+			{
+				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
+				SchemaName = "dbo",
+				TableName = "EventStore",
+				AutoCreateTable = false,
+			}
+		);
+
+		var ensureTableSql = GetEnsureTableSql(client);
+
+		// Assert
+		await Assert.That(ensureTableSql).Contains("sp_getapplock");
+		await Assert.That(ensureTableSql).Contains("@LockOwner = 'Transaction'");
+		await Assert.That(ensureTableSql).Contains("BEGIN TRANSACTION");
+		await Assert.That(ensureTableSql).Contains("ROLLBACK TRANSACTION");
 	}
 
 	[Test]
@@ -212,4 +237,10 @@ public sealed class SqlServerEventStoreClientTests
 	}
 
 	#endregion
+
+	static string GetEnsureTableSql(SqlServerEventStoreClient client) =>
+		typeof(SqlServerEventStoreClient)
+			.GetField("_ensureTableSql", BindingFlags.Instance | BindingFlags.NonPublic)
+			?.GetValue(client) as string
+		?? throw new InvalidOperationException("Could not read _ensureTableSql.");
 }

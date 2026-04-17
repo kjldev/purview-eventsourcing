@@ -1,13 +1,23 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Label="NuGet Package Project Properties" Condition="$(IsPackable)">
+		<GenerateDocumentationFile Condition="'$(GenerateDocumentationFile)' == ''">true</GenerateDocumentationFile>
+		<!-- Include symbol files (*.pdb) in the built .nupkg -->
+		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+		<PackageTags>$(PackageTags);</PackageTags>
+		<IncludeSource Condition="'$(IncludeSource)' == ''">true</IncludeSource>
+		<IncludeSymbols Condition="'$(IncludeSymbols)' == ''">true</IncludeSymbols>
+		<PublishRepositoryUrl Condition="'$(PublishRepositoryUrl)' == ''">true</PublishRepositoryUrl>
+		<SymbolPackageFormat Condition="'$(SymbolPackageFormat)' == ''">snupkg</SymbolPackageFormat>
+	</PropertyGroup>
 	<Target
 		Name="ValidatePackageJsonVersionTarget"
-		BeforeTargets="Compile"
+		BeforeTargets="GenerateAssemblyInfo;GenerateNuspec;Compile"
 		Condition="'$(MSBuildProjectExtension)' == '.csproj'"
 	>
 		<Error
 			Text="The package.json version could not be resolved. Ensure package.json exists at the repository root and contains a version property."
 			ContinueOnError="false"
-			Condition="'$(Version)' == ''"
+			Condition="'$(PackageJsonVersion)' == ''"
 			Code="PackageJsonVersionNotSet"
 			File="$(PackageJsonPath)"
 		/>
