@@ -182,6 +182,6 @@ jobs:
           if [[ "${publish_status}" != "200" ]]; then
             echo "::error::Failed to publish release id ${RELEASE_ID} (status ${publish_status})."
             echo "API response:" >&2
-            jq -c '.' "${publish_response}" || cat "${publish_response}" || true
+            jq -c '.' "${publish_response}" >&2 || cat "${publish_response}" >&2 || true
             exit 1
           fi
