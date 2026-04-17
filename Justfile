@@ -121,7 +121,7 @@ pack-project project:
 # - NUGET_API_KEY: API key to pass to `dotnet nuget push`
 # - NUGET_CONFIG_FILE: NuGet config file containing source credentials
 publish nuget_source:
-    node -e "const { spawnSync } = require('node:child_process'); const fs = require('node:fs'); const path = require('node:path'); const directory = path.resolve('{{ artifact_folder }}'); if (!fs.existsSync(directory)) { throw new Error('No packages found. Run `just pack` first.'); } const packages = fs.readdirSync(directory).filter((entry) => entry.endsWith('.nupkg')).sort((left, right) => left.localeCompare(right)); if (packages.length === 0) { throw new Error('No packages found. Run `just pack` first.'); } const configFile = process.env.NUGET_CONFIG_FILE; const apiKey = process.env.NUGET_API_KEY; for (const packageName of packages) { const packagePath = path.join(directory, packageName); const args = ['nuget', 'push', packagePath, '--source', '{{ nuget_source }}', '--skip-duplicate']; if (configFile) { args.push('--configfile', configFile); } if (apiKey) { args.push('--api-key', apiKey); } console.log('==> Publishing ' + packageName + ' to {{ nuget_source }}'); const result = spawnSync('dotnet', args, { stdio: 'inherit' }); if (result.error) { throw result.error; } if (result.status !== 0) { process.exit(result.status ?? 1); } }"
+    node scripts/publish-packages.mjs "{{ artifact_folder }}" "{{ nuget_source }}"
 
 # Format the code
 format:
