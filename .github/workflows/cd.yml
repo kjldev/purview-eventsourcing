@@ -120,8 +120,7 @@ jobs:
         if: steps.release_guard.outputs.skip != 'true'
         run: just pack
 
-      - id: create_release
-        name: Create GitHub release
+      - name: Publish GitHub release
         if: steps.release_guard.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
@@ -129,59 +128,9 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
-          draft: true
+          draft: false
           prerelease: ${{ steps.version.outputs.prerelease }}
           fail_on_unmatched_files: true
           files: |
             artifacts/packages/*.nupkg
             artifacts/packages/*.snupkg
-
-      - name: Publish GitHub release
-        if: steps.release_guard.outputs.skip != 'true'
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_ID: ${{ steps.create_release.outputs.id }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
-        run: |
-          set -euo pipefail
-          publish_response="$(mktemp)"
-          if [[ -z "${publish_response}" || ! -f "${publish_response}" ]]; then
-            echo "::error::Failed to allocate a temporary file for the publish response."
-            exit 1
-          fi
-          trap 'rm -f "${publish_response}"' EXIT
-
-          if [[ -z "${RELEASE_ID}" ]]; then
-            echo "::error::Release id is missing from create_release step output."
-            exit 1
-          fi
-
-          case "${PRERELEASE}" in
-            true|false) ;;
-            *)
-              echo "::error::Invalid prerelease value: ${PRERELEASE}"
-              exit 1
-              ;;
-          esac
-
-          publish_payload="$(jq -cn --arg prerelease "${PRERELEASE}" '{draft: false, prerelease: ($prerelease == "true")}')"
-
-          publish_status="$(
-            curl -sS \
-              -o "${publish_response}" \
-              -w "%{http_code}" \
-              -X PATCH \
-              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
-              -d "${publish_payload}"
-          )"
-
-          if [[ "${publish_status}" != "200" ]]; then
-            echo "::error::Failed to publish release id ${RELEASE_ID} (status ${publish_status})."
-            echo "API response:" >&2
-            jq -c '.' "${publish_response}" >&2 || cat "${publish_response}" >&2 || true
-            exit 1
-          fi

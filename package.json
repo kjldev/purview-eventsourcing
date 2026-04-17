@@ -1,7 +1,7 @@
 {
   "name": "purview-eventsourcing-release",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
     "release": "commit-and-tag-version --commit-all"
   },
