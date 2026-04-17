@@ -145,7 +145,12 @@ jobs:
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
         run: |
           set -euo pipefail
-          trap 'rm -f publish.json' EXIT
+          publish_response="$(mktemp)"
+          if [[ -z "${publish_response}" || ! -f "${publish_response}" ]]; then
+            echo "::error::Failed to allocate a temporary file for the publish response."
+            exit 1
+          fi
+          trap 'rm -f "${publish_response}"' EXIT
 
           if [[ -z "${RELEASE_ID}" ]]; then
             echo "::error::Release id is missing from create_release step output."
@@ -164,7 +169,7 @@ jobs:
 
           publish_status="$(
             curl -sS \
-              -o publish.json \
+              -o "${publish_response}" \
               -w "%{http_code}" \
               -X PATCH \
               -H "Authorization: Bearer ${GITHUB_TOKEN}" \
@@ -176,6 +181,6 @@ jobs:
 
           if [[ "${publish_status}" != "200" ]]; then
             echo "::error::Failed to publish release id ${RELEASE_ID} (status ${publish_status})."
-            jq -c '{message, documentation_url, errors}' publish.json || true
+            jq -c '.' "${publish_response}" || cat "${publish_response}" || true
             exit 1
           fi
