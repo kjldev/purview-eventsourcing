@@ -117,8 +117,11 @@ pack-project project:
     dotnet pack "{{ project }}" --configuration "{{ configuration }}" --output "{{ artifact_folder }}"
 
 # Publish packed NuGet packages to the specified source
-publish nuget_source api_key:
-    & { $packages = @(Get-ChildItem -Path '{{ artifact_folder }}' -Filter '*.nupkg' | Sort-Object Name); if ($packages.Count -eq 0) { throw 'No packages found. Run `just pack` first.' }; foreach ($package in $packages) { Write-Host "==> Publishing $($package.Name) to {{ nuget_source }}"; dotnet nuget push $package.FullName --source '{{ nuget_source }}' --api-key '{{ api_key }}'; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } } }
+# Optional environment variables:
+# - NUGET_API_KEY: API key to pass to `dotnet nuget push`
+# - NUGET_CONFIG_FILE: NuGet config file containing source credentials
+publish nuget_source:
+    node scripts/publish-packages.mjs "{{ artifact_folder }}" "{{ nuget_source }}"
 
 # Format the code
 format:
