@@ -172,6 +172,10 @@ jobs:
 
           config_path="${RUNNER_TEMP}/github-packages.nuget.config"
           rm -f "${config_path}"
+          cat > "${config_path}" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration />
+          EOF
 
           dotnet nuget add source "${SOURCE_URL}" \
             --name "${SOURCE_NAME}" \
