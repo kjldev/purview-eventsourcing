@@ -5,9 +5,9 @@
 
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>
-		<Title>Purview Event Store based on MongoDB</Title>
-		<Description>Event Store using MongoDB for event information.</Description>
-		<PackageTags>$(PackageTags);events;event-sourcing;event-store;mongodb</PackageTags>
+		<Title>Purview Event Store for MongoDB</Title>
+		<Description>MongoDB event stream storage provider for Purview EventSourcing.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;mongodb;events;</PackageTags>
 		<DefineConstants>EventsBasedStore</DefineConstants>
 	</PropertyGroup>
 

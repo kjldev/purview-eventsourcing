@@ -7,8 +7,9 @@
 		<IsPackable>true</IsPackable>
 		<PackageId>Purview.EventSourcing.SourceGenerator</PackageId>
 		<Title>Purview Event Sourcing Source Generator</Title>
-		<Description>Source generator for event-sourced aggregates. Generates RegisterEvents(), event classes, and typed command methods from attributed partial classes.</Description>
+		<Description>Roslyn source generator for Purview EventSourcing aggregates that emits event types, registration code, and typed command methods from attributed partial classes.</Description>
 		<Authors>Kieron Lanning</Authors>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;roslyn;source-generator;event-sourcing;aggregate;</PackageTags>
 		<DevelopmentDependency>true</DevelopmentDependency>
 		<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>

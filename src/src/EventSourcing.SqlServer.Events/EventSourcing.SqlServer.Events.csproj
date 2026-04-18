@@ -5,9 +5,9 @@
 
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>
-		<Title>Purview Event Store based on Azure SQL / SQL Server</Title>
-		<Description>Event Store using Azure SQL / SQL Server for event information.</Description>
-		<PackageTags>$(PackageTags);events;event-sourcing;event-store;azure-sql;sql-server</PackageTags>
+		<Title>Purview Event Store for Azure SQL and SQL Server</Title>
+		<Description>Azure SQL and SQL Server event stream storage provider for Purview EventSourcing.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;sql-server;azure-sql;events;</PackageTags>
 		<DefineConstants>EventsBasedStore</DefineConstants>
 	</PropertyGroup>
 
