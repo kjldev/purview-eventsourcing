@@ -1,11 +1,11 @@
-# EventSourcing.SqlServer.Events
+# Purview.EventSourcing.SqlServer.Events
 
-`EventSourcing.SqlServer.Events` adds Azure SQL and SQL Server event stream persistence to Purview EventSourcing.
+`Purview.EventSourcing.SqlServer.Events` adds Azure SQL and SQL Server event stream persistence to Purview EventSourcing.
 
 ## Install
 
 ```bash
-dotnet add package EventSourcing.SqlServer.Events
+dotnet add package Purview.EventSourcing.SqlServer.Events
 ```
 
 ## Register the provider

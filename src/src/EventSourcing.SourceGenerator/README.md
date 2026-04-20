@@ -8,7 +8,7 @@
 dotnet add package Purview.EventSourcing.SourceGenerator
 ```
 
-This package is typically used alongside the core `EventSourcing` package.
+This package is typically used alongside the core `Purview.EventSourcing` package.
 
 ## What it generates
 
@@ -31,5 +31,5 @@ public partial class OrderAggregate : AggregateBase
 
 ## Related packages
 
-- Core framework: `EventSourcing`
+- Core framework: `Purview.EventSourcing`
 - Repository README: https://github.com/kjldev/purview-eventsourcing/blob/main/README.md

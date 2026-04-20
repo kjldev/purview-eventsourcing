@@ -4,6 +4,7 @@
 		<NamespacePrefix>Purview</NamespacePrefix>
 		<!-- Set the repository URL here -->
 		<RepositoryUrl>https://github.com/kjldev/purview-eventsourcing</RepositoryUrl>
+		<PackageId Condition="'$(IsPackable)' == 'true' AND '$(PackageId)' == ''">$(NamespacePrefix).$(MSBuildProjectName)</PackageId>
 	</PropertyGroup>
 
 	<Import Project="../.dotnet/Directory.Build.props" />

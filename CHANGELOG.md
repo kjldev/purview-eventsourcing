@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.1.1 (2026-04-20)
+
+### Bug Fixes
+
+* make `EventSourcing.Shared` packable and include it in package output
+* align package IDs to the `Purview.EventSourcing*` prefix across packages and documentation
+* reinforce deterministic NuGet package build defaults for packable projects
+
 ## [0.0.1](https://github.com/kjldev/purview-eventsourcing/compare/v0.0.1-prerelease.0...v0.0.1) (2026-04-16)
 
 
