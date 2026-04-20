@@ -1,11 +1,11 @@
-# EventSourcing.MongoDB.Snapshot
+# Purview.EventSourcing.MongoDB.Snapshot
 
-`EventSourcing.MongoDB.Snapshot` adds MongoDB queryable snapshot persistence to Purview EventSourcing.
+`Purview.EventSourcing.MongoDB.Snapshot` adds MongoDB queryable snapshot persistence to Purview EventSourcing.
 
 ## Install
 
 ```bash
-dotnet add package EventSourcing.MongoDB.Snapshot
+dotnet add package Purview.EventSourcing.MongoDB.Snapshot
 ```
 
 ## Register the provider

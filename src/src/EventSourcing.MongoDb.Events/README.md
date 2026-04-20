@@ -1,11 +1,11 @@
-# EventSourcing.MongoDB.Events
+# Purview.EventSourcing.MongoDB.Events
 
-`EventSourcing.MongoDB.Events` adds MongoDB event stream persistence to Purview EventSourcing.
+`Purview.EventSourcing.MongoDB.Events` adds MongoDB event stream persistence to Purview EventSourcing.
 
 ## Install
 
 ```bash
-dotnet add package EventSourcing.MongoDB.Events
+dotnet add package Purview.EventSourcing.MongoDB.Events
 ```
 
 ## Register the provider

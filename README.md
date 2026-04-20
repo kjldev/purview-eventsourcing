@@ -14,25 +14,26 @@ Purview EventSourcing is a .NET event sourcing framework for building aggregate-
 
 | Package ID | Purpose | Project README |
 | --- | --- | --- |
-| `EventSourcing` | Core abstractions, aggregate types, facades, transactions, and DI extensions | [`src/src/EventSourcing/README.md`](src/src/EventSourcing/README.md) |
+| `Purview.EventSourcing` | Core abstractions, aggregate types, facades, transactions, and DI extensions | [`src/src/EventSourcing/README.md`](src/src/EventSourcing/README.md) |
+| `Purview.EventSourcing.Shared` | Shared abstractions and infrastructure used by provider packages | [`src/src/EventSourcing.Shared/README.md`](src/src/EventSourcing.Shared/README.md) |
 | `Purview.EventSourcing.SourceGenerator` | Source generator for aggregate event types, registration, and command methods | [`src/src/EventSourcing.SourceGenerator/README.md`](src/src/EventSourcing.SourceGenerator/README.md) |
-| `EventSourcing.SqlServer.Events` | Azure SQL / SQL Server event stream store | [`src/src/EventSourcing.SqlServer.Events/README.md`](src/src/EventSourcing.SqlServer.Events/README.md) |
-| `EventSourcing.SqlServer.Snapshot` | Azure SQL / SQL Server queryable snapshot store | [`src/src/EventSourcing.SqlServer.Snapshot/README.md`](src/src/EventSourcing.SqlServer.Snapshot/README.md) |
-| `EventSourcing.AzureStorage` | Azure Table / Blob event store | [`src/src/EventSourcing.AzureStorage/README.md`](src/src/EventSourcing.AzureStorage/README.md) |
-| `EventSourcing.MongoDB.Events` | MongoDB event stream store | [`src/src/EventSourcing.MongoDb.Events/README.md`](src/src/EventSourcing.MongoDb.Events/README.md) |
-| `EventSourcing.MongoDB.Snapshot` | MongoDB queryable snapshot store | [`src/src/EventSourcing.MongoDb.Snapshot/README.md`](src/src/EventSourcing.MongoDb.Snapshot/README.md) |
-| `EventSourcing.CosmosDb.Snapshot` | Azure Cosmos DB queryable snapshot store | [`src/src/EventSourcing.CosmosDb.Snapshot/README.md`](src/src/EventSourcing.CosmosDb.Snapshot/README.md) |
+| `Purview.EventSourcing.SqlServer.Events` | Azure SQL / SQL Server event stream store | [`src/src/EventSourcing.SqlServer.Events/README.md`](src/src/EventSourcing.SqlServer.Events/README.md) |
+| `Purview.EventSourcing.SqlServer.Snapshot` | Azure SQL / SQL Server queryable snapshot store | [`src/src/EventSourcing.SqlServer.Snapshot/README.md`](src/src/EventSourcing.SqlServer.Snapshot/README.md) |
+| `Purview.EventSourcing.AzureStorage` | Azure Table / Blob event store | [`src/src/EventSourcing.AzureStorage/README.md`](src/src/EventSourcing.AzureStorage/README.md) |
+| `Purview.EventSourcing.MongoDB.Events` | MongoDB event stream store | [`src/src/EventSourcing.MongoDb.Events/README.md`](src/src/EventSourcing.MongoDb.Events/README.md) |
+| `Purview.EventSourcing.MongoDB.Snapshot` | MongoDB queryable snapshot store | [`src/src/EventSourcing.MongoDb.Snapshot/README.md`](src/src/EventSourcing.MongoDb.Snapshot/README.md) |
+| `Purview.EventSourcing.CosmosDb.Snapshot` | Azure Cosmos DB queryable snapshot store | [`src/src/EventSourcing.CosmosDb.Snapshot/README.md`](src/src/EventSourcing.CosmosDb.Snapshot/README.md) |
 
 ## Install the packages you need
 
 ```bash
-dotnet add package EventSourcing
+dotnet add package Purview.EventSourcing
 dotnet add package Purview.EventSourcing.SourceGenerator
-dotnet add package EventSourcing.SqlServer.Events
-dotnet add package EventSourcing.SqlServer.Snapshot
+dotnet add package Purview.EventSourcing.SqlServer.Events
+dotnet add package Purview.EventSourcing.SqlServer.Snapshot
 ```
 
-Provider packages layer on top of the core `EventSourcing` package. Add only the packages required for your chosen persistence strategy.
+Provider packages layer on top of the core `Purview.EventSourcing` package. Add only the packages required for your chosen persistence strategy.
 
 ## Quick start
 
@@ -124,13 +125,13 @@ public sealed class CheckoutService(
 
 | Provider | Package | Registration API | Notes |
 | --- | --- | --- | --- |
-| Core only | `EventSourcing` | `AddNullQueryableEventStore()` | No persistent query store |
-| Azure SQL / SQL Server events | `EventSourcing.SqlServer.Events` | `AddSqlServerEventStore()` | Event stream persistence |
-| Azure SQL / SQL Server snapshots | `EventSourcing.SqlServer.Snapshot` | `AddSqlServerSnapshotQueryableEventStore()` | Query/list/count backed by snapshots |
-| Azure Table / Blob | `EventSourcing.AzureStorage` | `AddAzureTableEventStore()` | Table events plus Blob support for large payloads and snapshots |
-| MongoDB events | `EventSourcing.MongoDB.Events` | `AddMongoDBEventStore()` | Event stream persistence |
-| MongoDB snapshots | `EventSourcing.MongoDB.Snapshot` | `AddMongoDBSnapshotQueryableEventStore()` | Queryable snapshot store |
-| Azure Cosmos DB snapshots | `EventSourcing.CosmosDb.Snapshot` | `AddCosmosDbQueryableEventStore()` | Queryable snapshot store |
+| Core only | `Purview.EventSourcing` | `AddNullQueryableEventStore()` | No persistent query store |
+| Azure SQL / SQL Server events | `Purview.EventSourcing.SqlServer.Events` | `AddSqlServerEventStore()` | Event stream persistence |
+| Azure SQL / SQL Server snapshots | `Purview.EventSourcing.SqlServer.Snapshot` | `AddSqlServerSnapshotQueryableEventStore()` | Query/list/count backed by snapshots |
+| Azure Table / Blob | `Purview.EventSourcing.AzureStorage` | `AddAzureTableEventStore()` | Table events plus Blob support for large payloads and snapshots |
+| MongoDB events | `Purview.EventSourcing.MongoDB.Events` | `AddMongoDBEventStore()` | Event stream persistence |
+| MongoDB snapshots | `Purview.EventSourcing.MongoDB.Snapshot` | `AddMongoDBSnapshotQueryableEventStore()` | Queryable snapshot store |
+| Azure Cosmos DB snapshots | `Purview.EventSourcing.CosmosDb.Snapshot` | `AddCosmosDbQueryableEventStore()` | Queryable snapshot store |
 
 For SQL Server and Azure SQL schema, permissions, and event-versioning guidance, see [docs/sql-server.md](docs/sql-server.md).
 

@@ -1,6 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing</RootNamespace>
+	</PropertyGroup>
+	<PropertyGroup Label="NuGet Package Values">
+		<IsPackable>true</IsPackable>
+		<Title>Purview Event Sourcing Shared</Title>
+		<Description>Shared infrastructure and abstractions consumed by Purview EventSourcing storage provider packages.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;shared;</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>

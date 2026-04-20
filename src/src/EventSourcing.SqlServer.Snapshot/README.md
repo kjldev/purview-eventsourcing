@@ -1,11 +1,11 @@
-# EventSourcing.SqlServer.Snapshot
+# Purview.EventSourcing.SqlServer.Snapshot
 
-`EventSourcing.SqlServer.Snapshot` adds Azure SQL and SQL Server queryable snapshot persistence to Purview EventSourcing.
+`Purview.EventSourcing.SqlServer.Snapshot` adds Azure SQL and SQL Server queryable snapshot persistence to Purview EventSourcing.
 
 ## Install
 
 ```bash
-dotnet add package EventSourcing.SqlServer.Snapshot
+dotnet add package Purview.EventSourcing.SqlServer.Snapshot
 ```
 
 ## Register the provider

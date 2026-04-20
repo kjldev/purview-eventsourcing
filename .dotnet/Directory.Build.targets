@@ -1,5 +1,12 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup Label="NuGet Package Project Properties" Condition="$(IsPackable)">
+		<Deterministic>true</Deterministic>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<DeterministicPack Condition="'$(DeterministicPack)' == ''">true</DeterministicPack>
+		<NupkgDeterministic Condition="'$(NupkgDeterministic)' == ''">true</NupkgDeterministic>
+		<NupkgBuildTimestampUtc Condition="'$(NupkgBuildTimestampUtc)' == ''">1980-01-01T00:00:00.0000000Z</NupkgBuildTimestampUtc>
+		<SourceLinkCreate Condition="'$(SourceLinkCreate)' == ''">true</SourceLinkCreate>
 		<GenerateDocumentationFile Condition="'$(GenerateDocumentationFile)' == ''">true</GenerateDocumentationFile>
 		<!-- Include symbol files (*.pdb) in the built .nupkg -->
 		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>

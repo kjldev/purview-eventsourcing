@@ -2,6 +2,7 @@
 	<Import Project="../.dotnet/Directory.Build.targets" />
 
 	<PropertyGroup Label="NuGet package metadata" Condition="'$(IsPackable)' == 'true'">
+		<PackageId>$(NamespacePrefix).$(MSBuildProjectName)</PackageId>
 		<Authors Condition="'$(Authors)' == ''">Kieron Lanning</Authors>
 		<Company Condition="'$(Company)' == ''">KJL Solutions</Company>
 		<Copyright Condition="'$(Copyright)' == ''">Copyright © $(CurrentYear) KJL Solutions</Copyright>

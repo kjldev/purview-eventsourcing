@@ -10,6 +10,7 @@ package_manifest := "package.json"
 configuration := "Release"
 artifact_folder := "artifacts/packages"
 event_sourcing_package_project := root_folder + "/src/EventSourcing/EventSourcing.csproj"
+event_sourcing_shared_package_project := root_folder + "/src/EventSourcing.Shared/EventSourcing.Shared.csproj"
 event_sourcing_azure_storage_package_project := root_folder + "/src/EventSourcing.AzureStorage/EventSourcing.AzureStorage.csproj"
 event_sourcing_cosmos_db_snapshot_package_project := root_folder + "/src/EventSourcing.CosmosDb.Snapshot/EventSourcing.CosmosDb.Snapshot.csproj"
 event_sourcing_mongo_db_events_package_project := root_folder + "/src/EventSourcing.MongoDb.Events/EventSourcing.MongoDB.Events.csproj"
@@ -107,6 +108,7 @@ pack:
     @just pack-project {{ event_sourcing_mongo_db_events_package_project }}
     @just pack-project {{ event_sourcing_mongo_db_snapshot_package_project }}
     @just pack-project {{ event_sourcing_package_project }}
+    @just pack-project {{ event_sourcing_shared_package_project }}
     @just pack-project {{ event_sourcing_source_generator_package_project }}
     @just pack-project {{ event_sourcing_sql_server_events_package_project }}
     @just pack-project {{ event_sourcing_sql_server_snapshot_package_project }}
