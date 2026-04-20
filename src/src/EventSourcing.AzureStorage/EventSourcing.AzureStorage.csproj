@@ -5,9 +5,9 @@
 
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>
-		<Title>Purview Event Store based on Azure Table and Blob Storage</Title>
-		<Description>Event Store using Azure Table Storage for event information, and Azure Blob Storage for snapshots and large events.</Description>
-		<PackageTags>$(PackageTags);events;event-sourcing;event-store;azure-storage;azure-table-storage;azure-blob-storages;tables;blobs;</PackageTags>
+		<Title>Purview Event Store for Azure Table and Blob Storage</Title>
+		<Description>Azure Table Storage and Blob Storage event store provider for Purview EventSourcing, including snapshot and large-payload support.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;azure-storage;azure-table-storage;azure-blob-storage;tables;blobs;</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -5,9 +5,9 @@
 
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>
-		<Title>Purview Event Store based on Azure CosmosDb</Title>
-		<Description>Queryable Event Store using Azure CosmosDb for queryable snapshots.</Description>
-		<PackageTags>$(PackageTags);events;event-sourcing;event-store;azure-cosmosdb;cosmosdb;</PackageTags>
+		<Title>Purview Queryable Snapshot Store for Azure Cosmos DB</Title>
+		<Description>Azure Cosmos DB queryable snapshot storage provider for Purview EventSourcing.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;queryable-store;snapshot;azure-cosmosdb;cosmosdb;</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>

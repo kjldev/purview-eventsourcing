@@ -2,8 +2,8 @@
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>
 		<Title>Purview Event Sourcing</Title>
-		<Description>Core framework for building Event Sourcing-based projects.</Description>
-		<PackageTags>$(PackageTags);event-store;events;event-sourcing;eventstore;eventsourcing;</PackageTags>
+		<Description>Core abstractions, aggregate types, facades, transactions, and dependency injection extensions for building event-sourced .NET applications.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;eventstore;event-store;aggregate;domain-driven-design;</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>

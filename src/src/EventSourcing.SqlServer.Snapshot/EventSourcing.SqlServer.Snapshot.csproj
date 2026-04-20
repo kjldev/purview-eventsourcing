@@ -5,9 +5,9 @@
 
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>
-		<Title>Purview Event Store based on Azure SQL / SQL Server</Title>
-		<Description>Queryable Event Store using Azure SQL / SQL Server for queryable snapshots with JSON column support.</Description>
-		<PackageTags>$(PackageTags);events;event-sourcing;event-store;azure-sql;sql-server;</PackageTags>
+		<Title>Purview Queryable Snapshot Store for Azure SQL and SQL Server</Title>
+		<Description>Azure SQL and SQL Server queryable snapshot storage provider for Purview EventSourcing with JSON column support.</Description>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;queryable-store;snapshot;sql-server;azure-sql;</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
