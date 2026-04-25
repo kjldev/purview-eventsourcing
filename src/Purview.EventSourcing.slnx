@@ -18,6 +18,7 @@
 	</Folder>
 	<Folder Name="/samples/">
 		<Project Path="samples\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+		<Project Path="samples\EventSourcing.Samples.QuickStart\EventSourcing.Samples.QuickStart.csproj" />
 		<Project Path="samples\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
 		<Project Path="samples\EventSourcing.Samples.Web\EventSourcing.Samples.Web.csproj" />
 		<Project Path="samples\EventSourcing.Samples.AppHost\EventSourcing.Samples.AppHost.csproj" />
