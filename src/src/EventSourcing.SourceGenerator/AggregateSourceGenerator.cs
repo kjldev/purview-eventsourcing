@@ -502,8 +502,27 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			builder.Append(char.IsLetterOrDigit(character) ? character : '_');
 		}
 
+		builder.Append('_');
+		builder.Append(
+			ComputeStableHash(symbolName).ToString("X16", System.Globalization.CultureInfo.InvariantCulture)
+		);
 		builder.Append(".g.cs");
 		return builder.ToString();
+	}
+
+	static ulong ComputeStableHash(string value)
+	{
+		const ulong offsetBasis = 14695981039346656037;
+		const ulong prime = 1099511628211;
+
+		var hash = offsetBasis;
+		foreach (var character in value)
+		{
+			hash ^= character;
+			hash *= prime;
+		}
+
+		return hash;
 	}
 
 	static void ReportDiagnostics(SourceProductionContext context, IEnumerable<Diagnostic> diagnostics)
