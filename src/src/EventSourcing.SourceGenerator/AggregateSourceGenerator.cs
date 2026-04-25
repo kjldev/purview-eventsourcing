@@ -175,10 +175,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 			if (propertySymbol.IsStatic || propertySymbol.IsIndexer || propertySymbol.IsImplicitlyDeclared)
 				continue;
 
+			propertySymbolsByName[propertySymbol.Name] = propertySymbol;
+
 			if (propertySymbol.SetMethod is null)
 				continue;
 
-			propertySymbolsByName[propertySymbol.Name] = propertySymbol;
 			properties.Add(
 				new AggregateStatePropertyInfo(
 					propertySymbol.Name,
@@ -288,7 +289,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 	static bool TryCreateEventMethodInfo(
 		INamedTypeSymbol classSymbol,
 		IMethodSymbol methodSymbol,
-		IReadOnlyDictionary<string, IPropertySymbol> propertySymbolsByName,
+		Dictionary<string, IPropertySymbol> propertySymbolsByName,
 		Compilation compilation,
 		List<Diagnostic> diagnostics,
 		CancellationToken ct,
