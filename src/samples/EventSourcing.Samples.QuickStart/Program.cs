@@ -160,7 +160,10 @@ static void PrintTransactionResult(TransactionResult result)
 	foreach (var aggregateResult in result.Results)
 	{
 		var aggregate = aggregateResult.Aggregate;
-		var outcome = aggregateResult.Saved ? "saved" : aggregateResult.Skipped ? "skipped" : "rolled back";
+		var outcome =
+			aggregateResult.Saved ? "saved"
+			: aggregateResult.Skipped ? "skipped"
+			: "rolled back";
 		Console.WriteLine($"  - {aggregate.GetType().Name} '{aggregate.Id()}': {outcome}");
 
 		if (aggregateResult.Error is not null)

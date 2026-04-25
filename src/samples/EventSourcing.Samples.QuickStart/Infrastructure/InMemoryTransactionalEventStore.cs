@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -160,13 +161,22 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		ContinuationRequest request,
 		CancellationToken cancellationToken = default
-	) => Task.FromResult(CreateContinuationResponse(ApplyOrdering(ReadCommitted().AsQueryable().Where(whereClause), orderByClause), request));
+	) =>
+		Task.FromResult(
+			CreateContinuationResponse(
+				ApplyOrdering(ReadCommitted().AsQueryable().Where(whereClause), orderByClause),
+				request
+			)
+		);
 
 	public Task<ContinuationResponse<T>> ListAsync(
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		ContinuationRequest request,
 		CancellationToken cancellationToken = default
-	) => Task.FromResult(CreateContinuationResponse(ApplyOrdering(ReadCommitted().AsQueryable(), orderByClause), request));
+	) =>
+		Task.FromResult(
+			CreateContinuationResponse(ApplyOrdering(ReadCommitted().AsQueryable(), orderByClause), request)
+		);
 
 	public Task<long> CountAsync(Expression<Func<T, bool>>? whereClause, CancellationToken cancellationToken = default)
 	{
@@ -183,12 +193,17 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 		Expression<Func<T, bool>> whereClause,
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		CancellationToken cancellationToken = default
-	) => Task.FromResult(ApplyOrdering(ReadCommitted().AsQueryable().Where(whereClause), orderByClause).FirstOrDefault());
+	) =>
+		Task.FromResult(
+			ApplyOrdering(ReadCommitted().AsQueryable().Where(whereClause), orderByClause).FirstOrDefault()
+		);
 
 	public DbConnection CreateTransactionConnection() => new FakeDbConnection();
 
-	public Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken = default) =>
-		Task.CompletedTask;
+	public Task EnsureTransactionConfiguredAsync(
+		DbConnection connection,
+		CancellationToken cancellationToken = default
+	) => Task.CompletedTask;
 
 	public Task<TransactionalSaveOperation<T>> SaveInTransactionAsync(
 		T aggregate,
@@ -217,10 +232,8 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 		);
 	}
 
-	static IQueryable<T> ApplyOrdering(
-		IQueryable<T> query,
-		Func<IQueryable<T>, IQueryable<T>>? orderByClause
-	) => orderByClause?.Invoke(query) ?? query.OrderBy(aggregate => aggregate.Details.Id);
+	static IQueryable<T> ApplyOrdering(IQueryable<T> query, Func<IQueryable<T>, IQueryable<T>>? orderByClause) =>
+		orderByClause?.Invoke(query) ?? query.OrderBy(aggregate => aggregate.Details.Id);
 
 	static ContinuationResponse<T> CreateContinuationResponse(IQueryable<T> query, ContinuationRequest request)
 	{
@@ -245,7 +258,8 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 
 	static T Deserialize(string json)
 	{
-		var aggregate = JsonSerializer.Deserialize<T>(json)
+		var aggregate =
+			JsonSerializer.Deserialize<T>(json)
 			?? throw new InvalidOperationException($"Unable to deserialize aggregate {typeof(T).Name}.");
 		aggregate.ClearUnsavedEvents();
 		aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
@@ -268,9 +282,7 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 	{
 		if (failurePlan.ShouldFail(typeof(T), aggregate.Id()))
 		{
-			throw new InvalidOperationException(
-				$"Simulated failure while saving {typeof(T).Name} '{aggregate.Id()}'."
-			);
+			throw new InvalidOperationException($"Simulated failure while saving {typeof(T).Name} '{aggregate.Id()}'.");
 		}
 	}
 
@@ -278,6 +290,7 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 	{
 		ConnectionState _state = ConnectionState.Closed;
 
+		[AllowNull]
 		public override string ConnectionString { get; set; } = "quickstart";
 		public override string Database => "quickstart";
 		public override string DataSource => "quickstart";
