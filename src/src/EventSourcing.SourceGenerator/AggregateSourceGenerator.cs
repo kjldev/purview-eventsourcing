@@ -29,12 +29,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		});
 
 		// Find all class declarations decorated with [GenerateAggregate]
-		var aggregateClasses = context
-			.SyntaxProvider.ForAttributeWithMetadataName(
-				GenerateAggregateAttributeName,
-				predicate: static (node, _) => node is ClassDeclarationSyntax,
-				transform: static (ctx, ct) => GetAggregateGenerationResult(ctx, ct)
-			);
+		var aggregateClasses = context.SyntaxProvider.ForAttributeWithMetadataName(
+			GenerateAggregateAttributeName,
+			predicate: static (node, _) => node is ClassDeclarationSyntax,
+			transform: static (ctx, ct) => GetAggregateGenerationResult(ctx, ct)
+		);
 
 		var standaloneEventMethods = context.SyntaxProvider.ForAttributeWithMetadataName(
 			GenerateAggregateEventAttributeName,
@@ -260,30 +259,27 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		);
 	}
 
-	static EventMethodValidationResult GetStandaloneEventMethodValidationResult(
-		GeneratorAttributeSyntaxContext ctx
-	)
+	static EventMethodValidationResult GetStandaloneEventMethodValidationResult(GeneratorAttributeSyntaxContext ctx)
 	{
 		if (ctx.TargetSymbol is not IMethodSymbol methodSymbol)
 			return new EventMethodValidationResult([]);
 
 		if (
-			ctx.SemanticModel.Compilation.GetTypeByMetadataName(GenerateAggregateAttributeName) is { } aggregateAttribute
+			ctx.SemanticModel.Compilation.GetTypeByMetadataName(GenerateAggregateAttributeName)
+				is { } aggregateAttribute
 			&& HasAttribute(methodSymbol.ContainingType, aggregateAttribute)
 		)
 		{
 			return new EventMethodValidationResult([]);
 		}
 
-		return new EventMethodValidationResult(
-			[
-				Diagnostic.Create(
-					GeneratorDiagnostics.EventMethodRequiresAggregateAttribute,
-					ctx.TargetNode.GetLocation(),
-					methodSymbol.Name
-				),
-			]
-		);
+		return new EventMethodValidationResult([
+			Diagnostic.Create(
+				GeneratorDiagnostics.EventMethodRequiresAggregateAttribute,
+				ctx.TargetNode.GetLocation(),
+				methodSymbol.Name
+			),
+		]);
 	}
 
 	static bool TryCreateEventMethodInfo(
@@ -310,11 +306,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		if (!isPartial)
 		{
 			diagnostics.Add(
-				Diagnostic.Create(
-					GeneratorDiagnostics.EventMethodMustBePartial,
-					methodLocation,
-					methodSymbol.Name
-				)
+				Diagnostic.Create(GeneratorDiagnostics.EventMethodMustBePartial, methodLocation, methodSymbol.Name)
 			);
 			return false;
 		}
@@ -344,7 +336,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		if (!methodSymbol.ReturnsVoid)
 			ReportUnsupportedSignature("methods must return void");
 
-		if (methodDeclarations.Any(declaration => declaration.Body is not null || declaration.ExpressionBody is not null))
+		if (
+			methodDeclarations.Any(declaration =>
+				declaration.Body is not null || declaration.ExpressionBody is not null
+			)
+		)
 			ReportUnsupportedSignature("methods must be partial declarations without a body");
 
 		foreach (var parameter in methodSymbol.Parameters)

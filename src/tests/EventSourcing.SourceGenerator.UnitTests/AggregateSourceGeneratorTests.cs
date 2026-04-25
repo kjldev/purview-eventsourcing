@@ -67,9 +67,7 @@ namespace Purview.EventSourcing.Aggregates.Events
 	}
 
 	static Diagnostic[] GetGeneratorDiagnostics(GeneratorDriverRunResult result) =>
-		[
-			.. result.Results.SelectMany(static generatorResult => generatorResult.Diagnostics).OrderBy(static d => d.Id),
-		];
+		[.. result.Results.SelectMany(static generatorResult => generatorResult.Diagnostics).OrderBy(static d => d.Id)];
 
 	#region Tree Count Tests
 
@@ -199,7 +197,9 @@ namespace Testing
 
 		// Assert — Only the 2 attribute files, no generated aggregate
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN001");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN001");
 	}
 
 	[Test]
@@ -636,7 +636,9 @@ namespace Testing
 
 		// Assert — Only the 2 attribute files, no generated aggregate
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN002");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN002");
 	}
 
 	[Test]
@@ -670,7 +672,9 @@ namespace Testing
 		// Assert — only the partial method generates an event, the non-partial is skipped
 		await Assert.That(generatedSource).Contains("SetNameEvent");
 		await Assert.That(generatedSource).DoesNotContain("NonPartialMethodEvent");
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN007");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN007");
 	}
 
 	[Test]
@@ -961,7 +965,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN002");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN002");
 	}
 
 	[Test]
@@ -988,7 +994,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN003");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN003");
 	}
 
 	[Test]
@@ -1012,7 +1020,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN004");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN004");
 	}
 
 	[Test]
@@ -1038,7 +1048,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN005");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN005");
 	}
 
 	[Test]
@@ -1058,7 +1070,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN006");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN006");
 	}
 
 	[Test]
@@ -1084,7 +1098,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN008");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN008");
 	}
 
 	[Test]
@@ -1114,7 +1130,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN009");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN009");
 	}
 
 	[Test]
@@ -1138,7 +1156,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN010");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN010");
 	}
 
 	[Test]
@@ -1162,7 +1182,9 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		await Assert.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id)).Contains("PVEVTGEN010");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN010");
 	}
 
 	[Test]
