@@ -9,6 +9,7 @@ sealed class AggregateInfo(
 	Accessibility accessibility,
 	List<AggregateStatePropertyInfo> properties,
 	List<AggregateEventMethodInfo> methods,
+	List<InvalidAggregateEventMethodInfo> invalidMethods,
 	string hintName
 )
 {
@@ -17,6 +18,7 @@ sealed class AggregateInfo(
 	public Accessibility Accessibility { get; } = accessibility;
 	public List<AggregateStatePropertyInfo> Properties { get; } = properties;
 	public List<AggregateEventMethodInfo> Methods { get; } = methods;
+	public List<InvalidAggregateEventMethodInfo> InvalidMethods { get; } = invalidMethods;
 	public string HintName { get; } = hintName;
 }
 
@@ -37,6 +39,11 @@ sealed class AggregateEventMethodInfo(string methodName, List<EventPropertyInfo>
 	/// Defaults to 1.
 	/// </summary>
 	public int Version { get; } = version;
+}
+
+sealed class InvalidAggregateEventMethodInfo(string signature)
+{
+	public string Signature { get; } = signature;
 }
 
 sealed class EventPropertyInfo(string parameterName, string typeName)

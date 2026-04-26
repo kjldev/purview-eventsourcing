@@ -65,6 +65,11 @@ static class EmitHelper
 			GenerateCommandMethod(sb, info, method, indent);
 		}
 
+		foreach (var method in info.InvalidMethods)
+		{
+			GenerateInvalidCommandMethodStub(sb, method, indent);
+		}
+
 		sb.AppendLine($"{indent}}}");
 
 		GenerateJsonConverter(sb, info, indent);
@@ -222,6 +227,21 @@ static class EmitHelper
 		}
 
 		sb.AppendLine(");");
+		sb.AppendLine($"{indent}\t}}");
+		sb.AppendLine();
+	}
+
+	static void GenerateInvalidCommandMethodStub(
+		StringBuilder sb,
+		InvalidAggregateEventMethodInfo method,
+		string indent
+	)
+	{
+		sb.AppendLine($"{indent}\t{method.Signature}");
+		sb.AppendLine($"{indent}\t{{");
+		sb.AppendLine(
+			$"{indent}\t\tthrow new global::System.InvalidOperationException(\"This method is unavailable because [GenerateAggregateEvent] validation failed.\");"
+		);
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
 	}

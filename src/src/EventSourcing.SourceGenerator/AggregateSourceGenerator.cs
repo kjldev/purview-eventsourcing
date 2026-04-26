@@ -193,6 +193,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		}
 
 		var methods = new List<AggregateEventMethodInfo>();
+		var invalidMethods = new List<InvalidAggregateEventMethodInfo>();
 		var attributedMethods = classSymbol
 			.GetMembers()
 			.OfType<IMethodSymbol>()
@@ -216,6 +217,9 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 						methodSymbol.Name + "Event"
 					)
 				);
+
+				if (TryCreateInvalidMethodStub(methodSymbol, ct, out var invalidMethod))
+					invalidMethods.Add(invalidMethod);
 			}
 		}
 
@@ -238,6 +242,9 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 				)
 			)
 			{
+				if (TryCreateInvalidMethodStub(methodSymbol, ct, out var invalidMethod))
+					invalidMethods.Add(invalidMethod);
+
 				continue;
 			}
 
@@ -252,6 +259,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 					classSymbol.DeclaredAccessibility,
 					properties,
 					methods,
+					invalidMethods,
 					CreateHintName(classSymbol)
 				)
 				: null,
@@ -465,6 +473,43 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		return true;
 	}
 
+	static bool TryCreateInvalidMethodStub(
+		IMethodSymbol methodSymbol,
+		CancellationToken ct,
+		out InvalidAggregateEventMethodInfo methodInfo
+	)
+	{
+		ct.ThrowIfCancellationRequested();
+		methodInfo = null!;
+
+		var declaration = methodSymbol
+			.DeclaringSyntaxReferences.Select(static reference => reference.GetSyntax())
+			.OfType<MethodDeclarationSyntax>()
+			.FirstOrDefault(static syntax =>
+				syntax.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.PartialKeyword))
+				&& syntax.Body is null
+				&& syntax.ExpressionBody is null
+			);
+
+		if (declaration is null)
+			return false;
+
+		var modifiers = string.Join(" ", declaration.Modifiers.Select(static modifier => modifier.Text));
+		if (modifiers.Length > 0)
+			modifiers += " ";
+
+		var explicitInterfaceSpecifier = declaration.ExplicitInterfaceSpecifier?.ToString() ?? string.Empty;
+		var typeParameterList = declaration.TypeParameterList?.ToString() ?? string.Empty;
+		var constraints = declaration.ConstraintClauses.Count == 0
+			? string.Empty
+			: " " + string.Join(" ", declaration.ConstraintClauses.Select(static clause => clause.ToString()));
+
+		methodInfo = new InvalidAggregateEventMethodInfo(
+			$"{modifiers}{declaration.ReturnType} {explicitInterfaceSpecifier}{declaration.Identifier}{typeParameterList}{declaration.ParameterList}{constraints}"
+		);
+		return true;
+	}
+
 	static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeSymbol)
 	{
 		if (attributeSymbol is null)
@@ -495,9 +540,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 	static string CreateHintName(INamedTypeSymbol classSymbol)
 	{
 		var symbolName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-		var builder = new System.Text.StringBuilder(symbolName.Length);
+		var shortName = classSymbol.Name;
+		var builder = new System.Text.StringBuilder(shortName.Length + 22);
 
-		foreach (var character in symbolName)
+		foreach (var character in shortName)
 		{
 			builder.Append(char.IsLetterOrDigit(character) ? character : '_');
 		}
