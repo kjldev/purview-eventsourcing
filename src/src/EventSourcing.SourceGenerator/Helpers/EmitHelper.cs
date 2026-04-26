@@ -250,7 +250,13 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static string EscapeStringLiteral(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+	static string EscapeStringLiteral(string value) =>
+		value
+			.Replace("\\", "\\\\")
+			.Replace("\"", "\\\"")
+			.Replace("\r", "\\r")
+			.Replace("\n", "\\n")
+			.Replace("\t", "\\t");
 
 	static string GetAccessModifier(Accessibility accessibility)
 	{
