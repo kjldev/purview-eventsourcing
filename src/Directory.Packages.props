@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
 		<!-- Keep compiler-facing Roslyn packages aligned with the minimum SDK pinned in global.json so analyzer ProjectReferences load on build machines. -->
-		<RoslynCompilerVersion>5.3.0</RoslynCompilerVersion>
+		<RoslynCompilerVersion>5.0.0</RoslynCompilerVersion>
 		<RoslynAnalyzersVersion>5.3.0</RoslynAnalyzersVersion>
 		<TUnitVersion>1.40.0</TUnitVersion>
 	</PropertyGroup>
