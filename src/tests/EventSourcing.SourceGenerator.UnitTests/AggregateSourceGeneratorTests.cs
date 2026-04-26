@@ -1106,7 +1106,11 @@ namespace Testing
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
 			.Contains("PVEVTGEN008");
 		await Assert.That(generatedSource).Contains("public static partial string SetValue(string value)");
-		await Assert.That(generatedSource).Contains("throw new global::System.InvalidOperationException");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"The generated aggregate event method 'public static partial string SetValue(string value)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (PVEVTGEN008)."
+			);
 		await Assert
 			.That(
 				outputCompilation
@@ -1150,6 +1154,7 @@ namespace Testing
 			.Contains("PVEVTGEN009");
 		await Assert.That(generatedSource).Contains("public partial void Update(string value)");
 		await Assert.That(generatedSource).Contains("public partial void Update(int count)");
+		await Assert.That(generatedSource).Contains("PVEVTGEN009");
 		await Assert
 			.That(
 				outputCompilation
@@ -1186,7 +1191,11 @@ namespace Testing
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
 			.Contains("PVEVTGEN010");
 		await Assert.That(generatedSource).Contains("public partial void Rename(string customerId)");
-		await Assert.That(generatedSource).Contains("throw new global::System.InvalidOperationException");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"The generated aggregate event method 'public partial void Rename(string customerId)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (PVEVTGEN010)."
+			);
 		await Assert
 			.That(
 				outputCompilation
@@ -1268,7 +1277,13 @@ namespace Second
 
 		await Assert.That(aggregateTrees).Count().IsEqualTo(2);
 		await Assert.That(aggregateTrees.Distinct(StringComparer.Ordinal)).Count().IsEqualTo(2);
-		await Assert.That(aggregateFileNames.All(static fileName => fileName.StartsWith("OrderAggregate_", StringComparison.Ordinal))).IsTrue();
+		await Assert
+			.That(
+				aggregateFileNames.All(static fileName =>
+					fileName.StartsWith("OrderAggregate_", StringComparison.Ordinal)
+				)
+			)
+			.IsTrue();
 		await Assert
 			.That(
 				aggregateFileNames.All(fileName =>

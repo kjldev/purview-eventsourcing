@@ -237,14 +237,20 @@ static class EmitHelper
 		string indent
 	)
 	{
+		var diagnosticIds =
+			method.DiagnosticIds.Length > 0 ? string.Join(", ", method.DiagnosticIds) : "unknown diagnostic IDs";
+		var message = EscapeStringLiteral(
+			$"The generated aggregate event method '{method.Signature}' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method ({diagnosticIds})."
+		);
+
 		sb.AppendLine($"{indent}\t{method.Signature}");
 		sb.AppendLine($"{indent}\t{{");
-		sb.AppendLine(
-			$"{indent}\t\tthrow new global::System.InvalidOperationException(\"This method is unavailable because [GenerateAggregateEvent] validation failed.\");"
-		);
+		sb.AppendLine($"{indent}\t\tthrow new global::System.InvalidOperationException(\"{message}\");");
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
 	}
+
+	static string EscapeStringLiteral(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
 	static string GetAccessModifier(Accessibility accessibility)
 	{

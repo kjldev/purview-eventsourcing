@@ -41,9 +41,10 @@ sealed class AggregateEventMethodInfo(string methodName, List<EventPropertyInfo>
 	public int Version { get; } = version;
 }
 
-sealed class InvalidAggregateEventMethodInfo(string signature)
+sealed class InvalidAggregateEventMethodInfo(string signature, string[] diagnosticIds)
 {
 	public string Signature { get; } = signature;
+	public string[] DiagnosticIds { get; } = diagnosticIds;
 }
 
 sealed class EventPropertyInfo(string parameterName, string typeName)

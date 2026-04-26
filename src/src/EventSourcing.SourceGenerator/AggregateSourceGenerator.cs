@@ -15,8 +15,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
 	const int HintNameHashHexLength = 16;
 	const string GeneratedSourceFileSuffix = ".g.cs";
-	static readonly int HintNameSeparatorAndSuffixLength =
-		1 + HintNameHashHexLength + GeneratedSourceFileSuffix.Length;
+	static readonly int HintNameSeparatorAndSuffixLength = 1 + HintNameHashHexLength + GeneratedSourceFileSuffix.Length;
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
@@ -222,7 +221,14 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 					)
 				);
 
-				if (TryCreateInvalidMethodStub(methodSymbol, ct, out var invalidMethod))
+				if (
+					TryCreateInvalidMethodStub(
+						methodSymbol,
+						[GeneratorDiagnostics.DuplicateGeneratedEventName.Id],
+						out var invalidMethod,
+						ct
+					)
+				)
 					invalidMethods.Add(invalidMethod);
 			}
 		}
@@ -233,6 +239,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 			if (duplicatedEventMethodNames.ContainsKey(methodSymbol.Name))
 				continue;
+
+			var diagnosticsStart = diagnostics.Count;
 
 			if (
 				!TryCreateEventMethodInfo(
@@ -246,7 +254,14 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 				)
 			)
 			{
-				if (TryCreateInvalidMethodStub(methodSymbol, ct, out var invalidMethod))
+				var diagnosticIds = diagnostics
+					.Skip(diagnosticsStart)
+					.Select(static diagnostic => diagnostic.Id)
+					.Distinct(StringComparer.Ordinal)
+					.OrderBy(static id => id, StringComparer.Ordinal)
+					.ToArray();
+
+				if (TryCreateInvalidMethodStub(methodSymbol, diagnosticIds, out var invalidMethod, ct))
 					invalidMethods.Add(invalidMethod);
 
 				continue;
@@ -479,15 +494,16 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 	static bool TryCreateInvalidMethodStub(
 		IMethodSymbol methodSymbol,
-		CancellationToken ct,
-		out InvalidAggregateEventMethodInfo methodInfo
+		string[] diagnosticIds,
+		out InvalidAggregateEventMethodInfo methodInfo,
+		CancellationToken ct
 	)
 	{
 		ct.ThrowIfCancellationRequested();
 		methodInfo = null!;
 
 		var declaration = methodSymbol
-			.DeclaringSyntaxReferences.Select(static reference => reference.GetSyntax())
+			.DeclaringSyntaxReferences.Select(reference => reference.GetSyntax(ct))
 			.OfType<MethodDeclarationSyntax>()
 			.FirstOrDefault(static syntax =>
 				syntax.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.PartialKeyword))
@@ -504,12 +520,14 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		var explicitInterfaceSpecifier = declaration.ExplicitInterfaceSpecifier?.ToString() ?? string.Empty;
 		var typeParameterList = declaration.TypeParameterList?.ToString() ?? string.Empty;
-		var constraints = declaration.ConstraintClauses.Count == 0
-			? string.Empty
-			: " " + string.Join(" ", declaration.ConstraintClauses.Select(static clause => clause.ToString()));
+		var constraints =
+			declaration.ConstraintClauses.Count == 0
+				? string.Empty
+				: " " + string.Join(" ", declaration.ConstraintClauses.Select(static clause => clause.ToString()));
 
 		methodInfo = new InvalidAggregateEventMethodInfo(
-			$"{modifiers}{declaration.ReturnType} {explicitInterfaceSpecifier}{declaration.Identifier}{typeParameterList}{declaration.ParameterList}{constraints}"
+			$"{modifiers}{declaration.ReturnType} {explicitInterfaceSpecifier}{declaration.Identifier}{typeParameterList}{declaration.ParameterList}{constraints}",
+			diagnosticIds
 		);
 		return true;
 	}
@@ -554,10 +572,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		builder.Append('_');
 		builder.Append(
-			ComputeStableHash(symbolName).ToString(
-				$"X{HintNameHashHexLength}",
-				System.Globalization.CultureInfo.InvariantCulture
-			)
+			ComputeStableHash(symbolName)
+				.ToString($"X{HintNameHashHexLength}", System.Globalization.CultureInfo.InvariantCulture)
 		);
 		builder.Append(GeneratedSourceFileSuffix);
 		return builder.ToString();
