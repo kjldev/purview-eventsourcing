@@ -6,6 +6,9 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
+	const int HintNameHashHexLength = 16;
+	const string GeneratedSourceFileSuffix = ".g.cs";
+
 	// Stub for AggregateBase so the source generator can find the base class
 	const string AggregateBaseStub =
 		@"#nullable enable
@@ -65,6 +68,9 @@ namespace Purview.EventSourcing.Aggregates.Events
 
 		return aggregateTree?.GetText().ToString() ?? string.Empty;
 	}
+
+	static Diagnostic[] GetGeneratorDiagnostics(GeneratorDriverRunResult result) =>
+		[.. result.Results.SelectMany(static generatorResult => generatorResult.Diagnostics).OrderBy(static d => d.Id)];
 
 	#region Tree Count Tests
 
@@ -194,6 +200,9 @@ namespace Testing
 
 		// Assert — Only the 2 attribute files, no generated aggregate
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN001");
 	}
 
 	[Test]
@@ -630,6 +639,9 @@ namespace Testing
 
 		// Assert — Only the 2 attribute files, no generated aggregate
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN002");
 	}
 
 	[Test]
@@ -663,6 +675,9 @@ namespace Testing
 		// Assert — only the partial method generates an event, the non-partial is skipped
 		await Assert.That(generatedSource).Contains("SetNameEvent");
 		await Assert.That(generatedSource).DoesNotContain("NonPartialMethodEvent");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN007");
 	}
 
 	[Test]
@@ -875,6 +890,9 @@ namespace Testing
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
 	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
 	{
+		public string CustomerId { get; private set; }
+		public decimal Total { get; private set; }
+
 		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
 		public partial void CreateOrder(string customerId);
 
@@ -922,6 +940,358 @@ namespace Testing
 		var attributeSource = (await attributeTree.GetTextAsync(cancellationToken)).ToString();
 
 		await Assert.That(attributeSource).Contains("int Version");
+	}
+
+	#endregion
+
+	#region Diagnostic Tests
+
+	[Test]
+	public async Task Generate_GivenFalsePositiveAggregateBaseName_ReportsInheritanceDiagnostic(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public abstract class AggregateBase { }
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class NotARealAggregate : AggregateBase
+	{
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Rename(string name);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN002");
+	}
+
+	[Test]
+	public async Task Generate_GivenNestedAggregate_ReportsDiagnostic(CancellationToken cancellationToken)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	public static class AggregateContainer
+	{
+		[Purview.EventSourcing.Aggregates.GenerateAggregate]
+		public partial class NestedAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+		{
+			public string Value { get; private set; } = default!;
+
+			[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+			public partial void SetValue(string value);
+		}
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN003");
+	}
+
+	[Test]
+	public async Task Generate_GivenGenericAggregate_ReportsDiagnostic(CancellationToken cancellationToken)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class GenericAggregate<TValue> : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public TValue Value { get; private set; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetValue(TValue value);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN004");
+	}
+
+	[Test]
+	public async Task Generate_GivenManualRegisterEvents_ReportsDiagnostic(CancellationToken cancellationToken)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ManualRegistrationAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = default!;
+
+		protected override void RegisterEvents() { }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetValue(string value);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN005");
+	}
+
+	[Test]
+	public async Task Generate_GivenEventMethodOutsideAggregate_ReportsDiagnostic(CancellationToken cancellationToken)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public partial class UtilityType
+	{
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void DoWork(string value);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN006");
+	}
+
+	[Test]
+	public async Task Generate_GivenUnsupportedEventMethodSignature_ReportsDiagnostic(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class InvalidSignatureAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public static partial string SetValue(string value);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN008");
+		await Assert.That(generatedSource).Contains("public static partial string SetValue(string value)");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"The generated aggregate event method 'public static partial string SetValue(string value)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (PVEVTGEN008)."
+			);
+		await Assert
+			.That(
+				outputCompilation
+					.GetDiagnostics(cancellationToken)
+					.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+					.Select(static diagnostic => diagnostic.Id)
+			)
+			.DoesNotContain("CS8795");
+	}
+
+	[Test]
+	public async Task Generate_GivenOverloadedEventMethods_ReportsDuplicateEventNameDiagnostic(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class DuplicateEventAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = default!;
+		public int Count { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Update(string value);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Update(int count);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN009");
+		await Assert.That(generatedSource).Contains("public partial void Update(string value)");
+		await Assert.That(generatedSource).Contains("public partial void Update(int count)");
+		await Assert.That(generatedSource).Contains("PVEVTGEN009");
+		await Assert
+			.That(
+				outputCompilation
+					.GetDiagnostics(cancellationToken)
+					.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+					.Select(static diagnostic => diagnostic.Id)
+			)
+			.DoesNotContain("CS8795");
+	}
+
+	[Test]
+	public async Task Generate_GivenMissingPropertyMapping_ReportsDiagnostic(CancellationToken cancellationToken)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class MappingAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void Rename(string customerId);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN010");
+		await Assert.That(generatedSource).Contains("public partial void Rename(string customerId)");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"The generated aggregate event method 'public partial void Rename(string customerId)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (PVEVTGEN010)."
+			);
+		await Assert
+			.That(
+				outputCompilation
+					.GetDiagnostics(cancellationToken)
+					.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+					.Select(static diagnostic => diagnostic.Id)
+			)
+			.DoesNotContain("CS8795");
+	}
+
+	[Test]
+	public async Task Generate_GivenInitOnlyMappedProperty_ReportsDiagnostic(CancellationToken cancellationToken)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class InitOnlyAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; init; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetValue(string value);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.Contains("PVEVTGEN010");
+	}
+
+	[Test]
+	public async Task Generate_GivenSameAggregateNameInDifferentNamespaces_UsesUniqueHintNames(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace First
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetValue(string value);
+	}
+}
+
+namespace Second
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetValue(string value);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var aggregateTrees = result
+			.GeneratedTrees.Where(tree =>
+				!tree.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+				&& !tree.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
+			)
+			.Select(static tree => tree.FilePath)
+			.ToArray();
+		var aggregateFileNames = aggregateTrees.Select(static path => Path.GetFileName(path)).ToArray();
+
+		await Assert.That(aggregateTrees).Count().IsEqualTo(2);
+		await Assert.That(aggregateTrees.Distinct(StringComparer.Ordinal)).Count().IsEqualTo(2);
+		await Assert
+			.That(
+				aggregateFileNames.All(static fileName =>
+					fileName.StartsWith("OrderAggregate_", StringComparison.Ordinal)
+				)
+			)
+			.IsTrue();
+		await Assert
+			.That(
+				aggregateFileNames.All(fileName =>
+					fileName.Length
+					== "OrderAggregate_".Length + HintNameHashHexLength + GeneratedSourceFileSuffix.Length
+				)
+			)
+			.IsTrue();
 	}
 
 	#endregion

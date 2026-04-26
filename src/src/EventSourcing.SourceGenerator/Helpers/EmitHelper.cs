@@ -65,6 +65,11 @@ static class EmitHelper
 			GenerateCommandMethod(sb, info, method, indent);
 		}
 
+		foreach (var method in info.InvalidMethods)
+		{
+			GenerateInvalidCommandMethodStub(sb, method, indent);
+		}
+
 		sb.AppendLine($"{indent}}}");
 
 		GenerateJsonConverter(sb, info, indent);
@@ -225,6 +230,33 @@ static class EmitHelper
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
 	}
+
+	static void GenerateInvalidCommandMethodStub(
+		StringBuilder sb,
+		InvalidAggregateEventMethodInfo method,
+		string indent
+	)
+	{
+		var diagnosticIds =
+			method.DiagnosticIds.Length > 0 ? string.Join(", ", method.DiagnosticIds) : "unknown diagnostic IDs";
+		var message = EscapeStringLiteral(
+			$"The generated aggregate event method '{method.Signature}' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method ({diagnosticIds})."
+		);
+
+		sb.AppendLine($"{indent}\t{method.Signature}");
+		sb.AppendLine($"{indent}\t{{");
+		sb.AppendLine($"{indent}\t\tthrow new global::System.InvalidOperationException(\"{message}\");");
+		sb.AppendLine($"{indent}\t}}");
+		sb.AppendLine();
+	}
+
+	static string EscapeStringLiteral(string value) =>
+		value
+			.Replace("\\", "\\\\")
+			.Replace("\"", "\\\"")
+			.Replace("\r", "\\r")
+			.Replace("\n", "\\n")
+			.Replace("\t", "\\t");
 
 	static string GetAccessModifier(Accessibility accessibility)
 	{
