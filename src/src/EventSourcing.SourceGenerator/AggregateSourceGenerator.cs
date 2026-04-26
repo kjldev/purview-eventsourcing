@@ -13,6 +13,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 	const string GenerateAggregateEventAttributeName =
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
+	const int HintNameHashHexLength = 16;
+	const string GeneratedSourceFileSuffix = ".g.cs";
+	static readonly int HintNameSeparatorAndSuffixLength =
+		1 + HintNameHashHexLength + GeneratedSourceFileSuffix.Length;
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
@@ -541,7 +545,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 	{
 		var symbolName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 		var shortName = classSymbol.Name;
-		var builder = new System.Text.StringBuilder(shortName.Length + 22);
+		var builder = new System.Text.StringBuilder(shortName.Length + HintNameSeparatorAndSuffixLength);
 
 		foreach (var character in shortName)
 		{
@@ -550,9 +554,12 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		builder.Append('_');
 		builder.Append(
-			ComputeStableHash(symbolName).ToString("X16", System.Globalization.CultureInfo.InvariantCulture)
+			ComputeStableHash(symbolName).ToString(
+				$"X{HintNameHashHexLength}",
+				System.Globalization.CultureInfo.InvariantCulture
+			)
 		);
-		builder.Append(".g.cs");
+		builder.Append(GeneratedSourceFileSuffix);
 		return builder.ToString();
 	}
 

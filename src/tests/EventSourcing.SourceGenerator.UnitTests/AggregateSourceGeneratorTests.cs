@@ -6,6 +6,9 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
+	const int HintNameHashHexLength = 16;
+	const string GeneratedSourceFileSuffix = ".g.cs";
+
 	// Stub for AggregateBase so the source generator can find the base class
 	const string AggregateBaseStub =
 		@"#nullable enable
@@ -1266,7 +1269,14 @@ namespace Second
 		await Assert.That(aggregateTrees).Count().IsEqualTo(2);
 		await Assert.That(aggregateTrees.Distinct(StringComparer.Ordinal)).Count().IsEqualTo(2);
 		await Assert.That(aggregateFileNames.All(static fileName => fileName.StartsWith("OrderAggregate_", StringComparison.Ordinal))).IsTrue();
-		await Assert.That(aggregateFileNames.All(static fileName => fileName.Length == "OrderAggregate_".Length + 16 + ".g.cs".Length)).IsTrue();
+		await Assert
+			.That(
+				aggregateFileNames.All(fileName =>
+					fileName.Length
+					== "OrderAggregate_".Length + HintNameHashHexLength + GeneratedSourceFileSuffix.Length
+				)
+			)
+			.IsTrue();
 	}
 
 	#endregion
