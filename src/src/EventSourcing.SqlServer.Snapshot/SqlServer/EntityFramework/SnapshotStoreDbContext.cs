@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Purview.EventSourcing.SqlServer.Snapshot.EntityFramework;
+namespace Purview.EventSourcing.SqlServer.EntityFramework;
 
 /// <summary>
 /// EF Core DbContext for the SQL Server snapshot store.

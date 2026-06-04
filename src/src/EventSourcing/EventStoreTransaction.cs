@@ -25,10 +25,6 @@ namespace Purview.EventSourcing;
 /// <remarks>
 /// Creates a new transaction with the given correlation ID.
 /// </remarks>
-/// <param name="correlationId">
-/// Optional correlation ID. When <see langword="null"/>, the current activity ID is used when available;
-/// otherwise a new GUID is generated.
-/// </param>
 public sealed class EventStoreTransaction : IEventStoreTransaction
 {
 	readonly List<IEnlistedAggregate> _enlisted = [];

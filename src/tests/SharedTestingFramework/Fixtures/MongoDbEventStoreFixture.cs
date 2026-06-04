@@ -2,12 +2,13 @@ using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.ChangeFeed;
+using Purview.EventSourcing.MongoDB;
 using Purview.EventSourcing.MongoDB.StorageClients;
 using Purview.EventSourcing.Services;
 using Testcontainers.MongoDb;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.MongoDB;
+namespace Purview.EventSourcing.Fixtures;
 
 public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

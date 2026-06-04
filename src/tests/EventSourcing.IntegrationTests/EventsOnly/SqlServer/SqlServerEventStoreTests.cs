@@ -1,3 +1,5 @@
+using Purview.EventSourcing.Fixtures;
+
 namespace Purview.EventSourcing.SqlServer;
 
 [ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]

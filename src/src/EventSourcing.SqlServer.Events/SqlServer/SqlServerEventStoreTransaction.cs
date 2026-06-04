@@ -81,7 +81,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 
 		await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-		List<IProcessedSaveOperation> processed = new(_enlisted.Count);
+		List<IProcessedSaveOperation> processed = [with(_enlisted.Count)];
 		IEnlistedAggregate? failedEnlisted = null;
 		Exception? failure = null;
 
@@ -118,7 +118,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEve
 		{
 			await transaction.CommitAsync(cancellationToken);
 
-			List<TransactionAggregateResult> committedResults = new(processed.Count);
+			List<TransactionAggregateResult> committedResults = [with(processed.Count)];
 			foreach (var operation in processed)
 			{
 				Exception? postCommitError = null;

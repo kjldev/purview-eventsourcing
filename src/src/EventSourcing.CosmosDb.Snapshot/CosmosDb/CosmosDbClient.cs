@@ -115,9 +115,9 @@ sealed partial class CosmosDbClient : IAsyncDisposable
 
 				if (!existingSet)
 				{
-					containerResponse.Resource.IndexingPolicy.CompositeIndexes.Add(
-						new([.. compositeIndexSetFromConfig])
-					);
+					containerResponse.Resource.IndexingPolicy.CompositeIndexes.Add([
+						with([.. compositeIndexSetFromConfig]),
+					]);
 					containerRequiresUpdate = true;
 				}
 			}

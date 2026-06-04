@@ -1,4 +1,4 @@
-namespace Purview.EventSourcing;
+namespace Purview.EventSourcing.Aggregates;
 
 public partial class AggregateBaseTests
 {
@@ -6,7 +6,7 @@ public partial class AggregateBaseTests
 	public async Task ForceSave_GivenNoUnsavedEvents_RecordsForceSaveEvent()
 	{
 		// Arrange
-		var aggregate = new Aggregates.Test.TestAggregate();
+		var aggregate = new Test.TestAggregate();
 
 		// Act
 		aggregate.ForceSave();
@@ -20,7 +20,7 @@ public partial class AggregateBaseTests
 	public async Task ForceSave_GivenExistingUnsavedEvents_DoesNotRecordForceSaveEvent()
 	{
 		// Arrange
-		var aggregate = new Aggregates.Test.TestAggregate();
+		var aggregate = new Test.TestAggregate();
 		aggregate.RecordEvent();
 
 		var eventCountBefore = aggregate.GetUnsavedEvents().Count();
@@ -36,7 +36,7 @@ public partial class AggregateBaseTests
 	public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix()
 	{
 		// Arrange
-		var aggregate = new Aggregates.Test.TestAggregate();
+		var aggregate = new Test.TestAggregate();
 
 		// Assert — "TestAggregate" becomes "test" via TypeNameHelper
 		await Assert.That(aggregate.AggregateType).IsEqualTo("test");

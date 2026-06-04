@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Purview.EventSourcing.SqlServer.Snapshot.EntityFramework;
+namespace Purview.EventSourcing.SqlServer.EntityFramework;
 
 /// <summary>
 /// Design-time factory for <see cref="SnapshotStoreDbContext"/>.

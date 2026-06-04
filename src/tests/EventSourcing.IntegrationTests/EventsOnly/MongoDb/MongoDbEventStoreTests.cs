@@ -1,3 +1,5 @@
+using Purview.EventSourcing.Fixtures;
+
 namespace Purview.EventSourcing.MongoDB;
 
 [ClassDataSource<MongoDBEventStoreFixture>(Shared = SharedType.PerAssembly)]

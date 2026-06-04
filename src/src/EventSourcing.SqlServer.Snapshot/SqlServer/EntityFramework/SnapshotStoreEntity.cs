@@ -1,4 +1,4 @@
-﻿namespace Purview.EventSourcing.SqlServer.Snapshot.EntityFramework;
+﻿namespace Purview.EventSourcing.SqlServer.EntityFramework;
 
 /// <summary>
 /// EF Core entity model representing a row in the SQL Server snapshot store table.

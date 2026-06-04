@@ -1,13 +1,14 @@
 using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.AzureStorage;
 using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.AzureStorage;
+namespace Purview.EventSourcing.Fixtures;
 
 public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

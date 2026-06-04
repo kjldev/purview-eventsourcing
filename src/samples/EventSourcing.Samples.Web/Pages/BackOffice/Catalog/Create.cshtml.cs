@@ -79,11 +79,12 @@ public sealed class CreateModel(IQueryableEventStore store) : PageModel
 			ct
 		);
 
-		LocationItems = locations
-			.Results.Select(location => new SelectListItem(
+		LocationItems =
+		[
+			.. locations.Results.Select(location => new SelectListItem(
 				$"{location.LocationName} ({location.LocationId})",
 				location.LocationId
-			))
-			.ToList();
+			)),
+		];
 	}
 }

@@ -288,25 +288,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 	static EventMethodValidationResult GetStandaloneEventMethodValidationResult(GeneratorAttributeSyntaxContext ctx)
 	{
-		if (ctx.TargetSymbol is not IMethodSymbol methodSymbol)
-			return new EventMethodValidationResult([]);
-
-		if (
-			ctx.SemanticModel.Compilation.GetTypeByMetadataName(GenerateAggregateAttributeName)
+		return ctx.TargetSymbol is not IMethodSymbol methodSymbol ? new EventMethodValidationResult([])
+			: ctx.SemanticModel.Compilation.GetTypeByMetadataName(GenerateAggregateAttributeName)
 				is { } aggregateAttribute
 			&& HasAttribute(methodSymbol.ContainingType, aggregateAttribute)
-		)
-		{
-			return new EventMethodValidationResult([]);
-		}
-
-		return new EventMethodValidationResult([
-			Diagnostic.Create(
-				GeneratorDiagnostics.EventMethodRequiresAggregateAttribute,
-				ctx.TargetNode.GetLocation(),
-				methodSymbol.Name
-			),
-		]);
+				? new EventMethodValidationResult([])
+			: new EventMethodValidationResult([
+				Diagnostic.Create(
+					GeneratorDiagnostics.EventMethodRequiresAggregateAttribute,
+					ctx.TargetNode.GetLocation(),
+					methodSymbol.Name
+				),
+			]);
 	}
 
 	static bool TryCreateEventMethodInfo(

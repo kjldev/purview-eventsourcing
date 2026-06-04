@@ -3,10 +3,11 @@ using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
+using Purview.EventSourcing.SqlServer;
 using Testcontainers.MsSql;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.SqlServer;
+namespace Purview.EventSourcing.Fixtures;
 
 public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

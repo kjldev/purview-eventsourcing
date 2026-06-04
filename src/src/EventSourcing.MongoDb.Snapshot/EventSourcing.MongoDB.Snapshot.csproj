@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<RootNamespace>Purview.EventSourcing</RootNamespace>
-	</PropertyGroup>
+	<!--<PropertyGroup>
+		<NamespacePrefix>$(NamespacePrefix)</NamespacePrefix>
+	</PropertyGroup>-->
 
 	<PropertyGroup Label="NuGet Package Values">
 		<IsPackable>true</IsPackable>

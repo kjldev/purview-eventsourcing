@@ -91,23 +91,25 @@ public sealed class TransferModel(IStockTransferService transferService, IQuerya
 			ct
 		);
 
-		SourceInventoryItems = sourceItems
-			.Results.Select(i => new SelectListItem(
+		SourceInventoryItems =
+		[
+			.. sourceItems.Results.Select(i => new SelectListItem(
 				$"{i.ProductName} — {i.LocationName} (available: {i.AvailableQuantity})",
 				i.Id()
-			))
-			.ToList();
+			)),
+		];
 
 		var locations = await store.ListAsync<LocationAggregate>(
 			q => q.OrderBy(i => i.LocationName),
 			new ContinuationRequest { MaxRecords = 500 },
 			ct
 		);
-		LocationItems = locations
-			.Results.Select(location => new SelectListItem(
+		LocationItems =
+		[
+			.. locations.Results.Select(location => new SelectListItem(
 				$"{location.LocationName} ({location.LocationId})",
 				location.LocationId
-			))
-			.ToList();
+			)),
+		];
 	}
 }

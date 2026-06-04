@@ -123,10 +123,9 @@ public sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failu
 
 	public Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken cancellationToken = default)
 	{
-		if (!Persisted.TryGetValue(aggregateId, out var json))
-			return Task.FromResult(ExistsState.DoesNotExists);
-
-		return Task.FromResult(new ExistsState(ExistsStatus.Exists, Deserialize(json).Details.CurrentVersion));
+		return !Persisted.TryGetValue(aggregateId, out var json)
+			? Task.FromResult(ExistsState.DoesNotExists)
+			: Task.FromResult(new ExistsState(ExistsStatus.Exists, Deserialize(json).Details.CurrentVersion));
 	}
 
 	public T FulfilRequirements(T aggregate) => aggregate;

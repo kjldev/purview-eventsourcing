@@ -23,7 +23,7 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 			}
 		}
 
-		DeletedCustomers = deleted.OrderBy(c => c.Name).ToList();
+		DeletedCustomers = [.. deleted.OrderBy(c => c.Name)];
 	}
 
 	public async Task<IActionResult> OnPostRestoreAsync(string id)

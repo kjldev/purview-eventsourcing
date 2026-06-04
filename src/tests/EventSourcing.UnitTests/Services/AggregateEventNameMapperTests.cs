@@ -34,7 +34,7 @@ namespace Purview.EventSourcing
 	}
 }
 
-namespace Purview.Services.UserProfile.Aggregates.UserProfile.Events
+namespace Purview.EventSourcing.Services
 {
 	public sealed class ClearProfileAttributesEvent : EventBase
 	{

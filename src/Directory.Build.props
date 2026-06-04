@@ -6,10 +6,51 @@
 		<RepositoryUrl>https://github.com/kjldev/purview-eventsourcing</RepositoryUrl>
 	</PropertyGroup>
 
-	<Import Project="../.dotnet/Directory.Build.props" />
+	<Import Sdk="Purview.DotNetProjectSdk" Project="Sdk.props" />
 
 	<PropertyGroup>
 		<NoWarn>$(NoWarn);CS0436;</NoWarn>
+		<!-- Ignoring XML comments for now -->
+		<NoWarn>$(NoWarn);CS1574;CS1591;</NoWarn>
 		<AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
 	</PropertyGroup>
+
+	<PropertyGroup Label="NuGet package metadata" Condition="'$(IsPackable)' == 'true'">
+		<PackageId>$(NamespacePrefix).$(MSBuildProjectName)</PackageId>
+		<Authors Condition="'$(Authors)' == ''">Kieron Lanning</Authors>
+		<Company Condition="'$(Company)' == ''">KJL Solutions Ltd.</Company>
+		<Copyright Condition="'$(Copyright)' == ''">Copyright © $(CurrentYear) KJL Solutions</Copyright>
+		<PackageProjectUrl Condition="'$(PackageProjectUrl)' == ''">$(RepositoryUrl)</PackageProjectUrl>
+		<RepositoryType Condition="'$(RepositoryType)' == ''">git</RepositoryType>
+		<PackageLicenseFile Condition="'$(PackageLicenseFile)' == ''">LICENSE.md</PackageLicenseFile>
+		<PackageIcon Condition="'$(PackageIcon)' == ''">kjldev-logo.png</PackageIcon>
+		<PackageReadmeFile Condition="'$(PackageReadmeFile)' == ''">README.md</PackageReadmeFile>
+		<PackageRequireLicenseAcceptance Condition="'$(PackageRequireLicenseAcceptance)' == ''"
+			>false</PackageRequireLicenseAcceptance
+		>
+	</PropertyGroup>
+
+	<ItemGroup Label="NuGet package assets" Condition="'$(IsPackable)' == 'true'">
+		<None
+			Include="$(MSBuildProjectDirectory)\README.md"
+			Pack="true"
+			PackagePath="README.md"
+			Link="README.md"
+			Visible="false"
+		/>
+		<None
+			Include="$(MSBuildThisFileDirectory)..\LICENSE.md"
+			Pack="true"
+			PackagePath="LICENSE.md"
+			Link="LICENSE.md"
+			Visible="false"
+		/>
+		<None
+			Include="$(MSBuildThisFileDirectory)..\kjldev-logo.png"
+			Pack="true"
+			PackagePath="kjldev-logo.png"
+			Link="kjldev-logo.png"
+			Visible="false"
+		/>
+	</ItemGroup>
 </Project>

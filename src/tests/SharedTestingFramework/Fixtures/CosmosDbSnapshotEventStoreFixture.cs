@@ -1,7 +1,6 @@
-using Purview.EventSourcing.Fixtures;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.SnapshotOnly.CosmosDb;
+namespace Purview.EventSourcing.Fixtures;
 
 public class CosmosDbSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

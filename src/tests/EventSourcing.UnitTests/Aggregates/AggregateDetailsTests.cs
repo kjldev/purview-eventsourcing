@@ -1,6 +1,4 @@
-using Purview.EventSourcing.Aggregates;
-
-namespace Purview.EventSourcing;
+namespace Purview.EventSourcing.Aggregates;
 
 public class AggregateDetailsTests
 {

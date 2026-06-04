@@ -76,8 +76,9 @@ public sealed class IndexModel(
 		var imageUrlTasks = grouped.Select(p => imageService.GetImageUrlAsync(p.ProductId, ct)).ToList();
 		var imageUrls = await Task.WhenAll(imageUrlTasks);
 
-		Products = grouped
-			.Zip(
+		Products =
+		[
+			.. grouped.Zip(
 				imageUrls,
 				(p, url) =>
 					new CatalogProductViewModel(
@@ -88,8 +89,8 @@ public sealed class IndexModel(
 						p.UnitPrice,
 						url
 					)
-			)
-			.ToList();
+			),
+		];
 
 		CartCount = HttpContext.Session.GetCartCount();
 		return Page();
