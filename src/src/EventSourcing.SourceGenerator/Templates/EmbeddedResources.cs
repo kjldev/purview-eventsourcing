@@ -1,31 +1,31 @@
 using System.Reflection;
 using System.Text;
+using Purview.EventSourcing.SourceGenerator.Helpers;
 
 namespace Purview.EventSourcing.SourceGenerator.Templates;
 
-sealed class EmbeddedResources
+static class EmbeddedResources
 {
-	readonly Assembly _ownerAssembly = typeof(EmbeddedResources).Assembly;
-	readonly string _namespaceRoot = typeof(EmbeddedResources).Namespace!;
+	static readonly Assembly OwnerAssembly = typeof(EmbeddedResources).Assembly;
 
-	EmbeddedResources() { }
-
-	public static EmbeddedResources Instance { get; } = new();
-
-	public string LoadTemplate(string name)
+	public static string LoadTemplate(string name)
 	{
-		var resourceName = $"{_namespaceRoot}.Sources.{name}.cs";
+		var resourceName = $"{AssemblyInfo.RootNamespace}.Templates.Sources.{name}.cs";
 
-		var resourceStream = _ownerAssembly.GetManifestResourceStream(resourceName);
+		var resourceStream = OwnerAssembly.GetManifestResourceStream(resourceName);
 		if (resourceStream is null)
 		{
-			var existingResources = _ownerAssembly.GetManifestResourceNames();
+			var existingResources = OwnerAssembly.GetManifestResourceNames();
 			throw new ArgumentException(
 				$"Could not find embedded resource {resourceName}. Available: {string.Join(", ", existingResources)}"
 			);
 		}
 
-		using var reader = new StreamReader(resourceStream, Encoding.UTF8);
-		return reader.ReadToEnd().Trim();
+		using StreamReader reader = new(resourceStream, Encoding.UTF8);
+		var template = reader.ReadToEnd();
+
+		template = template.Replace(CodeGenHelpers.CodeGenReplacementToken, CodeGenHelpers.GetGeneratedCodeAttribute());
+
+		return template;
 	}
 }

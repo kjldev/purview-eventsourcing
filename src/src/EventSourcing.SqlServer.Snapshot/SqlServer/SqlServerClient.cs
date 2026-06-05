@@ -169,7 +169,7 @@ sealed partial class SqlServerClient
 	{
 		await EnsureConfiguredAsync(cancellationToken);
 
-		var json = JsonHelpers.Serialize(aggregate, aggregate!.GetType());
+		var json = EventStoreSerializationHelpers.Serialize(aggregate, aggregate!.GetType());
 
 		await using var connection = CreateConnection();
 		await connection.OpenAsync(cancellationToken);
@@ -197,7 +197,7 @@ sealed partial class SqlServerClient
 		ArgumentNullException.ThrowIfNull(connection);
 		ArgumentNullException.ThrowIfNull(transaction);
 
-		var json = JsonHelpers.Serialize(aggregate, aggregate!.GetType());
+		var json = EventStoreSerializationHelpers.Serialize(aggregate, aggregate!.GetType());
 
 		await using var command = connection.CreateCommand();
 		command.Transaction = transaction;
@@ -263,7 +263,7 @@ sealed partial class SqlServerClient
 		while (await reader.ReadAsync(cancellationToken))
 		{
 			var payload = reader.GetString(0);
-			var item = JsonHelpers.Deserialize<T>(payload);
+			var item = EventStoreSerializationHelpers.Deserialize<T>(payload);
 			if (item != null)
 				results.Add(item);
 		}
@@ -287,7 +287,7 @@ sealed partial class SqlServerClient
 		if (await reader.ReadAsync(cancellationToken))
 		{
 			var payload = reader.GetString(0);
-			return JsonHelpers.Deserialize<T>(payload);
+			return EventStoreSerializationHelpers.Deserialize<T>(payload);
 		}
 
 		return null;

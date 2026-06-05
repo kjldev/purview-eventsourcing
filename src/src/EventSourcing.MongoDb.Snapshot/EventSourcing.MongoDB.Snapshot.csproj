@@ -18,14 +18,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\EventSourcing.Shared\EventSourcing.Shared.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="LinqKit" />
 		<PackageReference Include="MongoDB.Driver" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
 		<PackageReference Include="Microsoft.Extensions.Options" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing\EventSourcing.csproj" />
 	</ItemGroup>
 </Project>

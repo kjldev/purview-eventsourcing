@@ -43,7 +43,11 @@ public static partial class TypeNameHelper
 		{
 			var result = name[..^trimPart.Length];
 			if (result.Length > 0)
-				return TitleCaseSplit.Replace(result, "-$1").ToLowerSafe();
+			{
+#pragma warning disable CA1308 // Normalize strings to uppercase
+				return TitleCaseSplit.Replace(result, "-$1").ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
+			}
 		}
 
 		return fallThroughToFullTypeName ? objectType.FullName ?? objectType.Name : name;

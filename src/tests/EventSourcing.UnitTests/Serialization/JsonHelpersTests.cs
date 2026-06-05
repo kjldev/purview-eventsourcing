@@ -26,8 +26,8 @@ public sealed class JsonHelpersTests
 			["item-1", "item-2"]
 		);
 
-		var json = JsonHelpers.Serialize(aggregate, aggregate.GetType());
-		var roundTripped = JsonHelpers.Deserialize<SerializerAggregate>(json);
+		var json = EventStoreSerializationHelpers.Serialize(aggregate, aggregate.GetType());
+		var roundTripped = EventStoreSerializationHelpers.Deserialize<SerializerAggregate>(json);
 
 		await Assert.That(roundTripped).IsNotNull();
 		await Assert.That(roundTripped!.Name).IsEqualTo("customer-1");
@@ -47,8 +47,8 @@ public sealed class JsonHelpersTests
 			Value = "event-value",
 		};
 
-		var json = JsonHelpers.Serialize(@event, @event.GetType());
-		var roundTripped = JsonHelpers.Deserialize<SerializerEvent>(json);
+		var json = EventStoreSerializationHelpers.Serialize(@event, @event.GetType());
+		var roundTripped = EventStoreSerializationHelpers.Deserialize<SerializerEvent>(json);
 
 		await Assert.That(roundTripped).IsNotNull();
 		await Assert.That(roundTripped!.Value).IsEqualTo("event-value");
@@ -60,9 +60,11 @@ public sealed class JsonHelpersTests
 	public async Task Serialize_GivenStringValues_WritesExpectedShapesAndRoundTrips()
 	{
 		var value = new[] { "one", "two" };
-		var singleJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = "single" });
-		var multiJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = value });
-		var emptyJson = JsonHelpers.Serialize(new StringValuesEnvelope { Value = StringValues.Empty });
+		var singleJson = EventStoreSerializationHelpers.Serialize(new StringValuesEnvelope { Value = "single" });
+		var multiJson = EventStoreSerializationHelpers.Serialize(new StringValuesEnvelope { Value = value });
+		var emptyJson = EventStoreSerializationHelpers.Serialize(
+			new StringValuesEnvelope { Value = StringValues.Empty }
+		);
 
 		using var singleDocument = JsonDocument.Parse(singleJson);
 		using var multiDocument = JsonDocument.Parse(multiJson);
@@ -72,9 +74,9 @@ public sealed class JsonHelpersTests
 		await Assert.That(multiDocument.RootElement.GetProperty("Value").ValueKind).IsEqualTo(JsonValueKind.Array);
 		await Assert.That(emptyDocument.RootElement.GetProperty("Value").ValueKind).IsEqualTo(JsonValueKind.Null);
 
-		var single = JsonHelpers.Deserialize<StringValuesEnvelope>(singleJson);
-		var multi = JsonHelpers.Deserialize<StringValuesEnvelope>(multiJson);
-		var empty = JsonHelpers.Deserialize<StringValuesEnvelope>(emptyJson);
+		var single = EventStoreSerializationHelpers.Deserialize<StringValuesEnvelope>(singleJson);
+		var multi = EventStoreSerializationHelpers.Deserialize<StringValuesEnvelope>(multiJson);
+		var empty = EventStoreSerializationHelpers.Deserialize<StringValuesEnvelope>(emptyJson);
 
 		await Assert.That(single!.Value.ToString()).IsEqualTo("single");
 		await Assert.That(multi!.Value.ToArray<string>()).IsEquivalentTo(value);
@@ -89,8 +91,8 @@ public sealed class JsonHelpersTests
 			Details = new EventDetails { CorrelationId = "corr-2" },
 			OldField = "legacy",
 		};
-		var json = JsonHelpers.Serialize(legacyEvent, legacyEvent.GetType());
-		var deserialized = JsonHelpers.Deserialize<LegacySerializerEvent>(json)!;
+		var json = EventStoreSerializationHelpers.Serialize(legacyEvent, legacyEvent.GetType());
+		var deserialized = EventStoreSerializationHelpers.Deserialize<LegacySerializerEvent>(json)!;
 
 		var registry = new EventUpcasterRegistry([
 			new EventUpcasterDescriptor<LegacySerializerEvent, CurrentSerializerEvent>(

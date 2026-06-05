@@ -1,11 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<!-- Exclude Purview.Telemetry.SourceGenerator to avoid cross-generator conflicts -->
-		<ExcludePurviewTelemetry>true</ExcludePurviewTelemetry>
-	</PropertyGroup>
-	<ItemGroup>
-		<ProjectReference Include="..\..\src\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" />
-	</ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<!-- Remove auto-added SharedTestingFramework since this project only tests the source generator -->
 	<ItemGroup>
 		<ProjectReference Remove="../SharedTestingFramework/SharedTestingFramework.csproj" />

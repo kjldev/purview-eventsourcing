@@ -6,6 +6,9 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
+	const int ExpectedFileCount = 3;
+	const int ExpectedFileCountPlusGen = ExpectedFileCount + 1;
+
 	const int HintNameHashHexLength = 16;
 	const string GeneratedSourceFileSuffix = ".g.cs";
 
@@ -62,7 +65,8 @@ namespace Purview.EventSourcing.Aggregates.Events
 	static string GetAggregateGeneratedSource(GeneratorDriverRunResult result)
 	{
 		var aggregateTree = result.GeneratedTrees.FirstOrDefault(t =>
-			!t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+			!t.FilePath.EndsWith("EmbeddedAttribute.g.cs", StringComparison.Ordinal)
+			&& !t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
 			&& !t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
 		);
 
@@ -71,8 +75,6 @@ namespace Purview.EventSourcing.Aggregates.Events
 
 	static Diagnostic[] GetGeneratorDiagnostics(GeneratorDriverRunResult result) =>
 		[.. result.Results.SelectMany(static generatorResult => generatorResult.Diagnostics).OrderBy(static d => d.Id)];
-
-	#region Tree Count Tests
 
 	[Test]
 	public async Task Generate_GivenEmptySource_GeneratesAttributesOnly(CancellationToken cancellationToken)
@@ -90,7 +92,7 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCount);
 	}
 
 	[Test]
@@ -120,8 +122,8 @@ namespace Testing
 		// Act
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		// Assert — 2 attribute files + 1 generated aggregate file
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
+		// Assert — 3 attribute files + 1 generated aggregate file
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 	}
 
 	[Test]
@@ -146,7 +148,7 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 	}
 
 	[Test]
@@ -175,7 +177,7 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 	}
 
 	[Test]
@@ -198,11 +200,11 @@ namespace Testing
 		// Act
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		// Assert — Only the 2 attribute files, no generated aggregate
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
+		// Assert — Only the 3 attribute files, no generated aggregate
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN001");
+			.Contains("EVENTSTORE001");
 	}
 
 	[Test]
@@ -231,7 +233,7 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 	}
 
 	[Test]
@@ -271,10 +273,6 @@ namespace Testing
 
 		await Assert.That(errors).IsEmpty();
 	}
-
-	#endregion
-
-	#region Generated Content Verification Tests
 
 	[Test]
 	public async Task Generate_GivenSimpleAggregate_GeneratedSourceContainsEventClass(
@@ -612,10 +610,6 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("public sealed class UpdateTotalEvent");
 	}
 
-	#endregion
-
-	#region Edge Case Tests
-
 	[Test]
 	public async Task Generate_GivenClassNotInheritingAggregateBase_DoesNotGenerate(CancellationToken cancellationToken)
 	{
@@ -638,10 +632,10 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert — Only the 2 attribute files, no generated aggregate
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(2);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCount);
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN002");
+			.Contains("EVENTSTORE002");
 	}
 
 	[Test]
@@ -677,7 +671,7 @@ namespace Testing
 		await Assert.That(generatedSource).DoesNotContain("NonPartialMethodEvent");
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN007");
+			.Contains("EVENTSTORE007");
 	}
 
 	[Test]
@@ -730,15 +724,17 @@ namespace Testing
 		// Assert — attribute files are generated
 		var attributeSources = result
 			.GeneratedTrees.Where(t =>
-				t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+				t.FilePath.EndsWith("EmbeddedAttribute.g.cs", StringComparison.Ordinal)
+				|| t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
 				|| t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
 			)
 			.Select(t => t.GetText().ToString())
 			.ToList();
 
-		await Assert.That(attributeSources).Count().IsEqualTo(2);
+		await Assert.That(attributeSources).Count().IsEqualTo(ExpectedFileCount);
 
 		var allAttributeSource = string.Join("\n", attributeSources);
+		await Assert.That(allAttributeSource).Contains("class EmbeddedAttribute");
 		await Assert.That(allAttributeSource).Contains("class GenerateAggregateAttribute");
 		await Assert.That(allAttributeSource).Contains("class GenerateAggregateEventAttribute");
 	}
@@ -811,10 +807,6 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("// <auto-generated />");
 		await Assert.That(generatedSource).Contains("#nullable enable");
 	}
-
-	#endregion
-
-	#region Versioning Tests
 
 	[Test]
 	public async Task Generate_GivenEventWithDefaultVersion_GeneratesSchemaVersionOverrideOfOne(
@@ -942,10 +934,6 @@ namespace Testing
 		await Assert.That(attributeSource).Contains("int Version");
 	}
 
-	#endregion
-
-	#region Diagnostic Tests
-
 	[Test]
 	public async Task Generate_GivenFalsePositiveAggregateBaseName_ReportsInheritanceDiagnostic(
 		CancellationToken cancellationToken
@@ -970,7 +958,7 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN002");
+			.Contains("EVENTSTORE002");
 	}
 
 	[Test]
@@ -999,7 +987,7 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN003");
+			.Contains("EVENTSTORE003");
 	}
 
 	[Test]
@@ -1025,7 +1013,7 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN004");
+			.Contains("EVENTSTORE004");
 	}
 
 	[Test]
@@ -1053,7 +1041,7 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN005");
+			.Contains("EVENTSTORE005");
 	}
 
 	[Test]
@@ -1075,7 +1063,7 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN006");
+			.Contains("EVENTSTORE006");
 	}
 
 	[Test]
@@ -1104,12 +1092,12 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN008");
+			.Contains("EVENTSTORE008");
 		await Assert.That(generatedSource).Contains("public static partial string SetValue(string value)");
 		await Assert
 			.That(generatedSource)
 			.Contains(
-				"The generated aggregate event method 'public static partial string SetValue(string value)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (PVEVTGEN008)."
+				"The generated aggregate event method 'public static partial string SetValue(string value)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (EVENTSTORE008)."
 			);
 		await Assert
 			.That(
@@ -1151,10 +1139,10 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN009");
+			.Contains("EVENTSTORE009");
 		await Assert.That(generatedSource).Contains("public partial void Update(string value)");
 		await Assert.That(generatedSource).Contains("public partial void Update(int count)");
-		await Assert.That(generatedSource).Contains("PVEVTGEN009");
+		await Assert.That(generatedSource).Contains("EVENTSTORE009");
 		await Assert
 			.That(
 				outputCompilation
@@ -1189,12 +1177,12 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN010");
+			.Contains("EVENTSTORE010");
 		await Assert.That(generatedSource).Contains("public partial void Rename(string customerId)");
 		await Assert
 			.That(generatedSource)
 			.Contains(
-				"The generated aggregate event method 'public partial void Rename(string customerId)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (PVEVTGEN010)."
+				"The generated aggregate event method 'public partial void Rename(string customerId)' is unavailable because [GenerateAggregateEvent] validation failed. Review the suppressed generator diagnostics for this method (EVENTSTORE010)."
 			);
 		await Assert
 			.That(
@@ -1229,7 +1217,7 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("PVEVTGEN010");
+			.Contains("EVENTSTORE010");
 	}
 
 	[Test]
@@ -1268,7 +1256,8 @@ namespace Second
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var aggregateTrees = result
 			.GeneratedTrees.Where(tree =>
-				!tree.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+				!tree.FilePath.EndsWith("EmbeddedAttribute.g.cs", StringComparison.Ordinal)
+				&& !tree.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
 				&& !tree.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
 			)
 			.Select(static tree => tree.FilePath)
@@ -1293,10 +1282,6 @@ namespace Second
 			)
 			.IsTrue();
 	}
-
-	#endregion
-
-	#region Complex Scenario Tests
 
 	[Test]
 	public async Task Generate_GivenAggregateWithManyEvents_GeneratesAllEventsAndRegistrations(
@@ -1358,6 +1343,7 @@ namespace Testing
 			.GetDiagnostics(cancellationToken)
 			.Where(d => d.Severity == DiagnosticSeverity.Error)
 			.ToArray();
+
 		await Assert.That(errors).IsEmpty();
 	}
 
@@ -1439,7 +1425,7 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert — 3 trees: 2 attributes + 1 generated aggregate
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(3);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 
 		var generatedSource = GetAggregateGeneratedSource(result);
 		await Assert.That(generatedSource).Contains("public sealed class CreateAccountEvent");
@@ -1705,6 +1691,4 @@ namespace Testing
 		var roundTrippedDetails = detailsProperty.GetValue(roundTripped)!;
 		await Assert.That(detailsType.GetProperty("CorrelationId")!.GetValue(roundTrippedDetails)).IsEqualTo("corr-1");
 	}
-
-	#endregion
 }

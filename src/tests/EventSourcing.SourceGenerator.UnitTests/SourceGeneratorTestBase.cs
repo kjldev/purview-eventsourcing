@@ -1,14 +1,16 @@
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Purview.EventSourcing.SourceGenerator.Helpers;
 
 namespace Purview.EventSourcing.SourceGenerator;
 
-public abstract class SourceGeneratorTestBase<TGenerator>
+public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError = true)
 	where TGenerator : class, IIncrementalGenerator, new()
 {
-	protected static async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
+	protected async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
 		string source,
-		CancellationToken cancellationToken = default
+		CancellationToken cancellationToken
 	)
 	{
 		var syntaxTree = CSharpSyntaxTree.ParseText(source, cancellationToken: cancellationToken);
@@ -34,7 +36,30 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
 		);
 
-		var generator = new TGenerator();
+		TGenerator generator = new();
+
+		if (generator is ILogSupport logging && TestContext.Current is not null)
+		{
+			logging.SetLogOutput(
+				(message, outputType) =>
+				{
+					var prefix = outputType switch
+					{
+						OutputType.Diagnostic => "DIA",
+						OutputType.Debug => "DBG",
+						OutputType.Info => "INF",
+						OutputType.Warning => "WRN",
+						OutputType.Error => "ERR",
+						_ => "???",
+					};
+
+					TestContext.Current.OutputWriter.WriteLine($"{prefix}: {message}");
+
+					if (throwOnLogError && outputType == OutputType.Error)
+						throw new InvalidOperationException($"Generator logged error: {message}");
+				}
+			);
+		}
 
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 		driver = driver.RunGeneratorsAndUpdateCompilation(
@@ -56,13 +81,10 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 		return (result, outputCompilation);
 	}
 
-	protected static async Task<global::System.Reflection.Assembly> CompileToAssemblyAsync(
-		string source,
-		CancellationToken cancellationToken = default
-	)
+	protected async Task<Assembly> CompileToAssemblyAsync(string source, CancellationToken cancellationToken)
 	{
 		var (_, compilation) = await GenerateAsync(source, cancellationToken);
-		await using var assemblyStream = new MemoryStream();
+		await using MemoryStream assemblyStream = new();
 		var emitResult = compilation.Emit(assemblyStream, cancellationToken: cancellationToken);
 		if (!emitResult.Success)
 		{
@@ -75,6 +97,6 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 		}
 
 		assemblyStream.Position = 0;
-		return global::System.Reflection.Assembly.Load(assemblyStream.ToArray());
+		return System.Reflection.Assembly.Load(assemblyStream.ToArray());
 	}
 }

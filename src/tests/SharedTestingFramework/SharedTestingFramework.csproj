@@ -1,14 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing</RootNamespace>
-		<NoWarn>$(NoWarn);CA1515;</NoWarn>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>EventSourcing.IntegrationTests</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="TUnit.Core" />

@@ -32,25 +32,19 @@
 
 	<ItemGroup Label="NuGet package assets" Condition="'$(IsPackable)' == 'true'">
 		<None
-			Include="$(MSBuildProjectDirectory)\README.md"
+			Include="$(MSBuildProjectDirectory)/README.md"
 			Pack="true"
-			PackagePath="README.md"
-			Link="README.md"
-			Visible="false"
+			PackagePath="/"
 		/>
 		<None
-			Include="$(MSBuildThisFileDirectory)..\LICENSE.md"
+			Include="$(MSBuildThisFileDirectory)../LICENSE.md"
 			Pack="true"
-			PackagePath="LICENSE.md"
-			Link="LICENSE.md"
-			Visible="false"
+			PackagePath="/"
 		/>
 		<None
-			Include="$(MSBuildThisFileDirectory)..\kjldev-logo.png"
+			Include="$(MSBuildThisFileDirectory)../assets/images/kjldev-logo.png"
 			Pack="true"
-			PackagePath="kjldev-logo.png"
-			Link="kjldev-logo.png"
-			Visible="false"
+			PackagePath="/"
 		/>
 	</ItemGroup>
 </Project>

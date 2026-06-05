@@ -330,7 +330,7 @@ partial class TableEventStore<T>
 			EventIds = [.. changeEvents.Select(m => m.Details.AggregateVersion).OrderBy(m => m)],
 		};
 
-		marker.Events = JsonHelpers.Serialize(eventObject);
+		marker.Events = EventStoreSerializationHelpers.Serialize(eventObject);
 
 		return marker;
 	}

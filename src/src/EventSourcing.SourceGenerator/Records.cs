@@ -14,24 +14,33 @@ sealed class AggregateInfo(
 )
 {
 	public string? Namespace { get; } = namespaceName;
+
 	public string ClassName { get; } = className;
+
 	public Accessibility Accessibility { get; } = accessibility;
+
 	public List<AggregateStatePropertyInfo> Properties { get; } = properties;
+
 	public List<AggregateEventMethodInfo> Methods { get; } = methods;
+
 	public List<InvalidAggregateEventMethodInfo> InvalidMethods { get; } = invalidMethods;
+
 	public string HintName { get; } = hintName;
 }
 
 sealed class AggregateStatePropertyInfo(string propertyName, string typeName)
 {
 	public string PropertyName { get; } = propertyName;
+
 	public string TypeName { get; } = typeName;
 }
 
 sealed class AggregateEventMethodInfo(string methodName, List<EventPropertyInfo> parameters, int version = 1)
 {
 	public string MethodName { get; } = methodName;
+
 	public string EventName { get; } = methodName + "Event";
+
 	public List<EventPropertyInfo> Parameters { get; } = parameters;
 
 	/// <summary>
@@ -44,13 +53,16 @@ sealed class AggregateEventMethodInfo(string methodName, List<EventPropertyInfo>
 sealed class InvalidAggregateEventMethodInfo(string signature, string[] diagnosticIds)
 {
 	public string Signature { get; } = signature;
+
 	public string[] DiagnosticIds { get; } = diagnosticIds;
 }
 
 sealed class EventPropertyInfo(string parameterName, string typeName)
 {
 	public string ParameterName { get; } = parameterName;
+
 	public string PropertyName { get; } = ToPropertyName(parameterName);
+
 	public string TypeName { get; } = typeName;
 
 	public static string ToPropertyName(string parameterName) =>
@@ -62,6 +74,7 @@ sealed class EventPropertyInfo(string parameterName, string typeName)
 sealed class AggregateGenerationResult(AggregateInfo? info, ImmutableArray<Diagnostic> diagnostics)
 {
 	public AggregateInfo? Info { get; } = info;
+
 	public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 }
 

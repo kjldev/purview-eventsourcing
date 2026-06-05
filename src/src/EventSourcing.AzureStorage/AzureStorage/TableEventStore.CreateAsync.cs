@@ -17,7 +17,7 @@ partial class TableEventStore<T>
 					);
 			}
 			else
-				aggregateId = $"{Guid.NewGuid()}".ToLowerSafe();
+				aggregateId = $"{Guid.NewGuid()}:D";
 		}
 
 		var aggregate = new T { Details = { Id = aggregateId } };

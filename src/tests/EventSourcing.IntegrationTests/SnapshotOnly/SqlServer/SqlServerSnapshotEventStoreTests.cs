@@ -8,7 +8,7 @@ public partial class SqlServerSnapshotEventStoreTests(SqlServerSnapshotEventStor
 {
 	static PersistenceAggregate CreateAggregate(string? id = null, Action<PersistenceAggregate>? action = null)
 	{
-		PersistenceAggregate aggregate = new() { Details = { Id = id ?? Guid.NewGuid().ToString() } };
+		PersistenceAggregate aggregate = new() { Details = { Id = id ?? $"{Guid.NewGuid():D}" } };
 
 		action?.Invoke(aggregate);
 

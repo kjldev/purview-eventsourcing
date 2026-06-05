@@ -7,8 +7,8 @@ namespace Purview.EventSourcing.Aggregates;
 /// The generator will create the <c>RegisterEvents()</c> override and
 /// event classes based on methods decorated with <see cref="GenerateAggregateEventAttribute"/>.
 /// </summary>
+{{CodeGen}}
 [global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-[global::System.Diagnostics.Conditional("PURVIEW_EVENTSOURCING_ATTRIBUTES")]
 sealed class GenerateAggregateAttribute : global::System.Attribute
 {
 }

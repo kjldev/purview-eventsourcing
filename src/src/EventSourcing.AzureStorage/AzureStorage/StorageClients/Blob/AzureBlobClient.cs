@@ -50,7 +50,7 @@ sealed class AzureBlobClient : IAsyncDisposable
 		using (StreamReader streamReader = new(responseStream))
 			content = await streamReader.ReadToEndAsync(cancellationToken);
 
-		return JsonHelpers.Deserialize<T>(content);
+		return EventStoreSerializationHelpers.Deserialize<T>(content);
 	}
 
 	public async Task<Stream?> GetStreamAsync(string blobName, CancellationToken cancellationToken = default)

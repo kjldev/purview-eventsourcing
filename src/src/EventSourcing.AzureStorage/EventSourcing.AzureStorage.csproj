@@ -11,16 +11,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>EventSourcing.IntegrationTests</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>SharedTestingFramework</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\EventSourcing.Shared\EventSourcing.Shared.csproj" />
+		<ProjectReference Include="..\EventSourcing\EventSourcing.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

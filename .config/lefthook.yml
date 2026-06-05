@@ -1,9 +1,0 @@
-pre-commit:
-  jobs:
-    - name: check formatting
-      run: just check
-
-commit-msg:
-  jobs:
-    - name: conventional commits
-      run: bunx --bun commitlint --edit {1}

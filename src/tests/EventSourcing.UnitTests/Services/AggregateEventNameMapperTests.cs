@@ -34,7 +34,10 @@ namespace Purview.EventSourcing
 	}
 }
 
-namespace Purview.EventSourcing.Services
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+// This is for a specific set of tests
+namespace Purview.Services.UserProfile.Aggregates.UserProfile.Events
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
 	public sealed class ClearProfileAttributesEvent : EventBase
 	{

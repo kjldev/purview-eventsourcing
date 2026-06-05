@@ -98,7 +98,7 @@ static class CosmosDbUtilities
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var memoryStream = new MemoryStream();
-			await JsonHelpers.SerializeAsync(
+			await EventStoreSerializationHelpers.SerializeAsync(
 				memoryStream,
 				documentResponse,
 				documentResponse.GetType(),

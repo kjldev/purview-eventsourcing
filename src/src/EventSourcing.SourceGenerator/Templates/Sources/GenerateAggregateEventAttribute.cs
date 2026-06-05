@@ -20,13 +20,13 @@ namespace Purview.EventSourcing.Aggregates;
 /// Increment this value whenever the event's properties change in a breaking way.
 /// The generated event class will override <c>SchemaVersion</c> to return this value.
 /// </remarks>
+{{CodeGen}}
 [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-[global::System.Diagnostics.Conditional("PURVIEW_EVENTSOURCING_ATTRIBUTES")]
 sealed class GenerateAggregateEventAttribute : global::System.Attribute
 {
 	/// <summary>
 	/// The schema version of the generated event class. Defaults to 1.
-	/// Increment when the event's properties change in a breaking way.
+	/// Increment when the event's properties change in a <b>breaking</b> way.
 	/// </summary>
 	public int Version { get; set; } = 1;
 }

@@ -1,13 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<ExcludePurviewTelemetry>true</ExcludePurviewTelemetry>
-		<NoWarn>$(NoWarn);CA1515;CA1062;</NoWarn>
-	</PropertyGroup>
-	<ItemGroup>
-		<ProjectReference Include="..\..\samples\EventSourcing.Samples\EventSourcing.Samples.csproj" />
-	</ItemGroup>
-	<!-- Remove auto-added SharedTestingFramework since this project tests the samples -->
-	<ItemGroup>
-		<ProjectReference Remove="../SharedTestingFramework/SharedTestingFramework.csproj" />
-	</ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Remove auto-added SharedTestingFramework since this project tests the samples -->
+  <!--<ItemGroup>
+    <ProjectReference Remove="../SharedTestingFramework/SharedTestingFramework.csproj" />
+  </ItemGroup>-->
 </Project>

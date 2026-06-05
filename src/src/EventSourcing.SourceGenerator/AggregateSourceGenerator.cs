@@ -15,6 +15,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
 	const int HintNameHashHexLength = 16;
 	const string GeneratedSourceFileSuffix = ".g.cs";
+
 	static readonly int HintNameSeparatorAndSuffixLength = 1 + HintNameHashHexLength + GeneratedSourceFileSuffix.Length;
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -23,44 +24,75 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		// available to consuming projects without needing a reference to the core library.
 		context.RegisterPostInitializationOutput(ctx =>
 		{
-			var resources = EmbeddedResources.Instance;
-			ctx.AddSource("GenerateAggregateAttribute.g.cs", resources.LoadTemplate("GenerateAggregateAttribute"));
+			ctx.AddSource("EmbeddedAttribute.g.cs", EmbeddedResources.LoadTemplate("EmbeddedAttribute"));
+			ctx.AddSource(
+				"GenerateAggregateAttribute.g.cs",
+				EmbeddedResources.LoadTemplate("GenerateAggregateAttribute")
+			);
 			ctx.AddSource(
 				"GenerateAggregateEventAttribute.g.cs",
-				resources.LoadTemplate("GenerateAggregateEventAttribute")
+				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);
 		});
 
-		// Find all class declarations decorated with [GenerateAggregate]
-		var aggregateClasses = context.SyntaxProvider.ForAttributeWithMetadataName(
-			GenerateAggregateAttributeName,
-			predicate: static (node, _) => node is ClassDeclarationSyntax,
-			transform: static (ctx, ct) => GetAggregateGenerationResult(ctx, ct)
+		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
+		var isDisabled = context.AnalyzerConfigOptionsProvider.Select(
+			static (opts, _) =>
+			{
+				opts.GlobalOptions.TryGetValue("build_property.DisableEventSourcingSourceGenerator", out var val);
+				return string.Equals(val, "true", StringComparison.OrdinalIgnoreCase);
+			}
 		);
 
-		var standaloneEventMethods = context.SyntaxProvider.ForAttributeWithMetadataName(
-			GenerateAggregateEventAttributeName,
-			predicate: static (node, _) => node is MethodDeclarationSyntax,
-			transform: static (ctx, _) => GetStandaloneEventMethodValidationResult(ctx)
-		);
+		// Find all class declarations decorated with [GenerateAggregate]
+		var aggregateClasses = context
+			.SyntaxProvider.ForAttributeWithMetadataName(
+				GenerateAggregateAttributeName,
+				predicate: static (node, _) => node is ClassDeclarationSyntax,
+				transform: static (ctx, ct) => GetAggregateGenerationResult(ctx, ct)
+			)
+			.Collect();
+
+		var standaloneEventMethods = context
+			.SyntaxProvider.ForAttributeWithMetadataName(
+				GenerateAggregateEventAttributeName,
+				predicate: static (node, _) => node is MethodDeclarationSyntax,
+				transform: static (ctx, _) => GetStandaloneEventMethodValidationResult(ctx)
+			)
+			.Collect();
 
 		context.RegisterSourceOutput(
-			aggregateClasses,
-			static (spc, result) =>
+			isDisabled.Combine(aggregateClasses),
+			static (spc, data) =>
 			{
-				ReportDiagnostics(spc, result.Diagnostics);
-
-				if (result.Info is null)
+				var (isDisabled, aggregateResults) = data;
+				if (isDisabled)
 					return;
 
-				var source = EmitHelper.GenerateAggregateSource(result.Info);
-				spc.AddSource(result.Info.HintName, source);
+				foreach (var result in aggregateResults)
+				{
+					ReportDiagnostics(spc, result.Diagnostics);
+
+					if (result.Info is null)
+						return;
+
+					var source = EmitHelper.GenerateAggregateSource(result.Info);
+					spc.AddSource(result.Info.HintName, source);
+				}
 			}
 		);
 
 		context.RegisterSourceOutput(
-			standaloneEventMethods,
-			static (spc, result) => ReportDiagnostics(spc, result.Diagnostics)
+			isDisabled.Combine(standaloneEventMethods),
+			static (spc, result) =>
+			{
+				var (isDisabled, validationResults) = result;
+				if (isDisabled)
+					return;
+
+				foreach (var validationResult in validationResults)
+					ReportDiagnostics(spc, validationResult.Diagnostics);
+			}
 		);
 	}
 

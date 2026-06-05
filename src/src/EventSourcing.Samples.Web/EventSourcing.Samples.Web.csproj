@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+	<ItemGroup>
+		<PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+		<PackageReference Include="Azure.Storage.Blobs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+		<ProjectReference Include="..\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Snapshot\EventSourcing.SqlServer.Snapshot.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
+	</ItemGroup>
+</Project>

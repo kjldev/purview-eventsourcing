@@ -212,16 +212,24 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 	static string CreateIdempotencyCheckRowKey(string idempotencyId) =>
 		$"{TableEventStoreConstants.IdempotencyCheckRowKeyPrefix}{idempotencyId}";
 
+#pragma warning disable CA1308 // Normalize strings to uppercase
 	string GenerateEventBlobName(string aggregateId, string eventId) =>
-		$"{_aggregateTypeShortName}/{aggregateId}/{eventId}.json".ToLowerSafe();
+		$"{_aggregateTypeShortName}/{aggregateId}/{eventId}.json".ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
+#pragma warning disable CA1308 // Normalize strings to uppercase
 	public string GenerateSnapshotBlobName(string aggregateId) =>
-		$"{GenerateSnapshotBlobPath(aggregateId)}/{TableEventStoreConstants.SnapshotFilename}".ToLowerSafe();
+		$"{GenerateSnapshotBlobPath(aggregateId)}/{TableEventStoreConstants.SnapshotFilename}".ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
+#pragma warning disable CA1308 // Normalize strings to uppercase
 	public string GenerateSnapshotBlobPath(string aggregateId) =>
-		$"{_aggregateTypeShortName}/{aggregateId}".ToLowerSafe();
+		$"{_aggregateTypeShortName}/{aggregateId}".ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
-	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+#pragma warning disable CA1308 // Normalize strings to uppercase
+	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
 	public async ValueTask DisposeAsync()
 	{

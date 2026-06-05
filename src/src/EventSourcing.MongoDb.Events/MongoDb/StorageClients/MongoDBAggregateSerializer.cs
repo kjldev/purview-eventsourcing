@@ -18,12 +18,12 @@ sealed class MongoDBAggregateSerializer<TAggregate> : SerializerBase<TAggregate>
 		var bsonDocument = document.ToBsonDocument();
 		var result = bsonDocument.ToJson();
 
-		return JsonHelpers.Deserialize<TAggregate>(result)!;
+		return EventStoreSerializationHelpers.Deserialize<TAggregate>(result)!;
 	}
 
 	public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TAggregate value)
 	{
-		var jsonDocument = JsonHelpers.Serialize(value, value.GetType());
+		var jsonDocument = EventStoreSerializationHelpers.Serialize(value, value.GetType());
 		var bsonDocument = BsonSerializer.Deserialize<BsonDocument>(jsonDocument);
 		bsonDocument.Add(BsonDocuemntIdPropertyName, value.Details.Id);
 

@@ -14,7 +14,6 @@ All notable changes to this project will be documented in this file. See [commit
 
 ## [0.0.1](https://github.com/kjldev/purview-eventsourcing/compare/v0.0.1-prerelease.0...v0.0.1) (2026-04-16)
 
-
 ### Bug Fixes
 
 * publish draft release after asset upload in CD workflow ([422c3d5](https://github.com/kjldev/purview-eventsourcing/commit/422c3d520fa9257bcfcaedc3df5b73ba8a53a8ca))

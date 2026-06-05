@@ -226,7 +226,9 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 	string CreateIdempotencyCheckId(string aggregateId, string idempotencyId) =>
 		$"i_{_aggregateTypeShortName}_{aggregateId}_{idempotencyId}";
 
-	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerSafe();
+#pragma warning disable CA1308 // Normalize strings to uppercase
+	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerInvariant();
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
 	public void Dispose()
 	{

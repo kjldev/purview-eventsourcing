@@ -5,11 +5,13 @@ namespace Purview.EventSourcing.MongoDB;
 partial class MongoDBEventStore<T>
 {
 	static IEvent? DeserializeEvent(string eventContent, Type eventType) =>
-		JsonHelpers.Deserialize(eventContent, eventType) as IEvent;
+		EventStoreSerializationHelpers.Deserialize(eventContent, eventType) as IEvent;
 
-	static string SerializeSnapshot(T aggregate) => JsonHelpers.Serialize(aggregate, aggregate.GetType());
+	static string SerializeSnapshot(T aggregate) =>
+		EventStoreSerializationHelpers.Serialize(aggregate, aggregate.GetType());
 
-	static string SerializeEvent(IEvent @event) => JsonHelpers.Serialize(@event, @event.GetType());
+	static string SerializeEvent(IEvent @event) => EventStoreSerializationHelpers.Serialize(@event, @event.GetType());
 
-	static T DeserializeSnapshot(string aggregateContent) => JsonHelpers.Deserialize<T>(aggregateContent)!;
+	static T DeserializeSnapshot(string aggregateContent) =>
+		EventStoreSerializationHelpers.Deserialize<T>(aggregateContent)!;
 }
