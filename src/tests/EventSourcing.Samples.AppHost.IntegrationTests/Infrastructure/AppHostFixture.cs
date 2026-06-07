@@ -7,18 +7,13 @@ namespace Purview.EventSourcing.Samples.AppHost.Infrastructure;
 
 public sealed class AppHostFixture : AspireFixture<Program>
 {
-    readonly string _databaseName;
+    readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
     string? _databaseConnectionString;
 
     IServiceProvider? _serviceProvider;
     readonly ServiceCollection _services = [];
 
-    public AppHostFixture()
-    {
-        _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..12];
-    }
-
-    protected override string[] Args => [$"DatabaseName={_databaseName}"];
+    protected override string[] Args => [$"--DatabaseName={_databaseName}", "--IsTestRun"];
 
     public IServiceProvider ServiceProvider
     {
@@ -28,6 +23,46 @@ public sealed class AppHostFixture : AspireFixture<Program>
                 throw new InvalidOperationException("The fixture has not been initialised yet.");
 
             return _serviceProvider;
+        }
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await DeleteDatabaseAsync();
+
+        await base.DisposeAsync();
+    }
+
+    async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using SqlConnection conn = new(_databaseConnectionString);
+            {
+                await conn.OpenAsync(cancellationToken);
+                // Terminate any open connections to the database before dropping it.
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText =
+                        $@"
+                        DECLARE @kill varchar(8000) = '';
+                        SELECT @kill = @kill + 'KILL ' + CONVERT(varchar(5), session_id) + ';'
+                        FROM sys.dm_exec_sessions
+                        WHERE database_id  = DB_ID('{_databaseName}')
+                        EXEC(@kill);
+                    ";
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"DROP DATABASE IF EXISTS [{_databaseName}]";
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to delete database '{_databaseName}': {ex}");
         }
     }
 
@@ -66,6 +101,8 @@ public sealed class AppHostFixture : AspireFixture<Program>
             try
             {
                 using var response = await client.GetAsync("/pingz", cancellationToken);
+                Console.WriteLine("Pingz Response: " + response.StatusCode);
+
                 if (response.IsSuccessStatusCode)
                     return;
             }
