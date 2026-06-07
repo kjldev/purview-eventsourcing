@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using Purview.EventSourcing;
+
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Cart;
 
-public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService checkoutService)
+sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService checkoutService)
 	: Microsoft.AspNetCore.Mvc.RazorPages.PageModel
 {
 	public CustomerAggregate? CurrentCustomer { get; private set; }
@@ -22,7 +22,10 @@ public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckout
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(
+			customerId,
+			HttpContext.RequestAborted
+		);
 		CartItems = HttpContext.Session.GetCart();
 		return Page();
 	}
@@ -69,7 +72,12 @@ public sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckout
 			return RedirectToPage();
 		}
 
-		var result = await checkoutService.CheckoutAsync(customerId, cart, ShippingAddress, HttpContext.RequestAborted);
+		var result = await checkoutService.CheckoutAsync(
+			customerId,
+			cart,
+			ShippingAddress,
+			HttpContext.RequestAborted
+		);
 
 		if (!result.Succeeded)
 		{

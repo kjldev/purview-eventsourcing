@@ -9,57 +9,57 @@ namespace Purview.EventSourcing.SqlServer.Snapshot;
 [Meter]
 public interface ISqlServerSnapshotEventStoreTelemetry
 {
-	// Activities (distributed tracing)
+    // Activities (distributed tracing)
 
-	[Activity]
-	Activity? SnapshotSave(string aggregateId, [Baggage] string aggregateType);
+    [Activity]
+    Activity? SnapshotSave(string aggregateId, [Baggage] string aggregateType);
 
-	[Activity]
-	Activity? SnapshotQuery([Baggage] string aggregateType);
+    [Activity]
+    Activity? SnapshotQuery([Baggage] string aggregateType);
 
-	[Activity]
-	Activity? SnapshotDelete(string aggregateId, [Baggage] string aggregateType);
+    [Activity]
+    Activity? SnapshotDelete(string aggregateId, [Baggage] string aggregateType);
 
-	[Event]
-	void QueryCompleted(Activity? activity, int resultCount);
+    [Event]
+    void QueryCompleted(Activity? activity, int resultCount);
 
-	// Metrics (counters)
+    // Metrics (counters)
 
-	[AutoCounter]
-	void SnapshotCreated(string aggregateType);
+    [AutoCounter]
+    void SnapshotCreated(string aggregateType);
 
-	[AutoCounter]
-	void SnapshotDeleted(string aggregateType);
+    [AutoCounter]
+    void SnapshotDeleted(string aggregateType);
 
-	[AutoCounter]
-	void SnapshotQueried(string aggregateType);
+    [AutoCounter]
+    void SnapshotQueried(string aggregateType);
 
-	// Logging
+    // Logging
 
-	[Log(LogLevel.Debug)]
-	void SnapshotSaveStart(string aggregateId, string aggregateType);
+    [Log(LogLevel.Debug)]
+    void SnapshotSaveStart(string aggregateId, string aggregateType);
 
-	[Log(LogLevel.Debug)]
-	void SnapshotSaveComplete(string aggregateId, string aggregateType);
+    [Log(LogLevel.Debug)]
+    void SnapshotSaveComplete(string aggregateId, string aggregateType);
 
-	[Log(LogLevel.Error)]
-	void SnapshotSaveFailed(string aggregateId, string aggregateType, Exception exception);
+    [Log(LogLevel.Error)]
+    void SnapshotSaveFailed(string aggregateId, string aggregateType, Exception exception);
 
-	[Log(LogLevel.Debug)]
-	void SnapshotDeleteStart(string aggregateId, string aggregateType);
+    [Log(LogLevel.Debug)]
+    void SnapshotDeleteStart(string aggregateId, string aggregateType);
 
-	[Log(LogLevel.Debug)]
-	void SnapshotDeleteComplete(string aggregateId, string aggregateType);
+    [Log(LogLevel.Debug)]
+    void SnapshotDeleteComplete(string aggregateId, string aggregateType);
 
-	[Log(LogLevel.Error)]
-	void SnapshotDeleteFailed(string aggregateId, string aggregateType, Exception exception);
+    [Log(LogLevel.Error)]
+    void SnapshotDeleteFailed(string aggregateId, string aggregateType, Exception exception);
 
-	[Log(LogLevel.Debug)]
-	void SnapshotQueryStart(string aggregateType, int maxRecords);
+    [Log(LogLevel.Debug)]
+    void SnapshotQueryStart(string aggregateType, int maxRecords);
 
-	[Log(LogLevel.Debug)]
-	void SnapshotQueryComplete(string aggregateType, int resultCount, long elapsedMilliseconds);
+    [Log(LogLevel.Debug)]
+    void SnapshotQueryComplete(string aggregateType, int resultCount, long elapsedMilliseconds);
 
-	[Log(LogLevel.Error)]
-	void SnapshotQueryFailed(string aggregateType, Exception exception);
+    [Log(LogLevel.Error)]
+    void SnapshotQueryFailed(string aggregateType, Exception exception);
 }

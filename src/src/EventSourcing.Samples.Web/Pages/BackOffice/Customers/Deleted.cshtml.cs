@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
-public sealed class DeletedModel(IQueryableEventStore store) : PageModel
+sealed class DeletedModel(IQueryableEventStore store) : PageModel
 {
 	public IReadOnlyList<CustomerAggregate> DeletedCustomers { get; private set; } = [];
 
@@ -12,12 +13,18 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 	{
 		var deleted = new List<CustomerAggregate>();
 		await foreach (
-			var id in store.GetAggregateIdsAsync<CustomerAggregate>(includeDeleted: true, HttpContext.RequestAborted)
+			var id in store.GetAggregateIdsAsync<CustomerAggregate>(
+				includeDeleted: true,
+				HttpContext.RequestAborted
+			)
 		)
 		{
 			if (await store.IsDeletedAsync<CustomerAggregate>(id, HttpContext.RequestAborted))
 			{
-				var aggregate = await store.GetDeletedAsync<CustomerAggregate>(id, HttpContext.RequestAborted);
+				var aggregate = await store.GetDeletedAsync<CustomerAggregate>(
+					id,
+					HttpContext.RequestAborted
+				);
 				if (aggregate != null)
 					deleted.Add(aggregate);
 			}
@@ -28,7 +35,10 @@ public sealed class DeletedModel(IQueryableEventStore store) : PageModel
 
 	public async Task<IActionResult> OnPostRestoreAsync(string id)
 	{
-		var customer = await store.GetDeletedAsync<CustomerAggregate>(id, HttpContext.RequestAborted);
+		var customer = await store.GetDeletedAsync<CustomerAggregate>(
+			id,
+			HttpContext.RequestAborted
+		);
 		if (customer == null)
 			return NotFound();
 

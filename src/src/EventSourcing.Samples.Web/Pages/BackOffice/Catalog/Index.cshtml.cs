@@ -1,13 +1,15 @@
-using System.Globalization;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
+
+using System.Globalization;
+using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class IndexModel(IQueryableEventStore store) : PageModel
+sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -43,17 +45,25 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
-			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
+			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
 		};
 
+#pragma warning disable CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
+#pragma warning disable CA1308 // Normalize strings to uppercase
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
 		var hasFilter = !string.IsNullOrEmpty(search);
 
 		Expression<Func<InventoryAggregate, bool>> where = i =>
-			i.ProductId.ToLower().Contains(search) || i.ProductName.ToLower().Contains(search);
+			i.ProductId.ToLowerInvariant().Contains(search)
+			|| i.ProductName.ToLowerInvariant().Contains(search);
+#pragma warning restore CA1308 // Normalize strings to uppercase
+#pragma warning restore CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
 
-		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (SortBy, SortDir) switch
+		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (
+			SortBy,
+			SortDir
+		) switch
 		{
 			("productid", "desc") => q => q.OrderByDescending(i => i.ProductId),
 			("productid", _) => q => q.OrderBy(i => i.ProductId),

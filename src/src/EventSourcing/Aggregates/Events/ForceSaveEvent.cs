@@ -7,6 +7,6 @@
 /// </summary>
 public sealed class ForceSaveEvent : EventBase
 {
-	///<inheritdoc />
-	protected override void BuildEventHash(ref HashCode hash) { }
+    ///<inheritdoc />
+    protected override void BuildEventHash(ref HashCode hash) { }
 }

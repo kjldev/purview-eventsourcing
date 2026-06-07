@@ -6,13 +6,13 @@ namespace Purview.EventSourcing.MongoDB.StorageClients;
 [Logger]
 public interface IMongoDBClientTelemetry
 {
-	[Log(LogLevel.Warning)]
-	void DeleteResultedInNoOp(string id);
+    [Log(LogLevel.Warning)]
+    void DeleteResultedInNoOp(string id);
 
-	[Log(LogLevel.Error)]
-	void FailedToWriteBatch(Exception exception);
+    [Log(LogLevel.Error)]
+    void FailedToWriteBatch(Exception exception);
 
-	void Initialized();
+    void Initialized();
 
-	void EventsInitialized();
+    void EventsInitialized();
 }

@@ -5,18 +5,18 @@
 /// </summary>
 public enum DeleteHandlingMode
 {
-	/// <summary>
-	/// If the aggregate is marked as deleted, returns null. This is the default.
-	/// </summary>
-	ReturnsNull = 0,
+    /// <summary>
+    /// If the aggregate is marked as deleted, returns null. This is the default.
+    /// </summary>
+    ReturnsNull = 0,
 
-	/// <summary>
-	/// Should throw an exception.
-	/// </summary>
-	ThrowsException,
+    /// <summary>
+    /// Should throw an exception.
+    /// </summary>
+    ThrowsException,
 
-	/// <summary>
-	/// Returns the aggregate in it's deleted state.
-	/// </summary>
-	ReturnsAggregate,
+    /// <summary>
+    /// Returns the aggregate in it's deleted state.
+    /// </summary>
+    ReturnsAggregate,
 }

@@ -11,38 +11,45 @@ namespace Purview.EventSourcing;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class SqlServerEventStoreIServiceCollectionExtensions
 {
-	public static IServiceCollection AddSqlServerEventStore([NotNull] this IServiceCollection services)
-	{
-		services.AddEventSourcing();
+    public static IServiceCollection AddSqlServerEventStore(
+        [NotNull] this IServiceCollection services
+    )
+    {
+        services.AddEventSourcing();
 
-		services
-			.AddTransient(typeof(IEventStoreCore<>), typeof(SqlServerEventStore<>))
-			.AddTransient(typeof(INonQueryableEventStore<>), typeof(SqlServerEventStore<>))
-			.AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
-			.AddTransient<IEventStore, EventStoreFacade>()
-			.TryAddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>();
-		services.AddSqlServerEventStoreTelemetry();
+        services
+            .AddTransient(typeof(IEventStoreCore<>), typeof(SqlServerEventStore<>))
+            .AddTransient(typeof(INonQueryableEventStore<>), typeof(SqlServerEventStore<>))
+            .AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
+            .AddTransient<IEventStore, EventStoreFacade>()
+            .TryAddSingleton<
+                IEventStoreTransactionFactory,
+                SqlServerEventStoreTransactionFactory
+            >();
+        services.AddSqlServerEventStoreTelemetry();
 
-		services
-			.AddOptions<SqlServerEventStoreOptions>()
-			.Configure<IConfiguration>(
-				(options, configuration) =>
-				{
-					configuration.GetSection(SqlServerEventStoreOptions.SqlServerEventStore).Bind(options);
+        services
+            .AddOptions<SqlServerEventStoreOptions>()
+            .Configure<IConfiguration>(
+                (options, configuration) =>
+                {
+                    configuration
+                        .GetSection(SqlServerEventStoreOptions.SqlServerEventStore)
+                        .Bind(options);
 
-					if (string.IsNullOrWhiteSpace(options.ConnectionString))
-					{
-						options.ConnectionString =
-							configuration.GetConnectionString("eventstore-sqlserver")
-							?? configuration.GetConnectionString("EventStore_SqlServer")
-							?? configuration.GetConnectionString("SqlServer")
-							// This will get picked up by the validation.
-							?? default!;
-					}
-				}
-			)
-			.ValidateOnStart();
+                    if (string.IsNullOrWhiteSpace(options.ConnectionString))
+                    {
+                        options.ConnectionString =
+                            configuration.GetConnectionString("eventstore-sqlserver")
+                            ?? configuration.GetConnectionString("EventStore_SqlServer")
+                            ?? configuration.GetConnectionString("SqlServer")
+                            // This will get picked up by the validation.
+                            ?? default!;
+                    }
+                }
+            )
+            .ValidateOnStart();
 
-		return services;
-	}
+        return services;
+    }
 }

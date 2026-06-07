@@ -6,18 +6,18 @@
 /// </summary>
 public sealed class SnapshotStoreEntity
 {
-	/// <summary>
-	/// The aggregate identifier (primary key).
-	/// </summary>
-	public string Id { get; set; } = default!;
+    /// <summary>
+    /// The aggregate identifier (primary key).
+    /// </summary>
+    public string Id { get; set; } = default!;
 
-	/// <summary>
-	/// Short name of the aggregate type (e.g. "Order").
-	/// </summary>
-	public string AggregateType { get; set; } = default!;
+    /// <summary>
+    /// Short name of the aggregate type (e.g. "Order").
+    /// </summary>
+    public string AggregateType { get; set; } = default!;
 
-	/// <summary>
-	/// JSON-serialized aggregate snapshot.
-	/// </summary>
-	public string Payload { get; set; } = default!;
+    /// <summary>
+    /// JSON-serialized aggregate snapshot.
+    /// </summary>
+    public string Payload { get; set; } = default!;
 }

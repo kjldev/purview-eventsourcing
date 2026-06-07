@@ -1,21 +1,17 @@
 set quiet := true
-set windows-shell := ["pwsh", "-NoProfile", "-Command"]
 
 # Variables
-
 root_folder := "src"
 solution_file := root_folder + "/Purview.EventSourcing.slnx"
 test_root := root_folder + "/tests"
 package_manifest := "package.json"
 configuration := "Release"
-artifact_folder := "artifacts/packages"
+artifact_folder := "artifacts/"
 event_sourcing_package_project := root_folder + "/src/EventSourcing/EventSourcing.csproj"
-event_sourcing_shared_package_project := root_folder + "/src/EventSourcing.Shared/EventSourcing.Shared.csproj"
 event_sourcing_azure_storage_package_project := root_folder + "/src/EventSourcing.AzureStorage/EventSourcing.AzureStorage.csproj"
 event_sourcing_cosmos_db_snapshot_package_project := root_folder + "/src/EventSourcing.CosmosDb.Snapshot/EventSourcing.CosmosDb.Snapshot.csproj"
 event_sourcing_mongo_db_events_package_project := root_folder + "/src/EventSourcing.MongoDb.Events/EventSourcing.MongoDB.Events.csproj"
 event_sourcing_mongo_db_snapshot_package_project := root_folder + "/src/EventSourcing.MongoDb.Snapshot/EventSourcing.MongoDB.Snapshot.csproj"
-event_sourcing_source_generator_package_project := root_folder + "/src/EventSourcing.SourceGenerator/EventSourcing.SourceGenerator.csproj"
 event_sourcing_sql_server_events_package_project := root_folder + "/src/EventSourcing.SqlServer.Events/EventSourcing.SqlServer.Events.csproj"
 event_sourcing_sql_server_snapshot_package_project := root_folder + "/src/EventSourcing.SqlServer.Snapshot/EventSourcing.SqlServer.Snapshot.csproj"
 event_sourcing_integration_tests_project := test_root + "/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj"
@@ -32,7 +28,7 @@ default:
 
 # Open the solution in Visual Studio
 vs:
-    start "{{ solution_file }}"
+    open "{{ solution_file }}"
 
 # Build the solution
 build:
@@ -46,17 +42,9 @@ tools:
 restore:
     dotnet restore {{ solution_file }}
 
-# Print the current package version from package.json
-version:
+# Displays the current package version from package.json
+current_version:
     node -p "require('./{{ package_manifest }}').version"
-
-# Preview the next semantic version using commit-and-tag-version
-version-next:
-    npx commit-and-tag-version --dry-run
-
-# Create the local release commit and changelog update without creating a tag
-version-bump:
-    npm run release
 
 # Run all executable test projects under src/tests, excluding SharedTestingFramework
 test:
@@ -108,8 +96,6 @@ pack:
     @just pack-project {{ event_sourcing_mongo_db_events_package_project }}
     @just pack-project {{ event_sourcing_mongo_db_snapshot_package_project }}
     @just pack-project {{ event_sourcing_package_project }}
-    @just pack-project {{ event_sourcing_shared_package_project }}
-    @just pack-project {{ event_sourcing_source_generator_package_project }}
     @just pack-project {{ event_sourcing_sql_server_events_package_project }}
     @just pack-project {{ event_sourcing_sql_server_snapshot_package_project }}
 
@@ -118,19 +104,10 @@ pack-project project:
     @echo "==> Packing {{ project }} to {{ artifact_folder }}"
     dotnet pack "{{ project }}" --configuration "{{ configuration }}" --output "{{ artifact_folder }}"
 
-# Publish packed NuGet packages to the specified source
-# Optional environment variables:
-# - NUGET_API_KEY: API key to pass to `dotnet nuget push`
-# - NUGET_CONFIG_FILE: NuGet config file containing source credentials
-publish nuget_source:
-    node scripts/publish-packages.mjs "{{ artifact_folder }}" "{{ nuget_source }}"
-
 # Format the code
-format:
-    dotnet tool restore
+lint-fix:
     dotnet csharpier format {{ root_folder }}
 
 # Check formatting
-check:
-    dotnet tool restore
+lint-check:
     dotnet csharpier check {{ root_folder }}

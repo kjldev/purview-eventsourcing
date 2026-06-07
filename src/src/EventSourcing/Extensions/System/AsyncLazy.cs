@@ -9,111 +9,117 @@ namespace System;
 [DebuggerStepThrough]
 sealed class AsyncLazy<T> : IDisposable, IAsyncDisposable
 {
-	readonly SemaphoreSlim _lock = new(1, 1);
-	readonly Func<CancellationToken, Task<T>> _factory;
+    readonly SemaphoreSlim _lock = new(1, 1);
+    readonly Func<CancellationToken, Task<T>> _factory;
 
-	Task<T>? _task;
-	bool _disposedValue;
+    Task<T>? _task;
+    bool _disposedValue;
 
-	public AsyncLazy(Func<CancellationToken, Task<T>> factory)
-	{
-		ArgumentNullException.ThrowIfNull(factory);
+    public AsyncLazy(Func<CancellationToken, Task<T>> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
 
-		_factory = factory;
-	}
+        _factory = factory;
+    }
 
-	public AsyncLazy(Func<Task<T>> factory)
-		: this(_ => factory())
-	{
-		ArgumentNullException.ThrowIfNull(factory);
-	}
+    public AsyncLazy(Func<Task<T>> factory)
+        : this(_ => factory())
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+    }
 
-	[Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1508:Avoid dead conditional code")]
-	public async Task<T> GetValueAsync(CancellationToken cancellationToken = default)
-	{
-		if (_task is not null)
-			return await _task;
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        "Maintainability",
+        "CA1508:Avoid dead conditional code"
+    )]
+    public async Task<T> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (_task is not null)
+            return await _task;
 
-		await _lock.WaitAsync(cancellationToken);
-		try
-		{
-			// Double-check after acquiring the lock
-			_task ??= _factory(cancellationToken);
-			return await _task;
-		}
-		catch
-		{
-			// Don't cache failed tasks — allow retry
-			_task = null;
-			throw;
-		}
-		finally
-		{
-			_lock.Release();
-		}
-	}
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            // Double-check after acquiring the lock
+            _task ??= _factory(cancellationToken);
+            return await _task;
+        }
+        catch
+        {
+            // Don't cache failed tasks — allow retry
+            _task = null;
+            throw;
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
 
-	/// <inheritdoc/>
-	public TaskAwaiter<T> GetAwaiter() => GetValueAsync().GetAwaiter();
+    /// <inheritdoc/>
+    public TaskAwaiter<T> GetAwaiter() => GetValueAsync().GetAwaiter();
 
-	public bool IsValueCreated => _task?.IsCompletedSuccessfully ?? false;
+    public bool IsValueCreated => _task?.IsCompletedSuccessfully ?? false;
 
-	void Dispose(bool disposing)
-	{
-		if (!_disposedValue)
-		{
-			if (disposing)
-			{
-				if (_task is { IsCompletedSuccessfully: true } && _task.Result is IDisposable disposable)
-					disposable.Dispose();
+    void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                if (
+                    _task is { IsCompletedSuccessfully: true }
+                    && _task.Result is IDisposable disposable
+                )
+                    disposable.Dispose();
 
-				try
-				{
-					_lock.Release();
-				}
+                try
+                {
+                    _lock.Release();
+                }
 #pragma warning disable CA1031
-				catch { }
+                catch { }
 #pragma warning restore CA1031
 
-				_lock.Dispose();
-			}
+                _lock.Dispose();
+            }
 
-			_disposedValue = true;
-		}
-	}
+            _disposedValue = true;
+        }
+    }
 
-	public void Dispose()
-	{
-		// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-		Dispose(disposing: true);
-		GC.SuppressFinalize(this);
-	}
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 
-	public async ValueTask DisposeAsync()
-	{
-		if (!_disposedValue)
-		{
-			if (_task is { IsCompletedSuccessfully: true })
-			{
-				var result = await _task;
-				if (result is IAsyncDisposable asyncDisposable)
-					await asyncDisposable.DisposeAsync();
-				else if (result is IDisposable disposable)
-					disposable.Dispose();
-			}
+    public async ValueTask DisposeAsync()
+    {
+        if (!_disposedValue)
+        {
+            if (_task is { IsCompletedSuccessfully: true })
+            {
+                var result = await _task;
+                if (result is IAsyncDisposable asyncDisposable)
+                    await asyncDisposable.DisposeAsync();
+                else if (result is IDisposable disposable)
+                    disposable.Dispose();
+            }
 
-			try
-			{
-				_lock.Release();
-			}
+            try
+            {
+                _lock.Release();
+            }
 #pragma warning disable CA1031
-			catch { }
+            catch { }
 #pragma warning restore CA1031
 
-			_lock.Dispose();
-			_disposedValue = true;
-		}
+            _lock.Dispose();
+            _disposedValue = true;
+        }
 
-		GC.SuppressFinalize(this);
-	}
+        GC.SuppressFinalize(this);
+    }
 }

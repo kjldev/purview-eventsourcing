@@ -2,36 +2,39 @@
 
 partial class AggregateEventNameMapperTests
 {
-	[Test]
-	public async Task GetTypeName_GivenEventTypeNameIsNotInCollection_ReturnsNull()
-	{
-		// Arrange
-		var mapper = CreateMapper<CorrectlyNamedAggregate>();
-		const string missingEventTypeName = "no-event-type";
+    [Test]
+    public async Task GetTypeName_GivenEventTypeNameIsNotInCollection_ReturnsNull()
+    {
+        // Arrange
+        var mapper = CreateMapper<CorrectlyNamedAggregate>();
+        const string missingEventTypeName = "no-event-type";
 
-		// Act
-		var result = mapper.GetTypeName<CorrectlyNamedAggregate>(missingEventTypeName);
+        // Act
+        var result = mapper.GetTypeName<CorrectlyNamedAggregate>(missingEventTypeName);
 
-		// Assert
-		await Assert.That(result).IsNull();
-	}
+        // Assert
+        await Assert.That(result).IsNull();
+    }
 
-	[Test]
-	[Arguments("")]
-	[Arguments(" ")]
-	[Arguments("    ")]
-	[Arguments(null)]
-	public async Task GetTypeName_GivenEventTypeNameIsNullOrWhitespace_ThrowsArgumentNullException(
-		string? eventTypeName
-	)
-	{
-		// Arrange
-		var mapper = CreateMapper<CorrectlyNamedAggregate>();
+    [Test]
+    [Arguments("")]
+    [Arguments(" ")]
+    [Arguments("    ")]
+    [Arguments(null)]
+    public async Task GetTypeName_GivenEventTypeNameIsNullOrWhitespace_ThrowsArgumentNullException(
+        string? eventTypeName
+    )
+    {
+        // Arrange
+        var mapper = CreateMapper<CorrectlyNamedAggregate>();
 
-		// Act
-		string? Action() => mapper.GetTypeName<CorrectlyNamedAggregate>(eventTypeName!);
+        // Act
+        string? Action() => mapper.GetTypeName<CorrectlyNamedAggregate>(eventTypeName!);
 
-		// Assert
-		await Assert.That(Action).Throws<ArgumentNullException>().WithParameterName(nameof(eventTypeName));
-	}
+        // Assert
+        await Assert
+            .That(Action)
+            .Throws<ArgumentNullException>()
+            .WithParameterName(nameof(eventTypeName));
+    }
 }

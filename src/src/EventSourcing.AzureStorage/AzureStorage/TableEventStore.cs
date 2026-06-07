@@ -10,230 +10,255 @@ using Purview.EventSourcing.Services;
 namespace Purview.EventSourcing.AzureStorage;
 
 public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisposable
-	where T : class, IAggregate, new()
+    where T : class, IAggregate, new()
 {
-	const int SerializationBufferSize = 4096;
-	const int MaxEventSize = 32000;
+    const int SerializationBufferSize = 4096;
+    const int MaxEventSize = 32000;
 
-	readonly StorageClients.Table.AzureTableClient _tableClient;
-	readonly StorageClients.Blob.AzureBlobClient _blobClient;
+    readonly StorageClients.Table.AzureTableClient _tableClient;
+    readonly StorageClients.Blob.AzureBlobClient _blobClient;
 
-	readonly IAggregateEventNameMapper _eventNameMapper;
-	readonly IOptions<AzureStorageEventStoreOptions> _eventStoreOptions;
-	readonly FluentValidation.IValidator<T>? _validator;
-	readonly IAggregateIdFactory? _aggregateIdFactory;
-	readonly IDistributedCache _distributedCache;
-	readonly ITableEventStoreTelemetry _eventStoreTelemetry;
-	readonly ChangeFeed.IAggregateChangeFeedNotifier<T> _aggregateChangeNotifier;
-	readonly IAggregateRequirementsManager _aggregateRequirementsManager;
+    readonly IAggregateEventNameMapper _eventNameMapper;
+    readonly IOptions<AzureStorageEventStoreOptions> _eventStoreOptions;
+    readonly FluentValidation.IValidator<T>? _validator;
+    readonly IAggregateIdFactory? _aggregateIdFactory;
+    readonly IDistributedCache _distributedCache;
+    readonly ITableEventStoreTelemetry _eventStoreTelemetry;
+    readonly ChangeFeed.IAggregateChangeFeedNotifier<T> _aggregateChangeNotifier;
+    readonly IAggregateRequirementsManager _aggregateRequirementsManager;
 
-	readonly string _aggregateTypeFullName;
-	readonly string _aggregateTypeShortName;
+    readonly string _aggregateTypeFullName;
+    readonly string _aggregateTypeShortName;
 
-	public TableEventStore(
-		IAggregateEventNameMapper eventNameMapper,
-		[NotNull] IOptions<AzureStorageEventStoreOptions> azureStorageOptions,
-		IDistributedCache distributedCache,
-		ITableEventStoreTelemetry eventStoreTelemetry,
-		ChangeFeed.IAggregateChangeFeedNotifier<T> aggregateChangeNotifier,
-		IAggregateRequirementsManager aggregateRequirementsManager,
-		FluentValidation.IValidator<T>? validator = null,
-		ITableEventStoreStorageNameBuilder? nameBuilder = null,
-		IAggregateIdFactory? aggregateIdFactory = null
-	)
-	{
-		_eventNameMapper = eventNameMapper;
-		_eventStoreOptions = azureStorageOptions;
-		_validator = validator;
-		_aggregateIdFactory = aggregateIdFactory;
-		_distributedCache = distributedCache;
-		_eventStoreTelemetry = eventStoreTelemetry;
-		_aggregateChangeNotifier = aggregateChangeNotifier;
-		_aggregateRequirementsManager = aggregateRequirementsManager;
+    public TableEventStore(
+        IAggregateEventNameMapper eventNameMapper,
+        [NotNull] IOptions<AzureStorageEventStoreOptions> azureStorageOptions,
+        IDistributedCache distributedCache,
+        ITableEventStoreTelemetry eventStoreTelemetry,
+        ChangeFeed.IAggregateChangeFeedNotifier<T> aggregateChangeNotifier,
+        IAggregateRequirementsManager aggregateRequirementsManager,
+        FluentValidation.IValidator<T>? validator = null,
+        ITableEventStoreStorageNameBuilder? nameBuilder = null,
+        IAggregateIdFactory? aggregateIdFactory = null
+    )
+    {
+        _eventNameMapper = eventNameMapper;
+        _eventStoreOptions = azureStorageOptions;
+        _validator = validator;
+        _aggregateIdFactory = aggregateIdFactory;
+        _distributedCache = distributedCache;
+        _eventStoreTelemetry = eventStoreTelemetry;
+        _aggregateChangeNotifier = aggregateChangeNotifier;
+        _aggregateRequirementsManager = aggregateRequirementsManager;
 
-		var name = typeof(T).Name;
+        var name = typeof(T).Name;
 
-		TableName = nameBuilder?.GetTableName<T>() ?? $"{azureStorageOptions.Value.Table}{name}";
-		ContainerName = nameBuilder?.GetBlobContainerName<T>() ?? azureStorageOptions.Value.Container;
+        TableName = nameBuilder?.GetTableName<T>() ?? $"{azureStorageOptions.Value.Table}{name}";
+        ContainerName =
+            nameBuilder?.GetBlobContainerName<T>() ?? azureStorageOptions.Value.Container;
 
-		_tableClient = new(azureStorageOptions.Value, TableName);
-		_blobClient = new(azureStorageOptions.Value, ContainerName);
+        _tableClient = new(azureStorageOptions.Value, TableName);
+        _blobClient = new(azureStorageOptions.Value, ContainerName);
 
-		_aggregateTypeShortName = typeof(T).Name;
-		_aggregateTypeFullName = typeof(T).FullName ?? _aggregateTypeShortName;
+        _aggregateTypeShortName = typeof(T).Name;
+        _aggregateTypeFullName = typeof(T).FullName ?? _aggregateTypeShortName;
 
-		var aggregateName = _eventNameMapper.InitializeAggregate<T>();
-		if (!aggregateName.Contains('.', StringComparison.InvariantCulture))
-			// Could do with validating that this is a valid blob container name.
-			_aggregateTypeShortName = aggregateName;
-	}
+        var aggregateName = _eventNameMapper.InitializeAggregate<T>();
+        if (!aggregateName.Contains('.', StringComparison.InvariantCulture))
+            // Could do with validating that this is a valid blob container name.
+            _aggregateTypeShortName = aggregateName;
+    }
 
-	internal string TableName { get; }
+    internal string TableName { get; }
 
-	internal string ContainerName { get; }
+    internal string ContainerName { get; }
 
-	public T FulfilRequirements(T aggregate)
-	{
-		_aggregateRequirementsManager.Fulfil(aggregate);
+    public T FulfilRequirements(T aggregate)
+    {
+        _aggregateRequirementsManager.Fulfil(aggregate);
 
-		return aggregate;
-	}
+        return aggregate;
+    }
 
-	async Task UpdateCacheAsync(
-		T aggregate,
-		DistributedCacheEntryOptions? cacheEntryOptions,
-		CancellationToken cancellationToken = default
-	)
-	{
-		cacheEntryOptions = GetCacheEntryOptions(cacheEntryOptions);
+    async Task UpdateCacheAsync(
+        T aggregate,
+        DistributedCacheEntryOptions? cacheEntryOptions,
+        CancellationToken cancellationToken = default
+    )
+    {
+        cacheEntryOptions = GetCacheEntryOptions(cacheEntryOptions);
 
-		try
-		{
-			var cacheKey = CreateCacheKey(aggregate.Id());
-			if (
-				aggregate.Details.Locked
-				|| (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache)
-			)
-				await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
-			else
-			{
-				if (!_eventStoreOptions.Value.CacheMode.HasFlag(EventStoreCachingOptions.StoreInCache))
-					return;
+        try
+        {
+            var cacheKey = CreateCacheKey(aggregate.Id());
+            if (
+                aggregate.Details.Locked
+                || (aggregate.Details.IsDeleted && _eventStoreOptions.Value.RemoveDeletedFromCache)
+            )
+                await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
+            else
+            {
+                if (
+                    !_eventStoreOptions.Value.CacheMode.HasFlag(
+                        EventStoreCachingOptions.StoreInCache
+                    )
+                )
+                    return;
 
-				var data = SerializeSnapshot(aggregate);
-				await _distributedCache.SetStringAsync(cacheKey, data, cacheEntryOptions, cancellationToken);
-			}
-		}
+                var data = SerializeSnapshot(aggregate);
+                await _distributedCache.SetStringAsync(
+                    cacheKey,
+                    data,
+                    cacheEntryOptions,
+                    cancellationToken
+                );
+            }
+        }
 #pragma warning disable CA1031
-		catch (Exception ex)
+        catch (Exception ex)
 #pragma warning restore CA1031
-		{
-			_eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
-		}
-	}
+        {
+            _eventStoreTelemetry.CacheUpdateFailure(aggregate.Id(), _aggregateTypeFullName, ex);
+        }
+    }
 
-	DistributedCacheEntryOptions GetCacheEntryOptions(DistributedCacheEntryOptions? cacheEntryOptions) =>
-		cacheEntryOptions ?? new() { SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration };
+    DistributedCacheEntryOptions GetCacheEntryOptions(
+        DistributedCacheEntryOptions? cacheEntryOptions
+    ) =>
+        cacheEntryOptions
+        ?? new() { SlidingExpiration = _eventStoreOptions.Value.DefaultCacheSlidingDuration };
 
-	public async IAsyncEnumerable<string> GetAggregateIdsAsync(
-		bool includeDeleted,
-		[EnumeratorCancellation] CancellationToken cancellationToken = default
-	)
-	{
-		List<string> tableColumns = [nameof(ITableEntity.PartitionKey)];
-		if (!includeDeleted)
-			tableColumns.Add(nameof(StreamVersionEntity.IsDeleted));
+    public async IAsyncEnumerable<string> GetAggregateIdsAsync(
+        bool includeDeleted,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        List<string> tableColumns = [nameof(ITableEntity.PartitionKey)];
+        if (!includeDeleted)
+            tableColumns.Add(nameof(StreamVersionEntity.IsDeleted));
 
-		var query = _tableClient.QueryEnumerableAsync<StreamVersionEntity>(
-			m => m.RowKey == TableEventStoreConstants.StreamVersionRowKey,
-			fields: tableColumns,
-			cancellationToken: cancellationToken
-		);
-		await foreach (var entity in query)
-		{
-			if (includeDeleted || !entity.IsDeleted)
-				yield return entity.PartitionKey;
-		}
-	}
+        var query = _tableClient.QueryEnumerableAsync<StreamVersionEntity>(
+            m => m.RowKey == TableEventStoreConstants.StreamVersionRowKey,
+            fields: tableColumns,
+            cancellationToken: cancellationToken
+        );
+        await foreach (var entity in query)
+        {
+            if (includeDeleted || !entity.IsDeleted)
+                yield return entity.PartitionKey;
+        }
+    }
 
-	async Task<StreamVersionEntity?> GetStreamVersionAsync(
-		string aggregateId,
-		bool expectedToExist,
-		CancellationToken cancellationToken
-	)
-	{
-		_eventStoreTelemetry.GetStreamVersionStart(aggregateId, TableEventStoreConstants.StreamVersionRowKey);
+    async Task<StreamVersionEntity?> GetStreamVersionAsync(
+        string aggregateId,
+        bool expectedToExist,
+        CancellationToken cancellationToken
+    )
+    {
+        _eventStoreTelemetry.GetStreamVersionStart(
+            aggregateId,
+            TableEventStoreConstants.StreamVersionRowKey
+        );
 
-		var elapsedMilliseconds = 0L;
-		StreamVersionEntity? result = null;
-		try
-		{
-			var sw = System.Diagnostics.Stopwatch.StartNew();
+        var elapsedMilliseconds = 0L;
+        StreamVersionEntity? result = null;
+        try
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
-			result = await _tableClient.GetAsync<StreamVersionEntity>(
-				aggregateId,
-				TableEventStoreConstants.StreamVersionRowKey,
-				cancellationToken
-			);
-			sw.Stop();
+            result = await _tableClient.GetAsync<StreamVersionEntity>(
+                aggregateId,
+                TableEventStoreConstants.StreamVersionRowKey,
+                cancellationToken
+            );
+            sw.Stop();
 
-			elapsedMilliseconds = sw.ElapsedMilliseconds;
+            elapsedMilliseconds = sw.ElapsedMilliseconds;
 
-			if (result == null)
-			{
-				if (expectedToExist)
-					_eventStoreTelemetry.StreamVersionExpectedToExistButNotFound(aggregateId);
-				else
-					_eventStoreTelemetry.StreamVersionNotFound(aggregateId);
-			}
-			else
-				_eventStoreTelemetry.StreamVersionFound(
-					aggregateId,
-					result.Version,
-					result.AggregateType,
-					result.IsDeleted
-				);
-		}
+            if (result == null)
+            {
+                if (expectedToExist)
+                    _eventStoreTelemetry.StreamVersionExpectedToExistButNotFound(aggregateId);
+                else
+                    _eventStoreTelemetry.StreamVersionNotFound(aggregateId);
+            }
+            else
+                _eventStoreTelemetry.StreamVersionFound(
+                    aggregateId,
+                    result.Version,
+                    result.AggregateType,
+                    result.IsDeleted
+                );
+        }
 #pragma warning disable CA1031
-		catch (Exception ex)
+        catch (Exception ex)
 #pragma warning restore CA1031
-		{
-			_eventStoreTelemetry.GetStreamVersionFailed(aggregateId, TableEventStoreConstants.StreamVersionRowKey, ex);
-		}
+        {
+            _eventStoreTelemetry.GetStreamVersionFailed(
+                aggregateId,
+                TableEventStoreConstants.StreamVersionRowKey,
+                ex
+            );
+        }
 
-		_eventStoreTelemetry.GetStreamVersionComplete(
-			aggregateId,
-			TableEventStoreConstants.StreamVersionRowKey,
-			elapsedMilliseconds
-		);
+        _eventStoreTelemetry.GetStreamVersionComplete(
+            aggregateId,
+            TableEventStoreConstants.StreamVersionRowKey,
+            elapsedMilliseconds
+        );
 
-		return result;
-	}
+        return result;
+    }
 
-	static bool ReturnAggregate(bool isDeleted, string aggregateId, EventStoreOperationContext context)
-	{
-		if (isDeleted)
-		{
-			switch (context.DeleteMode)
-			{
-				case DeleteHandlingMode.ThrowsException:
-					throw AggregateIsDeletedException(aggregateId);
-				case DeleteHandlingMode.ReturnsNull:
-					return false;
-			}
-		}
+    static bool ReturnAggregate(
+        bool isDeleted,
+        string aggregateId,
+        EventStoreOperationContext context
+    )
+    {
+        if (isDeleted)
+        {
+            switch (context.DeleteMode)
+            {
+                case DeleteHandlingMode.ThrowsException:
+                    throw AggregateIsDeletedException(aggregateId);
+                case DeleteHandlingMode.ReturnsNull:
+                    return false;
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	string CreateEventRowKey(int version) =>
-		$"{_eventStoreOptions.Value.EventPrefix}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
+    string CreateEventRowKey(int version) =>
+        $"{_eventStoreOptions.Value.EventPrefix}_{$"{version}".PadLeft(_eventStoreOptions.Value.EventSuffixLength, '0')}";
 
-	static string CreateIdempotencyCheckRowKey(string idempotencyId) =>
-		$"{TableEventStoreConstants.IdempotencyCheckRowKeyPrefix}{idempotencyId}";
+    static string CreateIdempotencyCheckRowKey(string idempotencyId) =>
+        $"{TableEventStoreConstants.IdempotencyCheckRowKeyPrefix}{idempotencyId}";
 
 #pragma warning disable CA1308 // Normalize strings to uppercase
-	string GenerateEventBlobName(string aggregateId, string eventId) =>
-		$"{_aggregateTypeShortName}/{aggregateId}/{eventId}.json".ToLowerInvariant();
+    string GenerateEventBlobName(string aggregateId, string eventId) =>
+        $"{_aggregateTypeShortName}/{aggregateId}/{eventId}.json".ToLowerInvariant();
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
 #pragma warning disable CA1308 // Normalize strings to uppercase
-	public string GenerateSnapshotBlobName(string aggregateId) =>
-		$"{GenerateSnapshotBlobPath(aggregateId)}/{TableEventStoreConstants.SnapshotFilename}".ToLowerInvariant();
+    public string GenerateSnapshotBlobName(string aggregateId) =>
+        $"{GenerateSnapshotBlobPath(aggregateId)}/{TableEventStoreConstants.SnapshotFilename}".ToLowerInvariant();
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
 #pragma warning disable CA1308 // Normalize strings to uppercase
-	public string GenerateSnapshotBlobPath(string aggregateId) =>
-		$"{_aggregateTypeShortName}/{aggregateId}".ToLowerInvariant();
+    public string GenerateSnapshotBlobPath(string aggregateId) =>
+        $"{_aggregateTypeShortName}/{aggregateId}".ToLowerInvariant();
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
 #pragma warning disable CA1308 // Normalize strings to uppercase
-	public string CreateCacheKey(string aggregateId) => $"{_aggregateTypeShortName}:{aggregateId}".ToLowerInvariant();
+    public string CreateCacheKey(string aggregateId) =>
+        $"{_aggregateTypeShortName}:{aggregateId}".ToLowerInvariant();
 #pragma warning restore CA1308 // Normalize strings to uppercase
 
-	public async ValueTask DisposeAsync()
-	{
-		await _tableClient.DisposeAsync();
-		await _blobClient.DisposeAsync();
-	}
+    public async ValueTask DisposeAsync()
+    {
+        await _tableClient.DisposeAsync();
+        await _blobClient.DisposeAsync();
+    }
 }

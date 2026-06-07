@@ -13,12 +13,12 @@
 /// </remarks>
 public sealed class UnknownEvent : EventBase
 {
-	/// <summary>
-	/// Represents the serialized payload that was the
-	/// <see cref="IEvent"/>.
-	/// </summary>
-	public string? Payload { get; set; }
+    /// <summary>
+    /// Represents the serialized payload that was the
+    /// <see cref="IEvent"/>.
+    /// </summary>
+    public string? Payload { get; set; }
 
-	///<inheritdoc/>
-	protected override void BuildEventHash(ref HashCode hash) => hash.Add(Payload);
+    ///<inheritdoc/>
+    protected override void BuildEventHash(ref HashCode hash) => hash.Add(Payload);
 }

@@ -10,38 +10,42 @@ namespace Purview.EventSourcing;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class MongoDBEventStoreIServiceCollectionExtensions
 {
-	public static IServiceCollection AddMongoDBEventStore([NotNull] this IServiceCollection services)
-	{
-		services.AddEventSourcing();
+    public static IServiceCollection AddMongoDBEventStore(
+        [NotNull] this IServiceCollection services
+    )
+    {
+        services.AddEventSourcing();
 
-		services
-			.AddTransient(typeof(IEventStoreCore<>), typeof(MongoDBEventStore<>))
-			.AddTransient(typeof(INonQueryableEventStore<>), typeof(MongoDBEventStore<>))
-			.AddTransient(typeof(IMongoDBEventStore<>), typeof(MongoDBEventStore<>))
-			.AddTransient<IEventStore, EventStoreFacade>()
-			.AddMongoDBEventStoreTelemetry();
+        services
+            .AddTransient(typeof(IEventStoreCore<>), typeof(MongoDBEventStore<>))
+            .AddTransient(typeof(INonQueryableEventStore<>), typeof(MongoDBEventStore<>))
+            .AddTransient(typeof(IMongoDBEventStore<>), typeof(MongoDBEventStore<>))
+            .AddTransient<IEventStore, EventStoreFacade>()
+            .AddMongoDBEventStoreTelemetry();
 
-		services.AddMongoDBClientTelemetry();
+        services.AddMongoDBClientTelemetry();
 
-		services
-			.AddOptions<MongoDBEventStoreOptions>()
-			.Configure<IConfiguration>(
-				(options, configuration) =>
-				{
-					configuration.GetSection(MongoDBEventStoreOptions.MongoDBEventStore).Bind(options);
+        services
+            .AddOptions<MongoDBEventStoreOptions>()
+            .Configure<IConfiguration>(
+                (options, configuration) =>
+                {
+                    configuration
+                        .GetSection(MongoDBEventStoreOptions.MongoDBEventStore)
+                        .Bind(options);
 
-					if (string.IsNullOrWhiteSpace(options.ConnectionString))
-					{
-						options.ConnectionString =
-							configuration.GetConnectionString("EventStore_MongoDB")
-							?? configuration.GetConnectionString("MongoDB")
-							// This will get picked up by the validation.
-							?? default!;
-					}
-				}
-			)
-			.ValidateOnStart();
+                    if (string.IsNullOrWhiteSpace(options.ConnectionString))
+                    {
+                        options.ConnectionString =
+                            configuration.GetConnectionString("EventStore_MongoDB")
+                            ?? configuration.GetConnectionString("MongoDB")
+                            // This will get picked up by the validation.
+                            ?? default!;
+                    }
+                }
+            )
+            .ValidateOnStart();
 
-		return services;
-	}
+        return services;
+    }
 }

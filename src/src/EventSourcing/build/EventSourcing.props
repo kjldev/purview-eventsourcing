@@ -1,5 +1,5 @@
 <Project>
-	<ItemGroup>
-		<CompilerVisibleProperty Include="DisableEventSourcingSourceGenerator" />
-	</ItemGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="DisableEventSourcingSourceGenerator" />
+  </ItemGroup>
 </Project>

@@ -6,6 +6,6 @@
 /// </summary>
 public sealed class DeleteEvent : EventBase
 {
-	///<inheritdoc />
-	protected override void BuildEventHash(ref HashCode hash) { }
+    ///<inheritdoc />
+    protected override void BuildEventHash(ref HashCode hash) { }
 }

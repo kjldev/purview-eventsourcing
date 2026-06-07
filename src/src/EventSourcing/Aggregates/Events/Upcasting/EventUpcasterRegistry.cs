@@ -17,49 +17,49 @@ namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 /// </remarks>
 public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 {
-	readonly Dictionary<Type, IEventUpcasterDescriptor> _upcastersBySourceType;
+    readonly Dictionary<Type, IEventUpcasterDescriptor> _upcastersBySourceType;
 
-	/// <summary>
-	/// Initialises the registry.
-	/// </summary>
-	/// <param name="descriptors">All registered upcaster descriptors.</param>
-	public EventUpcasterRegistry(IEnumerable<IEventUpcasterDescriptor> descriptors)
-	{
-		ArgumentNullException.ThrowIfNull(descriptors);
+    /// <summary>
+    /// Initialises the registry.
+    /// </summary>
+    /// <param name="descriptors">All registered upcaster descriptors.</param>
+    public EventUpcasterRegistry(IEnumerable<IEventUpcasterDescriptor> descriptors)
+    {
+        ArgumentNullException.ThrowIfNull(descriptors);
 
-		// Last-registered wins when the same source type appears more than once.
-		_upcastersBySourceType = [];
-		foreach (var descriptor in descriptors)
-			_upcastersBySourceType[descriptor.SourceType] = descriptor;
-	}
+        // Last-registered wins when the same source type appears more than once.
+        _upcastersBySourceType = [];
+        foreach (var descriptor in descriptors)
+            _upcastersBySourceType[descriptor.SourceType] = descriptor;
+    }
 
-	/// <inheritdoc/>
-	public bool CanUpcast(IEvent aggregateEvent)
-	{
-		ArgumentNullException.ThrowIfNull(aggregateEvent);
-		return _upcastersBySourceType.ContainsKey(aggregateEvent.GetType());
-	}
+    /// <inheritdoc/>
+    public bool CanUpcast(IEvent aggregateEvent)
+    {
+        ArgumentNullException.ThrowIfNull(aggregateEvent);
+        return _upcastersBySourceType.ContainsKey(aggregateEvent.GetType());
+    }
 
-	/// <inheritdoc/>
-	public IEvent Upcast(IEvent aggregateEvent)
-	{
-		ArgumentNullException.ThrowIfNull(aggregateEvent);
+    /// <inheritdoc/>
+    public IEvent Upcast(IEvent aggregateEvent)
+    {
+        ArgumentNullException.ThrowIfNull(aggregateEvent);
 
-		var current = aggregateEvent;
-		var visitedTypes = new HashSet<Type> { current.GetType() };
+        var current = aggregateEvent;
+        var visitedTypes = new HashSet<Type> { current.GetType() };
 
-		// Follow the chain: v1 → v2 → v3 …
-		while (_upcastersBySourceType.TryGetValue(current.GetType(), out var descriptor))
-		{
-			current = descriptor.Upcast(current);
+        // Follow the chain: v1 → v2 → v3 …
+        while (_upcastersBySourceType.TryGetValue(current.GetType(), out var descriptor))
+        {
+            current = descriptor.Upcast(current);
 
-			var currentType = current.GetType();
-			if (!visitedTypes.Add(currentType))
-				throw new InvalidOperationException(
-					$"Detected a cycle or degenerate upcast chain involving event type '{currentType.FullName}'."
-				);
-		}
+            var currentType = current.GetType();
+            if (!visitedTypes.Add(currentType))
+                throw new InvalidOperationException(
+                    $"Detected a cycle or degenerate upcast chain involving event type '{currentType.FullName}'."
+                );
+        }
 
-		return current;
-	}
+        return current;
+    }
 }

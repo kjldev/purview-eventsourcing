@@ -7,15 +7,16 @@ namespace Purview.EventSourcing.SqlServer.EntityFramework;
 /// Design-time factory for <see cref="SnapshotStoreDbContext"/>.
 /// Used by EF Core tools to generate migrations.
 /// </summary>
-public sealed class SnapshotStoreDbContextDesignTimeFactory : IDesignTimeDbContextFactory<SnapshotStoreDbContext>
+public sealed class SnapshotStoreDbContextDesignTimeFactory
+    : IDesignTimeDbContextFactory<SnapshotStoreDbContext>
 {
-	public SnapshotStoreDbContext CreateDbContext(string[] args)
-	{
-		var optionsBuilder = new DbContextOptionsBuilder<SnapshotStoreDbContext>();
-		optionsBuilder.UseSqlServer(
-			"Server=(localdb)\\mssqllocaldb;Database=SnapshotStore_Design;Trusted_Connection=True;"
-		);
+    public SnapshotStoreDbContext CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<SnapshotStoreDbContext>();
+        optionsBuilder.UseSqlServer(
+            "Server=(localdb)\\mssqllocaldb;Database=SnapshotStore_Design;Trusted_Connection=True;"
+        );
 
-		return new SnapshotStoreDbContext(optionsBuilder.Options);
-	}
+        return new SnapshotStoreDbContext(optionsBuilder.Options);
+    }
 }

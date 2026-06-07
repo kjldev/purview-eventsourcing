@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 using Purview.EventSourcing.Samples.Web.Services;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
-public sealed class EditModel(IQueryableEventStore store, IProductImageService imageService) : EventSourcingPageModel
+sealed class EditModel(IQueryableEventStore store, IProductImageService imageService)
+	: EventSourcingPageModel
 {
 	public InventoryAggregate? Item { get; private set; }
 	public string? CurrentImageUrl { get; private set; }
@@ -14,7 +16,10 @@ public sealed class EditModel(IQueryableEventStore store, IProductImageService i
 	{
 		Item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		if (Item != null)
-			CurrentImageUrl = await imageService.GetImageUrlAsync(Item.ProductId, HttpContext.RequestAborted);
+			CurrentImageUrl = await imageService.GetImageUrlAsync(
+				Item.ProductId,
+				HttpContext.RequestAborted
+			);
 	}
 
 	public async Task<IActionResult> OnPostUpdateProductNameAsync(string id, string productName)
@@ -53,7 +58,12 @@ public sealed class EditModel(IQueryableEventStore store, IProductImageService i
 		}
 
 		await using var stream = imageFile.OpenReadStream();
-		await imageService.UploadImageAsync(item.ProductId, stream, imageFile.ContentType, HttpContext.RequestAborted);
+		await imageService.UploadImageAsync(
+			item.ProductId,
+			stream,
+			imageFile.ContentType,
+			HttpContext.RequestAborted
+		);
 
 		TempData["Success"] = "Image uploaded.";
 		return RedirectToPage(new { id });

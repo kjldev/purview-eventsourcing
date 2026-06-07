@@ -1,6 +1,6 @@
 namespace Purview.EventSourcing.Samples.Web.Services;
 
-public interface IProductImageService
+interface IProductImageService
 {
 	Task<string?> GetImageUrlAsync(string productId, CancellationToken cancellationToken = default);
 	Task UploadImageAsync(

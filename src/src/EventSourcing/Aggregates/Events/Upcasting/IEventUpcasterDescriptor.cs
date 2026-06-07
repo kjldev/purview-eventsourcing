@@ -11,9 +11,9 @@ namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 /// </remarks>
 public interface IEventUpcasterDescriptor
 {
-	/// <summary>The source (legacy) event type that this upcaster handles.</summary>
-	Type SourceType { get; }
+    /// <summary>The source (legacy) event type that this upcaster handles.</summary>
+    Type SourceType { get; }
 
-	/// <summary>Executes the upcaster and returns the up-cast event.</summary>
-	IEvent Upcast(IEvent source);
+    /// <summary>Executes the upcaster and returns the up-cast event.</summary>
+    IEvent Upcast(IEvent source);
 }

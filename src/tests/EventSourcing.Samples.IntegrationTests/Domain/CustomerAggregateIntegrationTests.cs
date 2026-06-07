@@ -5,226 +5,240 @@ namespace Purview.EventSourcing.Samples.Domain;
 [ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
 public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture fixture)
 {
-	#region Round-Trip Persistence
+    #region Round-Trip Persistence
 
-	[Test]
-	public async Task SaveAsync_GivenRegisteredCustomer_LoadedStateMatchesOriginal(CancellationToken cancellationToken)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Jane Smith", "jane@test.com");
+    [Test]
+    public async Task SaveAsync_GivenRegisteredCustomer_LoadedStateMatchesOriginal(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Jane Smith", "jane@test.com");
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.Name).IsEqualTo("Jane Smith");
-		await Assert.That(loaded.Email).IsEqualTo("jane@test.com");
-		await Assert.That(loaded.IsActive).IsTrue();
-		await Assert.That(loaded.PhoneNumber).IsNull();
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.Name).IsEqualTo("Jane Smith");
+        await Assert.That(loaded.Email).IsEqualTo("jane@test.com");
+        await Assert.That(loaded.IsActive).IsTrue();
+        await Assert.That(loaded.PhoneNumber).IsNull();
+    }
 
-	[Test]
-	public async Task SaveAsync_GivenCustomerWithPhoneNumber_LoadedPhoneMatches(CancellationToken cancellationToken)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Bob Jones", "bob@test.com");
-		customer.ChangePhoneNumber("+1-555-0199");
+    [Test]
+    public async Task SaveAsync_GivenCustomerWithPhoneNumber_LoadedPhoneMatches(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Bob Jones", "bob@test.com");
+        customer.ChangePhoneNumber("+1-555-0199");
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.PhoneNumber).IsEqualTo("+1-555-0199");
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.PhoneNumber).IsEqualTo("+1-555-0199");
+    }
 
-	[Test]
-	public async Task SaveAsync_GivenMultipleEmailChanges_LoadedEmailMatchesFinalValue(
-		CancellationToken cancellationToken
-	)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Alice", "v1@test.com");
-		customer.ChangeEmail("v2@test.com");
-		customer.ChangeEmail("v3@test.com");
+    [Test]
+    public async Task SaveAsync_GivenMultipleEmailChanges_LoadedEmailMatchesFinalValue(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Alice", "v1@test.com");
+        customer.ChangeEmail("v2@test.com");
+        customer.ChangeEmail("v3@test.com");
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.Email).IsEqualTo("v3@test.com");
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.Email).IsEqualTo("v3@test.com");
+    }
 
-	[Test]
-	public async Task SaveAsync_GivenDeactivatedCustomer_LoadedIsActiveFalse(CancellationToken cancellationToken)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Eve", "eve@test.com");
-		customer.Deactivate();
+    [Test]
+    public async Task SaveAsync_GivenDeactivatedCustomer_LoadedIsActiveFalse(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Eve", "eve@test.com");
+        customer.Deactivate();
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.IsActive).IsFalse();
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.IsActive).IsFalse();
+    }
 
-	[Test]
-	public async Task SaveAsync_GivenReactivatedCustomer_LoadedIsActiveTrue(CancellationToken cancellationToken)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Carol", "carol@test.com");
-		customer.Deactivate();
-		customer.Reactivate();
+    [Test]
+    public async Task SaveAsync_GivenReactivatedCustomer_LoadedIsActiveTrue(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Carol", "carol@test.com");
+        customer.Deactivate();
+        customer.Reactivate();
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.IsActive).IsTrue();
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.IsActive).IsTrue();
+    }
 
-	#endregion
+    #endregion
 
-	#region Version Tracking
+    #region Version Tracking
 
-	[Test]
-	public async Task SaveAsync_GivenMultipleOperations_VersionIsTrackedCorrectly(CancellationToken cancellationToken)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("David", "david@test.com"); // v1
-		customer.ChangeEmail("david2@test.com"); // v2
-		customer.ChangePhoneNumber("+44-20-0000-0001"); // v3
+    [Test]
+    public async Task SaveAsync_GivenMultipleOperations_VersionIsTrackedCorrectly(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("David", "david@test.com"); // v1
+        customer.ChangeEmail("david2@test.com"); // v2
+        customer.ChangePhoneNumber("+44-20-0000-0001"); // v3
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.Details.SavedVersion).IsEqualTo(3);
-		await Assert.That(loaded.Details.CurrentVersion).IsEqualTo(3);
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.Details.SavedVersion).IsEqualTo(3);
+        await Assert.That(loaded.Details.CurrentVersion).IsEqualTo(3);
+    }
 
-	#endregion
+    #endregion
 
-	#region Delete and Restore
+    #region Delete and Restore
 
-	[Test]
-	public async Task DeleteAsync_GivenSavedCustomer_AggregateIsMarkedDeleted(CancellationToken cancellationToken)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Frank", "frank@test.com");
+    [Test]
+    public async Task DeleteAsync_GivenSavedCustomer_AggregateIsMarkedDeleted(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Frank", "frank@test.com");
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
-		await store.DeleteAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
+        await store.DeleteAsync(customer, cancellationToken);
 
-		var isDeleted = await store.IsDeletedAsync(id, cancellationToken);
+        var isDeleted = await store.IsDeletedAsync(id, cancellationToken);
 
-		await Assert.That(isDeleted).IsTrue();
-	}
+        await Assert.That(isDeleted).IsTrue();
+    }
 
-	[Test]
-	public async Task RestoreAsync_GivenDeletedCustomer_AggregateIsRestoredWithOriginalState(
-		CancellationToken cancellationToken
-	)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Grace", "grace@test.com");
+    [Test]
+    public async Task RestoreAsync_GivenDeletedCustomer_AggregateIsRestoredWithOriginalState(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Grace", "grace@test.com");
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
-		await store.DeleteAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
+        await store.DeleteAsync(customer, cancellationToken);
 
-		var deleted = await store.GetDeletedAsync(id, cancellationToken);
-		await store.RestoreAsync(deleted!, cancellationToken);
+        var deleted = await store.GetDeletedAsync(id, cancellationToken);
+        await store.RestoreAsync(deleted!, cancellationToken);
 
-		var restored = await store.GetAsync(id, cancellationToken);
+        var restored = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(restored).IsNotNull();
-		await Assert.That(restored!.Name).IsEqualTo("Grace");
-		await Assert.That(await store.IsDeletedAsync(id, cancellationToken)).IsFalse();
-	}
+        await Assert.That(restored).IsNotNull();
+        await Assert.That(restored!.Name).IsEqualTo("Grace");
+        await Assert.That(await store.IsDeletedAsync(id, cancellationToken)).IsFalse();
+    }
 
-	#endregion
+    #endregion
 
-	#region Point-in-Time Replay
+    #region Point-in-Time Replay
 
-	[Test]
-	public async Task GetAtAsync_GivenCustomerWithEmailChange_ReturnsOriginalEmailAtVersion1(
-		CancellationToken cancellationToken
-	)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Heidi", "original@test.com"); // v1
-		customer.ChangeEmail("updated@test.com"); // v2
+    [Test]
+    public async Task GetAtAsync_GivenCustomerWithEmailChange_ReturnsOriginalEmailAtVersion1(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Heidi", "original@test.com"); // v1
+        customer.ChangeEmail("updated@test.com"); // v2
 
-		var store = fixture.CreateEventStore<CustomerAggregate>();
-		await store.SaveAsync(customer, cancellationToken);
+        var store = fixture.CreateEventStore<CustomerAggregate>();
+        await store.SaveAsync(customer, cancellationToken);
 
-		var atVersion1 = await store.GetAtAsync(id, 1, cancellationToken);
+        var atVersion1 = await store.GetAtAsync(id, 1, cancellationToken);
 
-		await Assert.That(atVersion1).IsNotNull();
-		await Assert.That(atVersion1!.Email).IsEqualTo("original@test.com");
-		await Assert.That(atVersion1.Details.CurrentVersion).IsEqualTo(1);
-	}
+        await Assert.That(atVersion1).IsNotNull();
+        await Assert.That(atVersion1!.Email).IsEqualTo("original@test.com");
+        await Assert.That(atVersion1.Details.CurrentVersion).IsEqualTo(1);
+    }
 
-	#endregion
+    #endregion
 
-	#region Event Replay Without Snapshots
+    #region Event Replay Without Snapshots
 
-	[Test]
-	public async Task SaveAsync_GivenCustomerWithNoSnapshot_EventReplayRestoresState(
-		CancellationToken cancellationToken
-	)
-	{
-		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
-		customer.Details.Id = id;
-		customer.RegisterCustomer("Ivan", "ivan@test.com");
-		customer.ChangeEmail("ivan2@test.com");
-		customer.Deactivate();
+    [Test]
+    public async Task SaveAsync_GivenCustomerWithNoSnapshot_EventReplayRestoresState(
+        CancellationToken cancellationToken
+    )
+    {
+        var id = $"{Guid.NewGuid()}";
+        var customer = new CustomerAggregate();
+        customer.Details.Id = id;
+        customer.RegisterCustomer("Ivan", "ivan@test.com");
+        customer.ChangeEmail("ivan2@test.com");
+        customer.Deactivate();
 
-		// Use a very high snapshot interval to force pure event replay
-		var store = fixture.CreateEventStore<CustomerAggregate>(snapshotRecalculationInterval: int.MaxValue);
-		await store.SaveAsync(customer, cancellationToken);
+        // Use a very high snapshot interval to force pure event replay
+        var store = fixture.CreateEventStore<CustomerAggregate>(
+            snapshotRecalculationInterval: int.MaxValue
+        );
+        await store.SaveAsync(customer, cancellationToken);
 
-		var loaded = await store.GetAsync(id, cancellationToken);
+        var loaded = await store.GetAsync(id, cancellationToken);
 
-		await Assert.That(loaded).IsNotNull();
-		await Assert.That(loaded!.Name).IsEqualTo("Ivan");
-		await Assert.That(loaded.Email).IsEqualTo("ivan2@test.com");
-		await Assert.That(loaded.IsActive).IsFalse();
-		await Assert.That(loaded.Details.SavedVersion).IsEqualTo(3);
-	}
+        await Assert.That(loaded).IsNotNull();
+        await Assert.That(loaded!.Name).IsEqualTo("Ivan");
+        await Assert.That(loaded.Email).IsEqualTo("ivan2@test.com");
+        await Assert.That(loaded.IsActive).IsFalse();
+        await Assert.That(loaded.Details.SavedVersion).IsEqualTo(3);
+    }
 
-	#endregion
+    #endregion
 }

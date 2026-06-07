@@ -2,33 +2,33 @@ namespace Purview.EventSourcing;
 
 public class ExistsStateTests
 {
-	[Test]
-	public async Task ImplicitBoolConversion_GivenExists_ReturnsTrue()
-	{
-		// Act
-		bool result = ExistsState.Exists;
+    [Test]
+    public async Task ImplicitBoolConversion_GivenExists_ReturnsTrue()
+    {
+        // Act
+        bool result = ExistsState.Exists;
 
-		// Assert
-		await Assert.That(result).IsTrue();
-	}
+        // Assert
+        await Assert.That(result).IsTrue();
+    }
 
-	[Test]
-	public async Task ImplicitBoolConversion_GivenDoesNotExist_ReturnsFalse()
-	{
-		// Act
-		bool result = ExistsState.DoesNotExists;
+    [Test]
+    public async Task ImplicitBoolConversion_GivenDoesNotExist_ReturnsFalse()
+    {
+        // Act
+        bool result = ExistsState.DoesNotExists;
 
-		// Assert
-		await Assert.That(result).IsFalse();
-	}
+        // Assert
+        await Assert.That(result).IsFalse();
+    }
 
-	[Test]
-	public async Task ImplicitBoolConversion_GivenExistsInDeletedState_ReturnsTrue()
-	{
-		// Act
-		bool result = ExistsState.ExistsInDeletedState;
+    [Test]
+    public async Task ImplicitBoolConversion_GivenExistsInDeletedState_ReturnsTrue()
+    {
+        // Act
+        bool result = ExistsState.ExistsInDeletedState;
 
-		// Assert
-		await Assert.That(result).IsTrue();
-	}
+        // Assert
+        await Assert.That(result).IsTrue();
+    }
 }

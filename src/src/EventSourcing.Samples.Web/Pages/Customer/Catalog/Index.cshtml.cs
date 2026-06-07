@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -7,7 +8,7 @@ using Purview.EventSourcing.Samples.Web.Services;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Catalog;
 
-public sealed record CatalogProductViewModel(
+sealed record CatalogProductViewModel(
 	string ProductId,
 	string ProductName,
 	int TotalAvailable,
@@ -16,7 +17,7 @@ public sealed record CatalogProductViewModel(
 	string? ImageUrl
 );
 
-public sealed class IndexModel(
+sealed class IndexModel(
 	IQueryableEventStore customerStore,
 	IQueryableEventStore inventoryStore,
 	IProductImageService imageService
@@ -60,7 +61,10 @@ public sealed class IndexModel(
 			{
 				var best = g.OrderByDescending(i => i.AvailableQuantity).First();
 				var totalAvailable = g.Sum(i => i.AvailableQuantity);
-				var unitPrice = Math.Round(9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m, 2);
+				var unitPrice = Math.Round(
+					9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m,
+					2
+				);
 				return (
 					ProductId: g.Key,
 					best.ProductName,
@@ -73,7 +77,9 @@ public sealed class IndexModel(
 			.ToList();
 
 		// Resolve image URLs in parallel
-		var imageUrlTasks = grouped.Select(p => imageService.GetImageUrlAsync(p.ProductId, ct)).ToList();
+		var imageUrlTasks = grouped
+			.Select(p => imageService.GetImageUrlAsync(p.ProductId, ct))
+			.ToList();
 		var imageUrls = await Task.WhenAll(imageUrlTasks);
 
 		Products =

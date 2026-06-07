@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.SqlServer.Exceptions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Catalog;
 
-public sealed class OrderModel(
+sealed class OrderModel(
 	IOrderFulfillmentService fulfillmentService,
 	IQueryableEventStore customerStore,
 	IQueryableEventStore inventoryStore
@@ -36,7 +37,10 @@ public sealed class OrderModel(
 		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, ct);
 
 		if (InventoryItem != null)
-			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
+			UnitPrice = Math.Round(
+				9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m,
+				2
+			);
 
 		return Page();
 	}
@@ -92,6 +96,9 @@ public sealed class OrderModel(
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, ct);
 		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, ct);
 		if (InventoryItem != null)
-			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
+			UnitPrice = Math.Round(
+				9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m,
+				2
+			);
 	}
 }

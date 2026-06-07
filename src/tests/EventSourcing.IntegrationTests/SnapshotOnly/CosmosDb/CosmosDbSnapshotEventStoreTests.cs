@@ -8,12 +8,18 @@ namespace Purview.EventSourcing.CosmosDb.Snapshot;
 [Skip("CosmosDB tests are disabled.")]
 public partial class CosmosDbSnapshotEventStoreTests(CosmosDbSnapshotEventStoreFixture fixture)
 {
-	static PersistenceAggregate CreateAggregate(string? id = null, Action<PersistenceAggregate>? action = null)
-	{
-		PersistenceAggregate aggregate = new() { Details = { Id = id ?? Guid.NewGuid().ToString() } };
+    static PersistenceAggregate CreateAggregate(
+        string? id = null,
+        Action<PersistenceAggregate>? action = null
+    )
+    {
+        PersistenceAggregate aggregate = new()
+        {
+            Details = { Id = id ?? Guid.NewGuid().ToString() },
+        };
 
-		action?.Invoke(aggregate);
+        action?.Invoke(aggregate);
 
-		return aggregate;
-	}
+        return aggregate;
+    }
 }

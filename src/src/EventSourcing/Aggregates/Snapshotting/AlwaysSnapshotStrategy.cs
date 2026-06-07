@@ -6,8 +6,8 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// </summary>
 /// <typeparam name="T">The aggregate type.</typeparam>
 public sealed class AlwaysSnapshotStrategy<T> : ISnapshotStrategy<T>
-	where T : class, IAggregate, new()
+    where T : class, IAggregate, new()
 {
-	/// <inheritdoc/>
-	public bool ShouldSnapshot(T aggregate, int eventsApplied) => eventsApplied > 0;
+    /// <inheritdoc/>
+    public bool ShouldSnapshot(T aggregate, int eventsApplied) => eventsApplied > 0;
 }

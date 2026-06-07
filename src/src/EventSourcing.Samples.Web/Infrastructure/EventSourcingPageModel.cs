@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.SqlServer.Exceptions;
 
 namespace Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -9,7 +10,7 @@ namespace Purview.EventSourcing.Samples.Web.Infrastructure;
 /// typed concurrency-conflict handling. A <see cref="ConcurrencyException"/>
 /// is surfaced as a user-friendly TempData error rather than an unhandled 500.
 /// </summary>
-public abstract class EventSourcingPageModel : PageModel
+abstract class EventSourcingPageModel : PageModel
 {
 	const string ConflictMessage =
 		"This record was modified by another user while you were editing it. "
@@ -19,7 +20,11 @@ public abstract class EventSourcingPageModel : PageModel
 	/// Executes <paramref name="saveAction"/>, sets a success or conflict message,
 	/// and returns <paramref name="result"/> in both cases.
 	/// </summary>
-	protected async Task<IActionResult> TrySaveAsync(Func<Task> saveAction, string successMessage, IActionResult result)
+	protected async Task<IActionResult> TrySaveAsync(
+		Func<Task> saveAction,
+		string successMessage,
+		IActionResult result
+	)
 	{
 		try
 		{

@@ -1,12 +1,17 @@
-using System.Collections.Concurrent;
 using Purview.EventSourcing.Samples.Domain;
+
+using System.Collections.Concurrent;
 
 namespace Purview.EventSourcing.Samples.Services;
 
-public sealed class CartCheckoutService(IEventStoreTransactionFactory transactionFactory, IQueryableEventStore store)
-	: ICartCheckoutService
+public sealed class CartCheckoutService(
+	IEventStoreTransactionFactory transactionFactory,
+	IQueryableEventStore store
+) : ICartCheckoutService
 {
-	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(StringComparer.OrdinalIgnoreCase);
+	static readonly ConcurrentDictionary<string, decimal> UnitPrices = new(
+		StringComparer.OrdinalIgnoreCase
+	);
 
 	public async Task<CartCheckoutResult> CheckoutAsync(
 		string customerId,
@@ -24,14 +29,21 @@ public sealed class CartCheckoutService(IEventStoreTransactionFactory transactio
 		if (!customer.IsActive)
 			return CartCheckoutResult.Fail($"Customer '{customer.Name}' is not active.");
 
-		var inventoryReservations = new Dictionary<string, InventoryReservation>(StringComparer.OrdinalIgnoreCase);
+		var inventoryReservations = new Dictionary<string, InventoryReservation>(
+			StringComparer.OrdinalIgnoreCase
+		);
 		foreach (var item in items)
 		{
 			if (!inventoryReservations.TryGetValue(item.InventoryId, out var reservation))
 			{
-				var inventory = await store.GetAsync<InventoryAggregate>(item.InventoryId, cancellationToken);
+				var inventory = await store.GetAsync<InventoryAggregate>(
+					item.InventoryId,
+					cancellationToken
+				);
 				if (inventory is null || inventory.Details.IsDeleted)
-					return CartCheckoutResult.Fail($"Product '{item.ProductName}' is no longer available.");
+					return CartCheckoutResult.Fail(
+						$"Product '{item.ProductName}' is no longer available."
+					);
 
 				reservation = new InventoryReservation(inventory);
 				inventoryReservations.Add(item.InventoryId, reservation);
@@ -87,7 +99,7 @@ public sealed class CartCheckoutService(IEventStoreTransactionFactory transactio
 		if (UnitPrices.TryGetValue(productId, out var cached))
 			return cached;
 
-		var hash = Math.Abs(productId.GetHashCode());
+		var hash = Math.Abs(productId.GetHashCode(StringComparison.Ordinal));
 		var price = Math.Round(9.99m + (hash % 9000) / 100m, 2);
 		return UnitPrices.GetOrAdd(productId, price);
 	}

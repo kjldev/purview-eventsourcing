@@ -15,169 +15,186 @@ namespace Purview.EventSourcing.Samples.Domain;
 [GenerateAggregate]
 public sealed partial class OrderAggregate : AggregateBase
 {
-	public string CustomerId { get; private set; } = default!;
-	public OrderStatus Status { get; private set; }
+    public string CustomerId { get; private set; } = default!;
+    public OrderStatus Status { get; private set; }
 
-	[Range(0, double.MaxValue)]
-	public decimal TotalAmount { get; private set; }
+    [Range(0, double.MaxValue)]
+    public decimal TotalAmount { get; private set; }
 
-	public ImmutableArray<OrderLineItem> LineItems { get; private set; } = [];
-	public string? ShippingAddress { get; private set; }
-	public string? Notes { get; private set; }
-	public DateTimeOffset? ShippedAt { get; private set; }
-	public DateTimeOffset? CompletedAt { get; private set; }
+    public ImmutableArray<OrderLineItem> LineItems { get; private set; } = [];
+    public string? ShippingAddress { get; private set; }
+    public string? Notes { get; private set; }
+    public DateTimeOffset? ShippedAt { get; private set; }
+    public DateTimeOffset? CompletedAt { get; private set; }
 
-	// Commands
-	public void CreateOrder(string customerId)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
+    // Commands
+    public void CreateOrder(string customerId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
 
-		OrderCreated(customerId, status: OrderStatus.Draft);
-	}
+        OrderCreated(customerId, status: OrderStatus.Draft);
+    }
 
-	public void AddLineItem(string productId, string productName, int quantity, decimal unitPrice)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(productId);
-		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-		ArgumentOutOfRangeException.ThrowIfNegative(unitPrice);
+    public void AddLineItem(string productId, string productName, int quantity, decimal unitPrice)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(productId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+        ArgumentOutOfRangeException.ThrowIfNegative(unitPrice);
 
-		if (Status != OrderStatus.Draft)
-			throw new InvalidOperationException("Can only add items to draft orders.");
+        if (Status != OrderStatus.Draft)
+            throw new InvalidOperationException("Can only add items to draft orders.");
 
-		var existingLineItem = LineItems.FirstOrDefault(lineItem => lineItem.ProductId == productId);
-		var updatedLineItems = existingLineItem is null
-			? LineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice))
-			:
-			[
-				.. LineItems.Select(lineItem =>
-					lineItem.ProductId == productId
-						? lineItem with
-						{
-							Quantity = lineItem.Quantity + quantity,
-						}
-						: lineItem
-				),
-			];
+        var existingLineItem = LineItems.FirstOrDefault(lineItem =>
+            lineItem.ProductId == productId
+        );
+        var updatedLineItems = existingLineItem is null
+            ? LineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice))
+            :
+            [
+                .. LineItems.Select(lineItem =>
+                    lineItem.ProductId == productId
+                        ? lineItem with
+                        {
+                            Quantity = lineItem.Quantity + quantity,
+                        }
+                        : lineItem
+                ),
+            ];
 
-		OrderLineItemAdded(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
-	}
+        OrderLineItemAdded(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
+    }
 
-	public void RemoveLineItem(string productId)
-	{
-		if (Status != OrderStatus.Draft)
-			throw new InvalidOperationException("Can only remove items from draft orders.");
+    public void RemoveLineItem(string productId)
+    {
+        if (Status != OrderStatus.Draft)
+            throw new InvalidOperationException("Can only remove items from draft orders.");
 
-		if (!LineItems.Any(li => li.ProductId == productId))
-			throw new InvalidOperationException($"Product '{productId}' not found in order.");
+        if (!LineItems.Any(li => li.ProductId == productId))
+            throw new InvalidOperationException($"Product '{productId}' not found in order.");
 
-		var updatedLineItems = LineItems.Where(lineItem => lineItem.ProductId != productId).ToImmutableArray();
+        var updatedLineItems = LineItems
+            .Where(lineItem => lineItem.ProductId != productId)
+            .ToImmutableArray();
 
-		OrderLineItemRemoved(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
-	}
+        OrderLineItemRemoved(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
+    }
 
-	public void SetShippingAddress(string address)
-	{
-		ArgumentException.ThrowIfNullOrWhiteSpace(address);
+    public void SetShippingAddress(string address)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
-		OrderShippingAddressSet(shippingAddress: address);
-	}
+        OrderShippingAddressSet(shippingAddress: address);
+    }
 
-	public void UpdateNotes(string? notes) => OrderNotesUpdated(notes);
+    public void UpdateNotes(string? notes) => OrderNotesUpdated(notes);
 
-	/// <summary>
-	/// Updates one or more order details in a single operation, raising a granular event
-	/// for each field that has actually changed. Pass <see langword="null"/> for any field
-	/// that should remain unchanged. To clear notes, use <see cref="UpdateNotes"/> directly.
-	/// </summary>
-	public void UpdateDetails(string? shippingAddress = null, string? notes = null)
-	{
-		if (shippingAddress is not null)
-		{
-			ArgumentException.ThrowIfNullOrWhiteSpace(shippingAddress);
-			if (shippingAddress != ShippingAddress)
-				OrderShippingAddressSet(shippingAddress);
-		}
+    /// <summary>
+    /// Updates one or more order details in a single operation, raising a granular event
+    /// for each field that has actually changed. Pass <see langword="null"/> for any field
+    /// that should remain unchanged. To clear notes, use <see cref="UpdateNotes"/> directly.
+    /// </summary>
+    public void UpdateDetails(string? shippingAddress = null, string? notes = null)
+    {
+        if (shippingAddress is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(shippingAddress);
+            if (shippingAddress != ShippingAddress)
+                OrderShippingAddressSet(shippingAddress);
+        }
 
-		if (notes is not null && notes != Notes)
-			OrderNotesUpdated(notes);
-	}
+        if (notes is not null && notes != Notes)
+            OrderNotesUpdated(notes);
+    }
 
-	public void ConfirmOrder()
-	{
-		if (Status != OrderStatus.Draft)
-			throw new InvalidOperationException("Can only confirm draft orders.");
+    public void ConfirmOrder()
+    {
+        if (Status != OrderStatus.Draft)
+            throw new InvalidOperationException("Can only confirm draft orders.");
 
-		if (LineItems.Length == 0)
-			throw new InvalidOperationException("Cannot confirm an order with no items.");
+        if (LineItems.Length == 0)
+            throw new InvalidOperationException("Cannot confirm an order with no items.");
 
-		OrderConfirmed(status: OrderStatus.Confirmed);
-	}
+        OrderConfirmed(status: OrderStatus.Confirmed);
+    }
 
-	public void ShipOrder()
-	{
-		if (Status != OrderStatus.Confirmed)
-			throw new InvalidOperationException("Can only ship confirmed orders.");
+    public void ShipOrder()
+    {
+        if (Status != OrderStatus.Confirmed)
+            throw new InvalidOperationException("Can only ship confirmed orders.");
 
-		if (string.IsNullOrWhiteSpace(ShippingAddress))
-			throw new InvalidOperationException("Shipping address must be set before shipping.");
+        if (string.IsNullOrWhiteSpace(ShippingAddress))
+            throw new InvalidOperationException("Shipping address must be set before shipping.");
 
-		OrderShipped(status: OrderStatus.Shipped, shippedAt: DateTimeOffset.UtcNow);
-	}
+        OrderShipped(status: OrderStatus.Shipped, shippedAt: DateTimeOffset.UtcNow);
+    }
 
-	public void CompleteOrder()
-	{
-		if (Status != OrderStatus.Shipped)
-			throw new InvalidOperationException("Can only complete shipped orders.");
+    public void CompleteOrder()
+    {
+        if (Status != OrderStatus.Shipped)
+            throw new InvalidOperationException("Can only complete shipped orders.");
 
-		OrderCompleted(status: OrderStatus.Completed, completedAt: DateTimeOffset.UtcNow);
-	}
+        OrderCompleted(status: OrderStatus.Completed, completedAt: DateTimeOffset.UtcNow);
+    }
 
-	public void CancelOrder()
-	{
-		if (Status is OrderStatus.Completed or OrderStatus.Cancelled)
-			throw new InvalidOperationException("Cannot cancel a completed or already cancelled order.");
+    public void CancelOrder()
+    {
+        if (Status is OrderStatus.Completed or OrderStatus.Cancelled)
+            throw new InvalidOperationException(
+                "Cannot cancel a completed or already cancelled order."
+            );
 
-		OrderCancelled(status: OrderStatus.Cancelled);
-	}
+        OrderCancelled(status: OrderStatus.Cancelled);
+    }
 
-	[GenerateAggregateEvent]
-	public partial void OrderCreated(string customerId, OrderStatus status);
+    [GenerateAggregateEvent]
+    public partial void OrderCreated(string customerId, OrderStatus status);
 
-	[GenerateAggregateEvent]
-	public partial void OrderLineItemAdded(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
+    [GenerateAggregateEvent]
+    public partial void OrderLineItemAdded(
+        ImmutableArray<OrderLineItem> lineItems,
+        decimal totalAmount
+    );
 
-	[GenerateAggregateEvent]
-	public partial void OrderLineItemRemoved(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
+    [GenerateAggregateEvent]
+    public partial void OrderLineItemRemoved(
+        ImmutableArray<OrderLineItem> lineItems,
+        decimal totalAmount
+    );
 
-	[GenerateAggregateEvent]
-	public partial void OrderShippingAddressSet(string shippingAddress);
+    [GenerateAggregateEvent]
+    public partial void OrderShippingAddressSet(string shippingAddress);
 
-	[GenerateAggregateEvent]
-	public partial void OrderNotesUpdated(string? notes);
+    [GenerateAggregateEvent]
+    public partial void OrderNotesUpdated(string? notes);
 
-	[GenerateAggregateEvent]
-	public partial void OrderConfirmed(OrderStatus status);
+    [GenerateAggregateEvent]
+    public partial void OrderConfirmed(OrderStatus status);
 
-	[GenerateAggregateEvent]
-	public partial void OrderShipped(OrderStatus status, DateTimeOffset shippedAt);
+    [GenerateAggregateEvent]
+    public partial void OrderShipped(OrderStatus status, DateTimeOffset shippedAt);
 
-	[GenerateAggregateEvent]
-	public partial void OrderCompleted(OrderStatus status, DateTimeOffset completedAt);
+    [GenerateAggregateEvent]
+    public partial void OrderCompleted(OrderStatus status, DateTimeOffset completedAt);
 
-	[GenerateAggregateEvent]
-	public partial void OrderCancelled(OrderStatus status);
+    [GenerateAggregateEvent]
+    public partial void OrderCancelled(OrderStatus status);
 
-	static decimal CalculateTotalAmount(ImmutableArray<OrderLineItem> lineItems) =>
-		lineItems.Sum(lineItem => lineItem.Quantity * lineItem.UnitPrice);
+    static decimal CalculateTotalAmount(ImmutableArray<OrderLineItem> lineItems) =>
+        lineItems.Sum(lineItem => lineItem.Quantity * lineItem.UnitPrice);
 }
 
 public enum OrderStatus
 {
-	Draft,
-	Confirmed,
-	Shipped,
-	Completed,
-	Cancelled,
+    Draft,
+    Confirmed,
+    Shipped,
+    Completed,
+    Cancelled,
 }
 
-public sealed record OrderLineItem(string ProductId, string ProductName, int Quantity, decimal UnitPrice);
+public sealed record OrderLineItem(
+    string ProductId,
+    string ProductName,
+    int Quantity,
+    decimal UnitPrice
+);

@@ -9,8 +9,8 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// or during development/testing where snapshot noise is undesirable.
 /// </remarks>
 public sealed class NeverSnapshotStrategy<T> : ISnapshotStrategy<T>
-	where T : class, IAggregate, new()
+    where T : class, IAggregate, new()
 {
-	/// <inheritdoc/>
-	public bool ShouldSnapshot(T aggregate, int eventsApplied) => false;
+    /// <inheritdoc/>
+    public bool ShouldSnapshot(T aggregate, int eventsApplied) => false;
 }

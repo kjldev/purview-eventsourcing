@@ -1,11 +1,13 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
+
+using System.ComponentModel.DataAnnotations;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
-public sealed class CreateModel(IQueryableEventStore store) : PageModel
+sealed class CreateModel(IQueryableEventStore store) : PageModel
 {
 	[BindProperty, Required, MaxLength(200)]
 	public string Name { get; set; } = string.Empty;
@@ -18,7 +20,9 @@ public sealed class CreateModel(IQueryableEventStore store) : PageModel
 		if (!ModelState.IsValid)
 			return Page();
 
-		var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: HttpContext.RequestAborted);
+		var customer = await store.CreateAsync<CustomerAggregate>(
+			cancellationToken: HttpContext.RequestAborted
+		);
 		customer.RegisterCustomer(Name.Trim(), Email.Trim().ToLowerInvariant());
 		await store.SaveAsync(customer, HttpContext.RequestAborted);
 

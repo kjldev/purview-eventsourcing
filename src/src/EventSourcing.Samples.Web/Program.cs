@@ -1,4 +1,5 @@
 using Azure.Storage.Blobs;
+
 using Purview.EventSourcing;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Services;
@@ -58,7 +59,7 @@ app.MapRazorPages();
 app.MapDefaultEndpoints();
 
 // Seed demo data on startup (no-op if data already exists).
-using (var scope = app.Services.CreateScope())
+await using (var scope = app.Services.CreateAsyncScope())
 {
 	var seeder = scope.ServiceProvider.GetRequiredService<ISeedDataService>();
 	for (var attempt = 0; ; attempt++)
@@ -76,7 +77,7 @@ using (var scope = app.Services.CreateScope())
 	}
 }
 
-app.Run();
+await app.RunAsync();
 
 // Required for WebApplicationFactory<Program> in integration tests
 //public partial class Program { }

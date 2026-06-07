@@ -3,11 +3,14 @@ using Azure.Storage.Blobs.Models;
 
 namespace Purview.EventSourcing.Samples.Web.Services;
 
-public sealed class ProductImageService(BlobServiceClient blobServiceClient) : IProductImageService
+sealed class ProductImageService(BlobServiceClient blobServiceClient) : IProductImageService
 {
 	const string ContainerName = "product-images";
 
-	public async Task<string?> GetImageUrlAsync(string productId, CancellationToken cancellationToken = default)
+	public async Task<string?> GetImageUrlAsync(
+		string productId,
+		CancellationToken cancellationToken = default
+	)
 	{
 #pragma warning disable CA1031 // Do not catch general exception types
 		try
@@ -31,7 +34,10 @@ public sealed class ProductImageService(BlobServiceClient blobServiceClient) : I
 	)
 	{
 		var container = blobServiceClient.GetBlobContainerClient(ContainerName);
-		await container.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
+		await container.CreateIfNotExistsAsync(
+			PublicAccessType.Blob,
+			cancellationToken: cancellationToken
+		);
 		var blob = container.GetBlobClient(productId);
 		await blob.UploadAsync(
 			imageStream,
@@ -40,7 +46,10 @@ public sealed class ProductImageService(BlobServiceClient blobServiceClient) : I
 		);
 	}
 
-	public async Task DeleteImageAsync(string productId, CancellationToken cancellationToken = default)
+	public async Task DeleteImageAsync(
+		string productId,
+		CancellationToken cancellationToken = default
+	)
 	{
 		var container = blobServiceClient.GetBlobContainerClient(ContainerName);
 		var blob = container.GetBlobClient(productId);

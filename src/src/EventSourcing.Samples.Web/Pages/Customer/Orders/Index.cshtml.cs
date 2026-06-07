@@ -1,13 +1,16 @@
-using System.Globalization;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
+
+using System.Globalization;
+using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
 
-public sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore orderStore) : PageModel
+sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore orderStore)
+	: PageModel
 {
 	const int DefaultPageSize = 15;
 

@@ -1,13 +1,15 @@
-using System.Globalization;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
+
+using System.Globalization;
+using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
-public sealed class IndexModel(IQueryableEventStore store) : PageModel
+sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -46,10 +48,12 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
-			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
+			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
 		};
 
+#pragma warning disable CA1308 // Normalize strings to uppercase
+#pragma warning disable CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
 		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
 		var activeFilter = ActiveFilter;
 		var hasFilter = !string.IsNullOrEmpty(search) || activeFilter.HasValue;
@@ -62,8 +66,13 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 					|| c.Email.ToLower().Contains(search)
 				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: c => true;
+#pragma warning restore CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
+#pragma warning restore CA1308 // Normalize strings to uppercase
 
-		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch
+		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (
+			SortBy,
+			SortDir
+		) switch
 		{
 			("email", "desc") => q => q.OrderByDescending(c => c.Email),
 			("email", _) => q => q.OrderBy(c => c.Email),

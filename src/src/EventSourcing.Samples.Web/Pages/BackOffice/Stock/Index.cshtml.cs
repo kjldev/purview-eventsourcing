@@ -1,13 +1,15 @@
-using System.Globalization;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+
 using Purview.EventSourcing.Samples.Domain;
+
+using System.Globalization;
+using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class IndexModel(IQueryableEventStore store) : PageModel
+sealed class IndexModel(IQueryableEventStore store) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -53,7 +55,10 @@ public sealed class IndexModel(IQueryableEventStore store) : PageModel
 		Expression<Func<InventoryAggregate, bool>> where = i =>
 			i.ProductId.ToLower().Contains(search) || i.ProductName.ToLower().Contains(search);
 
-		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (SortBy, SortDir) switch
+		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (
+			SortBy,
+			SortDir
+		) switch
 		{
 			("onhand", "asc") => q => q.OrderBy(i => i.QuantityOnHand),
 			("onhand", _) => q => q.OrderByDescending(i => i.QuantityOnHand),

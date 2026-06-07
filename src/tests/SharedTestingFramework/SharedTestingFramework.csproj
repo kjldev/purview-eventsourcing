@@ -1,24 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<RootNamespace>Purview.EventSourcing</RootNamespace>
-	</PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>Purview.EventSourcing</RootNamespace>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="TUnit.Core" />
-		<PackageReference Include="Testcontainers.Azurite" />
-		<PackageReference Include="Testcontainers.CosmosDb" />
-		<PackageReference Include="Testcontainers.MongoDb" />
-		<PackageReference Include="Testcontainers.MsSql" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit.Core" />
+    <PackageReference Include="Testcontainers.Azurite" />
+    <PackageReference Include="Testcontainers.CosmosDb" />
+    <PackageReference Include="Testcontainers.MongoDb" />
+    <PackageReference Include="Testcontainers.MsSql" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.MongoDb.Events\EventSourcing.MongoDB.Events.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.MongoDb.Snapshot\EventSourcing.MongoDB.Snapshot.csproj">
-			<Aliases>MongoDBSnapshots</Aliases>
-		</ProjectReference>
-		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Snapshot\EventSourcing.SqlServer.Snapshot.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
+    <ProjectReference Include="..\..\src\EventSourcing.MongoDb.Events\EventSourcing.MongoDB.Events.csproj" />
+    <ProjectReference Include="..\..\src\EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
+    <ProjectReference Include="..\..\src\EventSourcing.MongoDb.Snapshot\EventSourcing.MongoDB.Snapshot.csproj">
+      <Aliases>MongoDBSnapshots</Aliases>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\EventSourcing.SqlServer.Snapshot\EventSourcing.SqlServer.Snapshot.csproj" />
+    <ProjectReference Include="..\..\src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
+  </ItemGroup>
 </Project>

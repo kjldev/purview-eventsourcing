@@ -17,30 +17,34 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// </para>
 /// </remarks>
 public sealed class IntervalSnapshotStrategy<T> : ISnapshotStrategy<T>
-	where T : class, IAggregate, new()
+    where T : class, IAggregate, new()
 {
-	/// <summary>
-	/// The snapshot interval. Defaults to <c>1</c> (snapshot on every save).
-	/// </summary>
-	public int Interval { get; }
+    /// <summary>
+    /// The snapshot interval. Defaults to <c>1</c> (snapshot on every save).
+    /// </summary>
+    public int Interval { get; }
 
-	/// <summary>
-	/// Initialises the strategy with the specified <paramref name="interval"/>.
-	/// </summary>
-	/// <param name="interval">The number of events between snapshots. Must be ≥ 1.</param>
-	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is less than 1.</exception>
-	public IntervalSnapshotStrategy(int interval = 1)
-	{
-		if (interval < 1)
-			throw new ArgumentOutOfRangeException(nameof(interval), interval, "Snapshot interval must be at least 1.");
+    /// <summary>
+    /// Initialises the strategy with the specified <paramref name="interval"/>.
+    /// </summary>
+    /// <param name="interval">The number of events between snapshots. Must be ≥ 1.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is less than 1.</exception>
+    public IntervalSnapshotStrategy(int interval = 1)
+    {
+        if (interval < 1)
+            throw new ArgumentOutOfRangeException(
+                nameof(interval),
+                interval,
+                "Snapshot interval must be at least 1."
+            );
 
-		Interval = interval;
-	}
+        Interval = interval;
+    }
 
-	/// <inheritdoc/>
-	public bool ShouldSnapshot(T aggregate, int eventsApplied)
-	{
-		ArgumentNullException.ThrowIfNull(aggregate);
-		return eventsApplied > 0 && aggregate.Details.SavedVersion % Interval == 0;
-	}
+    /// <inheritdoc/>
+    public bool ShouldSnapshot(T aggregate, int eventsApplied)
+    {
+        ArgumentNullException.ThrowIfNull(aggregate);
+        return eventsApplied > 0 && aggregate.Details.SavedVersion % Interval == 0;
+    }
 }

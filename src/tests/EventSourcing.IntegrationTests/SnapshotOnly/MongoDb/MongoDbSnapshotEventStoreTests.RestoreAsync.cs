@@ -2,41 +2,59 @@
 
 partial class MongoDBSnapshotEventStoreTests
 {
-	[Test]
-	public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInMongoDBWhenRestore_SnapshotCreatedInMongoDB(
-		CancellationToken cancellationToken
-	)
-	{
-		// Arrange
-		var context = fixture.CreateContext();
+    [Test]
+    public async Task RestoreAsync_GivenExistingAggregateMarkedAsDeletedAndDoesNotExistInMongoDBWhenRestore_SnapshotCreatedInMongoDB(
+        CancellationToken cancellationToken
+    )
+    {
+        // Arrange
+        var context = fixture.CreateContext();
 
-		var aggregateId = Guid.NewGuid().ToString();
-		var aggregate = CreateAggregate(id: aggregateId);
-		aggregate.IncrementInt32Value();
+        var aggregateId = Guid.NewGuid().ToString();
+        var aggregate = CreateAggregate(id: aggregateId);
+        aggregate.IncrementInt32Value();
 
-		var mongoDbEventStore = context.EventStore;
+        var mongoDbEventStore = context.EventStore;
 
-		bool saveResult = await mongoDbEventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
-		await Assert.That(saveResult).IsTrue();
+        bool saveResult = await mongoDbEventStore.SaveAsync(
+            aggregate,
+            cancellationToken: cancellationToken
+        );
+        await Assert.That(saveResult).IsTrue();
 
-		var predicate = PredicateId(aggregateId);
+        var predicate = PredicateId(aggregateId);
 
-		var aggregateFromMongo = await context.MongoDBClient.GetAsync(predicate, cancellationToken: cancellationToken);
-		await Assert.That(aggregateFromMongo).IsNotNull();
+        var aggregateFromMongo = await context.MongoDBClient.GetAsync(
+            predicate,
+            cancellationToken: cancellationToken
+        );
+        await Assert.That(aggregateFromMongo).IsNotNull();
 
-		var deleteResult = await mongoDbEventStore.DeleteAsync(aggregate, cancellationToken: cancellationToken);
-		await Assert.That(deleteResult).IsTrue();
+        var deleteResult = await mongoDbEventStore.DeleteAsync(
+            aggregate,
+            cancellationToken: cancellationToken
+        );
+        await Assert.That(deleteResult).IsTrue();
 
-		aggregateFromMongo = await context.MongoDBClient.GetAsync(predicate, cancellationToken: cancellationToken);
-		await Assert.That(aggregateFromMongo).IsNull();
+        aggregateFromMongo = await context.MongoDBClient.GetAsync(
+            predicate,
+            cancellationToken: cancellationToken
+        );
+        await Assert.That(aggregateFromMongo).IsNull();
 
-		// Act
-		var restoreResult = await mongoDbEventStore.RestoreAsync(aggregate, cancellationToken: cancellationToken);
+        // Act
+        var restoreResult = await mongoDbEventStore.RestoreAsync(
+            aggregate,
+            cancellationToken: cancellationToken
+        );
 
-		aggregateFromMongo = await context.MongoDBClient.GetAsync(predicate, cancellationToken: cancellationToken);
+        aggregateFromMongo = await context.MongoDBClient.GetAsync(
+            predicate,
+            cancellationToken: cancellationToken
+        );
 
-		// Assert
-		await Assert.That(restoreResult).IsTrue();
-		await Assert.That(aggregateFromMongo).IsNotNull();
-	}
+        // Assert
+        await Assert.That(restoreResult).IsTrue();
+        await Assert.That(aggregateFromMongo).IsNotNull();
+    }
 }

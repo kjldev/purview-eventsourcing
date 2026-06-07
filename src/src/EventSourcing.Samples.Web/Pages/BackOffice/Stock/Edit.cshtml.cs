@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
-public sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
+sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 {
 	public InventoryAggregate? Item { get; private set; }
 
@@ -29,7 +30,11 @@ public sealed class EditModel(IQueryableEventStore store) : EventSourcingPageMod
 			);
 	}
 
-	public async Task<IActionResult> OnPostAdjustStockAsync(string id, int newQuantity, string reason)
+	public async Task<IActionResult> OnPostAdjustStockAsync(
+		string id,
+		int newQuantity,
+		string reason
+	)
 	{
 		var item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		return item == null
@@ -45,7 +50,11 @@ public sealed class EditModel(IQueryableEventStore store) : EventSourcingPageMod
 			);
 	}
 
-	public async Task<IActionResult> OnPostReserveStockAsync(string id, int quantity, string orderId)
+	public async Task<IActionResult> OnPostReserveStockAsync(
+		string id,
+		int quantity,
+		string orderId
+	)
 	{
 		var item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		return item == null
@@ -61,7 +70,11 @@ public sealed class EditModel(IQueryableEventStore store) : EventSourcingPageMod
 			);
 	}
 
-	public async Task<IActionResult> OnPostReleaseReservationAsync(string id, int quantity, string orderId)
+	public async Task<IActionResult> OnPostReleaseReservationAsync(
+		string id,
+		int quantity,
+		string orderId
+	)
 	{
 		var item = await store.GetAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 		return item == null

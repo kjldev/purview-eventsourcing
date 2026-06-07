@@ -2,5 +2,5 @@
 
 public interface IRequirement<T>
 {
-	void SetService(T service);
+    void SetService(T service);
 }
