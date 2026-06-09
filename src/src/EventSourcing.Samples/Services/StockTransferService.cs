@@ -68,11 +68,9 @@ public sealed class StockTransferService(IEventStoreTransactionFactory transacti
 
 		destination.ReceiveStock(quantity);
 
-		await using var transaction = transactionFactory.Create();
-		transaction.Enlist(source, store);
-		transaction.Enlist(destination, store);
-
+		await using var transaction = store.Enlist(source, destination);
 		var transactionResult = await transaction.CommitAsync(cancellationToken);
+
 		return transactionResult.Success
 			? StockTransferResult.Success(source, destination, quantity)
 			: StockTransferResult.Fail("Failed to transfer stock. Nothing was saved.");

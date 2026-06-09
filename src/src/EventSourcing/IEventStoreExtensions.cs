@@ -536,7 +536,7 @@ public static class IEventStoreExtensions
 		ArgumentNullException.ThrowIfNull(eventStore);
 		ArgumentNullException.ThrowIfNull(aggregates);
 
-		var transaction = new EventStoreTransaction(correlationId);
+		EventStoreTransaction transaction = new(correlationId);
 		foreach (var aggregate in aggregates)
 			transaction.Enlist(aggregate, eventStore);
 

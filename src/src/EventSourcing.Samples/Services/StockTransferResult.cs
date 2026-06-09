@@ -5,9 +5,13 @@ namespace Purview.EventSourcing.Samples.Services;
 public sealed class StockTransferResult
 {
 	public bool Succeeded { get; private init; }
+
 	public string? ErrorMessage { get; private init; }
+
 	public InventoryAggregate? Source { get; private init; }
+
 	public InventoryAggregate? Destination { get; private init; }
+
 	public int Quantity { get; private init; }
 
 	public static StockTransferResult Success(

@@ -160,11 +160,7 @@ public sealed class StockTransferServiceTests
 		store.GetAsync<LocationAggregate>("LOC-001", null, cancellationToken).Returns(sourceLocation);
 		store.GetAsync<LocationAggregate>("LOC-002", null, cancellationToken).Returns(destinationLocation);
 		store
-			.FirstOrDefaultAsync<InventoryAggregate>(
-				Arg.Any<Expression<Func<InventoryAggregate, bool>>>(),
-				null,
-				cancellationToken
-			)
+			.FirstOrDefaultAsync(Arg.Any<Expression<Func<InventoryAggregate, bool>>>(), null, cancellationToken)
 			.Returns(dest);
 
 		var result = await CreateService(transactionFactory, store)
