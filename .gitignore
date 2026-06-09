@@ -561,3 +561,33 @@ sketch
 
 !scripts/*
 !src/src/EventSourcing/build
+
+*.binlog
+
+# BEGIN KL-PROFILE-AGENT-CONFIG
+# Agent/local AI outputs
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.cer
+secrets.*
+.azure/
+.aws/
+.ssh/
+bin/
+obj/
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+.cache/
+coverage/
+.agents/cache/
+.agents/backups/
+.agents/tmp/
+.claude/settings.local.json
+.opencode/*.local.json
+# END KL-PROFILE-AGENT-CONFIG

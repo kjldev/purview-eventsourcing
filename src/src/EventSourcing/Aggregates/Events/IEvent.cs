@@ -6,9 +6,9 @@
 /// </summary>
 public interface IEvent
 {
-    /// <summary>
-    /// Gets the <see cref="EventDetails"/> representing
-    /// information about the event on an <see cref="IAggregate"/>.
-    /// </summary>
-    EventDetails Details { get; }
+	/// <summary>
+	/// Gets the <see cref="EventDetails"/> representing
+	/// information about the event on an <see cref="IAggregate"/>.
+	/// </summary>
+	EventDetails Details { get; }
 }

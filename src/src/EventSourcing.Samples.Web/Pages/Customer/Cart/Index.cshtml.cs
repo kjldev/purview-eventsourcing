@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -22,10 +21,7 @@ sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(
-			customerId,
-			HttpContext.RequestAborted
-		);
+		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		CartItems = HttpContext.Session.GetCart();
 		return Page();
 	}
@@ -41,6 +37,7 @@ sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService
 			else
 				cart[idx] = cart[idx] with { Quantity = quantity };
 		}
+
 		HttpContext.Session.SetCart(cart);
 		return RedirectToPage();
 	}
@@ -72,12 +69,7 @@ sealed class IndexModel(IQueryableEventStore customerStore, ICartCheckoutService
 			return RedirectToPage();
 		}
 
-		var result = await checkoutService.CheckoutAsync(
-			customerId,
-			cart,
-			ShippingAddress,
-			HttpContext.RequestAborted
-		);
+		var result = await checkoutService.CheckoutAsync(customerId, cart, ShippingAddress, HttpContext.RequestAborted);
 
 		if (!result.Succeeded)
 		{

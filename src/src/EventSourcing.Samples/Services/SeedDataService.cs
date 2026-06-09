@@ -1,6 +1,5 @@
-using Purview.EventSourcing.Samples.Domain;
-
 using System.Security.Cryptography;
+using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Services;
 
@@ -64,12 +63,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 	];
 	static readonly string[] LastNames = Value;
 
-	static readonly (
-		string ProductId,
-		string ProductName,
-		int InitialQty,
-		int ReorderQty
-	)[] Products =
+	static readonly (string ProductId, string ProductName, int InitialQty, int ReorderQty)[] Products =
 	[
 		("SKU-001", "Wireless Keyboard", 150, 25),
 		("SKU-002", "USB-C Hub 7-Port", 200, 30),
@@ -146,9 +140,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 	{
 		var existingLocationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		await foreach (
-			var location in store.GetListEnumerableAsync<LocationAggregate>(
-				cancellationToken: cancellationToken
-			)
+			var location in store.GetListEnumerableAsync<LocationAggregate>(cancellationToken: cancellationToken)
 		)
 		{
 			existingLocationIds.Add(location.LocationId);
@@ -159,9 +151,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			knownLocations[locationId] = locationName;
 
 		await foreach (
-			var inventory in store.GetListEnumerableAsync<InventoryAggregate>(
-				cancellationToken: cancellationToken
-			)
+			var inventory in store.GetListEnumerableAsync<InventoryAggregate>(cancellationToken: cancellationToken)
 		)
 		{
 			if (!knownLocations.ContainsKey(inventory.LocationId))
@@ -173,10 +163,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			if (existingLocationIds.Contains(locationId))
 				continue;
 
-			var location = await store.CreateAsync<LocationAggregate>(
-				locationId,
-				cancellationToken
-			);
+			var location = await store.CreateAsync<LocationAggregate>(locationId, cancellationToken);
 			location.Initialize(locationId, locationName);
 			await store.SaveAsync(location, cancellationToken);
 		}
@@ -196,9 +183,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 #pragma warning restore CA1308 // Normalize strings to uppercase
 			var phone = phones[i % phones.Length];
 
-			var customer = await store.CreateAsync<CustomerAggregate>(
-				cancellationToken: cancellationToken
-			);
+			var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: cancellationToken);
 			customer.RegisterCustomer($"{first} {last}", email);
 			if (phone is not null)
 				customer.ChangePhoneNumber(phone);
@@ -214,9 +199,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 		return [.. ids];
 	}
 
-	async Task<(string AggregateId, int Index)[]> SeedInventoryAsync(
-		CancellationToken cancellationToken
-	)
+	async Task<(string AggregateId, int Index)[]> SeedInventoryAsync(CancellationToken cancellationToken)
 	{
 		var ids = new List<(string, int)>();
 
@@ -225,9 +208,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			var (productId, productName, initialQty, _) = Products[i];
 			var (locationId, locationName) = Locations[i % Locations.Length];
 
-			var item = await store.CreateAsync<InventoryAggregate>(
-				cancellationToken: cancellationToken
-			);
+			var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
 			item.Initialize(productId, productName, locationId, locationName, initialQty);
 
 			var result = await store.SaveAsync(item, cancellationToken);
@@ -253,9 +234,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			var qty = RandomNumberGenerator.GetInt32(1, 5);
 			var address = Addresses[i % Addresses.Length];
 
-			var order = await store.CreateAsync<OrderAggregate>(
-				cancellationToken: cancellationToken
-			);
+			var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
 			order.CreateOrder(customerId);
 			order.AddLineItem(productId, productName, qty, unitPrice);
 			order.SetShippingAddress(address);
@@ -271,9 +250,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			if (stage == 4)
 			{
 				// Already completed above; create a separate cancelled one.
-				var cancelled = await store.CreateAsync<OrderAggregate>(
-					cancellationToken: cancellationToken
-				);
+				var cancelled = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
 				cancelled.CreateOrder(customerId);
 				cancelled.AddLineItem(productId, productName, 1, unitPrice);
 				cancelled.SetShippingAddress(address);

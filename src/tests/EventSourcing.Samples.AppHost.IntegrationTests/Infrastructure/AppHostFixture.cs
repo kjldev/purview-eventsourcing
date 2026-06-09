@@ -7,159 +7,161 @@ namespace Purview.EventSourcing.Samples.AppHost.Infrastructure;
 
 public sealed class AppHostFixture : AspireFixture<Program>
 {
-    readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
-    string? _databaseConnectionString;
+	readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
+	string? _databaseConnectionString;
+	readonly ServiceCollection _services = [];
 
-    IServiceProvider? _serviceProvider;
-    readonly ServiceCollection _services = [];
+	protected override string[] Args => [$"--DatabaseName={_databaseName}", "--IsTestRun"];
 
-    protected override string[] Args => [$"--DatabaseName={_databaseName}", "--IsTestRun"];
+	public IServiceProvider ServiceProvider
+	{
+		get
+		{
+			return field is null
+				? throw new InvalidOperationException("The fixture has not been initialised yet.")
+				: (field);
+		}
+		private set;
+	}
 
-    public IServiceProvider ServiceProvider
-    {
-        get
-        {
-            if (_serviceProvider is null)
-                throw new InvalidOperationException("The fixture has not been initialised yet.");
+	public override async ValueTask DisposeAsync()
+	{
+		await DeleteDatabaseAsync();
 
-            return _serviceProvider;
-        }
-    }
+		await base.DisposeAsync();
+	}
 
-    public override async ValueTask DisposeAsync()
-    {
-        await DeleteDatabaseAsync();
-
-        await base.DisposeAsync();
-    }
-
-    async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            using SqlConnection conn = new(_databaseConnectionString);
-            {
-                await conn.OpenAsync(cancellationToken);
-                // Terminate any open connections to the database before dropping it.
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText =
-                        $@"
+	[System.Diagnostics.CodeAnalysis.SuppressMessage(
+		"Security",
+		"CA2100:Review SQL queries for security vulnerabilities"
+	)]
+	async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			using SqlConnection conn = new(_databaseConnectionString);
+			{
+				await conn.OpenAsync(cancellationToken);
+				// Terminate any open connections to the database before dropping it.
+				using (var cmd = conn.CreateCommand())
+				{
+					cmd.CommandText =
+						$@"
                         DECLARE @kill varchar(8000) = '';
                         SELECT @kill = @kill + 'KILL ' + CONVERT(varchar(5), session_id) + ';'
                         FROM sys.dm_exec_sessions
                         WHERE database_id  = DB_ID('{_databaseName}')
                         EXEC(@kill);
                     ";
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-                }
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $"DROP DATABASE IF EXISTS [{_databaseName}]";
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to delete database '{_databaseName}': {ex}");
-        }
-    }
+					await cmd.ExecuteNonQueryAsync(cancellationToken);
+				}
 
-    public IServiceCollection ServiceCollection => _services;
+				using (var cmd = conn.CreateCommand())
+				{
+					cmd.CommandText = $"DROP DATABASE IF EXISTS [{_databaseName}]";
+					await cmd.ExecuteNonQueryAsync(cancellationToken);
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Failed to delete database '{_databaseName}': {ex}");
+		}
+	}
 
-    public override async Task InitializeAsync()
-    {
-        await base.InitializeAsync();
+	public IServiceCollection ServiceCollection => _services;
 
-        _databaseConnectionString = BuildDatabaseConnectionString(
-            await GetConnectionStringAsync("sql")
-                ?? throw new InvalidOperationException(
-                    "The AppHost did not expose a database connection string."
-                )
-        );
+	public override async Task InitializeAsync()
+	{
+		await base.InitializeAsync();
 
-        await WaitForWebAppAsync(CancellationToken.None);
+		_databaseConnectionString = BuildDatabaseConnectionString(
+			await GetConnectionStringAsync("sql")
+				?? throw new InvalidOperationException("The AppHost did not expose a database connection string.")
+		);
 
-        _services.AddSqlServerSnapshotQueryableEventStore(registerAsIEventStore: true);
+		await WaitForWebAppAsync(CancellationToken.None);
 
-        _serviceProvider = _services.BuildServiceProvider(
-            new ServiceProviderOptions() { ValidateOnBuild = true, ValidateScopes = true }
-        );
-    }
+		_services.AddSqlServerSnapshotQueryableEventStore(registerAsIEventStore: true);
 
-    public HttpClient CreateWebClient() => CreateHttpClient("web", "http");
+		ServiceProvider = _services.BuildServiceProvider(
+			new ServiceProviderOptions() { ValidateOnBuild = true, ValidateScopes = true }
+		);
+	}
 
-    async Task WaitForWebAppAsync(CancellationToken cancellationToken)
-    {
-        using var client = CreateWebClient();
-        client.Timeout = TimeSpan.FromSeconds(10);
+	public HttpClient CreateWebClient() => CreateHttpClient("web", "http");
 
-        var timeoutAt = DateTimeOffset.UtcNow.AddMinutes(3);
-        while (DateTimeOffset.UtcNow < timeoutAt)
-        {
-            try
-            {
-                using var response = await client.GetAsync("/pingz", cancellationToken);
-                Console.WriteLine("Pingz Response: " + response.StatusCode);
+	async Task WaitForWebAppAsync(CancellationToken cancellationToken)
+	{
+		using var client = CreateWebClient();
+		client.Timeout = TimeSpan.FromSeconds(10);
 
-                if (response.IsSuccessStatusCode)
-                    return;
-            }
-            catch (Exception) when (DateTimeOffset.UtcNow < timeoutAt)
-            {
-                // Resource may still be starting.
-            }
+		var timeoutAt = DateTimeOffset.UtcNow.AddMinutes(3);
+		while (DateTimeOffset.UtcNow < timeoutAt)
+		{
+			try
+			{
+				using var response = await client.GetAsync("/pingz", cancellationToken);
 
-            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
-        }
+				if (TestContext.Current != null)
+					await TestContext.Current.OutputWriter.WriteLineAsync("Pingz Response: " + response.StatusCode);
 
-        throw new InvalidOperationException("The web app resource did not become ready in time.");
-    }
+				Console.WriteLine("Pingz Response: " + response.StatusCode);
 
-    string BuildDatabaseConnectionString(string connectionString)
-    {
-        SqlConnectionStringBuilder builder = new(connectionString)
-        {
-            InitialCatalog = _databaseName,
-        };
+				if (response.IsSuccessStatusCode)
+					return;
+			}
+			catch (Exception ex) when (DateTimeOffset.UtcNow < timeoutAt)
+			{
+				// Resource may still be starting.
+				if (TestContext.Current != null)
+					await TestContext.Current.OutputWriter.WriteLineAsync("Waiting for Web Failure: " + ex.Message);
 
-        return builder.ConnectionString;
-    }
+				Console.WriteLine("Waiting for Web Failure: " + ex.Message);
+			}
 
-    public IQueryableEventStore QueryableEventStore()
-    {
-        if (_databaseConnectionString is null)
-            throw new InvalidOperationException("The database connection string is not available.");
+			await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+		}
 
-        return ServiceProvider.GetRequiredService<IQueryableEventStore>();
-    }
+		throw new InvalidOperationException("The web app resource did not become ready in time.");
+	}
 
-    public IEventStore EventStore()
-    {
-        if (_databaseConnectionString is null)
-            throw new InvalidOperationException("The database connection string is not available.");
+	string BuildDatabaseConnectionString(string connectionString)
+	{
+		SqlConnectionStringBuilder builder = new(connectionString) { InitialCatalog = _databaseName };
 
-        return ServiceProvider!.GetRequiredService<IEventStore>();
-    }
+		return builder.ConnectionString;
+	}
 
-    public IServiceCollection CloneServiceCollection(
-        Action<IServiceCollection>? configuration = null
-    )
-    {
-        ServiceCollection clone = [.. _services];
+	public IQueryableEventStore QueryableEventStore()
+	{
+		return _databaseConnectionString is null
+			? throw new InvalidOperationException("The database connection string is not available.")
+			: ServiceProvider.GetRequiredService<IQueryableEventStore>();
+	}
 
-        configuration?.Invoke(clone);
+	public IEventStore EventStore()
+	{
+		return _databaseConnectionString is null
+			? throw new InvalidOperationException("The database connection string is not available.")
+			: ServiceProvider!.GetRequiredService<IEventStore>();
+	}
 
-        return clone;
-    }
+	public IServiceCollection CloneServiceCollection(Action<IServiceCollection>? configuration = null)
+	{
+		ServiceCollection clone = [.. _services];
 
-    public IServiceProvider CloneServiceProvider(Action<IServiceCollection>? configuration = null)
-    {
-        var services = CloneServiceCollection(configuration);
+		configuration?.Invoke(clone);
 
-        return services.BuildServiceProvider(
-            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true }
-        );
-    }
+		return clone;
+	}
+
+	public IServiceProvider CloneServiceProvider(Action<IServiceCollection>? configuration = null)
+	{
+		var services = CloneServiceCollection(configuration);
+
+		return services.BuildServiceProvider(
+			new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true }
+		);
+	}
 }

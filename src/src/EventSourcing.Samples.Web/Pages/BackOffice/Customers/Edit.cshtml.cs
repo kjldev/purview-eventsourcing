@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
@@ -60,9 +59,7 @@ sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.ChangePhoneNumber(
-						string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
-					);
+					customer.ChangePhoneNumber(string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim());
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Phone number updated.",

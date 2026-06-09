@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.Samples.Domain;
@@ -9,96 +10,110 @@ namespace Purview.EventSourcing.Samples.Domain;
 [GenerateAggregate]
 public sealed partial class CustomerAggregate : AggregateBase
 {
-    public string Name { get; private set; } = default!;
-    public string Email { get; private set; } = default!;
-    public string? PhoneNumber { get; private set; }
-    public bool IsActive { get; private set; }
+	public string Name { get; private set; } = default!;
 
-    // Commands
-    public void RegisterCustomer(string name, string email)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+	[EmailAddress]
+	public string Email { get; private set; } = default!;
 
-        CustomerRegistered(name, email, isActive: true);
-    }
+	public string? PhoneNumber { get; private set; }
 
-    public void ChangeName(string newName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(newName);
-        if (newName == Name)
-            return;
+	public bool IsActive { get; private set; }
 
-        CustomerNameChanged(newName);
-    }
+	// Commands
+	public void RegisterCustomer(string name, string email)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(name);
+		ArgumentException.ThrowIfNullOrWhiteSpace(email);
 
-    public void ChangeEmail(string newEmail)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
-        if (newEmail == Email)
-            return;
+		// Transform email: trim and lowercase
+		email = email.Trim().ToLowerInvariant();
 
-        CustomerEmailChanged(newEmail);
-    }
+		CustomerRegistered(name, email, isActive: true);
+	}
 
-    public void ChangePhoneNumber(string? phoneNumber) => CustomerPhoneChanged(phoneNumber);
+	public void ChangeName(string newName)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(newName);
+		if (newName == Name)
+			return;
 
-    /// <summary>
-    /// Updates one or more customer details in a single operation, raising a granular event
-    /// for each field that has actually changed. Pass <see langword="null"/> for any field
-    /// that should remain unchanged. To clear the phone number, use <see cref="ChangePhoneNumber"/> directly.
-    /// </summary>
-    public void UpdateDetails(string? name = null, string? email = null, string? phoneNumber = null)
-    {
-        if (name is not null)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            if (name != Name)
-                CustomerNameChanged(name);
-        }
+		CustomerNameChanged(newName);
+	}
 
-        if (email is not null)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(email);
-            if (email != Email)
-                CustomerEmailChanged(email);
-        }
+	public void ChangeEmail(string newEmail)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(newEmail);
+		if (newEmail == Email)
+			return;
 
-        if (phoneNumber is not null && phoneNumber != PhoneNumber)
-            CustomerPhoneChanged(phoneNumber);
-    }
+		// Transform email: trim and lowercase
+		newEmail = newEmail.Trim().ToLowerInvariant();
 
-    public void Deactivate()
-    {
-        if (!IsActive)
-            return;
+		CustomerEmailChanged(newEmail);
+	}
 
-        CustomerDeactivated(isActive: false);
-    }
+	public void ChangePhoneNumber(string? phoneNumber) => CustomerPhoneChanged(phoneNumber);
 
-    public void Reactivate()
-    {
-        if (IsActive)
-            return;
+	/// <summary>
+	/// Updates one or more customer details in a single operation, raising a granular event
+	/// for each field that has actually changed. Pass <see langword="null"/> for any field
+	/// that should remain unchanged. To clear the phone number, use <see cref="ChangePhoneNumber"/> directly.
+	/// </summary>
+	public void UpdateDetails(string? name = null, string? email = null, string? phoneNumber = null)
+	{
+		if (name is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(name);
+			if (name != Name)
+				CustomerNameChanged(name);
+		}
 
-        CustomerReactivated(isActive: true);
-    }
+		if (email is not null)
+		{
+			ArgumentException.ThrowIfNullOrWhiteSpace(email);
+			if (email != Email)
+			{
+				// Transform email: trim and lowercase
+				email = email.Trim().ToLowerInvariant();
+				CustomerEmailChanged(email);
+			}
+		}
 
-    [GenerateAggregateEvent]
-    public partial void CustomerRegistered(string name, string email, bool isActive);
+		if (phoneNumber is not null && phoneNumber != PhoneNumber)
+			CustomerPhoneChanged(phoneNumber);
+	}
 
-    [GenerateAggregateEvent]
-    public partial void CustomerNameChanged(string name);
+	public void Deactivate()
+	{
+		if (!IsActive)
+			return;
 
-    [GenerateAggregateEvent]
-    public partial void CustomerEmailChanged(string email);
+		CustomerDeactivated(isActive: false);
+	}
 
-    [GenerateAggregateEvent]
-    public partial void CustomerPhoneChanged(string? phoneNumber);
+	public void Reactivate()
+	{
+		if (IsActive)
+			return;
 
-    [GenerateAggregateEvent]
-    public partial void CustomerDeactivated(bool isActive);
+		CustomerReactivated(isActive: true);
+	}
 
-    [GenerateAggregateEvent]
-    public partial void CustomerReactivated(bool isActive);
+	[GenerateAggregateEvent]
+	public partial void CustomerRegistered(string name, string email, bool isActive);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerNameChanged(string name);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerEmailChanged(string email);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerPhoneChanged(string? phoneNumber);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerDeactivated(bool isActive);
+
+	[GenerateAggregateEvent]
+	public partial void CustomerReactivated(bool isActive);
 }

@@ -1,10 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-
 using Purview.EventSourcing.Samples.Domain;
-
-using System.ComponentModel.DataAnnotations;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
@@ -46,10 +44,7 @@ sealed class CreateModel(IQueryableEventStore store) : PageModel
 		var location = await store.GetAsync<LocationAggregate>(locationId, ct);
 		if (location is null || location.Details.IsDeleted)
 		{
-			ModelState.AddModelError(
-				nameof(LocationId),
-				"Please select a valid physical location."
-			);
+			ModelState.AddModelError(nameof(LocationId), "Please select a valid physical location.");
 			await LoadLocationsAsync(ct);
 			return Page();
 		}
@@ -69,13 +64,7 @@ sealed class CreateModel(IQueryableEventStore store) : PageModel
 		}
 
 		var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: ct);
-		item.Initialize(
-			productId,
-			productName,
-			location.LocationId,
-			location.LocationName,
-			InitialQuantity
-		);
+		item.Initialize(productId, productName, location.LocationId, location.LocationName, InitialQuantity);
 		await store.SaveAsync(item, ct);
 
 		TempData["Success"] = $"Inventory item '{item.ProductName}' created.";

@@ -32,61 +32,53 @@ namespace Purview.EventSourcing;
 /// </remarks>
 public interface IEventStoreTransaction : IAsyncDisposable
 {
-    /// <summary>
-    /// The correlation ID that binds all aggregates in this transaction together.
-    /// </summary>
-    /// <remarks>
-    /// This value is automatically propagated to every <see cref="Aggregates.Events.EventDetails.CorrelationId"/>
-    /// when <see cref="CommitAsync"/> is called.
-    /// </remarks>
-    string CorrelationId { get; }
+	/// <summary>
+	/// The correlation ID that binds all aggregates in this transaction together.
+	/// </summary>
+	/// <remarks>
+	/// This value is automatically propagated to every <see cref="Aggregates.Events.EventDetails.CorrelationId"/>
+	/// when <see cref="CommitAsync"/> is called.
+	/// </remarks>
+	string CorrelationId { get; }
 
-    /// <summary>
-    /// Registers an aggregate for inclusion in this transaction.
-    /// </summary>
-    /// <typeparam name="T">The aggregate type.</typeparam>
-    /// <param name="aggregate">The aggregate with unsaved events to include in the commit.</param>
-    /// <param name="eventStore">The <see cref="IEventStore"/> responsible for persisting <paramref name="aggregate"/>.</param>
-    /// <param name="operationContext">
-    /// Optional <see cref="EventStoreOperationContext"/>. When <see langword="null"/>,
-    /// the default context is used with this transaction's <see cref="CorrelationId"/>.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown if <see cref="CommitAsync"/> has already been called.
-    /// </exception>
-    void Enlist<T>(
-        T aggregate,
-        IEventStore eventStore,
-        EventStoreOperationContext? operationContext = null
-    )
-        where T : class, IAggregate, new();
+	/// <summary>
+	/// Registers an aggregate for inclusion in this transaction.
+	/// </summary>
+	/// <typeparam name="T">The aggregate type.</typeparam>
+	/// <param name="aggregate">The aggregate with unsaved events to include in the commit.</param>
+	/// <param name="eventStore">The <see cref="IEventStore"/> responsible for persisting <paramref name="aggregate"/>.</param>
+	/// <param name="operationContext">
+	/// Optional <see cref="EventStoreOperationContext"/>. When <see langword="null"/>,
+	/// the default context is used with this transaction's <see cref="CorrelationId"/>.
+	/// </param>
+	/// <exception cref="InvalidOperationException">
+	/// Thrown if <see cref="CommitAsync"/> has already been called.
+	/// </exception>
+	void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
+		where T : class, IAggregate, new();
 
-    /// <summary>
-    /// Registers an aggregate for inclusion in this transaction using a typed implementation contract.
-    /// </summary>
-    /// <typeparam name="T">The aggregate type.</typeparam>
-    /// <param name="aggregate">The aggregate with unsaved events to include in the commit.</param>
-    /// <param name="eventStore">The typed implementation responsible for persisting <paramref name="aggregate"/>.</param>
-    /// <param name="operationContext">
-    /// Optional <see cref="EventStoreOperationContext"/>. When <see langword="null"/>,
-    /// the default context is used with this transaction's <see cref="CorrelationId"/>.
-    /// </param>
-    void Enlist<T>(
-        T aggregate,
-        IEventStoreCore<T> eventStore,
-        EventStoreOperationContext? operationContext = null
-    )
-        where T : class, IAggregate, new();
+	/// <summary>
+	/// Registers an aggregate for inclusion in this transaction using a typed implementation contract.
+	/// </summary>
+	/// <typeparam name="T">The aggregate type.</typeparam>
+	/// <param name="aggregate">The aggregate with unsaved events to include in the commit.</param>
+	/// <param name="eventStore">The typed implementation responsible for persisting <paramref name="aggregate"/>.</param>
+	/// <param name="operationContext">
+	/// Optional <see cref="EventStoreOperationContext"/>. When <see langword="null"/>,
+	/// the default context is used with this transaction's <see cref="CorrelationId"/>.
+	/// </param>
+	void Enlist<T>(T aggregate, IEventStoreCore<T> eventStore, EventStoreOperationContext? operationContext = null)
+		where T : class, IAggregate, new();
 
-    /// <summary>
-    /// Persists all enlisted aggregates.
-    /// </summary>
-    /// <param name="cancellationToken">The stopping token.</param>
-    /// <returns>
-    /// A <see cref="TransactionResult"/> summarising the outcome of each aggregate save.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown if <see cref="CommitAsync"/> has already been called.
-    /// </exception>
-    Task<TransactionResult> CommitAsync(CancellationToken cancellationToken = default);
+	/// <summary>
+	/// Persists all enlisted aggregates.
+	/// </summary>
+	/// <param name="cancellationToken">The stopping token.</param>
+	/// <returns>
+	/// A <see cref="TransactionResult"/> summarising the outcome of each aggregate save.
+	/// </returns>
+	/// <exception cref="InvalidOperationException">
+	/// Thrown if <see cref="CommitAsync"/> has already been called.
+	/// </exception>
+	Task<TransactionResult> CommitAsync(CancellationToken cancellationToken = default);
 }

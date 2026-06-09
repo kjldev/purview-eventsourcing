@@ -2,44 +2,49 @@ using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-//builder.Services.AddOptionsWithValidateOnStart<AppHostOptions>(AppHostOptions.SectionName);
+var databaseName =
+	args?.FirstOrDefault(static s => s.StartsWith("--DatabaseName=", StringComparison.OrdinalIgnoreCase))
+		?.Split('=')
+		.LastOrDefault()
+	?? "EventSourcingSampleDb";
 
-var databaseName = args
-    ?.FirstOrDefault(s => s.StartsWith("--DatabaseName=", StringComparison.OrdinalIgnoreCase))
-    ?.Split('=')
-    .LastOrDefault();
-
-var isTesting =
-    args?.FirstOrDefault(s => s.Equals("--IsTestRun", StringComparison.OrdinalIgnoreCase)) != null;
+var isTesting = args?.FirstOrDefault(static s => s.Equals("--IsTestRun", StringComparison.OrdinalIgnoreCase)) != null;
 
 var sqlPassword = builder.AddParameter("sql-password", "PaSsw0rd!!1!", secret: true);
 var sql = builder.AddSqlServer("sql", password: sqlPassword).WithImageTag("2025-latest");
-
-if (!isTesting)
-    sql.WithDataVolume("eventsourcing-sample-sql-data");
-
 var db = sql.AddDatabase("eventstore-sqlserver", databaseName);
 
-var redis = builder.AddRedis("redis");
-redis.WithRedisInsight(c => c.WithParentRelationship(redis));
-
 var blobs = builder
-    .AddAzureStorage("storage")
-    .RunAsEmulator(e =>
-    {
-        if (!isTesting)
-            e.WithDataVolume("eventsourcing-sample-azurite-data");
-    })
-    .AddBlobs("blob-storage");
+	.AddAzureStorage("storage")
+	.RunAsEmulator(e =>
+	{
+		if (!isTesting)
+			e.WithDataVolume("eventsourcing-sample-azurite-data");
+	})
+	.AddBlobs(isTesting ? $"ess-{Guid.NewGuid():N}"[..8] : "blob-storage");
 
-builder
-    .AddProject<Projects.EventSourcing_Samples_Web>("web")
-    .WithReference(db)
-    .WaitFor(db)
-    .WithReference(redis)
-    .WaitFor(redis)
-    .WithReference(blobs)
-    .WaitFor(blobs)
-    .WithExternalHttpEndpoints();
+IResourceBuilder<RedisResource>? redis = null;
+if (!isTesting)
+{
+	redis = builder.AddRedis("redis");
+	redis.WithRedisInsight(c => c.WithParentRelationship(redis));
 
-builder.Build().Run();
+	sql.WithDataVolume("eventsourcing-sample-sql-data");
+}
+
+var web = builder
+	.AddProject<Projects.EventSourcing_Samples_Web>("web")
+	.WithReference(db)
+	.WaitFor(db)
+	.WithReference(blobs)
+	.WaitFor(blobs)
+	.WithExternalHttpEndpoints();
+
+if (!isTesting)
+{
+	web.WithReference(redis!).WaitFor(redis!);
+}
+
+var app = builder.Build();
+
+await app.RunAsync();

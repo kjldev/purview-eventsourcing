@@ -4,5 +4,5 @@ namespace Purview.EventSourcing.Services;
 
 public interface IAggregateRequirementsManager
 {
-    void Fulfil(IAggregate aggregate);
+	void Fulfil(IAggregate aggregate);
 }

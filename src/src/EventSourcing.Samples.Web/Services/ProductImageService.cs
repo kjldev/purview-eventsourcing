@@ -7,10 +7,7 @@ sealed class ProductImageService(BlobServiceClient blobServiceClient) : IProduct
 {
 	const string ContainerName = "product-images";
 
-	public async Task<string?> GetImageUrlAsync(
-		string productId,
-		CancellationToken cancellationToken = default
-	)
+	public async Task<string?> GetImageUrlAsync(string productId, CancellationToken cancellationToken = default)
 	{
 #pragma warning disable CA1031 // Do not catch general exception types
 		try
@@ -34,10 +31,7 @@ sealed class ProductImageService(BlobServiceClient blobServiceClient) : IProduct
 	)
 	{
 		var container = blobServiceClient.GetBlobContainerClient(ContainerName);
-		await container.CreateIfNotExistsAsync(
-			PublicAccessType.Blob,
-			cancellationToken: cancellationToken
-		);
+		await container.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
 		var blob = container.GetBlobClient(productId);
 		await blob.UploadAsync(
 			imageStream,
@@ -46,10 +40,7 @@ sealed class ProductImageService(BlobServiceClient blobServiceClient) : IProduct
 		);
 	}
 
-	public async Task DeleteImageAsync(
-		string productId,
-		CancellationToken cancellationToken = default
-	)
+	public async Task DeleteImageAsync(string productId, CancellationToken cancellationToken = default)
 	{
 		var container = blobServiceClient.GetBlobContainerClient(ContainerName);
 		var blob = container.GetBlobClient(productId);

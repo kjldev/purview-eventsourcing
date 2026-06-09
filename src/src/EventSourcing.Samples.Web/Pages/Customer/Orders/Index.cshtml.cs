@@ -1,16 +1,13 @@
+using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
-
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
 
-sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore orderStore)
-	: PageModel
+sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore orderStore) : PageModel
 {
 	const int DefaultPageSize = 15;
 
@@ -49,9 +46,9 @@ sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore
 		};
 
 		Expression<Func<OrderAggregate, bool>> where = o => o.CustomerId == customerId;
-		TotalCount = await orderStore.CountAsync<OrderAggregate>(where, ct);
+		TotalCount = await orderStore.CountAsync(where, ct);
 
-		var result = await orderStore.QueryAsync<OrderAggregate>(
+		var result = await orderStore.QueryAsync(
 			where,
 			q => q.OrderByDescending(o => o.Details.SavedVersion),
 			request,

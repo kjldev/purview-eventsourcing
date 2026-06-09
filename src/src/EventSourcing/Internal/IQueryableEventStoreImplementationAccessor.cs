@@ -6,6 +6,6 @@ namespace Purview.EventSourcing.Internal;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public interface IQueryableEventStoreImplementationAccessor : IEventStoreImplementationAccessor
 {
-    IQueryableEventStoreCore<T> GetQueryableEventStore<T>()
-        where T : class, IAggregate, new();
+	IQueryableEventStoreCore<T> GetQueryableEventStore<T>()
+		where T : class, IAggregate, new();
 }

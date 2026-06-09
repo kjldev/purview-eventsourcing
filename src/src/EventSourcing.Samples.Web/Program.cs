@@ -1,9 +1,8 @@
 using Azure.Storage.Blobs;
-
 using Purview.EventSourcing;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Services;
-using Purview.EventSourcing.SqlServer.Exceptions;
+using Purview.EventSourcing.SqlServer.Events.Exceptions;
 
 // No authentication in this sample — allow all operations without a principal identifier
 EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
@@ -13,10 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Use Redis when available (e.g. via Aspire AppHost); fall back to in-memory for standalone dev runs
-if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("redis")))
-	builder.AddRedisDistributedCache("redis");
-else
+if (string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("redis")))
 	builder.Services.AddDistributedMemoryCache();
+else
+	builder.AddRedisDistributedCache("redis");
 
 // Register SQL Server event store (event stream + snapshots for querying)
 builder.Services.AddSqlServerEventStore();
@@ -56,7 +55,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.MapRazorPages();
-app.MapDefaultEndpoints();
+app.MapDefaultEndpoints().MapGet("/pingz", () => Results.Ok());
 
 // Seed demo data on startup (no-op if data already exists).
 await using (var scope = app.Services.CreateAsyncScope())
@@ -78,6 +77,3 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 await app.RunAsync();
-
-// Required for WebApplicationFactory<Program> in integration tests
-//public partial class Program { }

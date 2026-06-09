@@ -9,42 +9,34 @@ namespace Purview.EventSourcing;
 /// </summary>
 sealed class StringValuesConverter : JsonConverter<StringValues>
 {
-    /// <inheritdoc/>
-    public override StringValues Read(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        JsonSerializerOptions options
-    )
-    {
-        if (reader.TokenType == JsonTokenType.StartArray)
-        {
-            var values = JsonSerializer.Deserialize<string[]>(ref reader, options) ?? [];
-            return new(values);
-        }
+	/// <inheritdoc/>
+	public override StringValues Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+	{
+		if (reader.TokenType == JsonTokenType.StartArray)
+		{
+			var values = JsonSerializer.Deserialize<string[]>(ref reader, options) ?? [];
+			return new(values);
+		}
 
-        return reader.TokenType == JsonTokenType.String ? new(reader.GetString())
-            : reader.TokenType == JsonTokenType.Null ? new StringValues()
-            : throw new JsonException(
-                $"Unable to deserialize {nameof(StringValues)} from token type {reader.TokenType}."
-            );
-    }
+		return reader.TokenType == JsonTokenType.String ? new(reader.GetString())
+			: reader.TokenType == JsonTokenType.Null ? new StringValues()
+			: throw new JsonException(
+				$"Unable to deserialize {nameof(StringValues)} from token type {reader.TokenType}."
+			);
+	}
 
-    /// <inheritdoc/>
-    public override void Write(
-        Utf8JsonWriter writer,
-        StringValues value,
-        JsonSerializerOptions options
-    )
-    {
-        if (value.Count == 0)
-            writer.WriteNullValue();
-        else if (value.Count == 1)
-        {
-            writer.WriteStringValue(value[0]);
-        }
-        else
-        {
-            JsonSerializer.Serialize(writer, value.ToArray(), options);
-        }
-    }
+	/// <inheritdoc/>
+	public override void Write(Utf8JsonWriter writer, StringValues value, JsonSerializerOptions options)
+	{
+		if (value.Count == 0)
+			writer.WriteNullValue();
+		else if (value.Count == 1)
+		{
+			writer.WriteStringValue(value[0]);
+		}
+		else
+		{
+			JsonSerializer.Serialize(writer, value.ToArray(), options);
+		}
+	}
 }

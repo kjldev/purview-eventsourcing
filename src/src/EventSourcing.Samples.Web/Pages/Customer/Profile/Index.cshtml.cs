@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
@@ -15,10 +14,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		CurrentCustomer = await store.GetAsync<CustomerAggregate>(
-			customerId,
-			HttpContext.RequestAborted
-		);
+		CurrentCustomer = await store.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		return Page();
 	}
 
@@ -34,10 +30,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 			return RedirectToPage();
 		}
 
-		var customer = await store.GetAsync<CustomerAggregate>(
-			customerId,
-			HttpContext.RequestAborted
-		);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		return customer == null
 			? NotFound()
 			: await TrySaveAsync(
@@ -57,10 +50,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		var customer = await store.GetAsync<CustomerAggregate>(
-			customerId,
-			HttpContext.RequestAborted
-		);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		return customer == null
 			? NotFound()
 			: await TrySaveAsync(
@@ -80,18 +70,13 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 		if (string.IsNullOrEmpty(customerId))
 			return RedirectToPage("/Customer/Index");
 
-		var customer = await store.GetAsync<CustomerAggregate>(
-			customerId,
-			HttpContext.RequestAborted
-		);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		return customer == null
 			? NotFound()
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.ChangePhoneNumber(
-						string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
-					);
+					customer.ChangePhoneNumber(string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim());
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Phone number updated.",
@@ -99,11 +84,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 			);
 	}
 
-	public async Task<IActionResult> OnPostUpdateAllAsync(
-		string newName,
-		string newEmail,
-		string? phoneNumber
-	)
+	public async Task<IActionResult> OnPostUpdateAllAsync(string newName, string newEmail, string? phoneNumber)
 	{
 		var customerId = HttpContext.Session.GetString("selectedCustomerId");
 		if (string.IsNullOrEmpty(customerId))
@@ -114,16 +95,14 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 			TempData["Error"] = "Name cannot be empty.";
 			return RedirectToPage();
 		}
+
 		if (string.IsNullOrWhiteSpace(newEmail))
 		{
 			TempData["Error"] = "Email cannot be empty.";
 			return RedirectToPage();
 		}
 
-		var customer = await store.GetAsync<CustomerAggregate>(
-			customerId,
-			HttpContext.RequestAborted
-		);
+		var customer = await store.GetAsync<CustomerAggregate>(customerId, HttpContext.RequestAborted);
 		return customer == null
 			? NotFound()
 			: await TrySaveAsync(
@@ -132,9 +111,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 					customer.UpdateDetails(
 						name: newName.Trim(),
 						email: newEmail.Trim().ToLowerInvariant(),
-						phoneNumber: string.IsNullOrWhiteSpace(phoneNumber)
-							? null
-							: phoneNumber.Trim()
+						phoneNumber: string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
 					);
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},

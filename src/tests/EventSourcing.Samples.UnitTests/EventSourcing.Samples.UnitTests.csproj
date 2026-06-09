@@ -1,6 +1,1 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <!-- Remove auto-added SharedTestingFramework since this project tests the samples -->
-  <!--<ItemGroup>
-    <ProjectReference Remove="../SharedTestingFramework/SharedTestingFramework.csproj" />
-  </ItemGroup>-->
-</Project>
+﻿<Project Sdk="Microsoft.NET.Sdk"></Project>

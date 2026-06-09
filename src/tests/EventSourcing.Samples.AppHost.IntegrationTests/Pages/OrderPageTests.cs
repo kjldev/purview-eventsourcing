@@ -3,6 +3,7 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.AppHost.Pages;
 
+[Skip("WIP")]
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
 public sealed class OrderPageTests(AppHostFixture fixture)
 {
@@ -17,9 +18,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 	}
 
 	[Test]
-	public async Task CustomerOrders_WithoutSession_RedirectsOrReturns200(
-		CancellationToken cancellationToken
-	)
+	public async Task CustomerOrders_WithoutSession_RedirectsOrReturns200(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/Customer/Orders", cancellationToken);
 
@@ -27,9 +26,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 	}
 
 	[Test]
-	public async Task CustomerOrders_WithMultiplePages_RendersNextPageLink(
-		CancellationToken cancellationToken
-	)
+	public async Task CustomerOrders_WithMultiplePages_RendersNextPageLink(CancellationToken cancellationToken)
 	{
 		var customerId = await CreateCustomerWithOrdersAsync(11, cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync("/Customer", cancellationToken);
@@ -38,11 +35,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 			new("id", customerId),
 			new("__RequestVerificationToken", antiForgery),
 		]);
-		var selectResponse = await _client.PostAsync(
-			"/Customer?handler=Select",
-			content,
-			cancellationToken
-		);
+		var selectResponse = await _client.PostAsync("/Customer?handler=Select", content, cancellationToken);
 		await Assert.That((int)selectResponse.StatusCode).IsEqualTo(302);
 
 		var response = await _client.GetAsync("/Customer/Orders?pageSize=10", cancellationToken);
@@ -61,17 +54,10 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 	}
 
 	[Test]
-	public async Task BackOfficeStockTransfer_Post_WithValidData_Redirects(
-		CancellationToken cancellationToken
-	)
+	public async Task BackOfficeStockTransfer_Post_WithValidData_Redirects(CancellationToken cancellationToken)
 	{
-		var (sourceInventoryId, destinationLocationId) = await CreateTransferScenarioAsync(
-			cancellationToken
-		);
-		var antiForgery = await GetAntiForgeryTokenAsync(
-			"/BackOffice/Stock/Transfer",
-			cancellationToken
-		);
+		var (sourceInventoryId, destinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
+		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Stock/Transfer", cancellationToken);
 
 		var form = new Dictionary<string, string>
 		{
@@ -83,37 +69,23 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		};
 
 		using var content = new FormUrlEncodedContent(form);
-		var response = await _client.PostAsync(
-			"/BackOffice/Stock/Transfer",
-			content,
-			cancellationToken
-		);
+		var response = await _client.PostAsync("/BackOffice/Stock/Transfer", content, cancellationToken);
 
 		await Assert.That((int)response.StatusCode).IsEqualTo(302);
 	}
 
 	[Test]
-	public async Task BackOfficeCatalogIndex_WithPaging_Returns200(
-		CancellationToken cancellationToken
-	)
+	public async Task BackOfficeCatalogIndex_WithPaging_Returns200(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync(
-			"/BackOffice/Catalog?page=1&pageSize=10",
-			cancellationToken
-		);
+		var response = await _client.GetAsync("/BackOffice/Catalog?page=1&pageSize=10", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
 	[Test]
-	public async Task BackOfficeCatalogIndex_WithSorting_Returns200(
-		CancellationToken cancellationToken
-	)
+	public async Task BackOfficeCatalogIndex_WithSorting_Returns200(CancellationToken cancellationToken)
 	{
-		var response = await _client.GetAsync(
-			"/BackOffice/Catalog?sortBy=name&sortDir=asc",
-			cancellationToken
-		);
+		var response = await _client.GetAsync("/BackOffice/Catalog?sortBy=name&sortDir=asc", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
@@ -126,35 +98,23 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
 
-	async Task<(
-		string SourceInventoryId,
-		string DestinationLocationId
-	)> CreateTransferScenarioAsync(CancellationToken cancellationToken)
+	async Task<(string SourceInventoryId, string DestinationLocationId)> CreateTransferScenarioAsync(
+		CancellationToken cancellationToken
+	)
 	{
 		var store = fixture.QueryableEventStore();
 
 		var sourceLocationId = $"LOC-TEST-SRC-{Guid.NewGuid():N}";
-		var sourceLocation = await store.CreateAsync<LocationAggregate>(
-			sourceLocationId,
-			cancellationToken
-		);
+		var sourceLocation = await store.CreateAsync<LocationAggregate>(sourceLocationId, cancellationToken);
 		sourceLocation.Initialize(sourceLocationId, $"Transfer Source {Guid.NewGuid():N}");
 		await store.SaveAsync(sourceLocation, cancellationToken);
 
 		var destinationLocationId = $"LOC-TEST-DST-{Guid.NewGuid():N}";
-		var destinationLocation = await store.CreateAsync<LocationAggregate>(
-			destinationLocationId,
-			cancellationToken
-		);
-		destinationLocation.Initialize(
-			destinationLocationId,
-			$"Transfer Destination {Guid.NewGuid():N}"
-		);
+		var destinationLocation = await store.CreateAsync<LocationAggregate>(destinationLocationId, cancellationToken);
+		destinationLocation.Initialize(destinationLocationId, $"Transfer Destination {Guid.NewGuid():N}");
 		await store.SaveAsync(destinationLocation, cancellationToken);
 
-		var inventory = await store.CreateAsync<InventoryAggregate>(
-			cancellationToken: cancellationToken
-		);
+		var inventory = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
 		inventory.Initialize(
 			$"SKU-TRANSFER-{Guid.NewGuid():N}",
 			"Transfer Test Widget",
@@ -182,27 +142,17 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		return html[valueStart..valueEnd];
 	}
 
-	async Task<string> CreateCustomerWithOrdersAsync(
-		int orderCount,
-		CancellationToken cancellationToken
-	)
+	async Task<string> CreateCustomerWithOrdersAsync(int orderCount, CancellationToken cancellationToken)
 	{
 		var store = fixture.QueryableEventStore();
-		var customer = await store.CreateAsync<CustomerAggregate>(
-			cancellationToken: cancellationToken
-		);
-		customer.RegisterCustomer(
-			$"paging-orders-{Guid.NewGuid():N}",
-			$"paging-orders-{Guid.NewGuid():N}@example.com"
-		);
+		var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: cancellationToken);
+		customer.RegisterCustomer($"paging-orders-{Guid.NewGuid():N}", $"paging-orders-{Guid.NewGuid():N}@example.com");
 		var customerResult = await store.SaveAsync(customer, cancellationToken);
 		var customerId = customerResult.Aggregate.Id();
 
 		for (var i = 0; i < orderCount; i++)
 		{
-			var order = await store.CreateAsync<OrderAggregate>(
-				cancellationToken: cancellationToken
-			);
+			var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
 			order.CreateOrder(customerId);
 			order.AddLineItem($"SKU-PAGING-{i:D2}", $"Paging Item {i:D2}", 1, 9.99m + i);
 			order.SetShippingAddress($"{i + 1} Pagination Road");

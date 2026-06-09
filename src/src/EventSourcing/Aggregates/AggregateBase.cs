@@ -10,159 +10,181 @@ namespace Purview.EventSourcing.Aggregates;
 /// </summary>
 public abstract class AggregateBase : IAggregate
 {
-    readonly Dictionary<Type, Action<IEvent>> _appliersByEventType = [];
+	readonly Dictionary<Type, Action<IEvent>> _appliersByEventType = [];
 
-    ConcurrentBag<IEvent> _unsavedEvents = [];
+	ConcurrentBag<IEvent> _unsavedEvents = [];
 
-    /// <summary>
-    /// Initializes the base-class.
-    /// </summary>
-    /// <param name="aggregateType">Specifies the <see cref="AggregateType"/>, if not value is specified
-    /// <see cref="TypeNameHelper.GetName(Type, string, bool)"/> is called, with 'Aggregate' being trimmed if it's a suffix
-    /// of the type na,e.</param>
-    protected AggregateBase(string? aggregateType = null)
-    {
-        AggregateType = aggregateType ?? TypeNameHelper.GetName(GetType(), "Aggregate");
+	/// <summary>
+	/// Initializes the base-class.
+	/// </summary>
+	/// <param name="aggregateType">Specifies the <see cref="AggregateType"/>, if not value is specified
+	/// <see cref="TypeNameHelper.GetName(Type, string, bool)"/> is called, with 'Aggregate' being trimmed if it's a suffix
+	/// of the type na,e.</param>
+	protected AggregateBase(string? aggregateType = null)
+	{
+		AggregateType = aggregateType ?? TypeNameHelper.GetName(GetType(), "Aggregate");
 
-        RegisterSystemEvents();
+		RegisterSystemEvents();
 #pragma warning disable CA2214 // Do not call overridable methods in constructors
-        RegisterEvents();
+		RegisterEvents();
 #pragma warning restore CA2214 // Do not call overridable methods in constructors
-    }
+	}
 
-    ///<inheritdoc/>
-    public string AggregateType { get; }
+	///<inheritdoc/>
+	public string AggregateType { get; }
 
-    ///<inheritdoc/>
-    public AggregateDetails Details { get; init; } = new();
+	///<inheritdoc/>
+	public AggregateDetails Details { get; init; } = new();
 
-    void RegisterSystemEvents()
-    {
-        Register<DeleteEvent>(_ => Details.IsDeleted = true);
-        Register<RestoreEvent>(_ => Details.IsDeleted = false);
-        Register<ForceSaveEvent>(_ => { });
-    }
+	///// <summary>
+	///// The last generated aggregate operation result. This is runtime-only state.
+	///// </summary>
+	//public IAggregateOperationResult? LastOperation { get; private set; }
 
-    /// <summary>
-    /// Used to register custom <see cref="IEvent"/>
-    /// implementations using the <see cref="Register{TEvent}(Action{TEvent})"/>. method.
-    /// </summary>
-    protected abstract void RegisterEvents();
+	///// <summary>
+	///// Indicates whether the last operation failed validation.
+	///// </summary>
+	//public bool HasOperationFailures => LastOperation is { IsSuccess: false };
 
-    ///<inheritdoc/>
-    public virtual void ClearUnsavedEvents(int? upToVersion = null)
-    {
-        var unsavedEventCount = _unsavedEvents.Count;
-        if (upToVersion.HasValue)
-            _unsavedEvents =
-            [
-                .. _unsavedEvents.Where(m => m.Details.AggregateVersion > upToVersion),
-            ];
-        else
-            _unsavedEvents.Clear();
+	void RegisterSystemEvents()
+	{
+		Register<DeleteEvent>(_ => Details.IsDeleted = true);
+		Register<RestoreEvent>(_ => Details.IsDeleted = false);
+		Register<ForceSaveEvent>(_ => { });
+	}
 
-        unsavedEventCount -= _unsavedEvents.Count;
+	/// <summary>
+	/// Used to register custom <see cref="IEvent"/>
+	/// implementations using the <see cref="Register{TEvent}(Action{TEvent})"/>. method.
+	/// </summary>
+	protected abstract void RegisterEvents();
 
-        Details.CurrentVersion -= unsavedEventCount;
-    }
+	///<inheritdoc/>
+	public virtual void ClearUnsavedEvents(int? upToVersion = null)
+	{
+		var unsavedEventCount = _unsavedEvents.Count;
+		if (upToVersion.HasValue)
+			_unsavedEvents = [.. _unsavedEvents.Where(m => m.Details.AggregateVersion > upToVersion)];
+		else
+			_unsavedEvents.Clear();
 
-    ///<inheritdoc/>
-    public IEnumerable<IEvent> GetUnsavedEvents() => [.. _unsavedEvents];
+		unsavedEventCount -= _unsavedEvents.Count;
 
-    ///<inheritdoc/>
-    public bool HasUnsavedEvents() => !_unsavedEvents.IsEmpty;
+		Details.CurrentVersion -= unsavedEventCount;
+	}
 
-    ///<inheritdoc/>
-    public bool CanApplyEvent([NotNull] IEvent aggregateEvent) =>
-        _appliersByEventType.ContainsKey(aggregateEvent.GetType());
+	///<inheritdoc/>
+	public IEnumerable<IEvent> GetUnsavedEvents() => [.. _unsavedEvents];
 
-    /// <summary>
-    /// Records an <see cref="IEvent"/> in the form of <typeparamref name="TEvent"/>.
-    /// and stores the record ready for saving via the <see cref="IEventStore{T}.SaveAsync(T, EventStoreOperationContext?, CancellationToken)"/>
-    /// method. The event is also applied (via <see cref="IAggregate.ApplyEvent(IEvent)"/>) once it's been recorded.
-    /// </summary>
-    /// <typeparam name="TEvent">The <see cref="IEvent"/> implementation type.</typeparam>
-    /// <param name="event">The event to save.</param>
-    /// <returns>The current <see cref="AggregateBase"/> instance.</returns>
-    /// <remarks>The <see cref="EventDetails.AggregateVersion"/> and <see cref="EventDetails.When"/>
-    /// of the <see cref="IEvent.Details"/> property are updated during this operation.</remarks>
-    protected internal AggregateBase RecordAndApply<TEvent>(TEvent @event)
-        where TEvent : IEvent
-    {
-        ArgumentNullException.ThrowIfNull(@event, nameof(@event));
+	///<inheritdoc/>
+	public bool HasUnsavedEvents() => !_unsavedEvents.IsEmpty;
 
-        if (@event.Details == null)
-            throw new NullReferenceException($"The {nameof(IEvent.Details)} is null.");
+	///<inheritdoc/>
+	public bool CanApplyEvent([NotNull] IEvent aggregateEvent) =>
+		_appliersByEventType.ContainsKey(aggregateEvent.GetType());
 
-        if (!_appliersByEventType.ContainsKey(@event.GetType()))
-            throw new UnregisteredEventException(@event.GetType(), this);
+	/// <summary>
+	/// Records an <see cref="IEvent"/> in the form of <typeparamref name="TEvent"/>.
+	/// and stores the record ready for saving via the <see cref="IEventStore{T}.SaveAsync(T, EventStoreOperationContext?, CancellationToken)"/>
+	/// method. The event is also applied (via <see cref="IAggregate.ApplyEvent(IEvent)"/>) once it's been recorded.
+	/// </summary>
+	/// <typeparam name="TEvent">The <see cref="IEvent"/> implementation type.</typeparam>
+	/// <param name="event">The event to save.</param>
+	/// <returns>The current <see cref="AggregateBase"/> instance.</returns>
+	/// <remarks>The <see cref="EventDetails.AggregateVersion"/> and <see cref="EventDetails.When"/>
+	/// of the <see cref="IEvent.Details"/> property are updated during this operation.</remarks>
+	protected internal AggregateBase RecordAndApply<TEvent>(TEvent @event)
+		where TEvent : IEvent
+	{
+		ArgumentNullException.ThrowIfNull(@event, nameof(@event));
 
-        if (Details.Locked)
-            throw new LockedException(Details.Id);
+		if (@event.Details == null)
+			throw new NullReferenceException($"The {nameof(IEvent.Details)} is null.");
 
-        @event.Details.AggregateVersion = Details.CurrentVersion + 1;
-        @event.Details.When = DateTimeOffset.UtcNow;
+		if (!_appliersByEventType.ContainsKey(@event.GetType()))
+			throw new UnregisteredEventException(@event.GetType(), this);
 
-        _unsavedEvents.Add(@event);
+		if (Details.Locked)
+			throw new LockedException(Details.Id);
 
-        ((IAggregate)this).ApplyEvent(@event);
+		@event.Details.AggregateVersion = Details.CurrentVersion + 1;
+		@event.Details.When = DateTimeOffset.UtcNow;
 
-        return this;
-    }
+		_unsavedEvents.Add(@event);
 
-    /// <summary>
-    /// Applies the <see cref="ForceSaveEvent"/> to the aggregate,
-    /// allowing the aggregate to be saved, regardless of other operations.
-    /// </summary>
-    /// <remarks>This is only applied if <see cref="HasUnsavedEvents"/> returns false. This can be useful for situations where
-    /// you need to re-populate a queryable store for example.</remarks>
-    public void ForceSave()
-    {
-        if (!HasUnsavedEvents())
-            RecordAndApply(new ForceSaveEvent());
-    }
+		((IAggregate)this).ApplyEvent(@event);
 
-    /// <summary>
-    /// Registers an <see cref="Action{T}"/> as the handler to apply
-    /// an <see cref="IEvent"/>.
-    /// </summary>
-    /// <typeparam name="TEvent">The <see cref="IEvent"/> type to register.</typeparam>
-    /// <param name="applier">The action used to apply the event.</param>
-    /// <remarks>The <typeparamref name="TEvent"/> <see cref="System.Reflection.MemberInfo.Name"/> of the event <see cref="Type"/>
-    /// must end with 'Event'.</remarks>
-    protected void Register<TEvent>(Action<TEvent> applier)
-        where TEvent : IEvent
-    {
-        ArgumentNullException.ThrowIfNull(applier);
+		return this;
+	}
 
-        if (!typeof(TEvent).Name.EndsWith("Event", StringComparison.InvariantCulture))
-            throw new InvalidOperationException(
-                $"Registering events failed, events must end with name 'Event'.\n\nFailed even type: {typeof(TEvent).FullName}"
-            );
+	/// <summary>
+	/// Applies the <see cref="ForceSaveEvent"/> to the aggregate,
+	/// allowing the aggregate to be saved, regardless of other operations.
+	/// </summary>
+	/// <remarks>This is only applied if <see cref="HasUnsavedEvents"/> returns false. This can be useful for situations where
+	/// you need to re-populate a queryable store for example.</remarks>
+	public void ForceSave()
+	{
+		if (!HasUnsavedEvents())
+			RecordAndApply(new ForceSaveEvent());
+	}
 
-        _appliersByEventType.Add(typeof(TEvent), ev => applier((TEvent)ev));
-    }
+	/// <summary>
+	/// Registers an <see cref="Action{T}"/> as the handler to apply
+	/// an <see cref="IEvent"/>.
+	/// </summary>
+	/// <typeparam name="TEvent">The <see cref="IEvent"/> type to register.</typeparam>
+	/// <param name="applier">The action used to apply the event.</param>
+	/// <remarks>The <typeparamref name="TEvent"/> <see cref="System.Reflection.MemberInfo.Name"/> of the event <see cref="Type"/>
+	/// must end with 'Event'.</remarks>
+	protected void Register<TEvent>(Action<TEvent> applier)
+		where TEvent : IEvent
+	{
+		ArgumentNullException.ThrowIfNull(applier);
+
+		if (!typeof(TEvent).Name.EndsWith("Event", StringComparison.InvariantCulture))
+			throw new InvalidOperationException(
+				$"Registering events failed, events must end with name 'Event'.\n\nFailed even type: {typeof(TEvent).FullName}"
+			);
+
+		_appliersByEventType.Add(typeof(TEvent), ev => applier((TEvent)ev));
+	}
+
+	///// <summary>
+	///// Validates and transforms the aggregate instance according to registered validation and transformation rules.
+	///// </summary>
+	///// <returns>True if validation passes, false otherwise.</returns>
+	//protected bool ValidateAndTransform()
+	//{
+	//    // This method will be implemented in subclasses that need validation
+	//    return true;
+	//}
+
+	///// <summary>
+	///// Throws if the last operation failed.
+	///// </summary>
+	//public void GuardLastOperation() => LastOperation?.Guard();
 
 #pragma warning disable CA1033 // Interface methods should be callable by child types
 
-    ///<inheritdoc/>
-    IEnumerable<Type> IAggregate.GetRegisteredEventTypes() => _appliersByEventType.Keys;
+	///<inheritdoc/>
+	IEnumerable<Type> IAggregate.GetRegisteredEventTypes() => _appliersByEventType.Keys;
 
-    ///<inheritdoc/>
-    void IAggregate.ApplyEvent(IEvent @event)
-    {
-        if (Details.Locked)
-            throw new LockedException(Details.Id);
+	///<inheritdoc/>
+	void IAggregate.ApplyEvent(IEvent @event)
+	{
+		if (Details.Locked)
+			throw new LockedException(Details.Id);
 
-        var eventApplier = _appliersByEventType[@event.GetType()];
-        eventApplier(@event);
+		var eventApplier = _appliersByEventType[@event.GetType()];
+		eventApplier(@event);
 
-        if (@event.Details.AggregateVersion == 1)
-            Details.Created = @event.Details.When;
+		if (@event.Details.AggregateVersion == 1)
+			Details.Created = @event.Details.When;
 
-        Details.Updated = @event.Details.When;
-        Details.CurrentVersion = @event.Details.AggregateVersion;
-    }
+		Details.Updated = @event.Details.When;
+		Details.CurrentVersion = @event.Details.AggregateVersion;
+	}
 
 #pragma warning restore CA1033 // Interface methods should be callable by child types
 }

@@ -9,681 +9,621 @@ namespace Purview.EventSourcing;
 [System.Diagnostics.DebuggerStepThrough]
 public static class IEventStoreExtensions
 {
-    #region QuickCreate/ QuickCreateAsync
-
-    /// <summary>
-    /// Creates a new <typeparamref name="T"/>, but will not call <see cref="IAggregateIdFactory.CreateAsync{T}(CancellationToken)"/>
-    /// to create a new Id. It will take the <paramref name="aggregateId"/> parameter, or the id parameter is null or empty
-    /// use a new lowered <see cref="Guid"/>.
-    /// </summary>
-    /// <param name="eventStore">The <see cref="IEventStore{T}"/> used as the root object.</param>
-    /// <typeparam name="T">The <see cref="IAggregate"/> to create.</typeparam>
-    /// <param name="aggregateId">The id to use, or null with either the specified or a generated id.</param>
-    /// <returns>A new aggregate of <typeparamref name="T"/>.</returns>
-    /// <remarks>Calls <see cref="IEventStore{T}.FulfilRequirements(T)"/> to apply any requirements.</remarks>
-    public static T QuickCreate<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId = null
-    )
-        where T : class, IAggregate, new()
-    {
-        if (string.IsNullOrWhiteSpace(aggregateId))
-            aggregateId = $"{Guid.NewGuid()}:D";
-
-        var aggregate = new T { Details = new() { Id = aggregateId } };
-
-        eventStore.FulfilRequirements(aggregate);
-
-        return aggregate;
-    }
-
-    public static T QuickCreate<T>(this IEventStore eventStore, object? aggregateId)
-        where T : class, IAggregate, new() => eventStore.QuickCreate<T>(aggregateId?.ToString());
-
-    public static T QuickCreate<T>(
-        this IEventStore eventStore,
-        string? aggregateId,
-        [NotNull] Action<T> creator
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = eventStore.QuickCreate<T>(aggregateId);
-
-        creator(aggregate);
-
-        return aggregate;
-    }
-
-    public static T QuickCreate<T>(
-        this IEventStore eventStore,
-        object? aggregateId,
-        Action<T> creator
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.QuickCreate<T>(aggregateId?.ToString(), creator);
-
-    public static async Task<T> QuickCreateAsync<T>(
-        this IEventStore eventStore,
-        string? aggregateId,
-        [NotNull] Func<T, CancellationToken, Task> creator,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = eventStore.QuickCreate<T>(aggregateId);
-
-        await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T> QuickCreateAsync<T>(
-        this IEventStore eventStore,
-        object? aggregateId,
-        [NotNull] Func<T, CancellationToken, Task> creator,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = eventStore.QuickCreate<T>(aggregateId?.ToString());
-
-        await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    #endregion QuickCreate/ QuickCreateAsync
-
-    #region GetOrCreateAsync
-
-    #region id: string, with context.
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId,
-        [NotNull] Func<T, CancellationToken, Task> creator,
-        EventStoreOperationContext? context,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(
-            aggregateId,
-            context,
-            cancellationToken
-        );
-        if (aggregate?.IsNew() == true)
-            await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId,
-        [NotNull] Action<T> creator,
-        EventStoreOperationContext? context,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(
-            aggregateId,
-            context,
-            cancellationToken
-        );
-        if (aggregate != null)
-            creator(aggregate);
-
-        return aggregate;
-    }
-
-    #endregion id: string, with context.
-
-    #region id: string, without context.
-
-    public static Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.GetOrCreateAsync<T>(aggregateId, null, cancellationToken);
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId,
-        [NotNull] Func<T, CancellationToken, Task> creator,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId, null, cancellationToken);
-        if (aggregate?.IsNew() == true)
-            await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId,
-        [NotNull] Action<T> creator,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId, null, cancellationToken);
-        if (aggregate != null)
-            creator(aggregate);
-
-        return aggregate;
-    }
-
-    #endregion id: string, without context.
-
-    #region id: object, with context.
-
-    public static Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId,
-        EventStoreOperationContext? operationContext,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.GetOrCreateAsync<T>(
-            aggregateId?.ToString(),
-            operationContext,
-            cancellationToken
-        );
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId,
-        [NotNull] Func<T, CancellationToken, Task> creator,
-        EventStoreOperationContext? context,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(
-            aggregateId?.ToString(),
-            context,
-            cancellationToken
-        );
-        if (aggregate?.IsNew() == true)
-            await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId,
-        [NotNull] Action<T> creator,
-        EventStoreOperationContext? context,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(
-            aggregateId?.ToString(),
-            context,
-            cancellationToken
-        );
-        if (aggregate != null)
-            creator(aggregate);
-
-        return aggregate;
-    }
-
-    #endregion id: object, with context.
-
-    #region id: object, no context.
-
-    public static Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.GetOrCreateAsync<T>(aggregateId?.ToString(), null, cancellationToken);
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId,
-        [NotNull] Func<T, CancellationToken, Task> creator,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(
-            aggregateId?.ToString(),
-            null,
-            cancellationToken
-        );
-        if (aggregate?.IsNew() == true)
-            await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T?> GetOrCreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? id,
-        [NotNull] Action<T> creator,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.GetOrCreateAsync<T>(
-            id?.ToString(),
-            null,
-            cancellationToken
-        );
-        if (aggregate != null)
-            creator(aggregate);
-
-        return aggregate;
-    }
-
-    #endregion id: object, no context.
-
-    #endregion GetOrCreateAsync
-
-    #region CreateAsync
-
-    public static async Task<T> CreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId = null,
-        Func<T, CancellationToken, Task>? creator = null,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.CreateAsync<T>(aggregateId, cancellationToken);
-        if (creator != null)
-            await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T> CreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string? aggregateId = null,
-        Action<T>? creator = null,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.CreateAsync<T>(aggregateId, cancellationToken);
-        creator?.Invoke(aggregate);
-
-        return aggregate;
-    }
-
-    public static Task<T> CreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId = null,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.CreateAsync<T>(aggregateId?.ToString(), cancellationToken);
-
-    public static async Task<T> CreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId = null,
-        Func<T, CancellationToken, Task>? creator = null,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.CreateAsync<T>(aggregateId?.ToString(), cancellationToken);
-        if (creator != null)
-            await creator(aggregate, cancellationToken);
-
-        return aggregate;
-    }
-
-    public static async Task<T> CreateAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object? aggregateId = null,
-        Action<T>? creator = null,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var aggregate = await eventStore.CreateAsync<T>(aggregateId?.ToString(), cancellationToken);
-        creator?.Invoke(aggregate);
-
-        return aggregate;
-    }
-
-    #endregion CreateAsync
-
-    #region GetAsync
-
-    public static Task<T?> GetAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.GetAsync<T>(aggregateId, null, cancellationToken);
-
-    public static Task<T?> GetAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.GetAsync<T>(idAsString, null, cancellationToken);
-    }
-
-    public static Task<T?> GetAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        EventStoreOperationContext? context,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.GetAsync<T>(idAsString, context, cancellationToken);
-    }
-
-    #endregion GetAsync
-
-    #region GetAtAsync
-
-    public static Task<T?> GetAtAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string aggregateId,
-        int version,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.GetAtAsync<T>(aggregateId, version, null, cancellationToken);
-
-    public static Task<T?> GetAtAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        int version,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.GetAtAsync<T>(aggregateId, version, null, cancellationToken);
-
-    public static Task<T?> GetAtAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        int version,
-        EventStoreOperationContext? context,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.GetAtAsync<T>(idAsString, version, context, cancellationToken);
-    }
-
-    #endregion GetAtAsync
-
-    #region IsDeletedAsync
-
-    public static Task<bool> IsDeletedAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.IsDeletedAsync<T>(idAsString, cancellationToken);
-    }
-
-    #endregion IsDeletedAsync
-
-    #region GetDeletedAsync
-
-    public static Task<T?> GetDeletedAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.GetDeletedAsync<T>(idAsString, cancellationToken);
-    }
-
-    #endregion GetDeletedAsync
-
-    #region ExistsAsync
-
-    public static Task<ExistsState> ExistsAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.ExistsAsync<T>(idAsString, cancellationToken);
-    }
-
-    public static Task<ExistsState> ExistsWithNullCheckAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        object aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        var idAsString = aggregateId?.ToString();
-        ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
-
-        return eventStore.ExistsWithNullCheckAsync<T>(idAsString, cancellationToken);
-    }
-
-    public static Task<ExistsState> ExistsWithNullCheckAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        return string.IsNullOrWhiteSpace(aggregateId)
-            ? Task.FromResult(ExistsState.DoesNotExists)
-            : eventStore.ExistsAsync<T>(aggregateId, cancellationToken);
-    }
-
-    #endregion ExistsAsync
-
-    #region Enlist
-
-    /// <summary>
-    /// Creates a new <see cref="IEventStoreTransaction"/> with no enlisted aggregates.
-    /// </summary>
-    public static IEventStoreTransaction Enlist([NotNull] this IEventStore eventStore)
-    {
-        ArgumentNullException.ThrowIfNull(eventStore);
-
-        return new EventStoreTransaction();
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="correlationId"/>
-    /// and no enlisted aggregates.
-    /// </summary>
-    public static IEventStoreTransaction Enlist(
-        [NotNull] this IEventStore eventStore,
-        string? correlationId
-    )
-    {
-        ArgumentNullException.ThrowIfNull(eventStore);
-
-        return new EventStoreTransaction(correlationId);
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="operationContext"/>
-    /// and no enlisted aggregates.
-    /// </summary>
-    public static IEventStoreTransaction Enlist(
-        [NotNull] this IEventStore eventStore,
-        EventStoreOperationContext? operationContext
-    )
-    {
-        ArgumentNullException.ThrowIfNull(eventStore);
-
-        return new EventStoreTransaction(operationContext?.CorrelationId);
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="IEventStoreTransaction"/> and enlists all <paramref name="aggregates"/>
-    /// against this event store, using an auto-generated correlation ID.
-    /// </summary>
-    /// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
-    /// <param name="aggregates">The aggregates to include in the transaction.</param>
-    /// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
-    /// <remarks>Call <see cref="IEventStoreTransaction.CommitAsync"/> to persist all enlisted aggregates.</remarks>
-    public static IEventStoreTransaction Enlist<T>(
-        [NotNull] this IEventStore eventStore,
-        params T[] aggregates
-    )
-        where T : class, IAggregate, new() => eventStore.Enlist(correlationId: null, aggregates);
-
-    /// <summary>
-    /// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="correlationId"/>
-    /// and enlists all <paramref name="aggregates"/> against this event store.
-    /// </summary>
-    /// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
-    /// <param name="correlationId">
-    /// Optional correlation ID to bind all events together. When <see langword="null"/>, a new GUID is generated.
-    /// </param>
-    /// <param name="aggregates">The aggregates to include in the transaction.</param>
-    /// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
-    public static IEventStoreTransaction Enlist<T>(
-        [NotNull] this IEventStore eventStore,
-        string? correlationId,
-        params T[] aggregates
-    )
-        where T : class, IAggregate, new()
-    {
-        ArgumentNullException.ThrowIfNull(eventStore);
-        ArgumentNullException.ThrowIfNull(aggregates);
-
-        var transaction = new EventStoreTransaction(correlationId);
-        foreach (var aggregate in aggregates)
-            transaction.Enlist(aggregate, eventStore);
-
-        return transaction;
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="IEventStoreTransaction"/> and enlists all <paramref name="aggregates"/>
-    /// against this event store, applying a shared <paramref name="operationContext"/> to each.
-    /// </summary>
-    /// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
-    /// <param name="operationContext">
-    /// Optional <see cref="EventStoreOperationContext"/> applied to every aggregate save.
-    /// When <see langword="null"/>, the default context is used.
-    /// </param>
-    /// <param name="aggregates">The aggregates to include in the transaction.</param>
-    /// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
-    public static IEventStoreTransaction Enlist<T>(
-        [NotNull] this IEventStore eventStore,
-        EventStoreOperationContext? operationContext,
-        params T[] aggregates
-    )
-        where T : class, IAggregate, new()
-    {
-        ArgumentNullException.ThrowIfNull(eventStore);
-        ArgumentNullException.ThrowIfNull(aggregates);
-
-        var transaction = new EventStoreTransaction(operationContext?.CorrelationId);
-        foreach (var aggregate in aggregates)
-            transaction.Enlist(aggregate, eventStore, operationContext);
-
-        return transaction;
-    }
-
-    #endregion Enlist
-
-    #region SaveAsync
-
-    public static Task<SaveResult<T>> SaveAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        T aggregate,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.SaveAsync<T>(aggregate, null, cancellationToken);
-
-    #endregion SaveAsync
-
-    #region DeleteAsync
-
-    public static Task<bool> DeleteAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        T aggregate,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.DeleteAsync<T>(aggregate, null, cancellationToken);
-
-    public static Task<bool> DeleteAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string aggregateId,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.DeleteAsync<T>(aggregateId, null, cancellationToken);
-
-    public static async Task<bool> DeleteAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        string aggregateId,
-        EventStoreOperationContext? operationContext,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new()
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
-
-        var aggregate = await eventStore.GetAsync<T>(
-            aggregateId,
-            operationContext,
-            cancellationToken
-        );
-        return aggregate != null
-            && await eventStore.DeleteAsync<T>(aggregate, operationContext, cancellationToken);
-    }
-
-    #endregion DeleteAsync
-
-    #region RestoreAsync
-
-    public static Task<bool> RestoreAsync<T>(
-        [NotNull] this IEventStore eventStore,
-        T aggregate,
-        CancellationToken cancellationToken = default
-    )
-        where T : class, IAggregate, new() =>
-        eventStore.RestoreAsync<T>(aggregate, null, cancellationToken);
-
-    #endregion RestoreAsync
+	#region QuickCreate/ QuickCreateAsync
+
+	/// <summary>
+	/// Creates a new <typeparamref name="T"/>, but will not call <see cref="IAggregateIdFactory.CreateAsync{T}(CancellationToken)"/>
+	/// to create a new Id. It will take the <paramref name="aggregateId"/> parameter, or the id parameter is null or empty
+	/// use a new lowered <see cref="Guid"/>.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> used as the root object.</param>
+	/// <typeparam name="T">The <see cref="IAggregate"/> to create.</typeparam>
+	/// <param name="aggregateId">The id to use, or null with either the specified or a generated id.</param>
+	/// <returns>A new aggregate of <typeparamref name="T"/>.</returns>
+	/// <remarks>Calls <see cref="IEventStore{T}.FulfilRequirements(T)"/> to apply any requirements.</remarks>
+	public static T QuickCreate<T>([NotNull] this IEventStore eventStore, string? aggregateId = null)
+		where T : class, IAggregate, new()
+	{
+		if (string.IsNullOrWhiteSpace(aggregateId))
+			aggregateId = $"{Guid.NewGuid()}:D";
+
+		var aggregate = new T { Details = new() { Id = aggregateId } };
+
+		eventStore.FulfilRequirements(aggregate);
+
+		return aggregate;
+	}
+
+	public static T QuickCreate<T>(this IEventStore eventStore, object? aggregateId)
+		where T : class, IAggregate, new() => eventStore.QuickCreate<T>(aggregateId?.ToString());
+
+	public static T QuickCreate<T>(this IEventStore eventStore, string? aggregateId, [NotNull] Action<T> creator)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = eventStore.QuickCreate<T>(aggregateId);
+
+		creator(aggregate);
+
+		return aggregate;
+	}
+
+	public static T QuickCreate<T>(this IEventStore eventStore, object? aggregateId, Action<T> creator)
+		where T : class, IAggregate, new() => eventStore.QuickCreate<T>(aggregateId?.ToString(), creator);
+
+	public static async Task<T> QuickCreateAsync<T>(
+		this IEventStore eventStore,
+		string? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = eventStore.QuickCreate<T>(aggregateId);
+
+		await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T> QuickCreateAsync<T>(
+		this IEventStore eventStore,
+		object? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = eventStore.QuickCreate<T>(aggregateId?.ToString());
+
+		await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	#endregion QuickCreate/ QuickCreateAsync
+
+	#region GetOrCreateAsync
+
+	#region id: string, with context.
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId, context, cancellationToken);
+		if (aggregate?.IsNew() == true)
+			await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId,
+		[NotNull] Action<T> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId, context, cancellationToken);
+		if (aggregate != null)
+			creator(aggregate);
+
+		return aggregate;
+	}
+
+	#endregion id: string, with context.
+
+	#region id: string, without context.
+
+	public static Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.GetOrCreateAsync<T>(aggregateId, null, cancellationToken);
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId, null, cancellationToken);
+		if (aggregate?.IsNew() == true)
+			await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId,
+		[NotNull] Action<T> creator,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId, null, cancellationToken);
+		if (aggregate != null)
+			creator(aggregate);
+
+		return aggregate;
+	}
+
+	#endregion id: string, without context.
+
+	#region id: object, with context.
+
+	public static Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetOrCreateAsync<T>(aggregateId?.ToString(), operationContext, cancellationToken);
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId?.ToString(), context, cancellationToken);
+		if (aggregate?.IsNew() == true)
+			await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId,
+		[NotNull] Action<T> creator,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId?.ToString(), context, cancellationToken);
+		if (aggregate != null)
+			creator(aggregate);
+
+		return aggregate;
+	}
+
+	#endregion id: object, with context.
+
+	#region id: object, no context.
+
+	public static Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() =>
+		eventStore.GetOrCreateAsync<T>(aggregateId?.ToString(), null, cancellationToken);
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId,
+		[NotNull] Func<T, CancellationToken, Task> creator,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(aggregateId?.ToString(), null, cancellationToken);
+		if (aggregate?.IsNew() == true)
+			await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T?> GetOrCreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? id,
+		[NotNull] Action<T> creator,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.GetOrCreateAsync<T>(id?.ToString(), null, cancellationToken);
+		if (aggregate != null)
+			creator(aggregate);
+
+		return aggregate;
+	}
+
+	#endregion id: object, no context.
+
+	#endregion GetOrCreateAsync
+
+	#region CreateAsync
+
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId = null,
+		Func<T, CancellationToken, Task>? creator = null,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.CreateAsync<T>(aggregateId, cancellationToken);
+		if (creator != null)
+			await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string? aggregateId = null,
+		Action<T>? creator = null,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.CreateAsync<T>(aggregateId, cancellationToken);
+		creator?.Invoke(aggregate);
+
+		return aggregate;
+	}
+
+	public static Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId = null,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.CreateAsync<T>(aggregateId?.ToString(), cancellationToken);
+
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId = null,
+		Func<T, CancellationToken, Task>? creator = null,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.CreateAsync<T>(aggregateId?.ToString(), cancellationToken);
+		if (creator != null)
+			await creator(aggregate, cancellationToken);
+
+		return aggregate;
+	}
+
+	public static async Task<T> CreateAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object? aggregateId = null,
+		Action<T>? creator = null,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var aggregate = await eventStore.CreateAsync<T>(aggregateId?.ToString(), cancellationToken);
+		creator?.Invoke(aggregate);
+
+		return aggregate;
+	}
+
+	#endregion CreateAsync
+
+	#region GetAsync
+
+	public static Task<T?> GetAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.GetAsync<T>(aggregateId, null, cancellationToken);
+
+	public static Task<T?> GetAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.GetAsync<T>(idAsString, null, cancellationToken);
+	}
+
+	public static Task<T?> GetAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.GetAsync<T>(idAsString, context, cancellationToken);
+	}
+
+	#endregion GetAsync
+
+	#region GetAtAsync
+
+	public static Task<T?> GetAtAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string aggregateId,
+		int version,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.GetAtAsync<T>(aggregateId, version, null, cancellationToken);
+
+	public static Task<T?> GetAtAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		int version,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.GetAtAsync<T>(aggregateId, version, null, cancellationToken);
+
+	public static Task<T?> GetAtAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		int version,
+		EventStoreOperationContext? context,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.GetAtAsync<T>(idAsString, version, context, cancellationToken);
+	}
+
+	#endregion GetAtAsync
+
+	#region IsDeletedAsync
+
+	public static Task<bool> IsDeletedAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.IsDeletedAsync<T>(idAsString, cancellationToken);
+	}
+
+	#endregion IsDeletedAsync
+
+	#region GetDeletedAsync
+
+	public static Task<T?> GetDeletedAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.GetDeletedAsync<T>(idAsString, cancellationToken);
+	}
+
+	#endregion GetDeletedAsync
+
+	#region ExistsAsync
+
+	public static Task<ExistsState> ExistsAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.ExistsAsync<T>(idAsString, cancellationToken);
+	}
+
+	public static Task<ExistsState> ExistsWithNullCheckAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		object aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		var idAsString = aggregateId?.ToString();
+		ArgumentException.ThrowIfNullOrWhiteSpace(idAsString, nameof(aggregateId));
+
+		return eventStore.ExistsWithNullCheckAsync<T>(idAsString, cancellationToken);
+	}
+
+	public static Task<ExistsState> ExistsWithNullCheckAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		return string.IsNullOrWhiteSpace(aggregateId)
+			? Task.FromResult(ExistsState.DoesNotExists)
+			: eventStore.ExistsAsync<T>(aggregateId, cancellationToken);
+	}
+
+	#endregion ExistsAsync
+
+	#region Enlist
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> with no enlisted aggregates.
+	/// </summary>
+	public static IEventStoreTransaction Enlist([NotNull] this IEventStore eventStore)
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		return new EventStoreTransaction();
+	}
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="correlationId"/>
+	/// and no enlisted aggregates.
+	/// </summary>
+	public static IEventStoreTransaction Enlist([NotNull] this IEventStore eventStore, string? correlationId)
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		return new EventStoreTransaction(correlationId);
+	}
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="operationContext"/>
+	/// and no enlisted aggregates.
+	/// </summary>
+	public static IEventStoreTransaction Enlist(
+		[NotNull] this IEventStore eventStore,
+		EventStoreOperationContext? operationContext
+	)
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+
+		return new EventStoreTransaction(operationContext?.CorrelationId);
+	}
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> and enlists all <paramref name="aggregates"/>
+	/// against this event store, using an auto-generated correlation ID.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
+	/// <param name="aggregates">The aggregates to include in the transaction.</param>
+	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
+	/// <remarks>Call <see cref="IEventStoreTransaction.CommitAsync"/> to persist all enlisted aggregates.</remarks>
+	public static IEventStoreTransaction Enlist<T>([NotNull] this IEventStore eventStore, params T[] aggregates)
+		where T : class, IAggregate, new() => eventStore.Enlist(correlationId: null, aggregates);
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> with the given <paramref name="correlationId"/>
+	/// and enlists all <paramref name="aggregates"/> against this event store.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
+	/// <param name="correlationId">
+	/// Optional correlation ID to bind all events together. When <see langword="null"/>, a new GUID is generated.
+	/// </param>
+	/// <param name="aggregates">The aggregates to include in the transaction.</param>
+	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
+	public static IEventStoreTransaction Enlist<T>(
+		[NotNull] this IEventStore eventStore,
+		string? correlationId,
+		params T[] aggregates
+	)
+		where T : class, IAggregate, new()
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+		ArgumentNullException.ThrowIfNull(aggregates);
+
+		var transaction = new EventStoreTransaction(correlationId);
+		foreach (var aggregate in aggregates)
+			transaction.Enlist(aggregate, eventStore);
+
+		return transaction;
+	}
+
+	/// <summary>
+	/// Creates a new <see cref="IEventStoreTransaction"/> and enlists all <paramref name="aggregates"/>
+	/// against this event store, applying a shared <paramref name="operationContext"/> to each.
+	/// </summary>
+	/// <param name="eventStore">The <see cref="IEventStore{T}"/> responsible for persisting each aggregate.</param>
+	/// <param name="operationContext">
+	/// Optional <see cref="EventStoreOperationContext"/> applied to every aggregate save.
+	/// When <see langword="null"/>, the default context is used.
+	/// </param>
+	/// <param name="aggregates">The aggregates to include in the transaction.</param>
+	/// <returns>A new <see cref="IEventStoreTransaction"/> ready to be committed.</returns>
+	public static IEventStoreTransaction Enlist<T>(
+		[NotNull] this IEventStore eventStore,
+		EventStoreOperationContext? operationContext,
+		params T[] aggregates
+	)
+		where T : class, IAggregate, new()
+	{
+		ArgumentNullException.ThrowIfNull(eventStore);
+		ArgumentNullException.ThrowIfNull(aggregates);
+
+		var transaction = new EventStoreTransaction(operationContext?.CorrelationId);
+		foreach (var aggregate in aggregates)
+			transaction.Enlist(aggregate, eventStore, operationContext);
+
+		return transaction;
+	}
+
+	#endregion Enlist
+
+	#region SaveAsync
+
+	public static Task<SaveResult<T>> SaveAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.SaveAsync<T>(aggregate, null, cancellationToken);
+
+	#endregion SaveAsync
+
+	#region DeleteAsync
+
+	public static Task<bool> DeleteAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.DeleteAsync<T>(aggregate, null, cancellationToken);
+
+	public static Task<bool> DeleteAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string aggregateId,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.DeleteAsync<T>(aggregateId, null, cancellationToken);
+
+	public static async Task<bool> DeleteAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		string aggregateId,
+		EventStoreOperationContext? operationContext,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new()
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
+
+		var aggregate = await eventStore.GetAsync<T>(aggregateId, operationContext, cancellationToken);
+		return aggregate != null && await eventStore.DeleteAsync<T>(aggregate, operationContext, cancellationToken);
+	}
+
+	#endregion DeleteAsync
+
+	#region RestoreAsync
+
+	public static Task<bool> RestoreAsync<T>(
+		[NotNull] this IEventStore eventStore,
+		T aggregate,
+		CancellationToken cancellationToken = default
+	)
+		where T : class, IAggregate, new() => eventStore.RestoreAsync<T>(aggregate, null, cancellationToken);
+
+	#endregion RestoreAsync
 }

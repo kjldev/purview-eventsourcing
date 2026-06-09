@@ -8,33 +8,33 @@ namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 /// <typeparam name="TSource">The legacy event type.</typeparam>
 /// <typeparam name="TTarget">The current event type.</typeparam>
 public sealed class EventUpcasterDescriptor<TSource, TTarget> : IEventUpcasterDescriptor
-    where TSource : IEvent
-    where TTarget : IEvent
+	where TSource : IEvent
+	where TTarget : IEvent
 {
-    readonly IEventUpcaster<TSource, TTarget> _upcaster;
+	readonly IEventUpcaster<TSource, TTarget> _upcaster;
 
-    /// <summary>
-    /// Initialises a new <see cref="EventUpcasterDescriptor{TSource,TTarget}"/> wrapping the
-    /// given <paramref name="upcaster"/>.
-    /// </summary>
-    public EventUpcasterDescriptor(IEventUpcaster<TSource, TTarget> upcaster)
-    {
-        ArgumentNullException.ThrowIfNull(upcaster);
-        _upcaster = upcaster;
-    }
+	/// <summary>
+	/// Initialises a new <see cref="EventUpcasterDescriptor{TSource,TTarget}"/> wrapping the
+	/// given <paramref name="upcaster"/>.
+	/// </summary>
+	public EventUpcasterDescriptor(IEventUpcaster<TSource, TTarget> upcaster)
+	{
+		ArgumentNullException.ThrowIfNull(upcaster);
+		_upcaster = upcaster;
+	}
 
-    /// <inheritdoc/>
-    public Type SourceType => typeof(TSource);
+	/// <inheritdoc/>
+	public Type SourceType => typeof(TSource);
 
-    /// <inheritdoc/>
-    public IEvent Upcast(IEvent source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
+	/// <inheritdoc/>
+	public IEvent Upcast(IEvent source)
+	{
+		ArgumentNullException.ThrowIfNull(source);
 
-        return source is TSource typed
-            ? (IEvent)_upcaster.Upcast(typed)
-            : throw new InvalidOperationException(
-                $"Cannot upcast event of type '{source.GetType().FullName}' using upcaster for '{typeof(TSource).FullName}'."
-            );
-    }
+		return source is TSource typed
+			? (IEvent)_upcaster.Upcast(typed)
+			: throw new InvalidOperationException(
+				$"Cannot upcast event of type '{source.GetType().FullName}' using upcaster for '{typeof(TSource).FullName}'."
+			);
+	}
 }

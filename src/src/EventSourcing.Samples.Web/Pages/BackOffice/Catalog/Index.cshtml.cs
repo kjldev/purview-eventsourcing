@@ -1,11 +1,9 @@
+using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
-
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Catalog;
 
@@ -55,15 +53,11 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var hasFilter = !string.IsNullOrEmpty(search);
 
 		Expression<Func<InventoryAggregate, bool>> where = i =>
-			i.ProductId.ToLowerInvariant().Contains(search)
-			|| i.ProductName.ToLowerInvariant().Contains(search);
+			i.ProductId.ToLowerInvariant().Contains(search) || i.ProductName.ToLowerInvariant().Contains(search);
 #pragma warning restore CA1308 // Normalize strings to uppercase
 #pragma warning restore CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
 
-		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (
-			SortBy,
-			SortDir
-		) switch
+		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (SortBy, SortDir) switch
 		{
 			("productid", "desc") => q => q.OrderByDescending(i => i.ProductId),
 			("productid", _) => q => q.OrderBy(i => i.ProductId),
@@ -73,11 +67,11 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			_ => q => q.OrderBy(i => i.ProductName),
 		};
 
-		TotalCount = await store.CountAsync<InventoryAggregate>(hasFilter ? where : null, ct);
+		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);
 
 		var result = hasFilter
-			? await store.QueryAsync<InventoryAggregate>(where, orderBy, request, ct)
-			: await store.ListAsync<InventoryAggregate>(orderBy, request, ct);
+			? await store.QueryAsync(where, orderBy, request, ct)
+			: await store.ListAsync(orderBy, request, ct);
 		Items = result.Results;
 	}
 

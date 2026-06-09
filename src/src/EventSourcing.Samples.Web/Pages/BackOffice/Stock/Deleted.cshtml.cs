@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
@@ -13,18 +12,12 @@ sealed class DeletedModel(IQueryableEventStore store) : PageModel
 	{
 		var deleted = new List<InventoryAggregate>();
 		await foreach (
-			var id in store.GetAggregateIdsAsync<InventoryAggregate>(
-				includeDeleted: true,
-				HttpContext.RequestAborted
-			)
+			var id in store.GetAggregateIdsAsync<InventoryAggregate>(includeDeleted: true, HttpContext.RequestAborted)
 		)
 		{
 			if (await store.IsDeletedAsync<InventoryAggregate>(id, HttpContext.RequestAborted))
 			{
-				var aggregate = await store.GetDeletedAsync<InventoryAggregate>(
-					id,
-					HttpContext.RequestAborted
-				);
+				var aggregate = await store.GetDeletedAsync<InventoryAggregate>(id, HttpContext.RequestAborted);
 				if (aggregate != null)
 					deleted.Add(aggregate);
 			}

@@ -1,11 +1,9 @@
+using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
-
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer;
 
@@ -58,21 +56,13 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 				) && (ShowInactive || c.IsActive)
 			: c => true;
 
-		TotalCount = await store.CountAsync<CustomerAggregate>(where, ct);
+		TotalCount = await store.CountAsync(where, ct);
 
-		var result = await store.QueryAsync<CustomerAggregate>(
-			where,
-			q => q.OrderBy(c => c.Name),
-			request,
-			ct
-		);
+		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name), request, ct);
 		Customers = result.Results;
 	}
 
-	public async Task<IActionResult> OnPostSelectAsync(
-		string id,
-		CancellationToken cancellationToken
-	)
+	public async Task<IActionResult> OnPostSelectAsync(string id, CancellationToken cancellationToken)
 	{
 		if (string.IsNullOrWhiteSpace(id))
 			return RedirectToPage();

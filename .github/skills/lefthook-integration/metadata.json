@@ -1,0 +1,15 @@
+{
+  "id": "local:skill:lefthook-integration",
+  "name": "Lefthook Integration",
+  "description": "Use Lefthook for repo-local Git hooks and safe validation commands.",
+  "category": "devops",
+  "roles": [
+    "lefthook",
+    "lefthook-integration",
+    "devops"
+  ],
+  "tags": [
+    "git-hooks",
+    "lefthook"
+  ]
+}

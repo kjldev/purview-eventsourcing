@@ -24,18 +24,18 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// </list>
 /// </remarks>
 public interface ISnapshotStrategy<T>
-    where T : class, IAggregate, new()
+	where T : class, IAggregate, new()
 {
-    /// <summary>
-    /// Returns <see langword="true"/> when a snapshot should be written after saving
-    /// <paramref name="aggregate"/>.
-    /// </summary>
-    /// <param name="aggregate">
-    /// The aggregate that was just saved, with <see cref="AggregateDetails.SavedVersion"/>
-    /// already updated to the new version.
-    /// </param>
-    /// <param name="eventsApplied">
-    /// The number of events that were persisted in this save operation.
-    /// </param>
-    bool ShouldSnapshot(T aggregate, int eventsApplied);
+	/// <summary>
+	/// Returns <see langword="true"/> when a snapshot should be written after saving
+	/// <paramref name="aggregate"/>.
+	/// </summary>
+	/// <param name="aggregate">
+	/// The aggregate that was just saved, with <see cref="AggregateDetails.SavedVersion"/>
+	/// already updated to the new version.
+	/// </param>
+	/// <param name="eventsApplied">
+	/// The number of events that were persisted in this save operation.
+	/// </param>
+	bool ShouldSnapshot(T aggregate, int eventsApplied);
 }

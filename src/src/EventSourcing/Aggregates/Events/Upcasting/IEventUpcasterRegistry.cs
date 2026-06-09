@@ -20,21 +20,21 @@ namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 /// </remarks>
 public interface IEventUpcasterRegistry
 {
-    /// <summary>
-    /// Returns <see langword="true"/> when at least one upcaster is registered whose source type equals
-    /// <paramref name="aggregateEvent"/>'s runtime type.
-    /// </summary>
-    /// <param name="aggregateEvent">The event to test.</param>
-    bool CanUpcast(IEvent aggregateEvent);
+	/// <summary>
+	/// Returns <see langword="true"/> when at least one upcaster is registered whose source type equals
+	/// <paramref name="aggregateEvent"/>'s runtime type.
+	/// </summary>
+	/// <param name="aggregateEvent">The event to test.</param>
+	bool CanUpcast(IEvent aggregateEvent);
 
-    /// <summary>
-    /// Applies registered upcasters to <paramref name="aggregateEvent"/> in a chain until no further
-    /// upcaster is found for the current runtime type.
-    /// </summary>
-    /// <param name="aggregateEvent">The event (potentially legacy) read from the event store.</param>
-    /// <returns>
-    /// The final up-cast event. If no upcaster is registered for the runtime type of
-    /// <paramref name="aggregateEvent"/>, the original instance is returned unchanged.
-    /// </returns>
-    IEvent Upcast(IEvent aggregateEvent);
+	/// <summary>
+	/// Applies registered upcasters to <paramref name="aggregateEvent"/> in a chain until no further
+	/// upcaster is found for the current runtime type.
+	/// </summary>
+	/// <param name="aggregateEvent">The event (potentially legacy) read from the event store.</param>
+	/// <returns>
+	/// The final up-cast event. If no upcaster is registered for the runtime type of
+	/// <paramref name="aggregateEvent"/>, the original instance is returned unchanged.
+	/// </returns>
+	IEvent Upcast(IEvent aggregateEvent);
 }

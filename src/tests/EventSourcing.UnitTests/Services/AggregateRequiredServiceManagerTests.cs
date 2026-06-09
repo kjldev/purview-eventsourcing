@@ -5,28 +5,28 @@ namespace Purview.EventSourcing.Services;
 
 public partial class AggregateRequiredServiceManagerTests
 {
-    static AggregateRequiredServiceManager CreateServiceManager(IServiceProvider serviceProvider) =>
-        new(serviceProvider);
+	static AggregateRequiredServiceManager CreateServiceManager(IServiceProvider serviceProvider) =>
+		new(serviceProvider);
 
-    static ITestService CreateTestService() => Substitute.For<ITestService>();
+	static ITestService CreateTestService() => Substitute.For<ITestService>();
 
-    static ITestService2 CreateTestService2() => Substitute.For<ITestService2>();
+	static ITestService2 CreateTestService2() => Substitute.For<ITestService2>();
 
-    class AggregateRequirementsTest : TestAggregate, IRequirement<ITestService>
-    {
-        public ITestService? TestService { get; set; }
+	class AggregateRequirementsTest : TestAggregate, IRequirement<ITestService>
+	{
+		public ITestService? TestService { get; set; }
 
-        public void SetService(ITestService service) => TestService = service;
-    }
+		public void SetService(ITestService service) => TestService = service;
+	}
 
-    class AggregateMultipleRequirementsTest : AggregateRequirementsTest, IRequirement<ITestService2>
-    {
-        public ITestService2? TestService2 { get; set; }
+	class AggregateMultipleRequirementsTest : AggregateRequirementsTest, IRequirement<ITestService2>
+	{
+		public ITestService2? TestService2 { get; set; }
 
-        public void SetService(ITestService2 service) => TestService2 = service;
-    }
+		public void SetService(ITestService2 service) => TestService2 = service;
+	}
 
-    internal interface ITestService { }
+	internal interface ITestService { }
 
-    internal interface ITestService2 { }
+	internal interface ITestService2 { }
 }

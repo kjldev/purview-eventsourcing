@@ -35,13 +35,13 @@ namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 /// </code>
 /// </example>
 public interface IEventUpcaster<TSource, TTarget>
-    where TSource : IEvent
-    where TTarget : IEvent
+	where TSource : IEvent
+	where TTarget : IEvent
 {
-    /// <summary>
-    /// Converts <paramref name="source"/> into an equivalent <typeparamref name="TTarget"/> instance.
-    /// </summary>
-    /// <param name="source">The legacy event read from the event store.</param>
-    /// <returns>The up-cast event that the aggregate can apply.</returns>
-    TTarget Upcast(TSource source);
+	/// <summary>
+	/// Converts <paramref name="source"/> into an equivalent <typeparamref name="TTarget"/> instance.
+	/// </summary>
+	/// <param name="source">The legacy event read from the event store.</param>
+	/// <returns>The up-cast event that the aggregate can apply.</returns>
+	TTarget Upcast(TSource source);
 }

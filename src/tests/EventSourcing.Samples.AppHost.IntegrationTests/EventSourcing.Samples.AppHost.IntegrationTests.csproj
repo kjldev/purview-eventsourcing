@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="TUnit.Aspire" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="TUnit.Aspire" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+	</ItemGroup>
 </Project>

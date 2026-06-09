@@ -1,11 +1,9 @@
+using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
-
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
 
@@ -32,9 +30,13 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 	public string SortDir { get; set; } = "asc";
 
 	public IReadOnlyList<CustomerAggregate> Customers { get; private set; } = [];
+
 	public long TotalCount { get; private set; }
+
 	public int TotalPages => TotalCount == 0 ? 1 : (int)Math.Ceiling((double)TotalCount / PageSize);
+
 	public bool HasPrevPage => Page > 1;
+
 	public bool HasNextPage => Page < TotalPages;
 
 	public async Task OnGetAsync()
@@ -52,27 +54,17 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			MaxRecords = PageSize,
 		};
 
-#pragma warning disable CA1308 // Normalize strings to uppercase
-#pragma warning disable CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
-		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
+		var search = Search?.Trim() ?? string.Empty;
 		var activeFilter = ActiveFilter;
-		var hasFilter = !string.IsNullOrEmpty(search) || activeFilter.HasValue;
+		var hasFilter = search.Length > 0 || activeFilter.HasValue;
 
-		Expression<Func<CustomerAggregate, bool>> where = hasFilter
+		Expression<Func<CustomerAggregate, bool>>? where = hasFilter
 			? c =>
-				(
-					string.IsNullOrEmpty(search)
-					|| c.Name.ToLower().Contains(search)
-					|| c.Email.ToLower().Contains(search)
-				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
-			: c => true;
-#pragma warning restore CA1862 // Use the 'StringComparison' method overloads to perform case-insensitive string comparisons
-#pragma warning restore CA1308 // Normalize strings to uppercase
+				(string.IsNullOrEmpty(search) || c.Name.Contains(search) || c.Email.Contains(search))
+				&& (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
+			: null;
 
-		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (
-			SortBy,
-			SortDir
-		) switch
+		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch
 		{
 			("email", "desc") => q => q.OrderByDescending(c => c.Email),
 			("email", _) => q => q.OrderBy(c => c.Email),
@@ -82,11 +74,11 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			_ => q => q.OrderBy(c => c.Name),
 		};
 
-		TotalCount = await store.CountAsync<CustomerAggregate>(hasFilter ? where : null, ct);
+		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);
 
 		var result = hasFilter
-			? await store.QueryAsync<CustomerAggregate>(where, orderBy, request, ct)
-			: await store.ListAsync<CustomerAggregate>(orderBy, request, ct);
+			? await store.QueryAsync(where!, orderBy, request, ct)
+			: await store.ListAsync(orderBy, request, ct);
 		Customers = result.Results;
 	}
 

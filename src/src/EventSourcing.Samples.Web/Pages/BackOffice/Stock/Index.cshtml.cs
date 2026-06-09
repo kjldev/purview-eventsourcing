@@ -1,11 +1,9 @@
+using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
-
-using System.Globalization;
-using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Stock;
 
@@ -29,9 +27,13 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 	public string SortDir { get; set; } = "desc";
 
 	public IReadOnlyList<InventoryAggregate> Items { get; private set; } = [];
+
 	public long TotalCount { get; private set; }
+
 	public int TotalPages => TotalCount == 0 ? 1 : (int)Math.Ceiling((double)TotalCount / PageSize);
+
 	public bool HasPrevPage => Page > 1;
+
 	public bool HasNextPage => Page < TotalPages;
 
 	public async Task OnGetAsync()
@@ -55,10 +57,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		Expression<Func<InventoryAggregate, bool>> where = i =>
 			i.ProductId.ToLower().Contains(search) || i.ProductName.ToLower().Contains(search);
 
-		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (
-			SortBy,
-			SortDir
-		) switch
+		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (SortBy, SortDir) switch
 		{
 			("onhand", "asc") => q => q.OrderBy(i => i.QuantityOnHand),
 			("onhand", _) => q => q.OrderByDescending(i => i.QuantityOnHand),
@@ -70,11 +69,11 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			_ => q => q.OrderByDescending(i => i.AvailableQuantity),
 		};
 
-		TotalCount = await store.CountAsync<InventoryAggregate>(hasFilter ? where : null, ct);
+		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);
 
 		var result = hasFilter
-			? await store.QueryAsync<InventoryAggregate>(where, orderBy, request, ct)
-			: await store.ListAsync<InventoryAggregate>(orderBy, request, ct);
+			? await store.QueryAsync(where, orderBy, request, ct)
+			: await store.ListAsync(orderBy, request, ct);
 		Items = result.Results;
 	}
 

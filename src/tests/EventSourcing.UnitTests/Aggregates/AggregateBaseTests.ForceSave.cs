@@ -2,43 +2,43 @@ namespace Purview.EventSourcing.Aggregates;
 
 public partial class AggregateBaseTests
 {
-    [Test]
-    public async Task ForceSave_GivenNoUnsavedEvents_RecordsForceSaveEvent()
-    {
-        // Arrange
-        var aggregate = new Test.TestAggregate();
+	[Test]
+	public async Task ForceSave_GivenNoUnsavedEvents_RecordsForceSaveEvent()
+	{
+		// Arrange
+		var aggregate = new Test.TestAggregate();
 
-        // Act
-        aggregate.ForceSave();
+		// Act
+		aggregate.ForceSave();
 
-        // Assert
-        await Assert.That(aggregate.HasUnsavedEvents()).IsTrue();
-        await Assert.That(aggregate.GetUnsavedEvents().Count()).IsEqualTo(1);
-    }
+		// Assert
+		await Assert.That(aggregate.HasUnsavedEvents()).IsTrue();
+		await Assert.That(aggregate.GetUnsavedEvents().Count()).IsEqualTo(1);
+	}
 
-    [Test]
-    public async Task ForceSave_GivenExistingUnsavedEvents_DoesNotRecordForceSaveEvent()
-    {
-        // Arrange
-        var aggregate = new Test.TestAggregate();
-        aggregate.RecordEvent();
+	[Test]
+	public async Task ForceSave_GivenExistingUnsavedEvents_DoesNotRecordForceSaveEvent()
+	{
+		// Arrange
+		var aggregate = new Test.TestAggregate();
+		aggregate.RecordEvent();
 
-        var eventCountBefore = aggregate.GetUnsavedEvents().Count();
+		var eventCountBefore = aggregate.GetUnsavedEvents().Count();
 
-        // Act
-        aggregate.ForceSave();
+		// Act
+		aggregate.ForceSave();
 
-        // Assert — no additional event added since unsaved events already exist
-        await Assert.That(aggregate.GetUnsavedEvents().Count()).IsEqualTo(eventCountBefore);
-    }
+		// Assert — no additional event added since unsaved events already exist
+		await Assert.That(aggregate.GetUnsavedEvents().Count()).IsEqualTo(eventCountBefore);
+	}
 
-    [Test]
-    public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix()
-    {
-        // Arrange
-        var aggregate = new Test.TestAggregate();
+	[Test]
+	public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix()
+	{
+		// Arrange
+		var aggregate = new Test.TestAggregate();
 
-        // Assert — "TestAggregate" becomes "test" via TypeNameHelper
-        await Assert.That(aggregate.AggregateType).IsEqualTo("test");
-    }
+		// Assert — "TestAggregate" becomes "test" via TypeNameHelper
+		await Assert.That(aggregate.AggregateType).IsEqualTo("test");
+	}
 }

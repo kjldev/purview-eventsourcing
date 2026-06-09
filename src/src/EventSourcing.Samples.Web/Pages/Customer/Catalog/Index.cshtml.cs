@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -61,10 +60,7 @@ sealed class IndexModel(
 			{
 				var best = g.OrderByDescending(i => i.AvailableQuantity).First();
 				var totalAvailable = g.Sum(i => i.AvailableQuantity);
-				var unitPrice = Math.Round(
-					9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m,
-					2
-				);
+				var unitPrice = Math.Round(9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m, 2);
 				return (
 					ProductId: g.Key,
 					best.ProductName,
@@ -77,9 +73,7 @@ sealed class IndexModel(
 			.ToList();
 
 		// Resolve image URLs in parallel
-		var imageUrlTasks = grouped
-			.Select(p => imageService.GetImageUrlAsync(p.ProductId, ct))
-			.ToList();
+		var imageUrlTasks = grouped.Select(p => imageService.GetImageUrlAsync(p.ProductId, ct)).ToList();
 		var imageUrls = await Task.WhenAll(imageUrlTasks);
 
 		Products =

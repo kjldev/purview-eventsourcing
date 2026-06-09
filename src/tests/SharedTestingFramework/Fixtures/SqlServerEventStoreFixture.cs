@@ -3,7 +3,7 @@ using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
-using Purview.EventSourcing.SqlServer;
+using Purview.EventSourcing.SqlServer.Events;
 using Testcontainers.MsSql;
 using TUnit.Core.Interfaces;
 
@@ -11,93 +11,95 @@ namespace Purview.EventSourcing.Fixtures;
 
 public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
-    readonly MsSqlContainer _msSqlContainer;
-    IAggregateEventNameMapper _eventNameMapper = default!;
+	readonly MsSqlContainer _msSqlContainer;
+	IAggregateEventNameMapper _eventNameMapper = default!;
 
-    public SqlServerEventStoreFixture()
-    {
-        _msSqlContainer = ContainerHelper.CreateMsSql();
-    }
+	public SqlServerEventStoreFixture()
+	{
+		_msSqlContainer = ContainerHelper.CreateMsSql();
+	}
 
-    public IDistributedCache Cache { get; private set; } = default!;
-    public ISqlServerEventStoreTelemetry Telemetry { get; private set; } = default!;
-    internal SqlServerEventStoreClient Client { get; private set; } = default!;
+	public IDistributedCache Cache { get; private set; } = default!;
 
-    public SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
-        IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-        bool removeFromCacheOnDelete = false,
-        int snapshotRecalculationInterval = 1
-    )
-        where TAggregate : class, IAggregate, new() =>
-        CreateEventStoreContext(
-            aggregateChangeNotifier,
-            removeFromCacheOnDelete,
-            snapshotRecalculationInterval
-        ).EventStore;
+	public ISqlServerEventStoreTelemetry Telemetry { get; private set; } = default!;
 
-    internal (
-        SqlServerEventStore<TAggregate> EventStore,
-        SqlServerEventStoreClient Client,
-        IDistributedCache Cache,
-        ISqlServerEventStoreTelemetry Telemetry
-    ) CreateEventStoreContext<TAggregate>(
-        IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-        bool removeFromCacheOnDelete = false,
-        int snapshotRecalculationInterval = 1
-    )
-        where TAggregate : class, IAggregate, new()
-    {
-        var runId = Guid.NewGuid();
-        var cache = CreateDistributedCache();
-        Cache = cache;
-        var telemetry = Substitute.For<ISqlServerEventStoreTelemetry>();
-        Telemetry = telemetry;
-        _eventNameMapper = new AggregateEventNameMapper();
+	internal SqlServerEventStoreClient Client { get; private set; } = default!;
 
-        var connectionString = _msSqlContainer.GetConnectionString();
-        var aggregateRequirementsManager = Substitute.For<IAggregateRequirementsManager>();
+	public SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
+		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
+		bool removeFromCacheOnDelete = false,
+		int snapshotRecalculationInterval = 1
+	)
+		where TAggregate : class, IAggregate, new() =>
+		CreateEventStoreContext(
+			aggregateChangeNotifier,
+			removeFromCacheOnDelete,
+			snapshotRecalculationInterval
+		).EventStore;
 
-        SqlServerEventStoreOptions options = new()
-        {
-            ConnectionString = connectionString,
-            TableName = $"EventStore_{runId:N}",
-            SchemaName = "dbo",
-            AutoCreateTable = true,
-            TimeoutInSeconds = 60,
-            RemoveDeletedFromCache = removeFromCacheOnDelete,
-            SnapshotInterval = snapshotRecalculationInterval,
-        };
+	internal (
+		SqlServerEventStore<TAggregate> EventStore,
+		SqlServerEventStoreClient Client,
+		IDistributedCache Cache,
+		ISqlServerEventStoreTelemetry Telemetry
+	) CreateEventStoreContext<TAggregate>(
+		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
+		bool removeFromCacheOnDelete = false,
+		int snapshotRecalculationInterval = 1
+	)
+		where TAggregate : class, IAggregate, new()
+	{
+		var runId = Guid.NewGuid();
+		var cache = CreateDistributedCache();
+		Cache = cache;
+		var telemetry = Substitute.For<ISqlServerEventStoreTelemetry>();
+		Telemetry = telemetry;
+		_eventNameMapper = new AggregateEventNameMapper();
 
-        var client = new SqlServerEventStoreClient(options);
-        Client = client;
+		var connectionString = _msSqlContainer.GetConnectionString();
+		var aggregateRequirementsManager = Substitute.For<IAggregateRequirementsManager>();
 
-        SqlServerEventStore<TAggregate> eventStore = new(
-            eventNameMapper: _eventNameMapper,
-            sqlServerOptions: Microsoft.Extensions.Options.Options.Create(options),
-            distributedCache: cache,
-            eventStoreTelemetry: telemetry,
-            aggregateChangeNotifier: aggregateChangeNotifier
-                ?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
-            aggregateRequirementsManager: aggregateRequirementsManager
-        );
+		SqlServerEventStoreOptions options = new()
+		{
+			ConnectionString = connectionString,
+			TableName = $"EventStore_{runId:N}",
+			SchemaName = "dbo",
+			AutoCreateTable = true,
+			TimeoutInSeconds = 60,
+			RemoveDeletedFromCache = removeFromCacheOnDelete,
+			SnapshotInterval = snapshotRecalculationInterval,
+		};
 
-        return (eventStore, client, cache, telemetry);
-    }
+		var client = new SqlServerEventStoreClient(options);
+		Client = client;
 
-    public static IDistributedCache CreateDistributedCache()
-    {
-        var cache = Substitute.For<IDistributedCache>();
-        cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).ReturnsNullForAnyArgs();
-        return cache;
-    }
+		SqlServerEventStore<TAggregate> eventStore = new(
+			eventNameMapper: _eventNameMapper,
+			sqlServerOptions: Microsoft.Extensions.Options.Options.Create(options),
+			distributedCache: cache,
+			eventStoreTelemetry: telemetry,
+			aggregateChangeNotifier: aggregateChangeNotifier
+				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
+			aggregateRequirementsManager: aggregateRequirementsManager
+		);
 
-    public async Task InitializeAsync()
-    {
-        await _msSqlContainer.StartAsync();
-    }
+		return (eventStore, client, cache, telemetry);
+	}
 
-    public async ValueTask DisposeAsync()
-    {
-        await _msSqlContainer.DisposeAsync();
-    }
+	public static IDistributedCache CreateDistributedCache()
+	{
+		var cache = Substitute.For<IDistributedCache>();
+		cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).ReturnsNullForAnyArgs();
+		return cache;
+	}
+
+	public async Task InitializeAsync()
+	{
+		await _msSqlContainer.StartAsync();
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		await _msSqlContainer.DisposeAsync();
+	}
 }

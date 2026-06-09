@@ -5,18 +5,18 @@
 /// </summary>
 public enum ExistsStatus
 {
-    /// <summary>
-    /// The aggregate does not exist.
-    /// </summary>
-    DoesNotExist,
+	/// <summary>
+	/// The aggregate does not exist.
+	/// </summary>
+	DoesNotExist,
 
-    /// <summary>
-    /// The aggregate exists, and is not in a deleted state.
-    /// </summary>
-    Exists,
+	/// <summary>
+	/// The aggregate exists, and is not in a deleted state.
+	/// </summary>
+	Exists,
 
-    /// <summary>
-    /// The aggregate exists, but is in a deleted state.
-    /// </summary>
-    ExistsInDeletedState,
+	/// <summary>
+	/// The aggregate exists, but is in a deleted state.
+	/// </summary>
+	ExistsInDeletedState,
 }
