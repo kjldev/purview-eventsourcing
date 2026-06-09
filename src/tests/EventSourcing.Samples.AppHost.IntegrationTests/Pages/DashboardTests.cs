@@ -3,7 +3,6 @@ using Purview.EventSourcing.Samples.AppHost.Infrastructure;
 namespace Purview.EventSourcing.Samples.AppHost.Pages;
 
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
-[Skip("WIP")]
 public sealed class DashboardTests(AppHostFixture factory)
 {
 	[Test]

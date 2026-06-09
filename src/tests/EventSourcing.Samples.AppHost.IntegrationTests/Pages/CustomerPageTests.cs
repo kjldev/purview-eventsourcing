@@ -4,7 +4,6 @@ using Purview.EventSourcing.Samples.Domain;
 namespace Purview.EventSourcing.Samples.AppHost.Pages;
 
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
-//[Skip("WIP")]
 public sealed class CustomerPageTests(AppHostFixture fixture)
 {
 	readonly HttpClient _client = fixture.CreateWebClient(); //.CreateClient(new() { AllowAutoRedirect = false });

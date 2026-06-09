@@ -3,7 +3,6 @@ using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.AppHost.Pages;
 
-[Skip("WIP")]
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
 public sealed class OrderPageTests(AppHostFixture fixture)
 {

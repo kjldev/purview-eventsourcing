@@ -84,9 +84,14 @@ public sealed class AppHostFixture : AspireFixture<Program>
 		await WaitForWebAppAsync(CancellationToken.None);
 
 		_services
+			// Required for logging
 			.AddLogging(configure => configure.AddDebug())
+			.AddMetrics()
+			// The event stores
 			.AddSqlServerEventStore()
-			.AddSqlServerSnapshotQueryableEventStore();
+			.AddSqlServerSnapshotQueryableEventStore()
+			// Event store uses the cache...
+			.AddDistributedMemoryCache();
 
 		ServiceProvider = _services.BuildServiceProvider(
 			new ServiceProviderOptions() { ValidateOnBuild = true, ValidateScopes = true }
