@@ -58,11 +58,12 @@ static async Task RunSuccessfulCheckoutAsync(
 	ArgumentNullException.ThrowIfNull(dock);
 
 	var order = await store.CreateAsync<OrderAggregate>("order-success");
-	order.CreateOrder(customer.Id());
-	order.AddLineItem(keyboard.ProductId, keyboard.ProductName, quantity: 1, unitPrice: 49.99m);
-	order.AddLineItem(dock.ProductId, dock.ProductName, quantity: 1, unitPrice: 89.99m);
-	order.SetShippingAddress("123 Example Street");
-	order.ConfirmOrder();
+	order
+		.CreateOrder(customer.Id())
+		.AddLineItem(keyboard.ProductId, keyboard.ProductName, quantity: 1, unitPrice: 49.99m)
+		.AddLineItem(dock.ProductId, dock.ProductName, quantity: 1, unitPrice: 89.99m)
+		.SetShippingAddress("123 Example Street")
+		.ConfirmOrder();
 
 	keyboard.ReserveStock(1, order.Id());
 	dock.ReserveStock(1, order.Id());

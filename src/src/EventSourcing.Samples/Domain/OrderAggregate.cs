@@ -16,26 +16,31 @@ namespace Purview.EventSourcing.Samples.Domain;
 public sealed partial class OrderAggregate : AggregateBase
 {
 	public string CustomerId { get; private set; } = default!;
+
 	public OrderStatus Status { get; private set; }
 
 	[Range(0, double.MaxValue)]
 	public decimal TotalAmount { get; private set; }
 
 	public ImmutableArray<OrderLineItem> LineItems { get; private set; } = [];
+
 	public string? ShippingAddress { get; private set; }
+
 	public string? Notes { get; private set; }
+
 	public DateTimeOffset? ShippedAt { get; private set; }
+
 	public DateTimeOffset? CompletedAt { get; private set; }
 
 	// Commands
-	public void CreateOrder(string customerId)
+	public OrderAggregate CreateOrder(string customerId)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
 
-		OrderCreated(customerId, status: OrderStatus.Draft);
+		return OrderCreated(customerId, status: OrderStatus.Draft);
 	}
 
-	public void AddLineItem(string productId, string productName, int quantity, decimal unitPrice)
+	public OrderAggregate AddLineItem(string productId, string productName, int quantity, decimal unitPrice)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(productId);
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
@@ -59,10 +64,10 @@ public sealed partial class OrderAggregate : AggregateBase
 				),
 			];
 
-		OrderLineItemAdded(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
+		return OrderLineItemAdded(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}
 
-	public void RemoveLineItem(string productId)
+	public OrderAggregate RemoveLineItem(string productId)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only remove items from draft orders.");
@@ -72,24 +77,24 @@ public sealed partial class OrderAggregate : AggregateBase
 
 		var updatedLineItems = LineItems.Where(lineItem => lineItem.ProductId != productId).ToImmutableArray();
 
-		OrderLineItemRemoved(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
+		return OrderLineItemRemoved(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}
 
-	public void SetShippingAddress(string address)
+	public OrderAggregate SetShippingAddress(string address)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(address);
 
-		OrderShippingAddressSet(shippingAddress: address);
+		return OrderShippingAddressSet(shippingAddress: address);
 	}
 
-	public void UpdateNotes(string? notes) => OrderNotesUpdated(notes);
+	public OrderAggregate UpdateNotes(string? notes) => OrderNotesUpdated(notes);
 
 	/// <summary>
 	/// Updates one or more order details in a single operation, raising a granular event
 	/// for each field that has actually changed. Pass <see langword="null"/> for any field
 	/// that should remain unchanged. To clear notes, use <see cref="UpdateNotes"/> directly.
 	/// </summary>
-	public void UpdateDetails(string? shippingAddress = null, string? notes = null)
+	public OrderAggregate UpdateDetails(string? shippingAddress = null, string? notes = null)
 	{
 		if (shippingAddress is not null)
 		{
@@ -100,9 +105,11 @@ public sealed partial class OrderAggregate : AggregateBase
 
 		if (notes is not null && notes != Notes)
 			OrderNotesUpdated(notes);
+
+		return this;
 	}
 
-	public void ConfirmOrder()
+	public OrderAggregate ConfirmOrder()
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only confirm draft orders.");
@@ -110,10 +117,10 @@ public sealed partial class OrderAggregate : AggregateBase
 		if (LineItems.Length == 0)
 			throw new InvalidOperationException("Cannot confirm an order with no items.");
 
-		OrderConfirmed(status: OrderStatus.Confirmed);
+		return OrderConfirmed(status: OrderStatus.Confirmed);
 	}
 
-	public void ShipOrder()
+	public OrderAggregate ShipOrder()
 	{
 		if (Status != OrderStatus.Confirmed)
 			throw new InvalidOperationException("Can only ship confirmed orders.");
@@ -121,51 +128,51 @@ public sealed partial class OrderAggregate : AggregateBase
 		if (string.IsNullOrWhiteSpace(ShippingAddress))
 			throw new InvalidOperationException("Shipping address must be set before shipping.");
 
-		OrderShipped(status: OrderStatus.Shipped, shippedAt: DateTimeOffset.UtcNow);
+		return OrderShipped(status: OrderStatus.Shipped, shippedAt: DateTimeOffset.UtcNow);
 	}
 
-	public void CompleteOrder()
+	public OrderAggregate CompleteOrder()
 	{
 		if (Status != OrderStatus.Shipped)
 			throw new InvalidOperationException("Can only complete shipped orders.");
 
-		OrderCompleted(status: OrderStatus.Completed, completedAt: DateTimeOffset.UtcNow);
+		return OrderCompleted(status: OrderStatus.Completed, completedAt: DateTimeOffset.UtcNow);
 	}
 
-	public void CancelOrder()
+	public OrderAggregate CancelOrder()
 	{
 		if (Status is OrderStatus.Completed or OrderStatus.Cancelled)
 			throw new InvalidOperationException("Cannot cancel a completed or already cancelled order.");
 
-		OrderCancelled(status: OrderStatus.Cancelled);
+		return OrderCancelled(status: OrderStatus.Cancelled);
 	}
 
 	[GenerateAggregateEvent]
-	public partial void OrderCreated(string customerId, OrderStatus status);
+	public partial OrderAggregate OrderCreated(string customerId, OrderStatus status);
 
 	[GenerateAggregateEvent]
-	public partial void OrderLineItemAdded(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
+	public partial OrderAggregate OrderLineItemAdded(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
 
 	[GenerateAggregateEvent]
-	public partial void OrderLineItemRemoved(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
+	public partial OrderAggregate OrderLineItemRemoved(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
 
 	[GenerateAggregateEvent]
-	public partial void OrderShippingAddressSet(string shippingAddress);
+	public partial OrderAggregate OrderShippingAddressSet(string shippingAddress);
 
 	[GenerateAggregateEvent]
-	public partial void OrderNotesUpdated(string? notes);
+	public partial OrderAggregate OrderNotesUpdated(string? notes);
 
 	[GenerateAggregateEvent]
-	public partial void OrderConfirmed(OrderStatus status);
+	public partial OrderAggregate OrderConfirmed(OrderStatus status);
 
 	[GenerateAggregateEvent]
-	public partial void OrderShipped(OrderStatus status, DateTimeOffset shippedAt);
+	public partial OrderAggregate OrderShipped(OrderStatus status, DateTimeOffset shippedAt);
 
 	[GenerateAggregateEvent]
-	public partial void OrderCompleted(OrderStatus status, DateTimeOffset completedAt);
+	public partial OrderAggregate OrderCompleted(OrderStatus status, DateTimeOffset completedAt);
 
 	[GenerateAggregateEvent]
-	public partial void OrderCancelled(OrderStatus status);
+	public partial OrderAggregate OrderCancelled(OrderStatus status);
 
 	static decimal CalculateTotalAmount(ImmutableArray<OrderLineItem> lineItems) =>
 		lineItems.Sum(lineItem => lineItem.Quantity * lineItem.UnitPrice);

@@ -11,8 +11,11 @@ namespace Purview.EventSourcing.Samples.Domain;
 public sealed partial class InventoryAggregate : AggregateBase
 {
 	public string ProductId { get; private set; } = default!;
+
 	public string ProductName { get; private set; } = default!;
+
 	public string LocationId { get; private set; } = default!;
+
 	public string LocationName { get; private set; } = default!;
 
 	[Range(0, int.MaxValue)]
@@ -24,7 +27,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 	public int AvailableQuantity => QuantityOnHand - ReservedQuantity;
 
 	// Commands
-	public void Initialize(
+	public InventoryAggregate Initialize(
 		string productId,
 		string productName,
 		string locationId,
@@ -38,7 +41,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentException.ThrowIfNullOrWhiteSpace(locationName);
 		ArgumentOutOfRangeException.ThrowIfNegative(initialQuantity);
 
-		InventoryInitialized(
+		return InventoryInitialized(
 			productId,
 			productName,
 			locationId,
@@ -48,14 +51,14 @@ public sealed partial class InventoryAggregate : AggregateBase
 		);
 	}
 
-	public void ReceiveStock(int quantity)
+	public InventoryAggregate ReceiveStock(int quantity)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
-		StockReceived(quantityOnHand: QuantityOnHand + quantity, reservedQuantity: ReservedQuantity);
+		return StockReceived(quantityOnHand: QuantityOnHand + quantity, reservedQuantity: ReservedQuantity);
 	}
 
-	public void ReserveStock(int quantity, string orderId)
+	public InventoryAggregate ReserveStock(int quantity, string orderId)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
@@ -65,10 +68,10 @@ public sealed partial class InventoryAggregate : AggregateBase
 				$"Cannot reserve {quantity} units. Only {AvailableQuantity} available."
 			);
 
-		StockReserved(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
+		return StockReserved(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
 	}
 
-	public void ReleaseReservation(int quantity, string orderId)
+	public InventoryAggregate ReleaseReservation(int quantity, string orderId)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
@@ -76,10 +79,10 @@ public sealed partial class InventoryAggregate : AggregateBase
 		if (quantity > ReservedQuantity)
 			throw new InvalidOperationException($"Cannot release {quantity} units. Only {ReservedQuantity} reserved.");
 
-		StockReservationReleased(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
+		return StockReservationReleased(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
 	}
 
-	public void ShipStock(int quantity, string orderId)
+	public InventoryAggregate ShipStock(int quantity, string orderId)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
@@ -87,15 +90,15 @@ public sealed partial class InventoryAggregate : AggregateBase
 		if (quantity > ReservedQuantity)
 			throw new InvalidOperationException($"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.");
 
-		StockShipped(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
+		return StockShipped(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
 	}
 
-	public void AdjustStock(int newQuantity, string reason)
+	public InventoryAggregate AdjustStock(int newQuantity, string reason)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegative(newQuantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
-		StockAdjusted(quantityOnHand: newQuantity, reservedQuantity: Math.Min(ReservedQuantity, newQuantity));
+		return StockAdjusted(quantityOnHand: newQuantity, reservedQuantity: Math.Min(ReservedQuantity, newQuantity));
 	}
 
 	/// <summary>
@@ -103,7 +106,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 	/// event for each field that has actually changed. Pass <see langword="null"/> for any field
 	/// that should remain unchanged.
 	/// </summary>
-	public void UpdateDetails(string? productName = null, string? locationName = null)
+	public InventoryAggregate UpdateDetails(string? productName = null, string? locationName = null)
 	{
 		if (productName is not null)
 		{
@@ -118,10 +121,12 @@ public sealed partial class InventoryAggregate : AggregateBase
 			if (locationName != LocationName)
 				LocationNameUpdated(locationName);
 		}
+
+		return this;
 	}
 
 	[GenerateAggregateEvent]
-	public partial void InventoryInitialized(
+	public partial InventoryAggregate InventoryInitialized(
 		string productId,
 		string productName,
 		string locationId,
@@ -131,23 +136,23 @@ public sealed partial class InventoryAggregate : AggregateBase
 	);
 
 	[GenerateAggregateEvent]
-	public partial void StockReceived(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate StockReceived(int quantityOnHand, int reservedQuantity);
 
 	[GenerateAggregateEvent]
-	public partial void StockReserved(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate StockReserved(int quantityOnHand, int reservedQuantity);
 
 	[GenerateAggregateEvent]
-	public partial void StockReservationReleased(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate StockReservationReleased(int quantityOnHand, int reservedQuantity);
 
 	[GenerateAggregateEvent]
-	public partial void StockShipped(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate StockShipped(int quantityOnHand, int reservedQuantity);
 
 	[GenerateAggregateEvent]
-	public partial void StockAdjusted(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate StockAdjusted(int quantityOnHand, int reservedQuantity);
 
 	[GenerateAggregateEvent]
-	public partial void ProductNameUpdated(string productName);
+	public partial InventoryAggregate ProductNameUpdated(string productName);
 
 	[GenerateAggregateEvent]
-	public partial void LocationNameUpdated(string locationName);
+	public partial InventoryAggregate LocationNameUpdated(string locationName);
 }

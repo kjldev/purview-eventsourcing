@@ -293,9 +293,13 @@ sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failurePlan)
 
 		[AllowNull]
 		public override string ConnectionString { get; set; } = "quickstart";
+
 		public override string Database => "quickstart";
+
 		public override string DataSource => "quickstart";
+
 		public override string ServerVersion => "1.0";
+
 		public override ConnectionState State => _state;
 
 		public override void ChangeDatabase(string databaseName) { }

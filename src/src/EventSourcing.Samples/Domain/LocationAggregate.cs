@@ -13,8 +13,8 @@ public sealed partial class LocationAggregate : AggregateBase
 	public string LocationName { get; private set; } = default!;
 
 	[GenerateAggregateEvent]
-	public partial void Initialize(string locationId, string locationName);
+	public partial LocationAggregate Initialize(string locationId, string locationName);
 
 	[GenerateAggregateEvent]
-	public partial void Rename(string locationName);
+	public partial LocationAggregate Rename(string locationName);
 }
