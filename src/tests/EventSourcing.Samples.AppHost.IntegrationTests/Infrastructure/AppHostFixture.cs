@@ -1,6 +1,7 @@
 using System.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using TUnit.Aspire;
 
 namespace Purview.EventSourcing.Samples.AppHost.Infrastructure;
@@ -82,7 +83,10 @@ public sealed class AppHostFixture : AspireFixture<Program>
 
 		await WaitForWebAppAsync(CancellationToken.None);
 
-		_services.AddSqlServerSnapshotQueryableEventStore(registerAsIEventStore: true);
+		_services
+			.AddLogging(configure => configure.AddDebug())
+			.AddSqlServerEventStore()
+			.AddSqlServerSnapshotQueryableEventStore();
 
 		ServiceProvider = _services.BuildServiceProvider(
 			new ServiceProviderOptions() { ValidateOnBuild = true, ValidateScopes = true }

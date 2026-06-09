@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Fixtures;
+﻿using Purview.EventSourcing.Fixtures.AzureStorage;
 
 namespace Purview.EventSourcing.AzureStorage;
 

@@ -7,7 +7,7 @@ using Purview.EventSourcing.SqlServer.Events;
 using Testcontainers.MsSql;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.Fixtures;
+namespace Purview.EventSourcing.Fixtures.SqlServer;
 
 public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

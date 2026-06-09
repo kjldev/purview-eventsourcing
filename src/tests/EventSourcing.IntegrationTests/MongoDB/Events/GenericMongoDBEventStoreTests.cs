@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using Purview.EventSourcing.Aggregates;
-using Purview.EventSourcing.Fixtures;
+using Purview.EventSourcing.Fixtures.MongoDB;
 using Purview.EventSourcing.MongoDb.Events;
 
 namespace Purview.EventSourcing.MongoDB.Events;

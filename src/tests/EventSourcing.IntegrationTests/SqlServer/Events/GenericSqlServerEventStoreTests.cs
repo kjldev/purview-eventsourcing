@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using Purview.EventSourcing.Aggregates;
-using Purview.EventSourcing.Fixtures;
+using Purview.EventSourcing.Fixtures.SqlServer;
 using Purview.EventSourcing.SqlServer.Events;
 
 namespace Purview.EventSourcing.SqlServer;

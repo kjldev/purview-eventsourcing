@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Purview.EventSourcing.SourceGenerator;
 
-public class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
+public sealed class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
 	const int ExpectedFileCount = 3;
 	const int ExpectedFileCountPlusGen = ExpectedFileCount + 1;

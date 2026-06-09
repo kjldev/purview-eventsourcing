@@ -8,22 +8,14 @@ using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.Fixtures;
+namespace Purview.EventSourcing.Fixtures.AzureStorage;
 
 public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
-	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer;
-
-	string _containerName = default!;
-	string _tableName = default!;
+	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer = ContainerHelper.CreateAzurite();
 
 	IAggregateEventNameMapper _eventNameMapper = default!;
 	IDisposable? _eventStoreAsDisposable;
-
-	public TableEventStoreFixture()
-	{
-		_azuriteContainer = ContainerHelper.CreateAzurite();
-	}
 
 	public IDistributedCache Cache { get; private set; } = default!;
 
@@ -62,9 +54,6 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 
 		var tableName = TestHelpers.GenAzureTableName(runId);
 		var containerName = TestHelpers.GenAzureBlobContainerName(runId);
-
-		_tableName = tableName;
-		_containerName = containerName;
 
 		var cache = CreateDistributedCache();
 		Cache = cache;

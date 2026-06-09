@@ -1,4 +1,4 @@
-using Purview.EventSourcing.Fixtures;
+using Purview.EventSourcing.Fixtures.MongoDB;
 
 namespace Purview.EventSourcing.MongoDB.Events;
 

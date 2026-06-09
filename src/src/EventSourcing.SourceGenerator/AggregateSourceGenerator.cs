@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,7 +8,7 @@ using Purview.EventSourcing.SourceGenerator.Templates;
 namespace Purview.EventSourcing.SourceGenerator;
 
 [Generator]
-public sealed class AggregateSourceGenerator : IIncrementalGenerator
+public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSupport
 {
 	const string GenerateAggregateAttributeName = "Purview.EventSourcing.Aggregates.GenerateAggregateAttribute";
 	const string GenerateAggregateEventAttributeName =
@@ -18,12 +19,16 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 	static readonly int HintNameSeparatorAndSuffixLength = 1 + HintNameHashHexLength + GeneratedSourceFileSuffix.Length;
 
+	GenerationLogger? _logger;
+
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
 		// Register the attribute templates as post-initialization output so they're
 		// available to consuming projects without needing a reference to the core library.
 		context.RegisterPostInitializationOutput(ctx =>
 		{
+			_logger?.Debug("Adding attribute definitions to compilation");
+
 			ctx.AddEmbeddedAttributeDefinition();
 			ctx.AddSource(
 				"GenerateAggregateAttribute.g.cs",
@@ -41,10 +46,15 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
 		var isDisabled = context.AnalyzerConfigOptionsProvider.Select(
-			static (opts, _) =>
+			(opts, _) =>
 			{
 				opts.GlobalOptions.TryGetValue("build_property.DisableEventSourcingSourceGenerator", out var val);
-				return string.Equals(val, "true", StringComparison.OrdinalIgnoreCase);
+				var isDisabled = string.Equals(val, "true", StringComparison.OrdinalIgnoreCase);
+
+				if (isDisabled)
+					_logger?.Debug("EventSourcingSourceGenerator is disabled via MSBuild property");
+
+				return isDisabled;
 			}
 		);
 
@@ -67,7 +77,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		context.RegisterSourceOutput(
 			isDisabled.Combine(aggregateClasses),
-			static (spc, data) =>
+			(spc, data) =>
 			{
 				var (isDisabled, aggregateResults) = data;
 				if (isDisabled)
@@ -75,12 +85,12 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 				foreach (var result in aggregateResults)
 				{
-					ReportDiagnostics(spc, result.Diagnostics);
+					ReportDiagnostics(spc, result.Diagnostics, _logger);
 
 					if (result.Info is null)
 						return;
 
-					var source = EmitHelper.GenerateAggregateSource(result.Info);
+					var source = EmitHelper.GenerateAggregateSource(result.Info, _logger);
 					spc.AddSource(result.Info.HintName, source);
 				}
 			}
@@ -88,14 +98,14 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		context.RegisterSourceOutput(
 			isDisabled.Combine(standaloneEventMethods),
-			static (spc, result) =>
+			(spc, result) =>
 			{
 				var (isDisabled, validationResults) = result;
 				if (isDisabled)
 					return;
 
 				foreach (var validationResult in validationResults)
-					ReportDiagnostics(spc, validationResult.Diagnostics);
+					ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
 			}
 		);
 	}
@@ -642,8 +652,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 
 		builder.Append('_');
 		builder.Append(
-			ComputeStableHash(symbolName)
-				.ToString($"X{HintNameHashHexLength}", System.Globalization.CultureInfo.InvariantCulture)
+			ComputeStableHash(symbolName).ToString($"X{HintNameHashHexLength}", CultureInfo.InvariantCulture)
 		);
 		builder.Append(GeneratedSourceFileSuffix);
 		return builder.ToString();
@@ -664,11 +673,19 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator
 		return hash;
 	}
 
-	static void ReportDiagnostics(SourceProductionContext context, IEnumerable<Diagnostic> diagnostics)
+	static void ReportDiagnostics(
+		SourceProductionContext context,
+		IEnumerable<Diagnostic> diagnostics,
+		GenerationLogger? logger
+	)
 	{
 		foreach (var diagnostic in diagnostics)
 		{
 			context.ReportDiagnostic(diagnostic);
+
+			logger?.Diagnostic(diagnostic.GetMessage(CultureInfo.InvariantCulture));
 		}
 	}
+
+	void ILogSupport.SetLogOutput(Action<string, OutputType> action) => _logger = new GenerationLogger(action);
 }

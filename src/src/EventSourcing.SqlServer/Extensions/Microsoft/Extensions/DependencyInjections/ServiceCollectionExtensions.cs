@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
 				.AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
 				.AddTransient<IEventStore, EventStoreFacade>()
 				.TryAddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>();
+
 			services.AddSqlServerEventStoreTelemetry();
 
 			services
@@ -56,6 +57,7 @@ public static class ServiceCollectionExtensions
 				.AddTransient(typeof(IQueryableEventStoreCore<>), typeof(SqlServerSnapshotEventStore<>))
 				.AddTransient(typeof(ISqlServerSnapshotEventStore<>), typeof(SqlServerSnapshotEventStore<>))
 				.AddSqlServerSnapshotEventStoreTelemetry();
+
 			services.TryAddTransient<IQueryableEventStore, QueryableEventStoreFacade>();
 
 			if (registerAsIEventStore)

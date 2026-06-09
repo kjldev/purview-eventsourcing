@@ -1,6 +1,6 @@
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.Fixtures;
+namespace Purview.EventSourcing.Fixtures.MongoDB;
 
 public class MongoDBSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

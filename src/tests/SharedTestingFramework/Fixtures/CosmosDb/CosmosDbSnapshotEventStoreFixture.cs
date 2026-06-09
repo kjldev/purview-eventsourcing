@@ -1,6 +1,6 @@
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.Fixtures;
+namespace Purview.EventSourcing.Fixtures.CosmosDb;
 
 public class CosmosDbSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
@@ -30,8 +30,8 @@ public class CosmosDbSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDispos
 	{
 		GC.SuppressFinalize(this);
 
-		await _azuriteContainer.DisposeAsync().AsTask();
-		await _cosmosDbContainer.DisposeAsync().AsTask();
+		await _azuriteContainer.DisposeAsync();
+		await _cosmosDbContainer.DisposeAsync();
 	}
 
 	public async Task InitializeAsync()

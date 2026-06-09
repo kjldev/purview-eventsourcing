@@ -9,7 +9,7 @@ using Purview.EventSourcing.Services;
 using Testcontainers.MongoDb;
 using TUnit.Core.Interfaces;
 
-namespace Purview.EventSourcing.Fixtures;
+namespace Purview.EventSourcing.Fixtures.MongoDB;
 
 public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {

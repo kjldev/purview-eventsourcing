@@ -61,13 +61,14 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 			);
 		}
 
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-		driver = driver.RunGeneratorsAndUpdateCompilation(
-			compilation,
-			out var outputCompilation,
-			out _,
-			cancellationToken
-		);
+		var driver = CSharpGeneratorDriver
+			.Create(generator)
+			.RunGeneratorsAndUpdateCompilation(
+				compilation,
+				out var outputCompilation,
+				out var diagnostics,
+				cancellationToken
+			);
 
 		var result = driver.GetRunResult();
 
