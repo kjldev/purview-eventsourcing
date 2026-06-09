@@ -5,11 +5,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\EventSourcing\EventSourcing.csproj" />
 		<!-- Direct reference required when not used via a NuGet package -->
-		<ProjectReference
-			Include="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj"
-			OutputItemType="Analyzer"
-			ReferenceOutputAssembly="false"
-			PrivateAssets="all"
-		/>
+		<ProjectReference Include="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
 	</ItemGroup>
 </Project>

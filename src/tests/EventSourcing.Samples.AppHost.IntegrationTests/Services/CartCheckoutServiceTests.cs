@@ -7,7 +7,6 @@ using Purview.EventSourcing.Samples.Services;
 namespace Purview.EventSourcing.Samples.AppHost.Services;
 
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
-[Skip("WIP")]
 public sealed class CartCheckoutServiceTests(AppHostFixture fixture)
 {
 	[Test]
@@ -17,17 +16,17 @@ public sealed class CartCheckoutServiceTests(AppHostFixture fixture)
 	{
 		var store = fixture.QueryableEventStore();
 
-		var checkoutService = fixture.ServiceProvider.GetRequiredService<ICartCheckoutService>();
-		var customerStore = fixture.ServiceProvider.GetRequiredService<IQueryableEventStore>();
-		var inventoryStore = fixture.ServiceProvider.GetRequiredService<IQueryableEventStore>();
-		var orderStore = fixture.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+		var checkoutService = fixture.GetRequiredService<ICartCheckoutService>();
+		var customerStore = fixture.GetRequiredService<IQueryableEventStore>();
+		var inventoryStore = fixture.GetRequiredService<IQueryableEventStore>();
+		var orderStore = fixture.GetRequiredService<IQueryableEventStore>();
 
 		var customer = await CreateCustomerAsync(customerStore, cancellationToken);
 		var inventory = await CreateInventoryAsync(inventoryStore, quantityOnHand: 10, cancellationToken);
 
 		var result = await checkoutService.CheckoutAsync(
 			customer.Id(),
-			[new CartItem(inventory.ProductId, inventory.ProductName, inventory.Id(), 3, 19.99m)],
+			[new(inventory.ProductId, inventory.ProductName, inventory.Id(), 3, 19.99m)],
 			"1 Event Sourcing Way",
 			cancellationToken
 		);

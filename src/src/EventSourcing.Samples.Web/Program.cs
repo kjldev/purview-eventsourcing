@@ -21,10 +21,7 @@ else
 builder.Services.AddSqlServerEventStore();
 builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
-builder.Services.AddScoped<ISeedDataService, SeedDataService>();
-builder.Services.AddScoped<IOrderFulfillmentService, OrderFulfillmentService>();
-builder.Services.AddScoped<IStockTransferService, StockTransferService>();
-builder.Services.AddScoped<ICartCheckoutService, CartCheckoutService>();
+builder.Services.AddDomainServices();
 
 // Register product image service — uses Azure Blob Storage when configured, no-op otherwise
 var blobConnectionString = builder.Configuration.GetConnectionString("blob-storage");

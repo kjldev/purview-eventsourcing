@@ -1,16 +1,18 @@
 using System.Data.SqlClient;
+using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 using TUnit.Aspire;
 
 namespace Purview.EventSourcing.Samples.AppHost.Infrastructure;
 
-public sealed class AppHostFixture : AspireFixture<Program>
+public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 {
 	readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
-	string? _databaseConnectionString;
 	readonly ServiceCollection _services = [];
+
+	string? _databaseConnectionString;
+	AsyncServiceScope? _serviceScope;
 
 	protected override string[] Args => [$"--DatabaseName={_databaseName}", "--IsTestRun"];
 
@@ -27,50 +29,28 @@ public sealed class AppHostFixture : AspireFixture<Program>
 
 	public override async ValueTask DisposeAsync()
 	{
-		await DeleteDatabaseAsync();
+		if (_serviceScope != null)
+			await _serviceScope.Value.DisposeAsync();
 
 		await base.DisposeAsync();
 	}
 
-	[System.Diagnostics.CodeAnalysis.SuppressMessage(
-		"Security",
-		"CA2100:Review SQL queries for security vulnerabilities"
-	)]
-	async Task DeleteDatabaseAsync(CancellationToken cancellationToken = default)
-	{
-		try
-		{
-			using SqlConnection conn = new(_databaseConnectionString);
-			{
-				await conn.OpenAsync(cancellationToken);
-				// Terminate any open connections to the database before dropping it.
-				using (var cmd = conn.CreateCommand())
-				{
-					cmd.CommandText =
-						$@"
-                        DECLARE @kill varchar(8000) = '';
-                        SELECT @kill = @kill + 'KILL ' + CONVERT(varchar(5), session_id) + ';'
-                        FROM sys.dm_exec_sessions
-                        WHERE database_id  = DB_ID('{_databaseName}')
-                        EXEC(@kill);
-                    ";
-					await cmd.ExecuteNonQueryAsync(cancellationToken);
-				}
-
-				using (var cmd = conn.CreateCommand())
-				{
-					cmd.CommandText = $"DROP DATABASE IF EXISTS [{_databaseName}]";
-					await cmd.ExecuteNonQueryAsync(cancellationToken);
-				}
-			}
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Failed to delete database '{_databaseName}': {ex}");
-		}
-	}
-
 	public IServiceCollection ServiceCollection => _services;
+
+	protected override void ConfigureBuilder(IDistributedApplicationTestingBuilder builder)
+	{
+		builder
+			.Services
+			// The event stores...
+			.AddSqlServerEventStore()
+			.AddSqlServerSnapshotQueryableEventStore()
+			// Event store uses the cache...
+			.AddDistributedMemoryCache()
+			// Domain services...
+			.AddDomainServices();
+
+		base.ConfigureBuilder(builder);
+	}
 
 	public override async Task InitializeAsync()
 	{
@@ -83,22 +63,20 @@ public sealed class AppHostFixture : AspireFixture<Program>
 
 		await WaitForWebAppAsync(CancellationToken.None);
 
-		_services
-			// Required for logging
-			.AddLogging(configure => configure.AddDebug())
-			.AddMetrics()
-			// The event stores
-			.AddSqlServerEventStore()
-			.AddSqlServerSnapshotQueryableEventStore()
-			// Event store uses the cache...
-			.AddDistributedMemoryCache();
-
-		ServiceProvider = _services.BuildServiceProvider(
-			new ServiceProviderOptions() { ValidateOnBuild = true, ValidateScopes = true }
-		);
+		_serviceScope = App.Services.CreateAsyncScope();
 	}
 
-	public HttpClient CreateWebClient() => CreateHttpClient("web", "http");
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
+	public HttpClient CreateWebClient()
+	{
+		var httpClient = CreateHttpClient("web", "http");
+		HttpClient newClient = new(new HttpClientHandler() { AllowAutoRedirect = false })
+		{
+			BaseAddress = httpClient.BaseAddress,
+		};
+
+		return newClient;
+	}
 
 	async Task WaitForWebAppAsync(CancellationToken cancellationToken)
 	{
@@ -146,14 +124,14 @@ public sealed class AppHostFixture : AspireFixture<Program>
 	{
 		return _databaseConnectionString is null
 			? throw new InvalidOperationException("The database connection string is not available.")
-			: ServiceProvider.GetRequiredService<IQueryableEventStore>();
+			: _serviceScope!.Value.ServiceProvider.GetRequiredService<IQueryableEventStore>();
 	}
 
 	public IEventStore EventStore()
 	{
 		return _databaseConnectionString is null
 			? throw new InvalidOperationException("The database connection string is not available.")
-			: ServiceProvider!.GetRequiredService<IEventStore>();
+			: _serviceScope!.Value.ServiceProvider.GetRequiredService<IEventStore>();
 	}
 
 	public IServiceCollection CloneServiceCollection(Action<IServiceCollection>? configuration = null)
@@ -173,4 +151,6 @@ public sealed class AppHostFixture : AspireFixture<Program>
 			new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true }
 		);
 	}
+
+	public object? GetService(Type serviceType) => _serviceScope!.Value.ServiceProvider.GetService(serviceType);
 }
