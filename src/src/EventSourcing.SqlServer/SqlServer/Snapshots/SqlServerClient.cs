@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
+using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.SqlServer;
 

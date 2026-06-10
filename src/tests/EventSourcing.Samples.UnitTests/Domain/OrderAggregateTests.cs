@@ -1,6 +1,3 @@
-using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.Samples.Domain.Events;
-
 namespace Purview.EventSourcing.Samples.Domain;
 
 public class OrderAggregateTests

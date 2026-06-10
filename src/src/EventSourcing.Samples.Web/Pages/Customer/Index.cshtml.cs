@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer;
@@ -44,15 +45,15 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			MaxRecords = PageSize,
 		};
 
-		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
+		var search = Search?.Trim();
 		var hasFilter = !string.IsNullOrEmpty(search) || !ShowInactive;
 
 		Expression<Func<CustomerAggregate, bool>> where = hasFilter
 			? c =>
 				(
 					string.IsNullOrEmpty(search)
-					|| c.Name.ToLower().Contains(search)
-					|| c.Email.ToLower().Contains(search)
+					|| EF.Functions.Contains(c.Name, search)
+					|| EF.Functions.Contains(c.Email, search)
 				) && (ShowInactive || c.IsActive)
 			: c => true;
 

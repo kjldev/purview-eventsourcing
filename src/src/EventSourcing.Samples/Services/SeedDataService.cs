@@ -178,9 +178,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 		{
 			var first = FirstNames[i];
 			var last = LastNames[i % LastNames.Length];
-#pragma warning disable CA1308 // Normalize strings to uppercase
-			var email = $"{first.ToLowerInvariant()}.{last.ToLowerInvariant()}@example.com";
-#pragma warning restore CA1308 // Normalize strings to uppercase
+			var email = $"{first}.{last}@example.com";
 			var phone = phones[i % phones.Length];
 
 			var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: cancellationToken);

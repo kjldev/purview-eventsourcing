@@ -1,4 +1,5 @@
 ﻿using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.SqlServer.Events;
 

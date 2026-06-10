@@ -313,8 +313,8 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetAggregateGeneratedSource(result);
 
-		// Assert — event class is generated in the Events namespace
-		await Assert.That(generatedSource).Contains("namespace Testing.Events");
+		// Assert — event class uses the default namespace pattern
+		await Assert.That(generatedSource).Contains("namespace Testing.Order");
 		await Assert.That(generatedSource).Contains("public sealed class CreateOrderEvent");
 		await Assert.That(generatedSource).Contains(": global::Purview.EventSourcing.Aggregates.Events.EventBase");
 	}
@@ -449,8 +449,8 @@ namespace Testing
 
 		// Assert — RegisterEvents contains Register calls for each event
 		await Assert.That(generatedSource).Contains("protected override void RegisterEvents()");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CreateOrderEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.UpdateOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.CreateOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.UpdateOrderEvent>(Apply);");
 	}
 
 	[Test]
@@ -480,7 +480,7 @@ namespace Testing
 		var generatedSource = GetAggregateGeneratedSource(result);
 
 		// Assert — Apply method is generated with property assignments from event
-		await Assert.That(generatedSource).Contains("void Apply(global::Testing.Events.CreateOrderEvent @event)");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.OrderEvents.CreateOrderEvent @event)");
 		await Assert.That(generatedSource).Contains("CustomerId = @event.CustomerId;");
 	}
 
@@ -515,7 +515,7 @@ namespace Testing
 		await Assert
 			.That(generatedSource)
 			.Contains("public partial void CreateOrder(string customerId, decimal total)");
-		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.CreateOrderEvent");
+		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.OrderEvents.CreateOrderEvent");
 		await Assert.That(generatedSource).Contains("CustomerId = customerId,");
 		await Assert.That(generatedSource).Contains("Total = total,");
 	}
@@ -678,12 +678,92 @@ namespace Testing
 
 		// Assert — parameterless event uses () constructor
 		await Assert.That(generatedSource).Contains("public partial void Increment()");
-		await Assert.That(generatedSource).Contains("void Apply(global::Testing.Events.IncrementEvent _)");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.CounterEvents.IncrementEvent _)");
 		await Assert
 			.That(generatedSource)
 			.Contains("protected override void BuildEventHash(ref global::System.HashCode _)");
-		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.IncrementEvent());");
+		await Assert
+			.That(generatedSource)
+			.Contains("RecordAndApply(new global::Testing.CounterEvents.IncrementEvent());");
 		await Assert.That(warnings).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenImplicitlyConvertibleParameterType_GeneratedSourceUsesPropertyTypeForEqualityGuard(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	public readonly record struct Name
+	{
+		public string Value { get; }
+
+		private Name(string value) => Value = value;
+
+		public static implicit operator Name(string value) => new(value);
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class CustomerAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public Name Name { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void ChangeName(string name);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"global::System.Collections.Generic.EqualityComparer<global::Testing.Name>.Default.Equals(Name, (global::Testing.Name)name)"
+			);
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenPrivatePartialEventMethod_GeneratesPrivateMethodAndPublicEvent(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ToggleAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public bool IsActive { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		private partial ToggleAggregate ChangeIsActive(bool isActive);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+
+		await Assert.That(generatedSource).Contains("private partial ToggleAggregate ChangeIsActive(bool isActive)");
+		await Assert.That(generatedSource).Contains("public sealed class ChangeIsActiveEvent");
+		await Assert.That(errors).IsEmpty();
 	}
 
 	[Test]
@@ -711,7 +791,7 @@ namespace Testing
 		// Assert — RegisterEvents exists but has no Register calls
 		await Assert.That(generatedSource).Contains("protected override void RegisterEvents()");
 		// No Events namespace section should be generated
-		await Assert.That(generatedSource).DoesNotContain("namespace Testing.Events");
+		await Assert.That(generatedSource).DoesNotContain("namespace Testing.EmptyEvents");
 	}
 
 	[Test]
@@ -1071,6 +1151,72 @@ namespace Testing
 		var attributeSource = (await attributeTree.GetTextAsync(cancellationToken)).ToString();
 
 		await Assert.That(attributeSource).Contains("int Version");
+		await Assert.That(attributeSource).Contains("string? EventName");
+		await Assert.That(attributeSource).Contains("string? EventNamespace");
+
+		var aggregateAttributeTree = result.GeneratedTrees.First(t =>
+			t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
+		);
+		var aggregateAttributeSource = (await aggregateAttributeTree.GetTextAsync(cancellationToken)).ToString();
+		await Assert.That(aggregateAttributeSource).Contains("string? EventNamespace");
+	}
+
+	[Test]
+	public async Task Generate_GivenAggregateEventNamespaceOverride_UsesConfiguredNamespace(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate(EventNamespace = ""Testing.Custom.Events"")]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("namespace Testing.Custom.Events");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Custom.Events.CreateOrderEvent>(Apply);");
+	}
+
+	[Test]
+	public async Task Generate_GivenEventNameAndNamespaceOverride_UsesMethodOverrides(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate(EventNamespace = ""Testing.Custom.Events"")]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""OrderCreated"", EventNamespace = ""Testing.Domain.Ordering"")]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("namespace Testing.Domain.Ordering");
+		await Assert.That(generatedSource).Contains("public sealed class OrderCreated");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.Domain.Ordering.OrderCreated>(Apply);");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.Domain.Ordering.OrderCreated @event)");
 	}
 
 	[Test]
@@ -1502,11 +1648,13 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("public sealed class CancelOrderEvent");
 
 		// Assert — all 5 Register calls
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CreateOrderEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.UpdateTotalEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.SetShippingAddressEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.ConfirmOrderEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CancelOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.CreateOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.UpdateTotalEvent>(Apply);");
+		await Assert
+			.That(generatedSource)
+			.Contains("Register<global::Testing.OrderEvents.SetShippingAddressEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.ConfirmOrderEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.CancelOrderEvent>(Apply);");
 
 		// Assert — compiles without errors
 		var errors = outputCompilation
@@ -1599,7 +1747,9 @@ namespace Testing
 
 		var generatedSource = GetAggregateGeneratedSource(result);
 		await Assert.That(generatedSource).Contains("public sealed class CreateAccountEvent");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.CreateAccountEvent>(Apply);");
+		await Assert
+			.That(generatedSource)
+			.Contains("Register<global::Testing.AccountEvents.CreateAccountEvent>(Apply);");
 	}
 
 	[Test]
@@ -1627,10 +1777,10 @@ namespace Company.Domain.Orders
 		var generatedSource = GetAggregateGeneratedSource(result);
 
 		// Assert — events namespace follows the pattern
-		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders.Events");
+		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders.OrderEvents");
 		await Assert
 			.That(generatedSource)
-			.Contains("Register<global::Company.Domain.Orders.Events.CreateOrderEvent>(Apply);");
+			.Contains("Register<global::Company.Domain.Orders.OrderEvents.CreateOrderEvent>(Apply);");
 		await Assert.That(generatedSource).Contains("namespace Company.Domain.Orders");
 	}
 
@@ -1671,16 +1821,20 @@ namespace Testing
 		var generatedSource = GetAggregateGeneratedSource(result);
 
 		// Assert — parameterless use () constructor, parameterized use { } initializer
-		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.IncrementEvent());");
-		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.DecrementEvent());");
-		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.Events.ResetEvent());");
+		await Assert
+			.That(generatedSource)
+			.Contains("RecordAndApply(new global::Testing.CounterEvents.IncrementEvent());");
+		await Assert
+			.That(generatedSource)
+			.Contains("RecordAndApply(new global::Testing.CounterEvents.DecrementEvent());");
+		await Assert.That(generatedSource).Contains("RecordAndApply(new global::Testing.CounterEvents.ResetEvent());");
 		await Assert.That(generatedSource).Contains("Label = label,");
 
 		// Assert — all 4 Register calls
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.IncrementEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.DecrementEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.SetLabelEvent>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.Events.ResetEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.IncrementEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.DecrementEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.SetLabelEvent>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.ResetEvent>(Apply);");
 
 		// Assert — compiles without errors
 		var errors = outputCompilation
@@ -1844,7 +1998,7 @@ namespace Testing
 ";
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
-		var eventType = assembly.GetType("Testing.Events.CreateOrderEvent")!;
+		var eventType = assembly.GetType("Testing.OrderEvents.CreateOrderEvent")!;
 		var instance = Activator.CreateInstance(eventType)!;
 		eventType.GetProperty("CustomerId")!.SetValue(instance, "customer-2");
 

@@ -1,7 +1,9 @@
 ﻿using System.Text.RegularExpressions;
+using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.Samples.ValueObjects;
 
+[Scalar]
 public readonly partial record struct EmailAddress
 {
 	public string Value { get; }

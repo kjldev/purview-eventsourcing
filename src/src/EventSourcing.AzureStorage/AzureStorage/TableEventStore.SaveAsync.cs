@@ -10,6 +10,7 @@ using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.AzureStorage.Entities;
 using Purview.EventSourcing.AzureStorage.Events;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
+using Purview.EventSourcing.Serialization;
 using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.AzureStorage;

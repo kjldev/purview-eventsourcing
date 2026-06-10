@@ -7,7 +7,7 @@ using Purview.EventSourcing.Aggregates.Events.Upcasting;
 
 namespace Purview.EventSourcing.Serialization;
 
-public sealed class JsonHelpersTests
+public sealed class EventStoreSerializationHelpersTests
 {
 	[Test]
 	public async Task SerializeAndDeserialize_GivenAggregateWithPrivateSetterAndGetterOnlyCollections_RestoresState()

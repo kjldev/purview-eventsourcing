@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -211,6 +212,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		var namespaceName = classSymbol.ContainingNamespace.IsGlobalNamespace
 			? null
 			: classSymbol.ContainingNamespace.ToDisplayString();
+		var aggregateEventNamespaceOverride = GetAttributeStringNamedArgument(
+			classSymbol.GetAttributes(),
+			GenerateAggregateAttributeName,
+			"EventNamespace"
+		);
 
 		var properties = new List<AggregateStatePropertyInfo>();
 		var propertySymbolsByName = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
@@ -249,43 +255,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			.OfType<IMethodSymbol>()
 			.Where(method => HasAttribute(method, eventAttributeSymbol))
 			.ToArray();
-		var duplicatedEventMethodNames = attributedMethods
-			.GroupBy(static method => method.Name, StringComparer.Ordinal)
-			.Where(static group => group.Count() > 1)
-			.ToDictionary(static group => group.Key, StringComparer.Ordinal);
-
-		foreach (var duplicatedMethodName in duplicatedEventMethodNames.Keys)
-		{
-			foreach (var methodSymbol in attributedMethods.Where(method => method.Name == duplicatedMethodName))
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.DuplicateGeneratedEventName,
-						methodSymbol.Locations.FirstOrDefault(),
-						methodSymbol.Name,
-						classSymbol.Name,
-						methodSymbol.Name + "Event"
-					)
-				);
-
-				if (
-					TryCreateInvalidMethodStub(
-						methodSymbol,
-						[GeneratorDiagnostics.DuplicateGeneratedEventName.Id],
-						out var invalidMethod,
-						ct
-					)
-				)
-					invalidMethods.Add(invalidMethod);
-			}
-		}
+		var methodsByEventType = new Dictionary<(string EventNamespace, string EventName), IMethodSymbol>();
 
 		foreach (var methodSymbol in attributedMethods)
 		{
 			ct.ThrowIfCancellationRequested();
-
-			if (duplicatedEventMethodNames.ContainsKey(methodSymbol.Name))
-				continue;
 
 			var diagnosticsStart = diagnostics.Count;
 
@@ -295,6 +269,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					methodSymbol,
 					propertySymbolsByName,
 					compilation,
+					namespaceName,
+					aggregateEventNamespaceOverride,
 					diagnostics,
 					ct,
 					out var methodInfo
@@ -314,6 +290,42 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				continue;
 			}
 
+			var eventTypeKey = (methodInfo.EventNamespace, methodInfo.EventName);
+			if (methodsByEventType.TryGetValue(eventTypeKey, out var conflictingMethod))
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.DuplicateGeneratedEventName,
+						methodSymbol.Locations.FirstOrDefault(),
+						methodSymbol.Name,
+						classSymbol.Name,
+						$"{methodInfo.EventNamespace}.{methodInfo.EventName}"
+					)
+				);
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.DuplicateGeneratedEventName,
+						conflictingMethod.Locations.FirstOrDefault(),
+						conflictingMethod.Name,
+						classSymbol.Name,
+						$"{methodInfo.EventNamespace}.{methodInfo.EventName}"
+					)
+				);
+
+				if (
+					TryCreateInvalidMethodStub(
+						methodSymbol,
+						[GeneratorDiagnostics.DuplicateGeneratedEventName.Id],
+						out var invalidMethod,
+						ct
+					)
+				)
+					invalidMethods.Add(invalidMethod);
+
+				continue;
+			}
+
+			methodsByEventType[eventTypeKey] = methodSymbol;
 			methods.Add(methodInfo);
 		}
 
@@ -354,6 +366,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		IMethodSymbol methodSymbol,
 		Dictionary<string, IPropertySymbol> propertySymbolsByName,
 		Compilation compilation,
+		string? aggregateNamespace,
+		string? aggregateEventNamespaceOverride,
 		List<Diagnostic> diagnostics,
 		CancellationToken ct,
 		out AggregateEventMethodInfo methodInfo
@@ -390,9 +404,6 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			);
 			hasErrors = true;
 		}
-
-		if (methodSymbol.DeclaredAccessibility != Accessibility.Public)
-			ReportUnsupportedSignature("methods must be public");
 
 		if (methodSymbol.IsStatic)
 			ReportUnsupportedSignature("static methods are not supported");
@@ -511,7 +522,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						)
 					),
 					parameter.Type.SpecialType == SpecialType.System_String
-						&& propertySymbol.Type.SpecialType == SpecialType.System_String
+						&& propertySymbol.Type.SpecialType == SpecialType.System_String,
+					!SymbolEqualityComparer.Default.Equals(parameter.Type, propertySymbol.Type)
 				)
 			);
 		}
@@ -520,6 +532,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return false;
 
 		var version = 1;
+		var eventName = methodSymbol.Name + "Event";
+		string? eventNamespaceOverride = null;
 		foreach (var attribute in methodSymbol.GetAttributes())
 		{
 			var attributeClass = attribute.AttributeClass;
@@ -531,15 +545,80 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				if (namedArgument.Key == "Version" && namedArgument.Value.Value is int explicitVersion)
 				{
 					version = explicitVersion;
-					break;
+					continue;
 				}
+
+				if (namedArgument.Key == "EventName" && namedArgument.Value.Value is string explicitEventName)
+				{
+					eventName = explicitEventName;
+					continue;
+				}
+
+				if (namedArgument.Key == "EventNamespace" && namedArgument.Value.Value is string explicitEventNamespace)
+					eventNamespaceOverride = explicitEventNamespace;
 			}
 
 			break;
 		}
 
-		methodInfo = new AggregateEventMethodInfo(methodSymbol.Name, parameters, returnTypeName, returnKind, version);
+		var eventNamespace = string.IsNullOrWhiteSpace(eventNamespaceOverride)
+			? string.IsNullOrWhiteSpace(aggregateEventNamespaceOverride)
+				? CreateDefaultEventNamespace(aggregateNamespace, classSymbol.Name)
+				: aggregateEventNamespaceOverride!.Trim()
+			: eventNamespaceOverride!.Trim();
+
+		methodInfo = new AggregateEventMethodInfo(
+			methodSymbol.Name,
+			eventName,
+			eventNamespace,
+			parameters,
+			returnTypeName,
+			returnKind,
+			methodSymbol.DeclaredAccessibility,
+			version
+		);
 		return true;
+	}
+
+	static string? GetAttributeStringNamedArgument(
+		ImmutableArray<AttributeData> attributes,
+		string attributeMetadataName,
+		string argumentName
+	)
+	{
+		foreach (var attribute in attributes)
+		{
+			var attributeClass = attribute.AttributeClass;
+			if (attributeClass is null || attributeClass.ToDisplayString() != attributeMetadataName)
+				continue;
+
+			foreach (var namedArgument in attribute.NamedArguments)
+			{
+				if (namedArgument.Key == argumentName && namedArgument.Value.Value is string value)
+					return value;
+			}
+		}
+
+		return null;
+	}
+
+	static string CreateDefaultEventNamespace(string? aggregateNamespace, string aggregateClassName)
+	{
+		var aggregateNameWithoutSuffix = aggregateClassName;
+		if (aggregateClassName.EndsWith("Aggregate", StringComparison.Ordinal))
+		{
+			aggregateNameWithoutSuffix = aggregateClassName.Substring(
+				0,
+				aggregateClassName.Length - "Aggregate".Length
+			);
+		}
+
+		if (string.IsNullOrEmpty(aggregateNameWithoutSuffix))
+			aggregateNameWithoutSuffix = aggregateClassName;
+
+		return string.IsNullOrEmpty(aggregateNamespace)
+			? aggregateNameWithoutSuffix
+			: $"{aggregateNamespace}.{aggregateNameWithoutSuffix}Events";
 	}
 
 	static bool TryResolveReturnKind(

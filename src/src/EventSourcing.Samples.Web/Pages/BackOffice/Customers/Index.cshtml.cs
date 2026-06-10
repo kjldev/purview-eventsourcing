@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
@@ -60,8 +61,14 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 		Expression<Func<CustomerAggregate, bool>>? where = hasFilter
 			? c =>
-				(string.IsNullOrEmpty(search) || c.Name.Contains(search) || c.Email.Contains(search))
-				&& (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
+				(
+					// Note that we're using the EF.Functions.Contains method here,
+					// rather than string.Contains, as we're using a ValueObject (EmailAddress/ Name)
+					// for the property types.
+					string.IsNullOrEmpty(search)
+					|| EF.Functions.Contains(c.Name, search)
+					|| EF.Functions.Contains(c.Email, search)
+				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: null;
 
 		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch

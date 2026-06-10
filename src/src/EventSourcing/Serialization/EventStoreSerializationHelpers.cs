@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Purview.EventSourcing;
+namespace Purview.EventSourcing.Serialization;
 
 public static class EventStoreSerializationHelpers
 {
@@ -17,6 +17,8 @@ public static class EventStoreSerializationHelpers
 		};
 
 		options.Converters.Add(new StringValuesConverter());
+		options.Converters.Add(new ScalarJsonConverterFactory());
+
 		return options;
 	}
 

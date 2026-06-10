@@ -5,11 +5,12 @@ namespace Purview.EventSourcing.Samples.AppHost.Pages;
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
 public sealed class DashboardTests(AppHostFixture factory)
 {
+	readonly HttpClient _client = factory.CreateWebClient();
+
 	[Test]
 	public async Task Dashboard_Returns200(CancellationToken cancellationToken)
 	{
-		var client = factory.CreateWebClient();
-		var response = await client.GetAsync("/", cancellationToken);
+		var response = await _client.GetAsync("/", cancellationToken);
 
 		await Assert.That(response.IsSuccessStatusCode).IsTrue();
 	}
@@ -17,8 +18,7 @@ public sealed class DashboardTests(AppHostFixture factory)
 	[Test]
 	public async Task Dashboard_ContainsPortalOptions(CancellationToken cancellationToken)
 	{
-		var client = factory.CreateWebClient();
-		var response = await client.GetAsync("/", cancellationToken);
+		var response = await _client.GetAsync("/", cancellationToken);
 
 		var html = await response.Content.ReadAsStringAsync(cancellationToken);
 

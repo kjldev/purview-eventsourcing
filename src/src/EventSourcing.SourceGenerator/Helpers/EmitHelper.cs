@@ -20,18 +20,24 @@ static class EmitHelper
 		// Generate event classes in a nested Events namespace
 		if (info.Methods.Count > 0)
 		{
-			var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
-
-			sb.AppendLine($"namespace {eventsNamespace}");
-			sb.AppendLine("{");
-
-			foreach (var method in info.Methods)
+			foreach (
+				var namespaceMethods in info.Methods.GroupBy(
+					static method => method.EventNamespace,
+					StringComparer.Ordinal
+				)
+			)
 			{
-				GenerateEventClass(sb, method, logger);
-			}
+				sb.AppendLine($"namespace {namespaceMethods.Key}");
+				sb.AppendLine("{");
 
-			sb.AppendLine("}");
-			sb.AppendLine();
+				foreach (var method in namespaceMethods)
+				{
+					GenerateEventClass(sb, method, logger);
+				}
+
+				sb.AppendLine("}");
+				sb.AppendLine();
+			}
 		}
 
 		// Generate the partial aggregate class in a block-scoped namespace
@@ -130,11 +136,9 @@ static class EmitHelper
 		sb.AppendLine($"{indent}\tprotected override void RegisterEvents()");
 		sb.AppendLine($"{indent}\t{{");
 
-		var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
-
 		foreach (var method in info.Methods)
 		{
-			sb.AppendLine($"{indent}\t\tRegister<global::{eventsNamespace}.{method.EventName}>(Apply);");
+			sb.AppendLine($"{indent}\t\tRegister<global::{method.EventNamespace}.{method.EventName}>(Apply);");
 		}
 
 		sb.AppendLine($"{indent}\t}}");
@@ -172,17 +176,11 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateApplyMethod(
-		StringBuilder sb,
-		AggregateInfo info,
-		AggregateEventMethodInfo method,
-		string indent
-	)
+	static void GenerateApplyMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
 	{
-		var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
 		var eventParameterName = method.Parameters.Count == 0 ? "_" : "@event";
 
-		sb.AppendLine($"{indent}\tvoid Apply(global::{eventsNamespace}.{method.EventName} {eventParameterName})");
+		sb.AppendLine($"{indent}\tvoid Apply(global::{method.EventNamespace}.{method.EventName} {eventParameterName})");
 		sb.AppendLine($"{indent}\t{{");
 
 		foreach (var prop in method.Parameters)
@@ -194,15 +192,8 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateCommandMethod(
-		StringBuilder sb,
-		AggregateInfo info,
-		AggregateEventMethodInfo method,
-		string indent
-	)
+	static void GenerateCommandMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
 	{
-		var eventsNamespace = info.Namespace is not null ? $"{info.Namespace}.Events" : "Events";
-
 		// Build parameter list
 		var paramList = new StringBuilder();
 		for (var i = 0; i < method.Parameters.Count; i++)
@@ -212,7 +203,10 @@ static class EmitHelper
 			paramList.Append($"{method.Parameters[i].TypeName} {method.Parameters[i].ParameterName}");
 		}
 
-		sb.AppendLine($"{indent}\tpublic partial {method.ReturnTypeName} {method.MethodName}({paramList})");
+		var methodAccessModifier = GetAccessModifier(method.MethodAccessibility);
+		sb.AppendLine(
+			$"{indent}\t{methodAccessModifier} partial {method.ReturnTypeName} {method.MethodName}({paramList})"
+		);
 		sb.AppendLine($"{indent}\t{{");
 
 		if (method.Parameters.Count > 0)
@@ -225,7 +219,7 @@ static class EmitHelper
 		}
 
 		// Build event initialization
-		sb.Append($"{indent}\t\tRecordAndApply(new global::{eventsNamespace}.{method.EventName}");
+		sb.Append($"{indent}\t\tRecordAndApply(new global::{method.EventNamespace}.{method.EventName}");
 
 		if (method.Parameters.Count > 0)
 		{
@@ -258,9 +252,13 @@ static class EmitHelper
 
 	static string BuildUnchangedComparison(EventPropertyInfo parameter)
 	{
+		var parameterValueExpression = parameter.RequiresParameterToPropertyTypeConversion
+			? $"({parameter.EqualityComparerTypeName}){parameter.ParameterName}"
+			: parameter.ParameterName;
+
 		return parameter.UseStringOrdinalComparison
 			? $"global::System.String.Equals({parameter.PropertyName}, {parameter.ParameterName}, global::System.StringComparison.Ordinal)"
-			: $"global::System.Collections.Generic.EqualityComparer<{parameter.EqualityComparerTypeName}>.Default.Equals({parameter.PropertyName}, {parameter.ParameterName})";
+			: $"global::System.Collections.Generic.EqualityComparer<{parameter.EqualityComparerTypeName}>.Default.Equals({parameter.PropertyName}, {parameterValueExpression})";
 	}
 
 	static void EmitNoChangeReturn(StringBuilder sb, EventMethodReturnKind returnKind, string indent, int indentDepth)
@@ -335,6 +333,7 @@ static class EmitHelper
 		return accessibility switch
 		{
 			Accessibility.Public => "public",
+			Accessibility.Private => "private",
 			Accessibility.Internal => "internal",
 			Accessibility.Protected => "protected",
 			Accessibility.ProtectedOrInternal => "protected internal",

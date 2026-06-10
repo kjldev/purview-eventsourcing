@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Primitives;
 
-namespace Purview.EventSourcing;
+namespace Purview.EventSourcing.Serialization;
 
 /// <summary>
 /// Converts values to the <see cref="StringValues"/> type.

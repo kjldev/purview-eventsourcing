@@ -42,7 +42,7 @@ public sealed partial class CustomerAggregate : AggregateBase
 	public CustomerAggregate Reactivate() => IsActive ? this : ChangeIsActive(isActive: true);
 
 	[GenerateAggregateEvent]
-	public partial CustomerAggregate RegisterCustomer(string name, string email, bool isActive);
+	public partial CustomerAggregate RegisterCustomer(string name, string email, bool isActive = true);
 
 	[GenerateAggregateEvent]
 	public partial CustomerAggregate ChangeName(string name);

@@ -2,6 +2,7 @@
 using System.Dynamic;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.CosmosDb;
 

@@ -37,21 +37,28 @@ sealed class AggregateStatePropertyInfo(string propertyName, string typeName)
 
 sealed class AggregateEventMethodInfo(
 	string methodName,
+	string eventName,
+	string eventNamespace,
 	List<EventPropertyInfo> parameters,
 	string returnTypeName,
 	EventMethodReturnKind returnKind,
+	Accessibility methodAccessibility,
 	int version = 1
 )
 {
 	public string MethodName { get; } = methodName;
 
-	public string EventName { get; } = methodName + "Event";
+	public string EventName { get; } = eventName;
+
+	public string EventNamespace { get; } = eventNamespace;
 
 	public List<EventPropertyInfo> Parameters { get; } = parameters;
 
 	public string ReturnTypeName { get; } = returnTypeName;
 
 	public EventMethodReturnKind ReturnKind { get; } = returnKind;
+
+	public Accessibility MethodAccessibility { get; } = methodAccessibility;
 
 	/// <summary>
 	/// The schema version declared via <c>[GenerateAggregateEvent(Version = N)]</c>.
@@ -71,7 +78,8 @@ sealed class EventPropertyInfo(
 	string parameterName,
 	string typeName,
 	string equalityComparerTypeName,
-	bool useStringOrdinalComparison
+	bool useStringOrdinalComparison,
+	bool requiresParameterToPropertyTypeConversion
 )
 {
 	public string ParameterName { get; } = parameterName;
@@ -83,6 +91,8 @@ sealed class EventPropertyInfo(
 	public string EqualityComparerTypeName { get; } = equalityComparerTypeName;
 
 	public bool UseStringOrdinalComparison { get; } = useStringOrdinalComparison;
+
+	public bool RequiresParameterToPropertyTypeConversion { get; } = requiresParameterToPropertyTypeConversion;
 
 	public static string ToPropertyName(string parameterName) =>
 		string.IsNullOrEmpty(parameterName)
