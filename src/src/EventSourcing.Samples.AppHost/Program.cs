@@ -10,6 +10,9 @@ var databaseName =
 
 var isTesting = args?.FirstOrDefault(static s => s.Equals("--IsTestRun", StringComparison.OrdinalIgnoreCase)) != null;
 
+if (!isTesting)
+	builder.AddAspireC4();
+
 var sqlPassword = builder.AddParameter("sql-password", "PaSsw0rd!!1!", secret: true);
 var sql = builder.AddSqlServer("sql", password: sqlPassword).WithImageTag("2025-latest");
 var db = sql.AddDatabase("eventstore-sqlserver", databaseName);

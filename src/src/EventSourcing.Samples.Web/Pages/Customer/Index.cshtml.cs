@@ -25,9 +25,13 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 	public int PageSize { get; set; } = DefaultPageSize;
 
 	public IReadOnlyList<CustomerAggregate> Customers { get; private set; } = [];
+
 	public long TotalCount { get; private set; }
+
 	public int TotalPages => TotalCount == 0 ? 1 : (int)Math.Ceiling((double)TotalCount / PageSize);
+
 	public bool HasPrevPage => Page > 1;
+
 	public bool HasNextPage => Page < TotalPages;
 
 	public async Task OnGetAsync()
