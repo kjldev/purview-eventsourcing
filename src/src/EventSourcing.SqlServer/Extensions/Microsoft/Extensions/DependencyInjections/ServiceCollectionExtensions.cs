@@ -73,12 +73,15 @@ public static class ServiceCollectionExtensions
 					{
 						configuration.GetSection(SqlServerSnapshotEventStoreOptions.SqlServerEventStore).Bind(options);
 
-						options.ConnectionString ??=
-							configuration.GetConnectionString("eventstore-sqlserver")
-							?? configuration.GetConnectionString("EventStore_SqlServer")
-							?? configuration.GetConnectionString("SqlServer")
-							// This will get picked up by the validation.
-							?? default!;
+						if (string.IsNullOrWhiteSpace(options.ConnectionString))
+						{
+							options.ConnectionString ??=
+								configuration.GetConnectionString("eventstore-sqlserver")
+								?? configuration.GetConnectionString("EventStore_SqlServer")
+								?? configuration.GetConnectionString("SqlServer")
+								// This will get picked up by the validation.
+								?? default!;
+						}
 					}
 				)
 				.ValidateOnStart();

@@ -1,4 +1,4 @@
-using Purview.EventSourcing.Samples.AppHost.Infrastructure;
+using Purview.EventSourcing.Samples.AppHost.Fixtures;
 
 namespace Purview.EventSourcing.Samples.AppHost.Pages;
 

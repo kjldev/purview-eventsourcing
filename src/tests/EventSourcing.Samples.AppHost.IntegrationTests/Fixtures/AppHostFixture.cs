@@ -1,10 +1,11 @@
 using System.Data.SqlClient;
 using Aspire.Hosting.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TUnit.Aspire;
 
-namespace Purview.EventSourcing.Samples.AppHost.Infrastructure;
+namespace Purview.EventSourcing.Samples.AppHost.Fixtures;
 
 public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 {
@@ -49,6 +50,10 @@ public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 			// Domain services...
 			.AddDomainServices();
 
+		builder.Configuration.AddInMemoryCollection([
+			new KeyValuePair<string, string?>("ConnectionStrings:SqlServer", _databaseConnectionString),
+		]);
+
 		base.ConfigureBuilder(builder);
 	}
 
@@ -67,15 +72,14 @@ public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 	}
 
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
+	[System.Diagnostics.CodeAnalysis.SuppressMessage(
+		"Reliability",
+		"CA5399:Do not use HttpClientHandler.AllowAutoRedirect"
+	)]
 	public HttpClient CreateWebClient()
 	{
 		var httpClient = CreateHttpClient("web", "http");
-		HttpClient newClient = new(new HttpClientHandler() { AllowAutoRedirect = false })
-		{
-			BaseAddress = httpClient.BaseAddress,
-		};
-
-		return newClient;
+		return new(new HttpClientHandler() { AllowAutoRedirect = false }) { BaseAddress = httpClient.BaseAddress };
 	}
 
 	async Task WaitForWebAppAsync(CancellationToken cancellationToken)

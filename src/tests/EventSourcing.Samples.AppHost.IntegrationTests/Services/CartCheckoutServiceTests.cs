@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Purview.EventSourcing.Aggregates;
-using Purview.EventSourcing.Samples.AppHost.Infrastructure;
+using Purview.EventSourcing.Samples.AppHost.Fixtures;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 
