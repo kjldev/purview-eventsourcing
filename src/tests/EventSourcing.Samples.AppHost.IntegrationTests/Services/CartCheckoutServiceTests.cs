@@ -57,7 +57,7 @@ public sealed class CartCheckoutServiceTests(AppHostFixture fixture)
 	{
 		var inventoryId = string.Empty;
 
-		var serviceProvider = fixture.CloneServiceProvider(services =>
+		var serviceProvider = fixture.CloneServices(services =>
 		{
 			var descriptor = services.Last(service => service.ServiceType == typeof(IEventStoreTransactionFactory));
 			services.Remove(descriptor);
@@ -78,10 +78,12 @@ public sealed class CartCheckoutServiceTests(AppHostFixture fixture)
 			));
 		});
 
-		var checkoutService = serviceProvider.GetRequiredService<ICartCheckoutService>();
-		var customerStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
-		var inventoryStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
-		var orderStore = serviceProvider.GetRequiredService<IQueryableEventStore>();
+		await using var scope = serviceProvider.CreateAsyncScope();
+
+		var checkoutService = scope.ServiceProvider.GetRequiredService<ICartCheckoutService>();
+		var customerStore = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+		var inventoryStore = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
+		var orderStore = scope.ServiceProvider.GetRequiredService<IQueryableEventStore>();
 
 		var customer = await CreateCustomerAsync(customerStore, cancellationToken);
 		var inventory = await CreateInventoryAsync(inventoryStore, quantityOnHand: 10, cancellationToken);

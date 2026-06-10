@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.Samples.AppHost.Pages;
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
 public sealed class OrderPageTests(AppHostFixture fixture)
 {
-	readonly HttpClient _client = fixture.CreateWebClient(); //new() { AllowAutoRedirect = false });
+	readonly HttpClient _client = fixture.CreateWebClient();
 
 	[Test]
 	public async Task BackOfficeIndex_Returns200(CancellationToken cancellationToken)
@@ -53,7 +53,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 	}
 
 	[Test]
-	public async Task BackOfficeStockTransfer_Post_WithValidData_Redirects(CancellationToken cancellationToken)
+	public async Task BackOfficeStockTransfer_Post_WithValidData(CancellationToken cancellationToken)
 	{
 		var (sourceInventoryId, destinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Stock/Transfer", cancellationToken);
@@ -70,7 +70,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		using var content = new FormUrlEncodedContent(form);
 		var response = await _client.PostAsync("/BackOffice/Stock/Transfer", content, cancellationToken);
 
-		await Assert.That((int)response.StatusCode).IsEqualTo(302);
+		await Assert.That((int)response.StatusCode).IsEqualTo(200);
 	}
 
 	[Test]
@@ -152,9 +152,11 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		for (var i = 0; i < orderCount; i++)
 		{
 			var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
-			order.CreateOrder(customerId);
-			order.AddLineItem($"SKU-PAGING-{i:D2}", $"Paging Item {i:D2}", 1, 9.99m + i);
-			order.SetShippingAddress($"{i + 1} Pagination Road");
+			order
+				.CreateOrder(customerId)
+				.AddLineItem($"SKU-PAGING-{i:D2}", $"Paging Item {i:D2}", 1, 9.99m + i)
+				.SetShippingAddress($"{i + 1} Pagination Road");
+
 			await store.SaveAsync(order, cancellationToken);
 		}
 

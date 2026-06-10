@@ -1,8 +1,7 @@
 using System.Data.SqlClient;
-using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Purview.EventSourcing.Fixtures;
 using TUnit.Aspire;
 
 namespace Purview.EventSourcing.Samples.AppHost.Fixtures;
@@ -10,51 +9,39 @@ namespace Purview.EventSourcing.Samples.AppHost.Fixtures;
 public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 {
 	readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
-	readonly ServiceCollection _services = [];
+	readonly Lazy<AppServiceHelper> _appService;
 
 	string? _databaseConnectionString;
-	AsyncServiceScope? _serviceScope;
+
+	public AppHostFixture()
+	{
+		_appService = new(() => new(ConfigureAppServiceHelper));
+	}
 
 	protected override string[] Args => [$"--DatabaseName={_databaseName}", "--IsTestRun"];
 
-	public IServiceProvider ServiceProvider
-	{
-		get
-		{
-			return field is null
-				? throw new InvalidOperationException("The fixture has not been initialised yet.")
-				: (field);
-		}
-		private set;
-	}
-
 	public override async ValueTask DisposeAsync()
 	{
-		if (_serviceScope != null)
-			await _serviceScope.Value.DisposeAsync();
+		if (_appService.IsValueCreated)
+			await _appService.Value.DisposeAsync();
 
 		await base.DisposeAsync();
 	}
 
-	public IServiceCollection ServiceCollection => _services;
-
-	protected override void ConfigureBuilder(IDistributedApplicationTestingBuilder builder)
+	void ConfigureAppServiceHelper(IServiceCollection services, IConfigurationBuilder configurationBuilder)
 	{
-		builder
-			.Services
+		ArgumentException.ThrowIfNullOrWhiteSpace(_databaseConnectionString);
+
+		services
 			// The event stores...
 			.AddSqlServerEventStore()
 			.AddSqlServerSnapshotQueryableEventStore()
-			// Event store uses the cache...
-			.AddDistributedMemoryCache()
 			// Domain services...
 			.AddDomainServices();
 
-		builder.Configuration.AddInMemoryCollection([
+		configurationBuilder.AddInMemoryCollection([
 			new KeyValuePair<string, string?>("ConnectionStrings:SqlServer", _databaseConnectionString),
 		]);
-
-		base.ConfigureBuilder(builder);
 	}
 
 	public override async Task InitializeAsync()
@@ -67,8 +54,6 @@ public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 		);
 
 		await WaitForWebAppAsync(CancellationToken.None);
-
-		_serviceScope = App.Services.CreateAsyncScope();
 	}
 
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
@@ -79,6 +64,10 @@ public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 	public HttpClient CreateWebClient()
 	{
 		var httpClient = CreateHttpClient("web", "http");
+
+		// We want auto redirect disabled for tests to be able to assert on 302 responses,
+		// but HttpClient doesn't allow changing that setting after the client is created,
+		// so we create a new client with the same base address and a handler that has auto redirect disabled.
 		return new(new HttpClientHandler() { AllowAutoRedirect = false }) { BaseAddress = httpClient.BaseAddress };
 	}
 
@@ -124,37 +113,12 @@ public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
 		return builder.ConnectionString;
 	}
 
-	public IQueryableEventStore QueryableEventStore()
-	{
-		return _databaseConnectionString is null
-			? throw new InvalidOperationException("The database connection string is not available.")
-			: _serviceScope!.Value.ServiceProvider.GetRequiredService<IQueryableEventStore>();
-	}
+	public IQueryableEventStore QueryableEventStore() => _appService.Value.GetRequiredService<IQueryableEventStore>();
 
-	public IEventStore EventStore()
-	{
-		return _databaseConnectionString is null
-			? throw new InvalidOperationException("The database connection string is not available.")
-			: _serviceScope!.Value.ServiceProvider.GetRequiredService<IEventStore>();
-	}
+	public IEventStore EventStore() => _appService.Value.GetRequiredService<IEventStore>();
 
-	public IServiceCollection CloneServiceCollection(Action<IServiceCollection>? configuration = null)
-	{
-		ServiceCollection clone = [.. _services];
+	public object? GetService(Type serviceType) => _appService.Value.GetService(serviceType);
 
-		configuration?.Invoke(clone);
-
-		return clone;
-	}
-
-	public IServiceProvider CloneServiceProvider(Action<IServiceCollection>? configuration = null)
-	{
-		var services = CloneServiceCollection(configuration);
-
-		return services.BuildServiceProvider(
-			new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true }
-		);
-	}
-
-	public object? GetService(Type serviceType) => _serviceScope!.Value.ServiceProvider.GetService(serviceType);
+	public IServiceProvider CloneServices(Action<IServiceCollection>? configure) =>
+		_appService.Value.CloneServices(configure);
 }
