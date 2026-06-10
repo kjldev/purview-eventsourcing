@@ -68,7 +68,17 @@ public sealed class StockTransferService(IEventStoreTransactionFactory transacti
 
 		destination.ReceiveStock(quantity);
 
-		await using var transaction = store.Enlist(source, destination);
+		await using var transaction = transactionFactory.Create();
+		transaction.Enlist(source, store);
+		transaction.Enlist(destination, store);
+
+		/*
+		 * The above can be replaced with the following, but as it's an extension method
+		 * it's not testable in the same way:
+		 *
+		 * await using var transaction = store.Enlist(source, destination);
+		 */
+
 		var transactionResult = await transaction.CommitAsync(cancellationToken);
 
 		return transactionResult.Success
