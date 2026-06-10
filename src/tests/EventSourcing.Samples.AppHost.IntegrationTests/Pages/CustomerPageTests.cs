@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.Samples.AppHost.Pages;
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
 public sealed class CustomerPageTests(AppHostFixture fixture)
 {
-	readonly HttpClient _client = fixture.CreateWebClient(); //.CreateClient(new() { AllowAutoRedirect = false });
+	readonly HttpClient _client = fixture.CreateWebClient();
 
 	[Test]
 	public async Task CustomerSelector_Returns200(CancellationToken cancellationToken)

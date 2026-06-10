@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.Samples.AppHost.Pages;
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
 public sealed class InventoryPageTests(AppHostFixture fixture)
 {
-	readonly HttpClient _client = fixture.CreateWebClient(); // (new() { AllowAutoRedirect = false });
+	readonly HttpClient _client = fixture.CreateWebClient();
 
 	[Test]
 	public async Task BackOfficeCatalogIndex_Returns200(CancellationToken cancellationToken)
