@@ -24,4 +24,9 @@ public class ContinuationRequest
 	[Range(1, 1000)]
 	[DefaultValue(DefaultMaxRecords)]
 	public int MaxRecords { get; set; } = DefaultMaxRecords;
+
+	/// <summary>
+	/// Indicates if the total count of the query should be included in the response. Defaults to <see langword="false"/>.
+	/// </summary>
+	public bool IncludeTotalCount { get; set; }
 }

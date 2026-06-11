@@ -56,6 +56,8 @@ partial class CosmosDbSnapshotEventStore<T>
 		);
 
 		results.Results = [.. results.Results.Select(FulfilRequirements)];
+		if (request.IncludeTotalCount)
+			results.TotalCount = await _cosmosDbClient.CountAsync(expressionToRun, _partitionKey, cancellationToken);
 
 		return results;
 	}
@@ -78,6 +80,8 @@ partial class CosmosDbSnapshotEventStore<T>
 		);
 
 		results.Results = [.. results.Results.Select(FulfilRequirements)];
+		if (request.IncludeTotalCount)
+			results.TotalCount = await _cosmosDbClient.CountAsync(expressionToRun, _partitionKey, cancellationToken);
 
 		return results;
 	}

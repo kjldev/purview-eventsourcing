@@ -5,8 +5,7 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
-	const string AggregateBaseStub =
-		"""
+	const string AggregateBaseStub = """
 		#nullable enable
 		namespace Purview.EventSourcing.Aggregates
 		{
@@ -55,8 +54,7 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 		}
 		""";
 
-	const string ValueObjectContextStub =
-		"""
+	const string ValueObjectContextStub = """
 		namespace Purview.EventSourcing.ValueObjects
 		{
 			public readonly record struct ValueObjectContext<TAggregate>(TAggregate Aggregate, string MemberName, string? EventName = null, string? CommandName = null);
@@ -93,52 +91,52 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 			AggregateBaseStub
 			+ ValueObjectContextStub
 			+ """
-			namespace Testing
-			{
-
-			public enum OrderStatusCode
-			{
-				Draft = 0,
-				Confirmed = 1
-			}
-
-			[Purview.EventSourcing.Serialization.Scalar]
-			public readonly partial record struct OrderStatus
-			{
-				public OrderStatusCode Value { get; }
-
-				private OrderStatus(OrderStatusCode value) => Value = value;
-
-				public static OrderStatus Create(OrderStatusCode value, in Purview.EventSourcing.ValueObjects.ValueObjectContext<OrderAggregate> context)
+				namespace Testing
 				{
-					return new(value);
+
+				public enum OrderStatusCode
+				{
+					Draft = 0,
+					Confirmed = 1
 				}
 
-				public static OrderStatus Hydrate(OrderStatusCode value) => new(value);
-			}
-
-			[Purview.EventSourcing.Aggregates.GenerateAggregate]
-			public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-			{
-				public OrderStatus Status { get; private set; } = OrderStatus.Hydrate(OrderStatusCode.Draft);
-				public int LineItems { get; private set; }
-
-				[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "OrderConfirmed")]
-				public partial void ConfirmOrder(OrderStatusCode status);
-
-				public void AddLineItem() => LineItems++;
-
-				partial void OnCreatingOrderConfirmed(ref OrderStatus status)
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial record struct OrderStatus
 				{
-					if (Status.Value != OrderStatusCode.Draft)
-						throw new System.InvalidOperationException("Can only confirm draft orders.");
+					public OrderStatusCode Value { get; }
 
-					if (LineItems == 0)
-						throw new System.InvalidOperationException("Cannot confirm an order with no items.");
+					private OrderStatus(OrderStatusCode value) => Value = value;
+
+					public static OrderStatus Create(OrderStatusCode value, in Purview.EventSourcing.ValueObjects.ValueObjectContext<OrderAggregate> context)
+					{
+						return new(value);
+					}
+
+					public static OrderStatus Hydrate(OrderStatusCode value) => new(value);
 				}
-			}
-			}
-			""";
+
+				[Purview.EventSourcing.Aggregates.GenerateAggregate]
+				public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+				{
+					public OrderStatus Status { get; private set; } = OrderStatus.Hydrate(OrderStatusCode.Draft);
+					public int LineItems { get; private set; }
+
+					[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "OrderConfirmed")]
+					public partial void ConfirmOrder(OrderStatusCode status);
+
+					public void AddLineItem() => LineItems++;
+
+					partial void OnCreatingOrderConfirmed(ref OrderStatus status)
+					{
+						if (Status.Value != OrderStatusCode.Draft)
+							throw new System.InvalidOperationException("Can only confirm draft orders.");
+
+						if (LineItems == 0)
+							throw new System.InvalidOperationException("Cannot confirm an order with no items.");
+					}
+				}
+				}
+				""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetAggregateGeneratedSource(result);
@@ -160,49 +158,49 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 			AggregateBaseStub
 			+ ValueObjectContextStub
 			+ """
-			namespace Testing
-			{
-
-			public enum OrderStatusCode
-			{
-				Draft = 0,
-				Confirmed = 1
-			}
-
-			[Purview.EventSourcing.Serialization.Scalar]
-			public readonly partial record struct OrderStatus
-			{
-				public OrderStatusCode Value { get; }
-
-				private OrderStatus(OrderStatusCode value) => Value = value;
-
-				public static OrderStatus Create(OrderStatusCode value, in Purview.EventSourcing.ValueObjects.ValueObjectContext<OrderAggregate> context)
+				namespace Testing
 				{
-					return new(value);
+
+				public enum OrderStatusCode
+				{
+					Draft = 0,
+					Confirmed = 1
 				}
 
-				public static OrderStatus Hydrate(OrderStatusCode value) => new(value);
-			}
-
-			[Purview.EventSourcing.Aggregates.GenerateAggregate]
-			public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-			{
-				public OrderStatus Status { get; private set; } = OrderStatus.Hydrate(OrderStatusCode.Draft);
-				public int LineItems { get; private set; }
-
-				[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "OrderConfirmed")]
-				public partial void ConfirmOrder(OrderStatusCode status);
-
-				public void AddLineItem() => LineItems++;
-
-				partial void OnCreatingOrderConfirmed(ref OrderStatus status)
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial record struct OrderStatus
 				{
-					if (LineItems == 0)
-						throw new System.InvalidOperationException("Cannot confirm an order with no items.");
+					public OrderStatusCode Value { get; }
+
+					private OrderStatus(OrderStatusCode value) => Value = value;
+
+					public static OrderStatus Create(OrderStatusCode value, in Purview.EventSourcing.ValueObjects.ValueObjectContext<OrderAggregate> context)
+					{
+						return new(value);
+					}
+
+					public static OrderStatus Hydrate(OrderStatusCode value) => new(value);
 				}
-			}
-			}
-			""";
+
+				[Purview.EventSourcing.Aggregates.GenerateAggregate]
+				public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+				{
+					public OrderStatus Status { get; private set; } = OrderStatus.Hydrate(OrderStatusCode.Draft);
+					public int LineItems { get; private set; }
+
+					[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "OrderConfirmed")]
+					public partial void ConfirmOrder(OrderStatusCode status);
+
+					public void AddLineItem() => LineItems++;
+
+					partial void OnCreatingOrderConfirmed(ref OrderStatus status)
+					{
+						if (LineItems == 0)
+							throw new System.InvalidOperationException("Cannot confirm an order with no items.");
+					}
+				}
+				}
+				""";
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var aggregateType = assembly.GetType("Testing.OrderAggregate")!;
@@ -233,80 +231,82 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 	}
 
 	[Test]
-	public async Task Generate_RunsPropertyHooksInRequiredOrderAndSkipsPreHookOnReplay(CancellationToken cancellationToken)
+	public async Task Generate_RunsPropertyHooksInRequiredOrderAndSkipsPreHookOnReplay(
+		CancellationToken cancellationToken
+	)
 	{
 		var source =
 			AggregateBaseStub
 			+ ValueObjectContextStub
 			+ """
-			namespace Testing
-			{
-			[Purview.EventSourcing.Serialization.Scalar]
-			public readonly partial record struct EmailAddress
-			{
-				public string Value { get; }
-
-				private EmailAddress(string value) => Value = value;
-
-				public static int CreateCalls { get; private set; }
-				public static int HydrateCalls { get; private set; }
-
-				public static EmailAddress Create(string value)
+				namespace Testing
 				{
-					CreateCalls++;
-					return new(value);
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial record struct EmailAddress
+				{
+					public string Value { get; }
+
+					private EmailAddress(string value) => Value = value;
+
+					public static int CreateCalls { get; private set; }
+					public static int HydrateCalls { get; private set; }
+
+					public static EmailAddress Create(string value)
+					{
+						CreateCalls++;
+						return new(value);
+					}
+
+					public static EmailAddress Hydrate(string value)
+					{
+						HydrateCalls++;
+						return new(value);
+					}
 				}
 
-				public static EmailAddress Hydrate(string value)
+				[Purview.EventSourcing.Aggregates.GenerateAggregate]
+				public partial class CustomerAggregate : Purview.EventSourcing.Aggregates.AggregateBase
 				{
-					HydrateCalls++;
-					return new(value);
+					public EmailAddress Email { get; private set; } = EmailAddress.Hydrate("init@example.com");
+					public int ChangingCalls { get; private set; }
+					public int ChangedCalls { get; private set; }
+					public string Trace { get; private set; } = string.Empty;
+					public string? PreviousEmailValue { get; private set; }
+					public string? CurrentEmailValue { get; private set; }
+
+					[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "CustomerRegistered")]
+					public partial CustomerAggregate RegisterCustomer(string email);
+
+					[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "CustomerEmailChanged")]
+					public partial CustomerAggregate ChangeEmail(string email);
+
+					partial void OnEmailChanging(ref EmailAddress email)
+					{
+						ChangingCalls++;
+						Trace += "P";
+						email = EmailAddress.Hydrate(email.Value + ".mutated");
+					}
+
+					partial void OnEmailChanged(EmailAddress previous, EmailAddress current)
+					{
+						ChangedCalls++;
+						Trace += "C";
+						PreviousEmailValue = previous.Value;
+						CurrentEmailValue = current.Value;
+					}
+
+					partial void OnCreatingCustomerEmailChanged(ref EmailAddress email)
+					{
+						Trace += "E";
+					}
+
+					partial void OnAppliedCustomerEmailChanged(global::Testing.CustomerEvents.CustomerEmailChanged @event)
+					{
+						Trace += "A";
+					}
 				}
-			}
-
-			[Purview.EventSourcing.Aggregates.GenerateAggregate]
-			public partial class CustomerAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-			{
-				public EmailAddress Email { get; private set; } = EmailAddress.Hydrate("init@example.com");
-				public int ChangingCalls { get; private set; }
-				public int ChangedCalls { get; private set; }
-				public string Trace { get; private set; } = string.Empty;
-				public string? PreviousEmailValue { get; private set; }
-				public string? CurrentEmailValue { get; private set; }
-
-				[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "CustomerRegistered")]
-				public partial CustomerAggregate RegisterCustomer(string email);
-
-				[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = "CustomerEmailChanged")]
-				public partial CustomerAggregate ChangeEmail(string email);
-
-				partial void OnEmailChanging(ref EmailAddress email)
-				{
-					ChangingCalls++;
-					Trace += "P";
-					email = EmailAddress.Hydrate(email.Value + ".mutated");
 				}
-
-				partial void OnEmailChanged(EmailAddress previous, EmailAddress current)
-				{
-					ChangedCalls++;
-					Trace += "C";
-					PreviousEmailValue = previous.Value;
-					CurrentEmailValue = current.Value;
-				}
-
-				partial void OnCreatingCustomerEmailChanged(ref EmailAddress email)
-				{
-					Trace += "E";
-				}
-
-				partial void OnAppliedCustomerEmailChanged(global::Testing.CustomerEvents.CustomerEmailChanged @event)
-				{
-					Trace += "A";
-				}
-			}
-			}
-			""";
+				""";
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var aggregateType = assembly.GetType("Testing.CustomerAggregate")!;

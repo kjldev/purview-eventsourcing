@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using Purview.EventSourcing.MongoDB.StorageClient;
 
 namespace Purview.EventSourcing.MongoDB.Snapshots;
 
@@ -72,6 +71,8 @@ partial class MongoDBSnapshotEventStore<T>
 		var result = await _mongoDbClient.QueryAsync(whereClause, orderByClause, request, cancellationToken);
 
 		result.Results = [.. result.Results.Select(FulfilRequirements)];
+		if (request.IncludeTotalCount)
+			result.TotalCount = await _mongoDbClient.CountAsync(whereClause, cancellationToken);
 
 		return result;
 	}
@@ -85,6 +86,8 @@ partial class MongoDBSnapshotEventStore<T>
 		var results = await _mongoDbClient.ListAsync(orderByClause, request, cancellationToken);
 
 		results.Results = [.. results.Results.Select(FulfilRequirements)];
+		if (request.IncludeTotalCount)
+			results.TotalCount = await _mongoDbClient.CountAsync<T>(cancellationToken);
 
 		return results;
 	}

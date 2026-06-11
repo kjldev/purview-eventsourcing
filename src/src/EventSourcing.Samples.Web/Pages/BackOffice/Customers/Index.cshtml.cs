@@ -62,12 +62,9 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		Expression<Func<CustomerAggregate, bool>>? where = hasFilter
 			? c =>
 				(
-					// Note that we're using the EF.Functions.Contains method here,
-					// rather than string.Contains, as we're using a ValueObject (EmailAddress/ Name)
-					// for the property types.
 					string.IsNullOrEmpty(search)
-					|| EF.Functions.Contains(c.Name, search)
-					|| EF.Functions.Contains(c.Email, search)
+					|| EF.Functions.Like(c.Name, $"%{search}%")
+					|| EF.Functions.Like(c.Email, $"%{search}%")
 				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: null;
 

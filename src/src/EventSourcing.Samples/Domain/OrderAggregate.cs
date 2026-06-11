@@ -102,7 +102,13 @@ public sealed partial class OrderAggregate : AggregateBase
 
 	#region Validators
 
-	partial void OnShippingAddressChanging(ref string? shippingAddress) => shippingAddress = shippingAddress.OrNull();
+	partial void OnShippingAddressChanging(ref string? shippingAddress)
+	{
+		shippingAddress = shippingAddress.OrNull();
+
+		if (Status.Value is not OrderStatusCode.Draft)
+			throw new InvalidOperationException("Shipping address can only be set while order is in draft status.");
+	}
 
 	partial void OnStatusChanging(ref OrderStatus status)
 	{
@@ -127,6 +133,8 @@ public sealed partial class OrderAggregate : AggregateBase
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only remove items from draft orders.");
 	}
+
+	partial void OnCustomerIdChanging(ref string customerId) => ArgumentException.ThrowIfNullOrWhiteSpace(customerId);
 
 	#endregion Validators
 

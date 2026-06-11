@@ -1330,7 +1330,9 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenNonPrivateAggregatePropertySetter_ReportsWarning(CancellationToken cancellationToken)
+	public async Task Generate_GivenNonPrivateAggregatePropertySetter_ReportsWarning(
+		CancellationToken cancellationToken
+	)
 	{
 		var source =
 			AggregateBaseStub
@@ -1513,7 +1515,9 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenMissingPropertyMapping_GeneratesEventWithoutAggregateMutation(CancellationToken cancellationToken)
+	public async Task Generate_GivenMissingPropertyMapping_GeneratesEventWithoutAggregateMutation(
+		CancellationToken cancellationToken
+	)
 	{
 		var source =
 			AggregateBaseStub
@@ -1963,6 +1967,69 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("public partial void SetContent(string content)");
 		// Assert — RecordAndApply creates event with property
 		await Assert.That(generatedSource).Contains("Content = content,");
+	}
+
+	[Test]
+	public async Task Generate_GivenNullValidationHook_RunsValidationBeforeNoChangeGuard(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class CustomerAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = default!;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetCustomerId(string customerId);
+
+		partial void OnCustomerIdChanging(ref string customerId) => global::System.ArgumentNullException.ThrowIfNull(customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		var onChangingIndex = generatedSource.IndexOf(
+			"OnCustomerIdChanging(ref customerId);",
+			StringComparison.Ordinal
+		);
+		var onCreatingIndex = generatedSource.IndexOf(
+			"OnCreatingSetCustomerId(ref customerId);",
+			StringComparison.Ordinal
+		);
+		var noChangeIndex = generatedSource.IndexOf(
+			"if (global::System.String.Equals(CustomerId, customerId, global::System.StringComparison.Ordinal))",
+			StringComparison.Ordinal
+		);
+
+		await Assert.That(onChangingIndex).IsGreaterThanOrEqualTo(0);
+		await Assert.That(onCreatingIndex).IsGreaterThanOrEqualTo(0);
+		await Assert.That(noChangeIndex).IsGreaterThanOrEqualTo(0);
+		await Assert.That(onChangingIndex).IsLessThan(noChangeIndex);
+		await Assert.That(onCreatingIndex).IsLessThan(noChangeIndex);
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var aggregateType = assembly.GetType("Testing.CustomerAggregate")!;
+		var instance = Activator.CreateInstance(aggregateType)!;
+		var setCustomerId = aggregateType.GetMethod("SetCustomerId")!;
+		var threwArgumentNullException = false;
+
+		try
+		{
+			setCustomerId.Invoke(instance, [null]);
+		}
+		catch (TargetInvocationException ex) when (ex.InnerException is ArgumentNullException)
+		{
+			threwArgumentNullException = true;
+		}
+
+		await Assert.That(threwArgumentNullException).IsTrue();
 	}
 
 	[Test]

@@ -641,10 +641,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		}
 
 		var conversion = compilation.ClassifyConversion(parameterType, propertyType);
-		if (conversion.Exists && conversion.IsImplicit)
-			return EventParameterConversionKind.Implicit;
-
-		return null;
+		return conversion.Exists && conversion.IsImplicit ? EventParameterConversionKind.Implicit : null;
 	}
 
 	static bool TryResolveValueObjectCreateConversion(
@@ -699,8 +696,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return false;
 
 		return SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
-			? SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, parameterType)
-			: false;
+			&& SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, parameterType);
 	}
 
 	static bool IsContextualCreateMethod(

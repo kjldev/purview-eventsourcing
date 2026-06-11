@@ -11,8 +11,7 @@ namespace Purview.EventSourcing.Samples.ValueObjects;
 /// persistence hydration and does not re-run transition rules.
 /// </summary>
 [Scalar(GenerateImplicitFromPrimitive = false)]
-public readonly partial record struct OrderStatus
-	: IContextualValueObject<OrderStatus, OrderStatusCode, OrderAggregate>
+public readonly partial record struct OrderStatus : IContextualValueObject<OrderStatus, OrderStatusCode, OrderAggregate>
 {
 	public OrderStatusCode Value { get; }
 
@@ -34,18 +33,15 @@ public readonly partial record struct OrderStatus
 
 		if (!IsValidTransition(current, value))
 		{
-			throw new InvalidOperationException(
-				$"Cannot transition order status from {current} to {value}."
-			);
+			throw new InvalidOperationException($"Cannot transition order status from {current} to {value}.");
 		}
 
 		if (value == OrderStatusCode.Confirmed && context.Aggregate.LineItems.IsEmpty)
 			throw new InvalidOperationException("Cannot confirm an order with no line items.");
 
-		if (value == OrderStatusCode.Shipped && string.IsNullOrWhiteSpace(context.Aggregate.ShippingAddress))
-			throw new InvalidOperationException("Cannot ship an order without a shipping address.");
-
-		return new(value);
+		return value == OrderStatusCode.Shipped && string.IsNullOrWhiteSpace(context.Aggregate.ShippingAddress)
+			? throw new InvalidOperationException("Cannot ship an order without a shipping address.")
+			: new(value);
 	}
 
 	static bool IsValidTransition(OrderStatusCode from, OrderStatusCode to) =>
@@ -59,8 +55,7 @@ public readonly partial record struct OrderStatus
 			(OrderStatusCode.Shipped, OrderStatusCode.Completed) => true,
 
 			// Any non-terminal status may be cancelled
-			(not OrderStatusCode.Completed, OrderStatusCode.Cancelled)
-				when from != OrderStatusCode.Cancelled => true,
+			(not OrderStatusCode.Completed, OrderStatusCode.Cancelled) when from != OrderStatusCode.Cancelled => true,
 
 			_ => false,
 		};

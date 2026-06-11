@@ -15,6 +15,5 @@ public sealed class ScalarAttribute(string propertyName = "Value") : Attribute
 
 	public bool GenerateImplicitToPrimitive { get; init; } = true;
 
-	public ValueObjectDeserializationMode DeserializationMode { get; init; } =
-		ValueObjectDeserializationMode.Hydrate;
+	public ValueObjectDeserializationMode DeserializationMode { get; init; } = ValueObjectDeserializationMode.Hydrate;
 }

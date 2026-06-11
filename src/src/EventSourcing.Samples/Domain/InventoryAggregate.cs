@@ -63,12 +63,11 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
-		if (quantity > AvailableQuantity)
-			throw new InvalidOperationException(
+		return quantity > AvailableQuantity
+			? throw new InvalidOperationException(
 				$"Cannot reserve {quantity} units. Only {AvailableQuantity} available."
-			);
-
-		return StockReserved(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
+			)
+			: StockReserved(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
 	}
 
 	public InventoryAggregate ReleaseReservation(int quantity, string orderId)
@@ -76,10 +75,9 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
-		if (quantity > ReservedQuantity)
-			throw new InvalidOperationException($"Cannot release {quantity} units. Only {ReservedQuantity} reserved.");
-
-		return StockReservationReleased(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
+		return quantity > ReservedQuantity
+			? throw new InvalidOperationException($"Cannot release {quantity} units. Only {ReservedQuantity} reserved.")
+			: StockReservationReleased(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
 	}
 
 	public InventoryAggregate ShipStock(int quantity, string orderId)
@@ -87,10 +85,9 @@ public sealed partial class InventoryAggregate : AggregateBase
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
-		if (quantity > ReservedQuantity)
-			throw new InvalidOperationException($"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.");
-
-		return StockShipped(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
+		return quantity > ReservedQuantity
+			? throw new InvalidOperationException($"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.")
+			: StockShipped(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
 	}
 
 	public InventoryAggregate AdjustStock(int newQuantity, string reason)

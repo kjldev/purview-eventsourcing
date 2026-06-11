@@ -190,7 +190,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 
 		if (
 			valueObjectOptions.DeserializationMode == StrictModeName
-			&& !HasStaticFactory(typeSymbol, "Create", properties.Select(property => property.Type).ToArray())
+			&& !HasStaticFactory(typeSymbol, "Create", [.. properties.Select(property => property.Type)])
 		)
 		{
 			diagnostics.Add(
@@ -481,18 +481,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		var typeName = typeModel.FullyQualifiedName;
 		var propertyTypeNames = properties.Select(property => ToTypeName(property.Type)).ToArray();
 		var propertyNames = properties.Select(property => property.Name).ToArray();
-		var hydrateExists = HasStaticFactory(
-			typeSymbol,
-			"Hydrate",
-			properties.Select(property => property.Type).ToArray()
-		);
+		var hydrateExists = HasStaticFactory(typeSymbol, "Hydrate", [.. properties.Select(property => property.Type)]);
 		var compareToSelfExists = HasInstanceMethod(typeSymbol, "CompareTo", [typeSymbol]);
 		var compareToObjectExists = HasCompareToObject(typeSymbol);
 		var hasJsonConverterAttribute = HasAttribute(typeSymbol, JsonConverterAttributeName);
 		var strictCreateExists = HasStaticFactory(
 			typeSymbol,
 			"Create",
-			properties.Select(property => property.Type).ToArray()
+			[.. properties.Select(property => property.Type)]
 		);
 
 		var hydrateFactoryName =
@@ -976,77 +972,60 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 	static string ToCamelCase(string value) =>
 		string.IsNullOrEmpty(value) ? value : char.ToLowerInvariant(value[0]) + value.Substring(1);
 
-	readonly struct ValueObjectGenerationResult
+	readonly struct ValueObjectGenerationResult(
+		string? hintName,
+		string? source,
+		ImmutableArray<Diagnostic> diagnostics
+	)
 	{
-		public ValueObjectGenerationResult(string? hintName, string? source, ImmutableArray<Diagnostic> diagnostics)
-		{
-			HintName = hintName;
-			Source = source;
-			Diagnostics = diagnostics;
-		}
+		public string? HintName { get; } = hintName;
 
-		public string? HintName { get; }
+		public string? Source { get; } = source;
 
-		public string? Source { get; }
-
-		public ImmutableArray<Diagnostic> Diagnostics { get; }
+		public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 
 		public static ValueObjectGenerationResult Empty { get; } = new(null, null, []);
 	}
 
-	readonly struct GeneratedTypeModel
+	readonly struct GeneratedTypeModel(
+		string name,
+		string? @namespace,
+		string declarationPrefix,
+		string fullyQualifiedName
+	)
 	{
-		public GeneratedTypeModel(string name, string? @namespace, string declarationPrefix, string fullyQualifiedName)
-		{
-			Name = name;
-			Namespace = @namespace;
-			DeclarationPrefix = declarationPrefix;
-			FullyQualifiedName = fullyQualifiedName;
-		}
+		public string Name { get; } = name;
 
-		public string Name { get; }
+		public string? Namespace { get; } = @namespace;
 
-		public string? Namespace { get; }
+		public string DeclarationPrefix { get; } = declarationPrefix;
 
-		public string DeclarationPrefix { get; }
-
-		public string FullyQualifiedName { get; }
+		public string FullyQualifiedName { get; } = fullyQualifiedName;
 	}
 
-	readonly struct ScalarOptions
+	readonly struct ScalarOptions(
+		string propertyName,
+		bool generateJsonConverter,
+		bool generateComparable,
+		bool generateComparisonOperators,
+		bool generateImplicitFromPrimitive,
+		bool generateImplicitToPrimitive,
+		string deserializationMode
+	)
 	{
-		public ScalarOptions(
-			string propertyName,
-			bool generateJsonConverter,
-			bool generateComparable,
-			bool generateComparisonOperators,
-			bool generateImplicitFromPrimitive,
-			bool generateImplicitToPrimitive,
-			string deserializationMode
-		)
-		{
-			PropertyName = propertyName;
-			GenerateJsonConverter = generateJsonConverter;
-			GenerateComparable = generateComparable;
-			GenerateComparisonOperators = generateComparisonOperators;
-			GenerateImplicitFromPrimitive = generateImplicitFromPrimitive;
-			GenerateImplicitToPrimitive = generateImplicitToPrimitive;
-			DeserializationMode = deserializationMode;
-		}
+		public string PropertyName { get; } = propertyName;
 
-		public string PropertyName { get; }
+		public bool GenerateJsonConverter { get; } = generateJsonConverter;
 
-		public bool GenerateJsonConverter { get; }
+		public bool GenerateComparable { get; } = generateComparable;
 
-		public bool GenerateComparable { get; }
+		public bool GenerateComparisonOperators { get; } = generateComparisonOperators;
 
-		public bool GenerateComparisonOperators { get; }
+		public bool GenerateImplicitFromPrimitive { get; } = generateImplicitFromPrimitive;
 
-		public bool GenerateImplicitFromPrimitive { get; }
+		public bool GenerateImplicitToPrimitive { get; } = generateImplicitToPrimitive;
 
-		public bool GenerateImplicitToPrimitive { get; }
-
-		public string DeserializationMode { get; }
+		public string DeserializationMode { get; } = deserializationMode;
 
 		public static ScalarOptions From(INamedTypeSymbol typeSymbol, string metadataName)
 		{
@@ -1071,28 +1050,20 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		}
 	}
 
-	readonly struct ValueObjectOptions
+	readonly struct ValueObjectOptions(
+		bool generateJsonConverter,
+		bool generateComparable,
+		bool generateComparisonOperators,
+		string deserializationMode
+	)
 	{
-		public ValueObjectOptions(
-			bool generateJsonConverter,
-			bool generateComparable,
-			bool generateComparisonOperators,
-			string deserializationMode
-		)
-		{
-			GenerateJsonConverter = generateJsonConverter;
-			GenerateComparable = generateComparable;
-			GenerateComparisonOperators = generateComparisonOperators;
-			DeserializationMode = deserializationMode;
-		}
+		public bool GenerateJsonConverter { get; } = generateJsonConverter;
 
-		public bool GenerateJsonConverter { get; }
+		public bool GenerateComparable { get; } = generateComparable;
 
-		public bool GenerateComparable { get; }
+		public bool GenerateComparisonOperators { get; } = generateComparisonOperators;
 
-		public bool GenerateComparisonOperators { get; }
-
-		public string DeserializationMode { get; }
+		public string DeserializationMode { get; } = deserializationMode;
 
 		public static ValueObjectOptions From(INamedTypeSymbol typeSymbol, string metadataName)
 		{

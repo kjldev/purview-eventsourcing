@@ -215,7 +215,12 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateCommandMethod(StringBuilder sb, AggregateInfo info, AggregateEventMethodInfo method, string indent)
+	static void GenerateCommandMethod(
+		StringBuilder sb,
+		AggregateInfo info,
+		AggregateEventMethodInfo method,
+		string indent
+	)
 	{
 		var paramList = new StringBuilder();
 		for (var i = 0; i < method.Parameters.Count; i++)
@@ -249,15 +254,6 @@ static class EmitHelper
 			if (method.Parameters.Any(static p => p.ParameterConversionKind is not EventParameterConversionKind.None))
 				sb.AppendLine();
 
-			if (mappedParameters.Count > 0)
-			{
-				sb.AppendLine($"{indent}\t\tif ({BuildUnchangedCondition(mappedParameters)})");
-				sb.AppendLine($"{indent}\t\t{{");
-				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
-				sb.AppendLine($"{indent}\t\t}}");
-				sb.AppendLine();
-			}
-
 			foreach (var prop in mappedParameters)
 			{
 				sb.AppendLine($"{indent}\t\tOn{prop.AggregatePropertyName}Changing(ref {GetWorkingValueName(prop)});");
@@ -271,9 +267,21 @@ static class EmitHelper
 			sb.AppendLine($"{indent}\t\tOnCreating{hookSuffix}();");
 		else
 		{
-			sb.AppendLine(
-				$"{indent}\t\tOnCreating{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});"
-			);
+			sb.AppendLine($"{indent}\t\tOnCreating{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
+		}
+
+		if (method.Parameters.Count > 0)
+		{
+			var mappedParameters = method.Parameters.Where(static parameter => parameter.HasAggregateProperty).ToList();
+
+			if (mappedParameters.Count > 0)
+			{
+				sb.AppendLine();
+				sb.AppendLine($"{indent}\t\tif ({BuildUnchangedCondition(mappedParameters)})");
+				sb.AppendLine($"{indent}\t\t{{");
+				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+				sb.AppendLine($"{indent}\t\t}}");
+			}
 		}
 
 		sb.AppendLine();
@@ -379,10 +387,8 @@ static class EmitHelper
 		return parameter.ParameterConversionKind switch
 		{
 			EventParameterConversionKind.None => parameter.ParameterName,
-			EventParameterConversionKind.Implicit =>
-				$"({parameter.PropertyTypeName}){parameter.ParameterName}",
-			EventParameterConversionKind.Create =>
-				$"{parameter.PropertyTypeName}.Create({parameter.ParameterName})",
+			EventParameterConversionKind.Implicit => $"({parameter.PropertyTypeName}){parameter.ParameterName}",
+			EventParameterConversionKind.Create => $"{parameter.PropertyTypeName}.Create({parameter.ParameterName})",
 			EventParameterConversionKind.ContextualCreate =>
 				$"{parameter.PropertyTypeName}.Create({parameter.ParameterName}, new global::Purview.EventSourcing.ValueObjects.ValueObjectContext<{aggregateTypeName}>(this, MemberName: nameof({parameter.AggregatePropertyName}), EventName: nameof(global::{method.EventNamespace}.{method.EventName})))",
 			_ => parameter.ParameterName,

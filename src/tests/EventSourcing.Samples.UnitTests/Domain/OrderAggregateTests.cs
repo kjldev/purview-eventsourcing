@@ -4,17 +4,36 @@ namespace Purview.EventSourcing.Samples.Domain;
 
 public class OrderAggregateTests
 {
-	static OrderAggregate CreateOrder(string? id = null, bool withItems = false)
+	static OrderAggregate CreateOrder(
+		string? id = null,
+		bool withItems = false,
+		string? shippingAddress = null,
+		OrderStatusCode statusCode = OrderStatusCode.Draft
+	)
 	{
 		var order = new OrderAggregate();
 		if (id is not null)
 			order.Details.Id = id;
-		order.CreateOrder("customer-1");
+
+		order.CreateOrder("customer-1").SetShippingAddress(shippingAddress: shippingAddress);
 
 		if (withItems)
 		{
 			order.AddLineItem("prod-1", "Widget A", 2, 10.00m);
 			order.AddLineItem("prod-2", "Widget B", 1, 25.00m);
+		}
+
+		switch (statusCode)
+		{
+			case OrderStatusCode.Confirmed:
+				order.ConfirmOrder();
+				break;
+			case OrderStatusCode.Shipped:
+				order.ConfirmOrder().ShipOrder();
+				break;
+			case OrderStatusCode.Cancelled:
+				order.CancelOrder();
+				break;
 		}
 
 		return order;
@@ -38,10 +57,14 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public void CreateOrder_GivenNullCustomerId_ThrowsArgumentException()
+	[Arguments(null)]
+	[Arguments("")]
+	[Arguments(" ")]
+	[Arguments("     ")]
+	public void CreateOrder_GivenNullEmptyOrWhitespaceCustomerId_ThrowsArgumentException(string? customerId)
 	{
 		var order = new OrderAggregate();
-		Assert.Throws<ArgumentException>(() => order.CreateOrder(null!));
+		Assert.Throws<ArgumentException>(() => order.CreateOrder(customerId!));
 	}
 
 	#endregion
@@ -253,11 +276,19 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public void UpdateDetails_GivenWhitespaceAddress_ThrowsArgumentException()
+	[Arguments(null)]
+	[Arguments("")]
+	[Arguments(" ")]
+	[Arguments("     ")]
+	public async Task UpdateDetails_GivenNullOrWhitespaceAddress_RaisesNoEvents(string? shippingAddress)
 	{
 		var order = CreateOrder("order-1");
+		var countBefore = order.GetUnsavedEvents().Count();
 
-		Assert.Throws<ArgumentException>(() => order.UpdateDetails(shippingAddress: "  "));
+		order.UpdateDetails(shippingAddress: shippingAddress);
+
+		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+		await Assert.That(order.ShippingAddress).IsNull();
 	}
 
 	#endregion

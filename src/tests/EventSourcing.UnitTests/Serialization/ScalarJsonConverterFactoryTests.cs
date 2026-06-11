@@ -3,7 +3,7 @@ namespace Purview.EventSourcing.Serialization;
 public sealed class ScalarJsonConverterFactoryTests
 {
 	[Test]
-	public async Task Deserialize_DefaultScalarMode_UsesHydrate(CancellationToken cancellationToken)
+	public async Task Deserialize_DefaultScalarMode_UsesHydrate()
 	{
 		var options = EventStoreSerializationHelpers.CreateJsonSerializerOptions();
 		var value = System.Text.Json.JsonSerializer.Deserialize<HydratingEmailAddress>("\"not-an-email\"", options);
@@ -12,7 +12,7 @@ public sealed class ScalarJsonConverterFactoryTests
 	}
 
 	[Test]
-	public async Task Deserialize_StrictScalarMode_UsesCreate(CancellationToken cancellationToken)
+	public async Task Deserialize_StrictScalarMode_UsesCreate()
 	{
 		var options = EventStoreSerializationHelpers.CreateJsonSerializerOptions();
 		var threw = false;
@@ -29,7 +29,7 @@ public sealed class ScalarJsonConverterFactoryTests
 	}
 
 	[Test]
-	public async Task Deserialize_NonStringScalar_UsesHydrateFactory(CancellationToken cancellationToken)
+	public async Task Deserialize_NonStringScalar_UsesHydrateFactory()
 	{
 		var options = EventStoreSerializationHelpers.CreateJsonSerializerOptions();
 		var id = Guid.NewGuid();
@@ -49,10 +49,9 @@ public sealed class ScalarJsonConverterFactoryTests
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
 		public static HydratingEmailAddress Create(string value)
 		{
-			if (!value.Contains('@', StringComparison.Ordinal))
-				throw new ArgumentException("Invalid email address.", nameof(value));
-
-			return new(value.Trim().ToLowerInvariant());
+			return value.Contains('@', StringComparison.Ordinal)
+				? new(value.Trim().ToLowerInvariant())
+				: throw new ArgumentException("Invalid email address.", nameof(value));
 		}
 
 		public static HydratingEmailAddress Hydrate(string value) => new(value);
@@ -68,10 +67,9 @@ public sealed class ScalarJsonConverterFactoryTests
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
 		public static StrictEmailAddress Create(string value)
 		{
-			if (!value.Contains('@', StringComparison.Ordinal))
-				throw new ArgumentException("Invalid email address.", nameof(value));
-
-			return new(value.Trim().ToLowerInvariant());
+			return value.Contains('@', StringComparison.Ordinal)
+				? new(value.Trim().ToLowerInvariant())
+				: throw new ArgumentException("Invalid email address.", nameof(value));
 		}
 
 		public static StrictEmailAddress Hydrate(string value) => new(value);
@@ -86,10 +84,9 @@ public sealed class ScalarJsonConverterFactoryTests
 
 		public static CustomerId Create(Guid value)
 		{
-			if (value == Guid.Empty)
-				throw new ArgumentException("Value cannot be empty.", nameof(value));
-
-			return new(value);
+			return value == Guid.Empty
+				? throw new ArgumentException("Value cannot be empty.", nameof(value))
+				: new(value);
 		}
 
 		public static CustomerId Hydrate(Guid value) => new(value);

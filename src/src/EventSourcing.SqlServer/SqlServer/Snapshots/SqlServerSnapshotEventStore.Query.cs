@@ -142,6 +142,9 @@ partial class SqlServerSnapshotEventStore<T>
 				skipCount = 0;
 
 			var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(aggregateTypeName, cancellationToken);
+			long? totalCount = request.IncludeTotalCount
+				? await _sqlServerClient.CountByAggregateTypeAsync(aggregateTypeName, cancellationToken)
+				: null;
 
 			IQueryable<T> query = allItems.AsQueryable().Where(whereClause);
 
@@ -162,6 +165,7 @@ partial class SqlServerSnapshotEventStore<T>
 				Results = results,
 				RequestedCount = request.MaxRecords,
 				ContinuationToken = results.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
+				TotalCount = totalCount,
 			};
 		}
 		catch (Exception ex)

@@ -7,17 +7,37 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+		<ProjectReference
+			Include="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false"
+			PrivateAssets="all"
+		/>
 	</ItemGroup>
 
 	<!-- Ship the generator DLL and build props file inside the NuGet package. -->
 	<Target Name="IncludeAnalyzerInPackage" BeforeTargets="_GetPackageFiles">
-		<MSBuild Projects="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)" RebaseOutputs="true">
+		<MSBuild
+			Projects="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj"
+			Targets="GetTargetPath"
+			Properties="Configuration=$(Configuration)"
+			RebaseOutputs="true"
+		>
 			<Output TaskParameter="TargetOutputs" ItemName="_AnalyzerDll" />
 		</MSBuild>
 		<ItemGroup>
-			<None Include="@(_AnalyzerDll)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-			<None Include="$(MSBuildThisFileDirectory)build\EventSourcing.props" Pack="true" PackagePath="build" Visible="false" />
+			<None
+				Include="@(_AnalyzerDll)"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs"
+				Visible="false"
+			/>
+			<None
+				Include="$(MSBuildThisFileDirectory)build\EventSourcing.props"
+				Pack="true"
+				PackagePath="build"
+				Visible="false"
+			/>
 		</ItemGroup>
 	</Target>
 

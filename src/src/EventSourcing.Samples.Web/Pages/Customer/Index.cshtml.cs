@@ -47,6 +47,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		{
 			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
+			IncludeTotalCount = true,
 		};
 
 		var search = Search?.Trim();
@@ -56,15 +57,15 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			? c =>
 				(
 					string.IsNullOrEmpty(search)
-					|| EF.Functions.Contains(c.Name, search)
-					|| EF.Functions.Contains(c.Email, search)
+					|| EF.Functions.Like(c.Name, $"%{search}%")
+					|| EF.Functions.Like(c.Email, $"%{search}%")
 				) && (ShowInactive || c.IsActive)
 			: c => true;
 
-		TotalCount = await store.CountAsync(where, ct);
-
 		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name), request, ct);
+
 		Customers = result.Results;
+		TotalCount = result.TotalCount ?? 0;
 	}
 
 	public async Task<IActionResult> OnPostSelectAsync(string id, CancellationToken cancellationToken)
@@ -74,6 +75,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 		HttpContext.Session.SetString("selectedCustomerId", id);
 		await HttpContext.Session.CommitAsync(cancellationToken);
+
 		return RedirectToPage("/Customer/Catalog/Index");
 	}
 
