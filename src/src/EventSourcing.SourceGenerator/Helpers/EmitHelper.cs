@@ -75,6 +75,8 @@ static class EmitHelper
 			GenerateCommandMethod(sb, info, method, indent);
 		}
 
+		GeneratePropertyHookDeclarations(sb, info, indent);
+
 		foreach (var method in info.InvalidMethods)
 		{
 			GenerateInvalidCommandMethodStub(sb, method, indent);
@@ -108,7 +110,7 @@ static class EmitHelper
 
 		foreach (var prop in method.Parameters)
 		{
-			sb.AppendLine($"\t\tpublic {prop.TypeName} {prop.PropertyName} {{ get; set; }} = default!;");
+			sb.AppendLine($"\t\tpublic {prop.PropertyTypeName} {prop.PropertyName} {{ get; set; }} = default!;");
 		}
 
 		sb.AppendLine();
@@ -179,30 +181,51 @@ static class EmitHelper
 	static void GenerateApplyMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
 	{
 		var eventParameterName = method.Parameters.Count == 0 ? "_" : "@event";
+		var mappedParameters = method.Parameters.Where(static parameter => parameter.HasAggregateProperty).ToList();
 
 		sb.AppendLine($"{indent}\tvoid Apply(global::{method.EventNamespace}.{method.EventName} {eventParameterName})");
 		sb.AppendLine($"{indent}\t{{");
 
-		foreach (var prop in method.Parameters)
+		foreach (var prop in mappedParameters)
 		{
-			sb.AppendLine($"{indent}\t\t{prop.PropertyName} = {eventParameterName}.{prop.PropertyName};");
+			sb.AppendLine($"{indent}\t\tvar __previous{prop.AggregatePropertyName} = {prop.AggregatePropertyName};");
 		}
 
+		if (mappedParameters.Count > 0)
+			sb.AppendLine();
+
+		foreach (var prop in mappedParameters)
+		{
+			sb.AppendLine($"{indent}\t\t{prop.AggregatePropertyName} = {eventParameterName}.{prop.PropertyName};");
+		}
+
+		if (mappedParameters.Count > 0)
+			sb.AppendLine();
+
+		foreach (var prop in mappedParameters)
+		{
+			sb.AppendLine(
+				$"{indent}\t\tOn{prop.AggregatePropertyName}Changed(__previous{prop.AggregatePropertyName}, {prop.AggregatePropertyName});"
+			);
+		}
+
+		var hookSuffix = GetHookSuffix(method.EventName);
+		sb.AppendLine($"{indent}\t\tOnApplied{hookSuffix}({eventParameterName});");
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
 	}
 
-	static void GenerateCommandMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
+	static void GenerateCommandMethod(StringBuilder sb, AggregateInfo info, AggregateEventMethodInfo method, string indent)
 	{
-		// Build parameter list
 		var paramList = new StringBuilder();
 		for (var i = 0; i < method.Parameters.Count; i++)
 		{
 			if (i > 0)
 				paramList.Append(", ");
-			paramList.Append($"{method.Parameters[i].TypeName} {method.Parameters[i].ParameterName}");
+			paramList.Append($"{method.Parameters[i].ParameterTypeName} {method.Parameters[i].ParameterName}");
 		}
 
+		var hookSuffix = GetHookSuffix(method.EventName);
 		var methodAccessModifier = GetAccessModifier(method.MethodAccessibility);
 		sb.AppendLine(
 			$"{indent}\t{methodAccessModifier} partial {method.ReturnTypeName} {method.MethodName}({paramList})"
@@ -211,39 +234,163 @@ static class EmitHelper
 
 		if (method.Parameters.Count > 0)
 		{
-			sb.AppendLine($"{indent}\t\tif ({BuildUnchangedCondition(method.Parameters)})");
-			sb.AppendLine($"{indent}\t\t{{");
-			EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
-			sb.AppendLine($"{indent}\t\t}}");
-			sb.AppendLine();
+			var mappedParameters = method.Parameters.Where(static parameter => parameter.HasAggregateProperty).ToList();
+
+			foreach (var prop in method.Parameters)
+			{
+				if (prop.ParameterConversionKind is EventParameterConversionKind.None)
+					continue;
+
+				sb.AppendLine(
+					$"{indent}\t\tvar {GetLocalValueName(prop)} = {BuildPropertyValueExpression(info, method, prop)};"
+				);
+			}
+
+			if (method.Parameters.Any(static p => p.ParameterConversionKind is not EventParameterConversionKind.None))
+				sb.AppendLine();
+
+			if (mappedParameters.Count > 0)
+			{
+				sb.AppendLine($"{indent}\t\tif ({BuildUnchangedCondition(mappedParameters)})");
+				sb.AppendLine($"{indent}\t\t{{");
+				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+				sb.AppendLine($"{indent}\t\t}}");
+				sb.AppendLine();
+			}
+
+			foreach (var prop in mappedParameters)
+			{
+				sb.AppendLine($"{indent}\t\tOn{prop.AggregatePropertyName}Changing(ref {GetWorkingValueName(prop)});");
+			}
+
+			if (mappedParameters.Count > 0)
+				sb.AppendLine();
 		}
 
-		// Build event initialization
-		sb.Append($"{indent}\t\tRecordAndApply(new global::{method.EventNamespace}.{method.EventName}");
+		if (method.Parameters.Count == 0)
+			sb.AppendLine($"{indent}\t\tOnCreating{hookSuffix}();");
+		else
+		{
+			sb.AppendLine(
+				$"{indent}\t\tOnCreating{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});"
+			);
+		}
+
+		sb.AppendLine();
+		sb.AppendLine($"{indent}\t\tvar @event = new global::{method.EventNamespace}.{method.EventName}");
 
 		if (method.Parameters.Count > 0)
 		{
-			sb.AppendLine();
 			sb.AppendLine($"{indent}\t\t{{");
 			foreach (var prop in method.Parameters)
 			{
-				sb.AppendLine($"{indent}\t\t\t{prop.PropertyName} = {prop.ParameterName},");
+				sb.AppendLine($"{indent}\t\t\t{prop.PropertyName} = {GetWorkingValueName(prop)},");
 			}
 
-			sb.Append($"{indent}\t\t}}");
+			sb.AppendLine($"{indent}\t\t}};");
 		}
 		else
 		{
-			sb.Append("()");
+			sb.AppendLine($"{indent}\t\t();");
 		}
 
-		sb.AppendLine(");");
+		sb.AppendLine();
+		sb.AppendLine($"{indent}\t\tOnCreated{hookSuffix}(@event);");
+		sb.AppendLine($"{indent}\t\tRecordAndApply(@event);");
 		sb.AppendLine();
 		EmitSuccessReturn(sb, method.ReturnKind, indent, 2);
 
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
+
+		EmitCa1822Suppression(sb, indent);
+		if (method.Parameters.Count == 0)
+			sb.AppendLine($"{indent}\tpartial void OnCreating{hookSuffix}();");
+		else
+		{
+			sb.AppendLine(
+				$"{indent}\tpartial void OnCreating{hookSuffix}({BuildOnCreatingDeclarationParameterList(method.Parameters)});"
+			);
+		}
+
+		EmitCa1822Suppression(sb, indent);
+		sb.AppendLine(
+			$"{indent}\tpartial void OnCreated{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
+		);
+		EmitCa1822Suppression(sb, indent);
+		sb.AppendLine(
+			$"{indent}\tpartial void OnApplied{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
+		);
+		sb.AppendLine();
 	}
+
+	static void GeneratePropertyHookDeclarations(StringBuilder sb, AggregateInfo info, string indent)
+	{
+		var aggregateProperties = info
+			.Methods.SelectMany(static method => method.Parameters)
+			.Where(static parameter => parameter.HasAggregateProperty)
+			.GroupBy(static parameter => parameter.AggregatePropertyName, StringComparer.Ordinal)
+			.Select(static group => group.First())
+			.ToList();
+
+		foreach (var prop in aggregateProperties)
+		{
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void On{prop.AggregatePropertyName}Changing(ref {prop.PropertyTypeName} {prop.ParameterName});"
+			);
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void On{prop.AggregatePropertyName}Changed({prop.PropertyTypeName} previous, {prop.PropertyTypeName} current);"
+			);
+			sb.AppendLine();
+		}
+	}
+
+	static void EmitCa1822Suppression(StringBuilder sb, string indent) =>
+		sb.AppendLine(
+			$"{indent}\t[global::System.Diagnostics.CodeAnalysis.SuppressMessage(\"Performance\", \"CA1822:Mark members as static\", Justification = \"Generated partial hook declaration must match instance signature and cannot be static.\")]"
+		);
+
+	static string GetHookSuffix(string eventName) =>
+		eventName.EndsWith("Event", global::System.StringComparison.Ordinal)
+			? eventName.Substring(0, eventName.Length - 5)
+			: eventName;
+
+	static string GetLocalValueName(EventPropertyInfo parameter) => $"__{parameter.ParameterName}Value";
+
+	static string BuildOnCreatingCallArgumentList(List<EventPropertyInfo> parameters) =>
+		string.Join(", ", parameters.Select(static parameter => $"ref {GetWorkingValueName(parameter)}"));
+
+	static string BuildOnCreatingDeclarationParameterList(List<EventPropertyInfo> parameters) =>
+		string.Join(
+			", ",
+			parameters.Select(static parameter => $"ref {parameter.PropertyTypeName} {parameter.ParameterName}")
+		);
+
+	static string BuildPropertyValueExpression(
+		AggregateInfo info,
+		AggregateEventMethodInfo method,
+		EventPropertyInfo parameter
+	)
+	{
+		var aggregateTypeName = GetAggregateTypeName(info);
+
+		return parameter.ParameterConversionKind switch
+		{
+			EventParameterConversionKind.None => parameter.ParameterName,
+			EventParameterConversionKind.Implicit =>
+				$"({parameter.PropertyTypeName}){parameter.ParameterName}",
+			EventParameterConversionKind.Create =>
+				$"{parameter.PropertyTypeName}.Create({parameter.ParameterName})",
+			EventParameterConversionKind.ContextualCreate =>
+				$"{parameter.PropertyTypeName}.Create({parameter.ParameterName}, new global::Purview.EventSourcing.ValueObjects.ValueObjectContext<{aggregateTypeName}>(this, MemberName: nameof({parameter.AggregatePropertyName}), EventName: nameof(global::{method.EventNamespace}.{method.EventName})))",
+			_ => parameter.ParameterName,
+		};
+	}
+
+	static string GetAggregateTypeName(AggregateInfo info) =>
+		info.Namespace is null ? $"global::{info.ClassName}" : $"global::{info.Namespace}.{info.ClassName}";
 
 	static string BuildUnchangedCondition(List<EventPropertyInfo> parameters)
 	{
@@ -252,14 +399,17 @@ static class EmitHelper
 
 	static string BuildUnchangedComparison(EventPropertyInfo parameter)
 	{
-		var parameterValueExpression = parameter.RequiresParameterToPropertyTypeConversion
-			? $"({parameter.EqualityComparerTypeName}){parameter.ParameterName}"
-			: parameter.ParameterName;
+		var comparisonValue = GetWorkingValueName(parameter);
 
 		return parameter.UseStringOrdinalComparison
-			? $"global::System.String.Equals({parameter.PropertyName}, {parameter.ParameterName}, global::System.StringComparison.Ordinal)"
-			: $"global::System.Collections.Generic.EqualityComparer<{parameter.EqualityComparerTypeName}>.Default.Equals({parameter.PropertyName}, {parameterValueExpression})";
+			? $"global::System.String.Equals({parameter.AggregatePropertyName}, {comparisonValue}, global::System.StringComparison.Ordinal)"
+			: $"global::System.Collections.Generic.EqualityComparer<{parameter.EqualityComparerTypeName}>.Default.Equals({parameter.AggregatePropertyName}, {comparisonValue})";
 	}
+
+	static string GetWorkingValueName(EventPropertyInfo parameter) =>
+		parameter.ParameterConversionKind is EventParameterConversionKind.None
+			? parameter.ParameterName
+			: GetLocalValueName(parameter);
 
 	static void EmitNoChangeReturn(StringBuilder sb, EventMethodReturnKind returnKind, string indent, int indentDepth)
 	{

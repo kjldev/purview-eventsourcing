@@ -47,15 +47,15 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
-			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
+			ContinuationToken = skipCount > 0 ? skipCount.ToString(CultureInfo.InvariantCulture) : null,
 			MaxRecords = PageSize,
 		};
 
-		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
+		var search = Search ?? string.Empty;
 		var hasFilter = !string.IsNullOrEmpty(search);
 
 		Expression<Func<InventoryAggregate, bool>> where = i =>
-			i.ProductId.ToLower().Contains(search) || i.ProductName.ToLower().Contains(search);
+			i.ProductId.Contains(search) || i.ProductName.Contains(search);
 
 		Func<IQueryable<InventoryAggregate>, IQueryable<InventoryAggregate>> orderBy = (SortBy, SortDir) switch
 		{

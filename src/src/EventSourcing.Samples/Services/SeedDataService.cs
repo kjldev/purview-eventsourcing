@@ -233,9 +233,10 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			var address = Addresses[i % Addresses.Length];
 
 			var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
-			order.CreateOrder(customerId);
-			order.AddLineItem(productId, productName, qty, unitPrice);
-			order.SetShippingAddress(address);
+			order
+				.CreateOrder(customerId)
+				.AddLineItem(productId, productName, qty, unitPrice)
+				.SetShippingAddress(address);
 
 			// Advance some orders through the lifecycle for variety.
 			var stage = i % 5;
@@ -249,11 +250,13 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			{
 				// Already completed above; create a separate cancelled one.
 				var cancelled = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
-				cancelled.CreateOrder(customerId);
-				cancelled.AddLineItem(productId, productName, 1, unitPrice);
-				cancelled.SetShippingAddress(address);
-				cancelled.ConfirmOrder();
-				cancelled.CancelOrder();
+				cancelled
+					.CreateOrder(customerId)
+					.AddLineItem(productId, productName, 1, unitPrice)
+					.SetShippingAddress(address)
+					.ConfirmOrder()
+					.CancelOrder();
+
 				await store.SaveAsync(cancelled, cancellationToken);
 			}
 

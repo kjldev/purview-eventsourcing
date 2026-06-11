@@ -45,7 +45,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
-			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
+			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
 		};
 
@@ -88,7 +88,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		if (!string.IsNullOrWhiteSpace(Search))
 			query.Add("search", Search);
 		if (ShowInactive)
-			query.Add("showInactive", bool.TrueString.ToLowerInvariant());
+			query.Add("showInactive", bool.TrueString);
 
 		return $"{HttpContext.Request.PathBase}{HttpContext.Request.Path}{query.ToQueryString()}";
 	}

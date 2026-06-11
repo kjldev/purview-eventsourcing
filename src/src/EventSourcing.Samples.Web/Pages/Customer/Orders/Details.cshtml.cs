@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Purview.EventSourcing.Samples.Domain;
+using Purview.EventSourcing.Samples.ValueObjects;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer.Orders;
@@ -37,7 +38,7 @@ sealed class DetailsModel(IQueryableEventStore customerStore, IQueryableEventSto
 		var order = await orderStore.GetAsync<OrderAggregate>(id, HttpContext.RequestAborted);
 		if (order == null || order.CustomerId != customerId)
 			return NotFound();
-		if (order.Status != OrderStatus.Draft)
+		if (order.Status != OrderStatusCode.Draft)
 		{
 			TempData["Error"] = "Only draft orders can be edited.";
 			return RedirectToPage(new { id });
@@ -98,7 +99,7 @@ sealed class DetailsModel(IQueryableEventStore customerStore, IQueryableEventSto
 		return await TrySaveAsync(
 			async () =>
 			{
-				order.SetShippingAddress(address.Trim());
+				order.SetShippingAddress(address);
 				await orderStore.SaveAsync(order, HttpContext.RequestAborted);
 			},
 			"Shipping address updated.",

@@ -95,4 +95,85 @@ static class GeneratorDiagnostics
 		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
+
+	public static readonly DiagnosticDescriptor AggregatePropertySetterShouldBePrivate = new(
+		id: "EVENTSTORE011",
+		title: "Aggregate property setters should be private",
+		messageFormat: "Aggregate property '{0}' on '{1}' has a non-private setter ('{2}'). Event-sourced aggregate state should use private setters.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ValueObjectMustBePartial = new(
+		id: "EVENTSTORE101",
+		title: "Value object must be partial",
+		messageFormat: "Value object '{0}' must be declared partial to use [{1}]",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor NestedValueObjectsAreNotSupported = new(
+		id: "EVENTSTORE102",
+		title: "Nested value objects are not supported",
+		messageFormat: "Value object '{0}' cannot be nested when using [{1}]",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor GenericValueObjectsAreNotSupported = new(
+		id: "EVENTSTORE103",
+		title: "Generic value objects are not supported",
+		messageFormat: "Value object '{0}' cannot be generic when using [{1}]",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ScalarPropertyMissing = new(
+		id: "EVENTSTORE104",
+		title: "Scalar property is missing",
+		messageFormat: "Scalar value object '{0}' must declare readable property '{1}'",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ScalarConstructorMissing = new(
+		id: "EVENTSTORE105",
+		title: "Scalar constructor is missing",
+		messageFormat: "Scalar value object '{0}' must declare a constructor '{0}({1})' to support generated Create/Hydrate",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ComplexHydrateConstructorMissing = new(
+		id: "EVENTSTORE106",
+		title: "Value object hydration constructor is missing",
+		messageFormat: "Value object '{0}' must declare a constructor matching its generated Hydrate(...) parameter list",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor StrictDeserializationRequiresCreate = new(
+		id: "EVENTSTORE107",
+		title: "Strict mode requires Create",
+		messageFormat: "Value object '{0}' uses strict deserialization mode but does not declare a compatible static Create(...) overload",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ConflictingValueObjectAttributes = new(
+		id: "EVENTSTORE108",
+		title: "Conflicting value object attributes",
+		messageFormat: "Type '{0}' cannot be annotated with both [Scalar] and [ValueObject]",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
 }

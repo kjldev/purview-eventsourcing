@@ -1,5 +1,6 @@
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Services;
 

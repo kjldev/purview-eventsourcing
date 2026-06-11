@@ -76,28 +76,48 @@ sealed class InvalidAggregateEventMethodInfo(string signature, string[] diagnost
 
 sealed class EventPropertyInfo(
 	string parameterName,
-	string typeName,
+	string parameterTypeName,
+	string propertyTypeName,
+	string aggregatePropertyName,
+	bool hasAggregateProperty,
 	string equalityComparerTypeName,
 	bool useStringOrdinalComparison,
-	bool requiresParameterToPropertyTypeConversion
+	EventParameterConversionKind parameterConversionKind
 )
 {
 	public string ParameterName { get; } = parameterName;
 
 	public string PropertyName { get; } = ToPropertyName(parameterName);
 
-	public string TypeName { get; } = typeName;
+	public string ParameterTypeName { get; } = parameterTypeName;
+
+	public string PropertyTypeName { get; } = propertyTypeName;
+
+	public string AggregatePropertyName { get; } = aggregatePropertyName;
+
+	public bool HasAggregateProperty { get; } = hasAggregateProperty;
 
 	public string EqualityComparerTypeName { get; } = equalityComparerTypeName;
 
 	public bool UseStringOrdinalComparison { get; } = useStringOrdinalComparison;
 
-	public bool RequiresParameterToPropertyTypeConversion { get; } = requiresParameterToPropertyTypeConversion;
+	public EventParameterConversionKind ParameterConversionKind { get; } = parameterConversionKind;
+
+	public bool RequiresParameterToPropertyTypeConversion { get; } =
+		parameterConversionKind is not EventParameterConversionKind.None;
 
 	public static string ToPropertyName(string parameterName) =>
 		string.IsNullOrEmpty(parameterName)
 			? parameterName
 			: char.ToUpperInvariant(parameterName[0]) + parameterName.Substring(1);
+}
+
+enum EventParameterConversionKind
+{
+	None = 0,
+	Implicit = 1,
+	Create = 2,
+	ContextualCreate = 3,
 }
 
 sealed class AggregateGenerationResult(AggregateInfo? info, ImmutableArray<Diagnostic> diagnostics)

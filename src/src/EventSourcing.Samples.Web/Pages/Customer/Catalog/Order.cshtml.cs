@@ -36,7 +36,10 @@ sealed class OrderModel(
 		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, ct);
 
 		if (InventoryItem != null)
-			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
+			UnitPrice = Math.Round(
+				9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode(StringComparison.Ordinal)) % 9000) / 100m,
+				2
+			);
 
 		return Page();
 	}
@@ -92,6 +95,9 @@ sealed class OrderModel(
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, ct);
 		InventoryItem = await inventoryStore.GetAsync<InventoryAggregate>(InventoryId, ct);
 		if (InventoryItem != null)
-			UnitPrice = Math.Round(9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode()) % 9000) / 100m, 2);
+			UnitPrice = Math.Round(
+				9.99m + (Math.Abs(InventoryItem.ProductId.GetHashCode(StringComparison.Ordinal)) % 9000) / 100m,
+				2
+			);
 	}
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Infrastructure;
@@ -46,13 +47,12 @@ sealed class IndexModel(
 		);
 		var allItems = inventoryResult.Results;
 
-		var search = Search?.Trim().ToLowerInvariant() ?? string.Empty;
-
+		var search = Search ?? string.Empty;
 		var grouped = allItems
 			.Where(i =>
 				string.IsNullOrEmpty(search)
-				|| i.ProductName.ToLower().Contains(search)
-				|| i.ProductId.ToLower().Contains(search)
+				|| EF.Functions.Contains(i.ProductName, search)
+				|| EF.Functions.Contains(i.ProductId, search)
 			)
 			.GroupBy(i => i.ProductId)
 			.Where(g => g.Sum(i => i.AvailableQuantity) > 0)
@@ -60,7 +60,10 @@ sealed class IndexModel(
 			{
 				var best = g.OrderByDescending(i => i.AvailableQuantity).First();
 				var totalAvailable = g.Sum(i => i.AvailableQuantity);
-				var unitPrice = Math.Round(9.99m + (Math.Abs(g.Key.GetHashCode()) % 9000) / 100m, 2);
+				var unitPrice = Math.Round(
+					9.99m + (Math.Abs(g.Key.GetHashCode(StringComparison.Ordinal)) % 9000) / 100m,
+					2
+				);
 				return (
 					ProductId: g.Key,
 					best.ProductName,

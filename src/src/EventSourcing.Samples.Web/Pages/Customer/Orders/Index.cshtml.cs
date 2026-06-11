@@ -41,7 +41,7 @@ sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore
 		var skipCount = (Page - 1) * PageSize;
 		var request = new ContinuationRequest
 		{
-			ContinuationToken = skipCount > 0 ? skipCount.ToString() : null,
+			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
 		};
 

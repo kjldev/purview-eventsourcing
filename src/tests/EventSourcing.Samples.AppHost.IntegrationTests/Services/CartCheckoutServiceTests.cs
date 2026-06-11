@@ -3,6 +3,7 @@ using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.AppHost.Fixtures;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.Services;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.AppHost.Services;
 
@@ -43,7 +44,7 @@ public sealed class CartCheckoutServiceTests(AppHostFixture fixture)
 
 		await Assert.That(orderCount).IsEqualTo(1L);
 		await Assert.That(savedOrder).IsNotNull();
-		await Assert.That(savedOrder!.Status).IsEqualTo(OrderStatus.Confirmed);
+		await Assert.That(savedOrder!.Status).IsEqualTo(OrderStatusCode.Confirmed);
 		await Assert.That(savedOrder.TotalAmount).IsEqualTo(result.Order.TotalAmount);
 		await Assert.That(savedInventory).IsNotNull();
 		await Assert.That(savedInventory!.ReservedQuantity).IsEqualTo(3);

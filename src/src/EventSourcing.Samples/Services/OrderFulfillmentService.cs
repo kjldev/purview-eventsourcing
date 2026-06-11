@@ -39,10 +39,10 @@ public sealed class OrderFulfillmentService(
 
 		// Create and confirm the order.
 		var order = await store.CreateAsync<OrderAggregate>(cancellationToken: cancellationToken);
-		order.CreateOrder(customerId);
-		order.AddLineItem(inventory.ProductId, inventory.ProductName, quantity, unitPrice);
+		order.CreateOrder(customerId).AddLineItem(inventory.ProductId, inventory.ProductName, quantity, unitPrice);
 		if (!string.IsNullOrWhiteSpace(shippingAddress))
 			order.SetShippingAddress(shippingAddress);
+
 		order.ConfirmOrder();
 
 		inventory.ReserveStock(quantity, order.Id());

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Purview.EventSourcing.Samples.Domain;
+using Purview.EventSourcing.Samples.ValueObjects;
 using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.Samples.Serialization;

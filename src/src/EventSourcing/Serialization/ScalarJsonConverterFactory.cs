@@ -26,22 +26,24 @@ public sealed class ScalarJsonConverterFactory : JsonConverterFactory
 					);
 
 				var converterType = typeof(ScalarJsonConverter<,>).MakeGenericType(t, scalarProp.PropertyType);
-				return (JsonConverter)Activator.CreateInstance(converterType, scalarProp)!;
+				return (JsonConverter)Activator.CreateInstance(converterType, scalarProp, attr.DeserializationMode)!;
 			}
 		);
 
-	sealed class ScalarJsonConverter<TScalarObject, TScalar>(PropertyInfo scalarProperty) : JsonConverter<TScalarObject>
+	sealed class ScalarJsonConverter<TScalarObject, TScalar>(
+		PropertyInfo scalarProperty,
+		ValueObjectDeserializationMode deserializationMode
+	) : JsonConverter<TScalarObject>
 	{
 		readonly Func<TScalarObject, TScalar> _getScalar = BuildGetter(scalarProperty);
-		readonly Func<TScalar, TScalarObject> _create = BuildCreator();
+		readonly Func<TScalar, TScalarObject> _create = BuildCreator(deserializationMode);
 
 		public override TScalarObject Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 		{
-			var scalar =
-				JsonSerializer.Deserialize<TScalar>(ref reader, options)
-				?? throw new JsonException($"Cannot deserialize {typeof(TScalarObject).Name} from null.");
-
-			return _create(scalar);
+			var scalar = JsonSerializer.Deserialize<TScalar>(ref reader, options);
+			return scalar is null
+				? throw new JsonException($"Cannot deserialize {typeof(TScalarObject).Name} from null.")
+				: _create(scalar);
 		}
 
 		public override void Write(Utf8JsonWriter writer, TScalarObject value, JsonSerializerOptions options) =>
@@ -54,12 +56,16 @@ public sealed class ScalarJsonConverterFactory : JsonConverterFactory
 			return Expression.Lambda<Func<TScalarObject, TScalar>>(body, obj).Compile();
 		}
 
-		static Func<TScalar, TScalarObject> BuildCreator()
+		static Func<TScalar, TScalarObject> BuildCreator(ValueObjectDeserializationMode deserializationMode)
 		{
 			var t = typeof(TScalarObject);
+			var preferredFactoryName =
+				deserializationMode == ValueObjectDeserializationMode.Strict ? "Create" : "Hydrate";
+			var secondaryFactoryName = preferredFactoryName == "Hydrate" ? "Create" : "Hydrate";
 
-			// Preferred: static Create(TScalar)
-			var create = t.GetMethod("Create", BindingFlags.Public | BindingFlags.Static, [typeof(TScalar)]);
+			var create =
+				t.GetMethod(preferredFactoryName, BindingFlags.Public | BindingFlags.Static, [typeof(TScalar)])
+				?? t.GetMethod(secondaryFactoryName, BindingFlags.Public | BindingFlags.Static, [typeof(TScalar)]);
 			if (create is not null)
 			{
 				var p = Expression.Parameter(typeof(TScalar), "v");
@@ -78,7 +84,7 @@ public sealed class ScalarJsonConverterFactory : JsonConverterFactory
 			}
 
 			throw new InvalidOperationException(
-				$"{t.Name} must expose static Create({typeof(TScalar).Name}) or ctor({typeof(TScalar).Name})."
+				$"{t.Name} must expose static {preferredFactoryName}({typeof(TScalar).Name}), static {secondaryFactoryName}({typeof(TScalar).Name}), or ctor({typeof(TScalar).Name})."
 			);
 		}
 	}

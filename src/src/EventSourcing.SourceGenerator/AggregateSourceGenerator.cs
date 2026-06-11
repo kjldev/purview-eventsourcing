@@ -15,6 +15,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	const string GenerateAggregateEventAttributeName =
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
+	const string ScalarAttributeMetadataName = "Purview.EventSourcing.Serialization.ScalarAttribute";
+	const string ValueObjectContextMetadataName = "Purview.EventSourcing.ValueObjects.ValueObjectContext`1";
 	const int HintNameHashHexLength = 16;
 	const string GeneratedSourceFileSuffix = ".g.cs";
 
@@ -235,6 +237,20 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			if (propertySymbol.SetMethod is null)
 				continue;
 
+			if (propertySymbol.SetMethod.DeclaredAccessibility is not Accessibility.Private)
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.AggregatePropertySetterShouldBePrivate,
+						propertySymbol.SetMethod.Locations.FirstOrDefault()
+							?? propertySymbol.Locations.FirstOrDefault(),
+						propertySymbol.Name,
+						classSymbol.Name,
+						propertySymbol.SetMethod.DeclaredAccessibility.ToString()
+					)
+				);
+			}
+
 			properties.Add(
 				new AggregateStatePropertyInfo(
 					propertySymbol.Name,
@@ -443,17 +459,24 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 			if (!propertySymbolsByName.TryGetValue(propertyName, out var propertySymbol))
 			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
-						parameterLocation,
-						parameter.Name,
-						methodSymbol.Name,
-						classSymbol.Name,
-						$"no matching property named '{propertyName}' was found"
+				var parameterTypeName = parameter.Type.ToDisplayString(
+					SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+						SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+							| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
 					)
 				);
-				hasErrors = true;
+				parameters.Add(
+					new EventPropertyInfo(
+						parameter.Name,
+						parameterTypeName,
+						parameterTypeName,
+						propertyName,
+						false,
+						parameterTypeName,
+						parameter.Type.SpecialType == SpecialType.System_String,
+						EventParameterConversionKind.None
+					)
+				);
 				continue;
 			}
 
@@ -489,8 +512,13 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				continue;
 			}
 
-			var conversion = compilation.ClassifyConversion(parameter.Type, propertySymbol.Type);
-			if (!conversion.Exists || !conversion.IsImplicit)
+			var conversionKind = ResolveParameterConversionKind(
+				compilation,
+				classSymbol,
+				parameter.Type,
+				propertySymbol.Type
+			);
+			if (conversionKind is null)
 			{
 				diagnostics.Add(
 					Diagnostic.Create(
@@ -499,7 +527,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						parameter.Name,
 						methodSymbol.Name,
 						classSymbol.Name,
-						$"parameter type '{parameter.Type.ToDisplayString()}' is not implicitly assignable to property '{propertyName}' of type '{propertySymbol.Type.ToDisplayString()}'"
+						$"parameter type '{parameter.Type.ToDisplayString()}' cannot be mapped to property '{propertyName}' of type '{propertySymbol.Type.ToDisplayString()}' via implicit conversion or value-object Create(...)"
 					)
 				);
 				hasErrors = true;
@@ -521,9 +549,17 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
 						)
 					),
+					propertySymbol.Name,
+					true,
+					propertySymbol.Type.ToDisplayString(
+						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+						)
+					),
 					parameter.Type.SpecialType == SpecialType.System_String
 						&& propertySymbol.Type.SpecialType == SpecialType.System_String,
-					!SymbolEqualityComparer.Default.Equals(parameter.Type, propertySymbol.Type)
+					conversionKind.Value
 				)
 			);
 		}
@@ -578,6 +614,130 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			version
 		);
 		return true;
+	}
+
+	static EventParameterConversionKind? ResolveParameterConversionKind(
+		Compilation compilation,
+		INamedTypeSymbol aggregateType,
+		ITypeSymbol parameterType,
+		ITypeSymbol propertyType
+	)
+	{
+		if (SymbolEqualityComparer.Default.Equals(parameterType, propertyType))
+			return EventParameterConversionKind.None;
+
+		if (
+			propertyType is INamedTypeSymbol namedPropertyType
+			&& TryResolveValueObjectCreateConversion(
+				compilation,
+				aggregateType,
+				namedPropertyType,
+				parameterType,
+				out var createConversionKind
+			)
+		)
+		{
+			return createConversionKind;
+		}
+
+		var conversion = compilation.ClassifyConversion(parameterType, propertyType);
+		if (conversion.Exists && conversion.IsImplicit)
+			return EventParameterConversionKind.Implicit;
+
+		return null;
+	}
+
+	static bool TryResolveValueObjectCreateConversion(
+		Compilation compilation,
+		INamedTypeSymbol aggregateType,
+		INamedTypeSymbol propertyType,
+		ITypeSymbol parameterType,
+		out EventParameterConversionKind conversionKind
+	)
+	{
+		conversionKind = EventParameterConversionKind.None;
+
+		var contextTypeDefinition = compilation.GetTypeByMetadataName(ValueObjectContextMetadataName);
+
+		var hasScalarAttribute = propertyType
+			.GetAttributes()
+			.Any(attribute => attribute.AttributeClass?.ToDisplayString() == ScalarAttributeMetadataName);
+
+		var hasContextualCreate = propertyType
+			.GetMembers("Create")
+			.OfType<IMethodSymbol>()
+			.Any(method =>
+				IsContextualCreateMethod(method, propertyType, aggregateType, parameterType, contextTypeDefinition)
+			);
+
+		if (hasContextualCreate)
+		{
+			conversionKind = EventParameterConversionKind.ContextualCreate;
+			return true;
+		}
+
+		var hasSimpleCreate = propertyType
+			.GetMembers("Create")
+			.OfType<IMethodSymbol>()
+			.Any(method => IsSimpleCreateMethod(method, propertyType, parameterType));
+
+		if (hasSimpleCreate || hasScalarAttribute)
+		{
+			conversionKind = EventParameterConversionKind.Create;
+			return true;
+		}
+
+		return false;
+	}
+
+	static bool IsSimpleCreateMethod(IMethodSymbol method, ITypeSymbol returnType, ITypeSymbol parameterType)
+	{
+		if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public || method.Name != "Create")
+			return false;
+
+		if (method.Parameters.Length != 1)
+			return false;
+
+		return SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
+			? SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, parameterType)
+			: false;
+	}
+
+	static bool IsContextualCreateMethod(
+		IMethodSymbol method,
+		ITypeSymbol returnType,
+		INamedTypeSymbol aggregateType,
+		ITypeSymbol parameterType,
+		INamedTypeSymbol? contextTypeDefinition
+	)
+	{
+		if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public || method.Name != "Create")
+			return false;
+
+		if (method.Parameters.Length != 2)
+			return false;
+
+		if (!SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType))
+			return false;
+
+		if (!SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, parameterType))
+			return false;
+
+		var contextParameter = method.Parameters[1];
+		if (contextParameter.RefKind != RefKind.In)
+			return false;
+
+		if (
+			contextTypeDefinition is null
+			|| contextParameter.Type is not INamedTypeSymbol contextType
+			|| !SymbolEqualityComparer.Default.Equals(contextType.OriginalDefinition, contextTypeDefinition)
+			|| contextType.TypeArguments.Length != 1
+		)
+		{
+			return false;
+		}
+
+		return SymbolEqualityComparer.Default.Equals(contextType.TypeArguments[0], aggregateType);
 	}
 
 	static string? GetAttributeStringNamedArgument(

@@ -1,4 +1,5 @@
 using Purview.EventSourcing.Fixtures.SqlServer;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -35,9 +36,11 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		// --- Phase 3: Create order for the customer ---
 		var order = new OrderAggregate();
 		order.Details.Id = $"{Guid.NewGuid()}";
-		order.CreateOrder(customer.Id());
-		order.AddLineItem("widget-1", "Premium Widget", 5, 19.99m);
-		order.SetShippingAddress("789 Commerce Blvd");
+		order
+			.CreateOrder(customer.Id())
+			.AddLineItem("widget-1", "Premium Widget", 5, 19.99m)
+			.SetShippingAddress("789 Commerce Blvd");
+
 		await orderStore.SaveAsync(order, cancellationToken);
 
 		// --- Phase 4: Reserve inventory ---
@@ -69,7 +72,7 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		// Assert: Order
 		await Assert.That(loadedOrder).IsNotNull();
 		await Assert.That(loadedOrder!.CustomerId).IsEqualTo(customer.Id());
-		await Assert.That(loadedOrder.Status).IsEqualTo(OrderStatus.Completed);
+		await Assert.That(loadedOrder.Status).IsEqualTo(OrderStatusCode.Completed);
 		await Assert.That(loadedOrder.TotalAmount).IsEqualTo(99.95m);
 		await Assert.That(loadedOrder.LineItems).Count().IsEqualTo(1);
 		await Assert.That(loadedOrder.CompletedAt).IsNotNull();
@@ -98,8 +101,7 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		// --- Create and confirm order ---
 		var order = new OrderAggregate();
 		order.Details.Id = $"{Guid.NewGuid()}";
-		order.CreateOrder("customer-cancel");
-		order.AddLineItem("gadget-1", "Super Gadget", 10, 15.00m);
+		order.CreateOrder("customer-cancel").AddLineItem("gadget-1", "Super Gadget", 10, 15.00m);
 		inventory.ReserveStock(10, order.Id());
 		order.ConfirmOrder();
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Purview.EventSourcing.Samples.Domain;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice;
 
@@ -28,13 +29,13 @@ sealed class IndexModel(IQueryableEventStore inventoryStore, IQueryableEventStor
 		InventoryItemCount = await inventoryStore.CountAsync<InventoryAggregate>(null, ct);
 		TotalAvailableStock = allItems.Sum(i => i.AvailableQuantity);
 
-		DraftOrderCount = await orderStore.CountAsync<OrderAggregate>(o => o.Status == OrderStatus.Draft, ct);
+		DraftOrderCount = await orderStore.CountAsync<OrderAggregate>(o => o.Status == OrderStatusCode.Draft, ct);
 		ActiveOrderCount = await orderStore.CountAsync<OrderAggregate>(
-			o => o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Shipped,
+			o => o.Status == OrderStatusCode.Confirmed || o.Status == OrderStatusCode.Shipped,
 			ct
 		);
 		CompletedOrderCount = await orderStore.CountAsync<OrderAggregate>(
-			o => o.Status == OrderStatus.Completed || o.Status == OrderStatus.Cancelled,
+			o => o.Status == OrderStatusCode.Completed || o.Status == OrderStatusCode.Cancelled,
 			ct
 		);
 	}

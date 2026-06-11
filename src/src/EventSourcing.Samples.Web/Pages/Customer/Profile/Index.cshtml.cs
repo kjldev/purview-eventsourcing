@@ -56,7 +56,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.ChangeEmail(newEmail.Trim().ToLowerInvariant());
+					customer.ChangeEmail(newEmail);
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Email updated.",
@@ -108,11 +108,7 @@ sealed class IndexModel(IQueryableEventStore store) : EventSourcingPageModel
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.UpdateDetails(
-						name: newName.Trim(),
-						email: newEmail.Trim().ToLowerInvariant(),
-						phoneNumber: string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
-					);
+					customer.UpdateDetails(name: newName, email: newEmail, phoneNumber: phoneNumber.OrNull());
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Profile updated.",

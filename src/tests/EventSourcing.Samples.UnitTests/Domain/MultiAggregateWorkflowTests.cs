@@ -1,4 +1,4 @@
-using Purview.EventSourcing.Samples.Domain;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -56,8 +56,7 @@ public class MultiAggregateWorkflowTests
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-cancel";
-		order.CreateOrder("cust-1");
-		order.AddLineItem("gadget-1", "Gadget", 10, 15.00m);
+		order.CreateOrder("cust-1").AddLineItem("gadget-1", "Gadget", 10, 15.00m);
 
 		inventory.ReserveStock(10, order.Id());
 		order.ConfirmOrder();

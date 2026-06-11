@@ -114,7 +114,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		if (!string.IsNullOrWhiteSpace(Search))
 			query.Add("search", Search);
 		if (ActiveFilter.HasValue)
-			query.Add("activeFilter", ActiveFilter.Value.ToString().ToLowerInvariant());
+			query.Add("activeFilter", ActiveFilter.Value.ToString());
 
 		return $"{HttpContext.Request.PathBase}{HttpContext.Request.Path}{query.ToQueryString()}";
 	}

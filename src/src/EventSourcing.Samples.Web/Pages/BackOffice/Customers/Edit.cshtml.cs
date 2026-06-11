@@ -27,7 +27,7 @@ sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.ChangeName(newName.Trim());
+					customer.ChangeName(newName);
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Name updated.",
@@ -43,7 +43,7 @@ sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.ChangeEmail(newEmail.Trim().ToLowerInvariant());
+					customer.ChangeEmail(newEmail);
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Email updated.",
@@ -59,7 +59,7 @@ sealed class EditModel(IQueryableEventStore store) : EventSourcingPageModel
 			: await TrySaveAsync(
 				async () =>
 				{
-					customer.ChangePhoneNumber(string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim());
+					customer.ChangePhoneNumber(phoneNumber.OrNull());
 					await store.SaveAsync(customer, HttpContext.RequestAborted);
 				},
 				"Phone number updated.",

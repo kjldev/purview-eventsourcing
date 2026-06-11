@@ -19,7 +19,7 @@ sealed class CreateModel(IQueryableEventStore store) : PageModel
 			return Page();
 
 		var customer = await store.CreateAsync<CustomerAggregate>(cancellationToken: HttpContext.RequestAborted);
-		customer.RegisterCustomer(Name.Trim(), Email.Trim().ToLowerInvariant());
+		customer.RegisterCustomer(Name, Email);
 		await store.SaveAsync(customer, HttpContext.RequestAborted);
 
 		TempData["Success"] = $"Customer '{customer.Name}' registered.";

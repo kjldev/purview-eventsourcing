@@ -1,3 +1,5 @@
+using Purview.EventSourcing.Samples.ValueObjects;
+
 namespace Purview.EventSourcing.Samples.Domain;
 
 public class OrderAggregateTests
@@ -277,6 +279,100 @@ public class OrderAggregateTests
 		// Assert — CreateOrder + AddLineItem + SetShippingAddress + UpdateNotes + Confirm + Ship + Complete = 7
 		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(7);
 		await Assert.That(order.Details.CurrentVersion).IsEqualTo(7);
+	}
+
+	#endregion
+
+	#region OrderStatus Value Object Contextual Validation Tests
+
+	[Test]
+	public async Task ConfirmOrder_ViaContextualCreate_ValidatesTransitionAndLineItems()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+
+		order.ConfirmOrder();
+
+		await Assert.That(order.Status).IsEqualTo(OrderStatus.Confirmed);
+	}
+
+	[Test]
+	public void ConfirmOrder_GivenNoItems_ThrowsViaContextualCreate()
+	{
+		// Validation now lives in OrderStatus.Create(Confirmed, context)
+		var order = CreateOrder("order-1");
+		Assert.Throws<InvalidOperationException>(() => order.ConfirmOrder());
+	}
+
+	[Test]
+	public void ConfirmOrder_GivenAlreadyConfirmed_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.ConfirmOrder();
+		Assert.Throws<InvalidOperationException>(() => order.ConfirmOrder());
+	}
+
+	[Test]
+	public void ShipOrder_GivenNoShippingAddress_ThrowsViaContextualCreate()
+	{
+		// Shipping-address validation now lives in OrderStatus.Create(Shipped, context)
+		var order = CreateOrder("order-1", withItems: true);
+		order.ConfirmOrder();
+		Assert.Throws<InvalidOperationException>(() => order.ShipOrder());
+	}
+
+	[Test]
+	public void ShipOrder_GivenDraftOrder_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		// Draft → Shipped is not a valid transition
+		Assert.Throws<InvalidOperationException>(() => order.ShipOrder());
+	}
+
+	[Test]
+	public void CompleteOrder_GivenConfirmedOrder_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.ConfirmOrder();
+		// Confirmed → Completed is not a valid transition
+		Assert.Throws<InvalidOperationException>(() => order.CompleteOrder());
+	}
+
+	[Test]
+	public void CancelOrder_GivenCompletedOrder_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.SetShippingAddress("123 St");
+		order.ConfirmOrder();
+		order.ShipOrder();
+		order.CompleteOrder();
+		// Completed → Cancelled is not a valid transition
+		Assert.Throws<InvalidOperationException>(() => order.CancelOrder());
+	}
+
+	[Test]
+	public void CancelOrder_GivenAlreadyCancelled_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.CancelOrder();
+		Assert.Throws<InvalidOperationException>(() => order.CancelOrder());
+	}
+
+	[Test]
+	public async Task OrderStatus_StaticConvenienceProperties_HaveCorrectUnderlyingCode()
+	{
+		await Assert.That(OrderStatus.Draft.Value).IsEqualTo(OrderStatusCode.Draft);
+		await Assert.That(OrderStatus.Confirmed.Value).IsEqualTo(OrderStatusCode.Confirmed);
+		await Assert.That(OrderStatus.Shipped.Value).IsEqualTo(OrderStatusCode.Shipped);
+		await Assert.That(OrderStatus.Completed.Value).IsEqualTo(OrderStatusCode.Completed);
+		await Assert.That(OrderStatus.Cancelled.Value).IsEqualTo(OrderStatusCode.Cancelled);
+	}
+
+	[Test]
+	public async Task OrderStatus_HydrateDoesNotValidateTransitions()
+	{
+		// Hydrate must not call any transition rules — this is the replay path
+		var status = OrderStatus.Hydrate(OrderStatusCode.Confirmed);
+		await Assert.That(status.Value).IsEqualTo(OrderStatusCode.Confirmed);
 	}
 
 	#endregion

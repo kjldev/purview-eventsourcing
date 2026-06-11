@@ -76,12 +76,12 @@ else
 }
 
 @functions {
-    static string StatusBadge(OrderStatus status) => status switch {
-        OrderStatus.Draft => "bg-gray-100 text-gray-600",
-        OrderStatus.Confirmed => "bg-blue-100 text-blue-700",
-        OrderStatus.Shipped => "bg-amber-100 text-amber-700",
-        OrderStatus.Completed => "bg-green-100 text-green-700",
-        OrderStatus.Cancelled => "bg-red-100 text-red-600",
+    static string StatusBadge(OrderStatusCode status) => status switch {
+        OrderStatusCode.Draft => "bg-gray-100 text-gray-600",
+        OrderStatusCode.Confirmed => "bg-blue-100 text-blue-700",
+        OrderStatusCode.Shipped => "bg-amber-100 text-amber-700",
+        OrderStatusCode.Completed => "bg-green-100 text-green-700",
+        OrderStatusCode.Cancelled => "bg-red-100 text-red-600",
         _ => "bg-gray-100 text-gray-500"
     };
 }
