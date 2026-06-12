@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Purview.EventSourcing.SqlServer.Events.EntityFramework;
 
@@ -93,5 +94,22 @@ public class EventStoreDbContext(DbContextOptions<EventStoreDbContext> options, 
 				.HasDatabaseName($"IX_{_tableName}_AggregateType_EntityType")
 				.IncludeProperties(e => new { e.AggregateId });
 		});
+	}
+
+	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+	{
+		ArgumentNullException.ThrowIfNull(optionsBuilder);
+		optionsBuilder.ReplaceService<IModelCacheKeyFactory, EventStoreModelCacheKeyFactory>();
+	}
+
+	sealed class EventStoreModelCacheKeyFactory : IModelCacheKeyFactory
+	{
+		public object Create(DbContext context, bool designTime)
+		{
+			if (context is EventStoreDbContext eventStoreContext)
+				return (context.GetType(), eventStoreContext._schemaName, eventStoreContext._tableName, designTime);
+
+			return (context.GetType(), designTime);
+		}
 	}
 }

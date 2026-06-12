@@ -1,6 +1,4 @@
-using Purview.EventSourcing.SqlServer.Events;
-
-namespace Purview.EventSourcing.SqlServer;
+namespace Purview.EventSourcing.SqlServer.Events;
 
 partial class SqlServerEventStoreTests
 {

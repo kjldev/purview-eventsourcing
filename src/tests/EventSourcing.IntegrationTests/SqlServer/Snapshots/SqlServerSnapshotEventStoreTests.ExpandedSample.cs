@@ -1,6 +1,6 @@
 ﻿using Purview.EventSourcing.Aggregates.Persistence;
 
-namespace Purview.EventSourcing.SqlServer.Snapshot;
+namespace Purview.EventSourcing.SqlServer.Snapshots;
 
 partial class SqlServerSnapshotEventStoreTests
 {

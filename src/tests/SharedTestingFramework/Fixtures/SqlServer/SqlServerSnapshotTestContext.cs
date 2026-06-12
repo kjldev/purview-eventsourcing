@@ -5,7 +5,7 @@ using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
 using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Services;
-using Purview.EventSourcing.SqlServer;
+using Purview.EventSourcing.SqlServer.Client;
 using Purview.EventSourcing.SqlServer.Snapshot;
 using Purview.EventSourcing.SqlServer.Snapshots;
 
@@ -13,7 +13,6 @@ namespace Purview.EventSourcing.Fixtures.SqlServer;
 
 public sealed class SqlServerSnapshotTestContext
 {
-	readonly string _sqlServerConnectionString;
 	readonly string _azuriteConnectionString;
 
 	ITableEventStoreTelemetry _telemetry = default!;
@@ -27,7 +26,7 @@ public sealed class SqlServerSnapshotTestContext
 
 	internal AzureBlobClient BlobClient { get; private set; } = default!;
 
-	public string SqlServerConnectionString => _sqlServerConnectionString;
+	public string SqlServerConnectionString { get; }
 
 	public SqlServerSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
 
@@ -38,7 +37,7 @@ public sealed class SqlServerSnapshotTestContext
 		string? tableName = null
 	)
 	{
-		_sqlServerConnectionString = sqlServerConnectionString;
+		SqlServerConnectionString = sqlServerConnectionString;
 		_azuriteConnectionString = azuriteConnectionString;
 
 		EventStore = CreateSqlServerEventStore(correlationIdsToGenerate, tableName);
@@ -55,7 +54,7 @@ public sealed class SqlServerSnapshotTestContext
 
 		SqlServerSnapshotEventStoreOptions config = new()
 		{
-			ConnectionString = _sqlServerConnectionString,
+			ConnectionString = SqlServerConnectionString,
 			TableName = resolvedTableName,
 			SchemaName = "dbo",
 			AutoCreateTable = true,
@@ -68,9 +67,8 @@ public sealed class SqlServerSnapshotTestContext
 		);
 
 		SqlServerClient = new(
-			new SqlServerClientOptions
+			new SqlServerClientOptions(config.ConnectionString, false)
 			{
-				ConnectionString = config.ConnectionString,
 				TableName = config.TableName,
 				SchemaName = config.SchemaName,
 				AutoCreateTable = config.AutoCreateTable,

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Internal;
+using Purview.EventSourcing.SqlServer.Client;
 using Purview.EventSourcing.SqlServer.Snapshots;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
@@ -52,13 +53,11 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 			table = ovr.TableName ?? table;
 		}
 
-		return new SqlServerClientOptions
+		return new SqlServerClientOptions(options.ConnectionString, options.UseDataCompression)
 		{
-			ConnectionString = options.ConnectionString,
 			TableName = table,
 			SchemaName = schema,
 			AutoCreateTable = options.AutoCreateTable,
-			UseDataCompression = options.UseDataCompression,
 		};
 	}
 

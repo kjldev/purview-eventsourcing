@@ -1,7 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Caching.Distributed;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Caching.Distributed;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events.Upcasting;
 using Purview.EventSourcing.Aggregates.Snapshotting;
@@ -36,8 +36,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 
 	readonly string _aggregateTypeFullName;
 	readonly string _aggregateTypeShortName;
-	readonly string _effectiveSchemaName;
-	readonly string _effectiveTableName;
 
 	public SqlServerEventStore(
 		IAggregateEventNameMapper eventNameMapper,
@@ -72,9 +70,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 			_aggregateTypeShortName = aggregateName;
 
 		var clientOptions = ResolveClientOptions(sqlServerOptions.Value, _aggregateTypeShortName);
-		_effectiveSchemaName = clientOptions.SchemaName;
-		_effectiveTableName = clientOptions.TableName;
-
 		_client = new SqlServerEventStoreClient(clientOptions);
 	}
 
@@ -126,41 +121,14 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 		[EnumeratorCancellation] CancellationToken cancellationToken = default
 	)
 	{
-		// We query all stream versions from the client by aggregate id pattern.
-		// Since SQL doesn't easily support this as a single query like MongoDB,
-		// we get stream version rows by entity type and aggregate type.
-		await EnsureConfiguredAsync(cancellationToken);
-
-		await using var connection = new Microsoft.Data.SqlClient.SqlConnection(
-			_eventStoreOptions.Value.ConnectionString
-		);
-		await connection.OpenAsync(cancellationToken);
-
-		var quotedSchema = QuoteIdentifierForQuery(_effectiveSchemaName);
-		var quotedTable = QuoteIdentifierForQuery(_effectiveTableName);
-
-		var sql = includeDeleted
-			? $"SELECT [AggregateId] FROM {quotedSchema}.{quotedTable} WHERE [AggregateType] = @AggregateType AND [EntityType] = @EntityType"
-			: $"SELECT [AggregateId] FROM {quotedSchema}.{quotedTable} WHERE [AggregateType] = @AggregateType AND [EntityType] = @EntityType AND [IsDeleted] = 0";
-
-		await using var command = connection.CreateCommand();
-		command.CommandText = sql;
-		command.Parameters.Add(
-			new Microsoft.Data.SqlClient.SqlParameter("@AggregateType", System.Data.SqlDbType.NVarChar, 450)
-			{
-				Value = _aggregateTypeShortName,
-			}
-		);
-		command.Parameters.Add(
-			new Microsoft.Data.SqlClient.SqlParameter("@EntityType", System.Data.SqlDbType.Int)
-			{
-				Value = StreamVersionType,
-			}
-		);
-
-		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-		while (await reader.ReadAsync(cancellationToken))
-			yield return reader.GetString(0);
+		await foreach (
+			var aggregateId in _client.GetAggregateIdsByTypeAsync(
+				_aggregateTypeShortName,
+				includeDeleted,
+				cancellationToken
+			)
+		)
+			yield return aggregateId;
 	}
 
 	Task<StreamVersionData?> GetStreamVersionAsync(
@@ -267,9 +235,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 		if (_eventStoreOptions.Value.AutoCreateTable)
 			await _client.EnsureTableExistsAsync(cancellationToken);
 	}
-
-	static string QuoteIdentifierForQuery(string identifier) =>
-		$"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
 
 	/// <summary>
 	/// Merges global options with any per-aggregate-type table override.

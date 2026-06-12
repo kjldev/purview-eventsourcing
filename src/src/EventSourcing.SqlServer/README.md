@@ -27,6 +27,8 @@ builder.Services.AddSqlServerEventStore();
 - Event stream persistence for aggregates loaded through `IEventStore`
 - SQL Server and Azure SQL configuration binding
 - Telemetry registration for the SQL-backed event store
+- Entity Framework-backed event table creation and CRUD (no raw/custom SQL path)
+- JSON-column-backed event and snapshot payload storage in SQL Server
 
 ## Documentation
 

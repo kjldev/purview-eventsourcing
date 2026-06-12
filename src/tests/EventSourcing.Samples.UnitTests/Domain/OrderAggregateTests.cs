@@ -82,8 +82,8 @@ public class OrderAggregateTests
 
 		// Assert
 		await Assert.That(order.LineItems).Count().IsEqualTo(1);
-		await Assert.That(order.LineItems[0].ProductId).IsEqualTo("prod-1");
-		await Assert.That(order.LineItems[0].Quantity).IsEqualTo(2);
+		await Assert.That(order.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-1");
+		await Assert.That(order.LineItems.ElementAt(0).Quantity).IsEqualTo(2);
 		await Assert.That(order.TotalAmount).IsEqualTo(59.98m);
 	}
 
@@ -99,7 +99,7 @@ public class OrderAggregateTests
 
 		// Assert — same product, quantity merged
 		await Assert.That(order.LineItems).Count().IsEqualTo(1);
-		await Assert.That(order.LineItems[0].Quantity).IsEqualTo(5);
+		await Assert.That(order.LineItems.ElementAt(0).Quantity).IsEqualTo(5);
 		await Assert.That(order.TotalAmount).IsEqualTo(50.00m);
 	}
 

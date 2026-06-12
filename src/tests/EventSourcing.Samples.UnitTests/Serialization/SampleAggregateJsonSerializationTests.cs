@@ -24,7 +24,7 @@ public sealed class SampleAggregateJsonSerializationTests
 		await Assert.That(roundTripped).IsNotNull();
 		await Assert.That(roundTripped!.CustomerId).IsEqualTo("customer-1");
 		await Assert.That(roundTripped.LineItems).Count().IsEqualTo(1);
-		await Assert.That(roundTripped.LineItems[0].ProductId).IsEqualTo("product-1");
+		await Assert.That(roundTripped.LineItems.ElementAt(0).ProductId).IsEqualTo("product-1");
 		await Assert.That(roundTripped.TotalAmount).IsEqualTo(25m);
 		await Assert.That(roundTripped.ShippingAddress).IsEqualTo("123 Main Street");
 		await Assert.That(roundTripped.Notes).IsEqualTo("Fragile");

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.SqlServer.Client;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
 
@@ -11,9 +12,8 @@ public sealed class SqlServerSnapshotClientTests
 	{
 		// Arrange & Act
 		var client = new SqlServerClient(
-			new SqlServerClientOptions
+			new SqlServerClientOptions("Server=.;Database=Test;Trusted_Connection=True;", false)
 			{
-				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
 				SchemaName = "dbo",
 				TableName = "Snapshots",
 				AutoCreateTable = false,
@@ -34,18 +34,17 @@ public sealed class SqlServerSnapshotClientTests
 	public async Task GetByIdAsync_GivenUnsupportedPayloadShape_ThrowsEarly()
 	{
 		var client = new SqlServerClient(
-			new SqlServerClientOptions
+			new SqlServerClientOptions("Server=.;Database=Test;Trusted_Connection=True;Encrypt=False;", false)
 			{
-				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;Encrypt=False;",
 				SchemaName = "dbo",
 				TableName = $"Snapshots_{Guid.NewGuid():N}",
 				AutoCreateTable = false,
 			}
 		);
 
-		var act = () => client.GetByIdAsync<UnsupportedPayloadAggregate>("id");
+		Task<UnsupportedPayloadAggregate?> Act() => client.GetByIdAsync<UnsupportedPayloadAggregate>("id");
 
-		var ex = await Assert.That(act).Throws<InvalidOperationException>();
+		var ex = await Assert.That(Act).Throws<InvalidOperationException>();
 		await Assert.That(ex).IsNotNull();
 		await Assert.That(ex.Message).Contains(nameof(UnsupportedPayloadAggregate.UnsupportedMap));
 	}
@@ -66,12 +65,8 @@ public sealed class SqlServerSnapshotClientTests
 
 		public bool CanApplyEvent(IEvent aggregateEvent) => false;
 
-		public void ClearUnsavedEvents(int? upToVersion = null)
-		{
-		}
+		public void ClearUnsavedEvents(int? upToVersion = null) { }
 
-		void IAggregate.ApplyEvent(IEvent @event)
-		{
-		}
+		void IAggregate.ApplyEvent(IEvent @event) { }
 	}
 }

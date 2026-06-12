@@ -1,7 +1,7 @@
 ﻿using Purview.EventSourcing.Aggregates.Persistence;
 using Purview.EventSourcing.Fixtures.SqlServer;
 
-namespace Purview.EventSourcing.SqlServer.Snapshot;
+namespace Purview.EventSourcing.SqlServer.Snapshots;
 
 [ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
 public partial class SqlServerSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture)

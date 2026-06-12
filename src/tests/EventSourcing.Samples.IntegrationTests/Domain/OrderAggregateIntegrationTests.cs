@@ -36,10 +36,10 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		await Assert.That(loaded.Status).IsEqualTo(OrderStatusCode.Draft);
 		await Assert.That(loaded.LineItems).Count().IsEqualTo(2);
 		await Assert.That(loaded.TotalAmount).IsEqualTo(109.97m);
-		await Assert.That(loaded.LineItems[0].ProductId).IsEqualTo("prod-1");
-		await Assert.That(loaded.LineItems[0].Quantity).IsEqualTo(2);
-		await Assert.That(loaded.LineItems[1].ProductId).IsEqualTo("prod-2");
-		await Assert.That(loaded.LineItems[1].UnitPrice).IsEqualTo(49.99m);
+		await Assert.That(loaded.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-1");
+		await Assert.That(loaded.LineItems.ElementAt(0).Quantity).IsEqualTo(2);
+		await Assert.That(loaded.LineItems.ElementAt(1).ProductId).IsEqualTo("prod-2");
+		await Assert.That(loaded.LineItems.ElementAt(1).UnitPrice).IsEqualTo(49.99m);
 	}
 
 	[Test]
@@ -152,7 +152,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.LineItems).Count().IsEqualTo(1);
-		await Assert.That(loaded.LineItems[0].ProductId).IsEqualTo("prod-2");
+		await Assert.That(loaded.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-2");
 		await Assert.That(loaded.TotalAmount).IsEqualTo(49.99m);
 	}
 

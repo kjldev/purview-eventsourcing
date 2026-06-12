@@ -1,4 +1,4 @@
-﻿namespace Purview.EventSourcing.SqlServer;
+﻿namespace Purview.EventSourcing.SqlServer.Events;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {

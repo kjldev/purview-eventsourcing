@@ -1,7 +1,7 @@
 ﻿using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.ChangeFeed;
 
-namespace Purview.EventSourcing.SqlServer;
+namespace Purview.EventSourcing.SqlServer.Events;
 
 partial class GenericSqlServerEventStoreTests<TAggregate>
 {

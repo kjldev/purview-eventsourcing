@@ -1,6 +1,6 @@
 using Purview.EventSourcing.Fixtures.SqlServer;
 
-namespace Purview.EventSourcing.SqlServer;
+namespace Purview.EventSourcing.SqlServer.Events;
 
 [ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
 public sealed partial class SqlServerEventStoreTests(SqlServerEventStoreFixture fixture)

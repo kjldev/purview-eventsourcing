@@ -7,11 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Serialization;
 
-namespace Purview.EventSourcing.SqlServer;
+namespace Purview.EventSourcing.SqlServer.Client;
 
 sealed partial class SqlServerClient
 {
@@ -716,11 +715,7 @@ sealed partial class SqlServerClient
 			var visitedObject = Visit(node.Object);
 			var visitedArguments = Visit(node.Arguments);
 
-			if (
-				node.Method.DeclaringType == typeof(string)
-				&& node.Arguments.Count == 0
-				&& visitedObject is not null
-			)
+			if (node.Method.DeclaringType == typeof(string) && node.Arguments.Count == 0 && visitedObject is not null)
 			{
 				if (node.Method.Name == nameof(string.ToLowerInvariant))
 					return Expression.Call(visitedObject, nameof(string.ToLower), Type.EmptyTypes);
@@ -865,105 +860,5 @@ sealed partial class SqlServerClient
 		}
 
 		return false;
-	}
-}
-
-sealed class SnapshotStorageRow
-{
-	public required string Id { get; set; }
-
-	public required string AggregateType { get; set; }
-
-	public required string Payload { get; set; }
-}
-
-sealed class SnapshotQueryRow<TAggregate>
-	where TAggregate : class
-{
-	public required string Id { get; set; }
-
-	public required string AggregateType { get; set; }
-
-	public required TAggregate Payload { get; set; }
-}
-
-sealed class SqlServerClientOptions
-{
-	public required string ConnectionString { get; init; }
-
-	public string TableName { get; init; } = "Snapshots";
-
-	public string SchemaName { get; init; } = "dbo";
-
-	public bool AutoCreateTable { get; init; } = true;
-
-	public bool UseDataCompression { get; init; }
-}
-
-public sealed class ScalarValueConverter<TScalarObject, TScalar> : ValueConverter<TScalarObject, TScalar>
-{
-	public ScalarValueConverter()
-		: base(BuildToProviderExpression(), BuildFromProviderExpression()) { }
-
-	static Expression<Func<TScalarObject, TScalar>> BuildToProviderExpression()
-	{
-		var scalarProperty = GetScalarProperty();
-		var source = Expression.Parameter(typeof(TScalarObject), "value");
-		var body = Expression.Property(source, scalarProperty);
-		return Expression.Lambda<Func<TScalarObject, TScalar>>(body, source);
-	}
-
-	static Expression<Func<TScalar, TScalarObject>> BuildFromProviderExpression()
-	{
-		var source = Expression.Parameter(typeof(TScalar), "value");
-		var body = BuildCreatorExpression(source);
-		return Expression.Lambda<Func<TScalar, TScalarObject>>(body, source);
-	}
-
-	static PropertyInfo GetScalarProperty()
-	{
-		var scalarType = typeof(TScalarObject);
-		var scalarAttribute =
-			scalarType.GetCustomAttribute<ScalarAttribute>()
-			?? throw new InvalidOperationException($"{scalarType.Name} must be annotated with [Scalar].");
-
-		return scalarType.GetProperty(scalarAttribute.PropertyName, BindingFlags.Instance | BindingFlags.Public)
-			?? throw new InvalidOperationException(
-				$"'{scalarType.Name}' missing scalar property '{scalarAttribute.PropertyName}'."
-			);
-	}
-
-	static Expression BuildCreatorExpression(ParameterExpression source)
-	{
-		var scalarType = typeof(TScalarObject);
-		var scalarPropertyType = typeof(TScalar);
-		var scalarAttribute =
-			scalarType.GetCustomAttribute<ScalarAttribute>()
-			?? throw new InvalidOperationException($"{scalarType.Name} must be annotated with [Scalar].");
-
-		var preferredFactoryName =
-			scalarAttribute.DeserializationMode == ValueObjectDeserializationMode.Strict ? "Create" : "Hydrate";
-		var secondaryFactoryName = preferredFactoryName == "Hydrate" ? "Create" : "Hydrate";
-
-		var create =
-			scalarType.GetMethod(preferredFactoryName, BindingFlags.Public | BindingFlags.Static, [scalarPropertyType])
-			?? scalarType.GetMethod(
-				secondaryFactoryName,
-				BindingFlags.Public | BindingFlags.Static,
-				[scalarPropertyType]
-			);
-		if (create is not null)
-			return Expression.Call(create, source);
-
-		var ctor = scalarType.GetConstructor(
-			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-			[scalarPropertyType]
-		);
-		if (ctor is not null)
-			return Expression.New(ctor, source);
-
-		throw new InvalidOperationException(
-			$"{scalarType.Name} must expose static {preferredFactoryName}({scalarPropertyType.Name}), static {secondaryFactoryName}({scalarPropertyType.Name}), or ctor({scalarPropertyType.Name})."
-		);
 	}
 }

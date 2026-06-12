@@ -1,12 +1,10 @@
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Purview.EventSourcing.Fixtures.SqlServer;
 using Purview.EventSourcing.Internal;
+using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.SqlServer.Snapshot;
-using Purview.EventSourcing.SqlServer.Snapshots;
-using TUnit.Core;
 
-namespace Purview.EventSourcing.Samples.Domain;
+namespace Purview.EventSourcing.SqlServer.Snapshots;
 
 [ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
 public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture)
@@ -54,8 +52,8 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 		await Assert.That(count).IsEqualTo(1);
 		await Assert.That(result).IsNotNull();
 		await Assert.That(result!.LineItems).Count().IsEqualTo(2);
-		await Assert.That(result.LineItems[0].ProductId).IsEqualTo("prod-1");
-		await Assert.That(result.LineItems[1].UnitPrice).IsEqualTo(49.99m);
+		await Assert.That(result.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-1");
+		await Assert.That(result.LineItems.ElementAt(1).UnitPrice).IsEqualTo(49.99m);
 		await Assert.That(result.TotalAmount).IsEqualTo(109.97m);
 	}
 }

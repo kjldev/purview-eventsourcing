@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Fixtures.SqlServer;
 using Purview.EventSourcing.Internal;
+using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.SqlServer.Snapshot;
-using Purview.EventSourcing.SqlServer.Snapshots;
 
-namespace Purview.EventSourcing.Samples.Domain;
+namespace Purview.EventSourcing.SqlServer.Snapshots;
 
 [ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
 public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture)
@@ -121,7 +121,7 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 		customer.RegisterCustomer("Zed", "zed@test.com");
 		await store.SnapshotAsync(customer, cancellationToken);
 
-		var act = () =>
+		Task<ContinuationResponse<CustomerAggregate>> Act() =>
 			store.QueryAsync(
 				m => m.IsActive,
 				q => q.OrderBy(c => c.Name.Value),
@@ -129,7 +129,7 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 				cancellationToken
 			);
 
-		var ex = await Assert.That(act).Throws<InvalidOperationException>();
+		var ex = await Assert.That(Act!).Throws<InvalidOperationException>();
 		await Assert.That(ex).IsNotNull();
 		await Assert.That(ex!.Message).Contains("Order by the scalar value object property itself");
 	}
