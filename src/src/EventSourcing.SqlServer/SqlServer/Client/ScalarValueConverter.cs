@@ -5,7 +5,7 @@ using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.SqlServer.Client;
 
-public sealed class ScalarValueConverter<TScalarObject, TScalar> : ValueConverter<TScalarObject, TScalar>
+sealed class ScalarValueConverter<TScalarObject, TScalar> : ValueConverter<TScalarObject, TScalar>
 {
 	public ScalarValueConverter()
 		: base(BuildToProviderExpression(), BuildFromProviderExpression()) { }
