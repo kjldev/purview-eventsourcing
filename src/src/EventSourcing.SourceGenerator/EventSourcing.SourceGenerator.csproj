@@ -1,20 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<!--<LangVersion>latest</LangVersion>-->
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<!--<IncludeBuildOutput>false</IncludeBuildOutput>-->
 		<DisableSourceLink>true</DisableSourceLink>
 		<IsPackable>false</IsPackable>
-		<!--<DevelopmentDependency>true</DevelopmentDependency>-->
-		<!--<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>-->
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<!-- snupkg requires standard build output, which this analyzer package suppresses. -->
 		<SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
 		<TargetsForTfmSpecificDebugSymbolsInPackage>$(TargetsForTfmSpecificDebugSymbolsInPackage);PackSourceGeneratorSymbols</TargetsForTfmSpecificDebugSymbolsInPackage>
-		<!--<RootNamespace>Purview.EventSourcing.SourceGenerator</RootNamespace>-->
-		<!--<Nullable>enable</Nullable>-->
 		<!-- Exclude Purview.Telemetry.SourceGenerator since this is a netstandard2.0 analyzer project -->
 		<ExcludePurviewTelemetry>true</ExcludePurviewTelemetry>
 		<NoWarn>$(NoWarn);CS8632;RS1035;RS1036;RS2008</NoWarn>

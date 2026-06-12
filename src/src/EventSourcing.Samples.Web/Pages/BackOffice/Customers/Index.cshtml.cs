@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Customers;
@@ -55,7 +54,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			MaxRecords = PageSize,
 		};
 
-		var search = Search?.Trim() ?? string.Empty;
+		var search = (Search?.Trim() ?? string.Empty).ToLowerInvariant();
 		var activeFilter = ActiveFilter;
 		var hasFilter = search.Length > 0 || activeFilter.HasValue;
 
@@ -63,19 +62,19 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			? c =>
 				(
 					string.IsNullOrEmpty(search)
-					|| EF.Functions.Like(c.Name, $"%{search}%")
-					|| EF.Functions.Like(c.Email, $"%{search}%")
+					|| c.Name.Value.ToLowerInvariant().Contains(search)
+					|| c.Email.Value.ToLowerInvariant().Contains(search)
 				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: null;
 
 		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch
 		{
-			("email", "desc") => q => q.OrderByDescending(c => c.Email),
-			("email", _) => q => q.OrderBy(c => c.Email),
+			("email", "desc") => q => q.OrderByDescending(c => c.Email.Value),
+			("email", _) => q => q.OrderBy(c => c.Email.Value),
 			("status", "desc") => q => q.OrderByDescending(c => c.IsActive),
 			("status", _) => q => q.OrderBy(c => c.IsActive),
-			("name", "desc") => q => q.OrderByDescending(c => c.Name),
-			_ => q => q.OrderBy(c => c.Name),
+			("name", "desc") => q => q.OrderByDescending(c => c.Name.Value),
+			_ => q => q.OrderBy(c => c.Name.Value),
 		};
 
 		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);

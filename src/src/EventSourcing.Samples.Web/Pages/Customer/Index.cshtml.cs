@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using Purview.EventSourcing.Samples.Domain;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.Customer;
@@ -50,19 +49,19 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			IncludeTotalCount = true,
 		};
 
-		var search = Search?.Trim();
-		var hasFilter = !string.IsNullOrEmpty(search) || !ShowInactive;
+		var search = (Search?.Trim() ?? string.Empty).ToLowerInvariant();
+		var hasFilter = search.Length > 0 || !ShowInactive;
 
 		Expression<Func<CustomerAggregate, bool>> where = hasFilter
 			? c =>
 				(
 					string.IsNullOrEmpty(search)
-					|| EF.Functions.Like(c.Name, $"%{search}%")
-					|| EF.Functions.Like(c.Email, $"%{search}%")
+					|| c.Name.Value.ToLowerInvariant().Contains(search)
+					|| c.Email.Value.ToLowerInvariant().Contains(search)
 				) && (ShowInactive || c.IsActive)
 			: c => true;
 
-		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name), request, ct);
+		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name.Value), request, ct);
 
 		Customers = result.Results;
 		TotalCount = result.TotalCount ?? 0;

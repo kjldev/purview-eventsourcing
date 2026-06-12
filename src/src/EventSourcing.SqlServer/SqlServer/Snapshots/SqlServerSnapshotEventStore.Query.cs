@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using LinqKit;
+using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
 
@@ -51,9 +50,7 @@ partial class SqlServerSnapshotEventStore<T>
 	{
 		ArgumentNullException.ThrowIfNull(whereClause, nameof(whereClause));
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
-
-		var expressionToRun = BuildQueryExpression(whereClause);
-		return await ExecuteQueryAsync(expressionToRun, orderByClause, request, cancellationToken);
+		return await ExecuteQueryAsync(whereClause, orderByClause, request, cancellationToken);
 	}
 
 	public async Task<ContinuationResponse<T>> ListAsync(
@@ -64,8 +61,7 @@ partial class SqlServerSnapshotEventStore<T>
 	{
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
 
-		var expressionToRun = BuildQueryExpression();
-		return await ExecuteQueryAsync(expressionToRun, orderByClause, request, cancellationToken);
+		return await ExecuteQueryAsync(null, orderByClause, request, cancellationToken);
 	}
 
 	public async Task<T?> SingleOrDefaultAsync(
@@ -93,18 +89,11 @@ partial class SqlServerSnapshotEventStore<T>
 		CancellationToken cancellationToken = default
 	)
 	{
-		if (whereClause == null)
-		{
-			// Fast path: push COUNT(*) down to the database — no payload deserialization needed.
-			return await _sqlServerClient.CountByAggregateTypeAsync(GetAggregateTypeName(), cancellationToken);
-		}
-
-		// Filtered path: load items and apply predicate in memory.
-		var expressionToRun = BuildQueryExpression(whereClause);
-		var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(GetAggregateTypeName(), cancellationToken);
-
-		var compiledExpression = expressionToRun.Compile();
-		return allItems.Count(compiledExpression);
+		return await _sqlServerClient.CountByAggregateTypeAsync<T>(
+			GetAggregateTypeName(),
+			whereClause,
+			cancellationToken
+		);
 	}
 
 	async Task<IEnumerable<T>> GetSpecificNumberAsync(
@@ -125,7 +114,7 @@ partial class SqlServerSnapshotEventStore<T>
 	}
 
 	async Task<ContinuationResponse<T>> ExecuteQueryAsync(
-		Expression<Func<T, bool>> whereClause,
+		Expression<Func<T, bool>>? whereClause,
 		Func<IQueryable<T>, IQueryable<T>>? orderByClause,
 		ContinuationRequest request,
 		CancellationToken cancellationToken
@@ -141,30 +130,31 @@ partial class SqlServerSnapshotEventStore<T>
 			if (!int.TryParse(request.ContinuationToken, out var skipCount))
 				skipCount = 0;
 
-			var allItems = await _sqlServerClient.QueryByAggregateTypeAsync<T>(aggregateTypeName, cancellationToken);
 			long? totalCount = request.IncludeTotalCount
-				? await _sqlServerClient.CountByAggregateTypeAsync(aggregateTypeName, cancellationToken)
+				? await _sqlServerClient.CountByAggregateTypeAsync<T>(aggregateTypeName, whereClause, cancellationToken)
 				: null;
 
-			IQueryable<T> query = allItems.AsQueryable().Where(whereClause);
+			var results = await _sqlServerClient.QueryByAggregateTypeAsync<T>(
+				aggregateTypeName,
+				whereClause,
+				orderByClause,
+				skipCount,
+				request.MaxRecords,
+				cancellationToken
+			);
 
-			if (orderByClause != null)
-				query = orderByClause(query);
-
-			var results = query.Skip(skipCount).Take(request.MaxRecords).ToArray();
-
-			results = [.. results.Select(FulfilRequirements)];
+			var fulfilledResults = results.Select(FulfilRequirements).ToArray();
 
 			sw.Stop();
 			_telemetry.SnapshotQueried(aggregateTypeName);
-			_telemetry.QueryCompleted(activity, results.Length);
-			_telemetry.SnapshotQueryComplete(aggregateTypeName, results.Length, sw.ElapsedMilliseconds);
+			_telemetry.QueryCompleted(activity, fulfilledResults.Length);
+			_telemetry.SnapshotQueryComplete(aggregateTypeName, fulfilledResults.Length, sw.ElapsedMilliseconds);
 
 			return new ContinuationResponse<T>
 			{
-				Results = results,
+				Results = fulfilledResults,
 				RequestedCount = request.MaxRecords,
-				ContinuationToken = results.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
+				ContinuationToken = fulfilledResults.Length == 0 ? null : $"{skipCount + request.MaxRecords}",
 				TotalCount = totalCount,
 			};
 		}
@@ -173,19 +163,5 @@ partial class SqlServerSnapshotEventStore<T>
 			_telemetry.SnapshotQueryFailed(aggregateTypeName, ex);
 			throw;
 		}
-	}
-
-	Expression<Func<T, bool>> BuildQueryExpression(Expression<Func<T, bool>>? whereClause = null)
-	{
-		var aggregateTypeName = GetAggregateTypeName();
-		Expression<Func<T, bool>> defaultClause = m => m.AggregateType == aggregateTypeName;
-
-		if (whereClause == null)
-			return PredicateBuilder.New(defaultClause);
-
-		var aggregateClause = PredicateBuilder.Extend(defaultClause, whereClause, PredicateOperator.And);
-		var expressionToRun = aggregateClause.Expand();
-
-		return expressionToRun;
 	}
 }

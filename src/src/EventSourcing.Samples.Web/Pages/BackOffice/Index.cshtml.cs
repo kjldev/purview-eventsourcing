@@ -29,13 +29,13 @@ sealed class IndexModel(IQueryableEventStore inventoryStore, IQueryableEventStor
 		InventoryItemCount = await inventoryStore.CountAsync<InventoryAggregate>(null, ct);
 		TotalAvailableStock = allItems.Sum(i => i.AvailableQuantity);
 
-		DraftOrderCount = await orderStore.CountAsync<OrderAggregate>(o => o.Status == OrderStatusCode.Draft, ct);
+		DraftOrderCount = await orderStore.CountAsync<OrderAggregate>(o => o.Status.Value == OrderStatusCode.Draft, ct);
 		ActiveOrderCount = await orderStore.CountAsync<OrderAggregate>(
-			o => o.Status == OrderStatusCode.Confirmed || o.Status == OrderStatusCode.Shipped,
+			o => o.Status.Value == OrderStatusCode.Confirmed || o.Status.Value == OrderStatusCode.Shipped,
 			ct
 		);
 		CompletedOrderCount = await orderStore.CountAsync<OrderAggregate>(
-			o => o.Status == OrderStatusCode.Completed || o.Status == OrderStatusCode.Cancelled,
+			o => o.Status.Value == OrderStatusCode.Completed || o.Status.Value == OrderStatusCode.Cancelled,
 			ct
 		);
 	}
