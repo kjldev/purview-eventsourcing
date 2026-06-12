@@ -75,11 +75,11 @@
 </div>
 
 <!-- Line items -->
-@if (Model.Order.LineItems.Length > 0)
+@if (Model.Order.LineItems.Count > 0)
 {
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
         <div class="px-6 py-4 border-b border-gray-100">
-            <h3 class="text-base font-semibold">Line Items (@Model.Order.LineItems.Length)</h3>
+            <h3 class="text-base font-semibold">Line Items (@Model.Order.LineItems.Count)</h3>
         </div>
         <table class="w-full text-sm">
             <thead class="bg-gray-50 border-b border-gray-100">

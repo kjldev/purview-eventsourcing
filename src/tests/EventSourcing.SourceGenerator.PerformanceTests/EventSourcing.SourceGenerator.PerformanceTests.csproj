@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<IsTestProject>false</IsTestProject>
+		<DisableAutoInternalsVisibleTo>true</DisableAutoInternalsVisibleTo>
+		<DisableGenerateAssemblyInfoClass>true</DisableGenerateAssemblyInfoClass>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+</Project>

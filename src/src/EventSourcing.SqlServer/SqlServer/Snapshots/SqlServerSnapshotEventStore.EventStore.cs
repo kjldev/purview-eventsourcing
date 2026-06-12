@@ -142,7 +142,6 @@ partial class SqlServerSnapshotEventStore<T>
 			if (result)
 			{
 				await _sqlServerClient.DeleteAsync(aggregate.Details.Id, cancellationToken);
-				_telemetry.SnapshotDeleted(_aggregateName);
 				_telemetry.SnapshotDeleteComplete(aggregate.Details.Id, _aggregateName);
 			}
 

@@ -18,6 +18,7 @@ event_sourcing_integration_tests_project := test_root + "/EventSourcing.Integrat
 event_sourcing_samples_integration_tests_project := test_root + "/EventSourcing.Samples.IntegrationTests/EventSourcing.Samples.IntegrationTests.csproj"
 event_sourcing_samples_unit_tests_project := test_root + "/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj"
 event_sourcing_samples_web_integration_tests_project := test_root + "/EventSourcing.Samples.Web.IntegrationTests/EventSourcing.Samples.Web.IntegrationTests.csproj"
+event_sourcing_source_generator_performance_tests_project := test_root + "/EventSourcing.SourceGenerator.PerformanceTests/EventSourcing.SourceGenerator.PerformanceTests.csproj"
 event_sourcing_source_generator_unit_tests_project := test_root + "/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj"
 event_sourcing_unit_tests_project := test_root + "/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj"
 
@@ -72,6 +73,10 @@ test-serial:
     @just test-project-serial {{ event_sourcing_samples_web_integration_tests_project }}
     @just test-project-serial {{ event_sourcing_source_generator_unit_tests_project }}
     @just test-project-serial {{ event_sourcing_unit_tests_project }}
+
+# Run source generator performance harness (pass --benchmark for larger runs)
+perf-source-generator *args:
+    dotnet run --project {{ event_sourcing_source_generator_performance_tests_project }} --configuration {{ configuration }} -- {{ args }}
 
 [private]
 test-project project:

@@ -24,7 +24,13 @@ public sealed partial class InventoryAggregate : AggregateBase
 	[Range(0, int.MaxValue)]
 	public int ReservedQuantity { get; private set; }
 
-	public int AvailableQuantity => QuantityOnHand - ReservedQuantity;
+	// This is a read-only properety that calculates available stock based on current state.
+	// It has a private setter to satisfy queries in Entity Framework stores, such as SQL server.
+	public int AvailableQuantity
+	{
+		get => QuantityOnHand - ReservedQuantity;
+		private set { }
+	}
 
 	// Commands
 	public InventoryAggregate Initialize(

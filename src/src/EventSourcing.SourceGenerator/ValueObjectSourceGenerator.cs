@@ -27,7 +27,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				predicate: static (node, _) => node is TypeDeclarationSyntax,
 				transform: static (ctx, ct) => BuildScalarGenerationResult(ctx, ct)
 			)
-			.Collect();
+			;
 
 		var complexCandidates = context
 			.SyntaxProvider.ForAttributeWithMetadataName(
@@ -35,20 +35,10 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				predicate: static (node, _) => node is TypeDeclarationSyntax,
 				transform: static (ctx, ct) => BuildComplexGenerationResult(ctx, ct)
 			)
-			.Collect();
+			;
 
-		context.RegisterSourceOutput(
-			scalarCandidates.Combine(complexCandidates),
-			(spc, data) =>
-			{
-				var (scalarResults, complexResults) = data;
-				foreach (var result in scalarResults)
-					EmitResult(spc, result);
-
-				foreach (var result in complexResults)
-					EmitResult(spc, result);
-			}
-		);
+		context.RegisterSourceOutput(scalarCandidates, EmitResult);
+		context.RegisterSourceOutput(complexCandidates, EmitResult);
 	}
 
 	static void EmitResult(SourceProductionContext context, ValueObjectGenerationResult result)
@@ -69,8 +59,9 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		if (context.TargetSymbol is not INamedTypeSymbol typeSymbol || context.TargetNode is not TypeDeclarationSyntax)
 			return ValueObjectGenerationResult.Empty;
 
+		var attributes = typeSymbol.GetAttributes();
 		var diagnostics = ValidateValueObjectType(typeSymbol, "Scalar", context.TargetNode.GetLocation());
-		if (HasAttribute(typeSymbol, ValueObjectAttributeName))
+		if (HasAttribute(attributes, ValueObjectAttributeName))
 		{
 			diagnostics.Add(
 				Diagnostic.Create(
@@ -82,7 +73,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
 		}
 
-		var scalarOptions = ScalarOptions.From(typeSymbol, ScalarAttributeName);
+		var scalarOptions = ScalarOptions.From(attributes, ScalarAttributeName);
 		var scalarProperty = typeSymbol
 			.GetMembers(scalarOptions.PropertyName)
 			.OfType<IPropertySymbol>()
@@ -144,8 +135,9 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		if (context.TargetSymbol is not INamedTypeSymbol typeSymbol || context.TargetNode is not TypeDeclarationSyntax)
 			return ValueObjectGenerationResult.Empty;
 
+		var attributes = typeSymbol.GetAttributes();
 		var diagnostics = ValidateValueObjectType(typeSymbol, "ValueObject", context.TargetNode.GetLocation());
-		if (HasAttribute(typeSymbol, ScalarAttributeName))
+		if (HasAttribute(attributes, ScalarAttributeName))
 		{
 			diagnostics.Add(
 				Diagnostic.Create(
@@ -157,7 +149,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
 		}
 
-		var valueObjectOptions = ValueObjectOptions.From(typeSymbol, ValueObjectAttributeName);
+		var valueObjectOptions = ValueObjectOptions.From(attributes, ValueObjectAttributeName);
 		var typeModel = BuildTypeModel(typeSymbol);
 		if (typeModel is null)
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
@@ -653,6 +645,9 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 	static bool HasAttribute(INamedTypeSymbol typeSymbol, string metadataName) =>
 		typeSymbol.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == metadataName);
 
+	static bool HasAttribute(ImmutableArray<AttributeData> attributes, string metadataName) =>
+		attributes.Any(attribute => attribute.AttributeClass?.ToDisplayString() == metadataName);
+
 	static bool HasStaticFactory(INamedTypeSymbol typeSymbol, string name, ITypeSymbol[] parameterTypes)
 	{
 		return typeSymbol
@@ -1027,11 +1022,12 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 
 		public string DeserializationMode { get; } = deserializationMode;
 
-		public static ScalarOptions From(INamedTypeSymbol typeSymbol, string metadataName)
+		public static ScalarOptions From(INamedTypeSymbol typeSymbol, string metadataName) =>
+			From(typeSymbol.GetAttributes(), metadataName);
+
+		public static ScalarOptions From(ImmutableArray<AttributeData> attributes, string metadataName)
 		{
-			var attribute = typeSymbol
-				.GetAttributes()
-				.First(data => data.AttributeClass?.ToDisplayString() == metadataName);
+			var attribute = attributes.First(data => data.AttributeClass?.ToDisplayString() == metadataName);
 
 			var propertyName =
 				attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string value
@@ -1065,11 +1061,12 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 
 		public string DeserializationMode { get; } = deserializationMode;
 
-		public static ValueObjectOptions From(INamedTypeSymbol typeSymbol, string metadataName)
+		public static ValueObjectOptions From(INamedTypeSymbol typeSymbol, string metadataName) =>
+			From(typeSymbol.GetAttributes(), metadataName);
+
+		public static ValueObjectOptions From(ImmutableArray<AttributeData> attributes, string metadataName)
 		{
-			var attribute = typeSymbol
-				.GetAttributes()
-				.First(data => data.AttributeClass?.ToDisplayString() == metadataName);
+			var attribute = attributes.First(data => data.AttributeClass?.ToDisplayString() == metadataName);
 
 			return new ValueObjectOptions(
 				GetNamedBool(attribute.NamedArguments, "GenerateJsonConverter", true),

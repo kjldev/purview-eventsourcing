@@ -49,19 +49,16 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			IncludeTotalCount = true,
 		};
 
-		var search = (Search?.Trim() ?? string.Empty).ToLowerInvariant();
+		var search = Search.OrDefault();
 		var hasFilter = search.Length > 0 || !ShowInactive;
 
 		Expression<Func<CustomerAggregate, bool>> where = hasFilter
 			? c =>
-				(
-					string.IsNullOrEmpty(search)
-					|| c.Name.Value.ToLowerInvariant().Contains(search)
-					|| c.Email.Value.ToLowerInvariant().Contains(search)
-				) && (ShowInactive || c.IsActive)
+				(string.IsNullOrEmpty(search) || c.Name.Value.Contains(search) || c.Email.Value.Contains(search))
+				&& (ShowInactive || c.IsActive)
 			: c => true;
 
-		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name.Value), request, ct);
+		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name), request, ct);
 
 		Customers = result.Results;
 		TotalCount = result.TotalCount ?? 0;

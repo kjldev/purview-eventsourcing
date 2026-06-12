@@ -84,7 +84,6 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 			);
 			if (result)
 			{
-				_telemetry.SnapshotCreated(_aggregateName);
 				_telemetry.SnapshotSaveComplete(aggregate.Details.Id, _aggregateName);
 			}
 		}

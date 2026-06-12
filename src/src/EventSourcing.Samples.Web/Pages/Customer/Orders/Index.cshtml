@@ -49,7 +49,7 @@ else
                             }
                         </td>
                         <td class="px-5 py-3 text-right font-semibold">@order.TotalAmount.ToString("C")</td>
-                        <td class="px-5 py-3 text-right text-gray-500">@order.LineItems.Length</td>
+                        <td class="px-5 py-3 text-right text-gray-500">@order.LineItems.Count</td>
                         <td class="px-5 py-3 text-right">
                             <a asp-page="Details" asp-route-id="@order.Id()" class="text-blue-600 hover:underline">View</a>
                         </td>

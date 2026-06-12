@@ -62,53 +62,45 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		);
 
 		// Find all class declarations decorated with [GenerateAggregate]
-		var aggregateClasses = context
-			.SyntaxProvider.ForAttributeWithMetadataName(
-				GenerateAggregateAttributeName,
-				predicate: static (node, _) => node is ClassDeclarationSyntax,
-				transform: static (ctx, ct) => GetAggregateGenerationResult(ctx, ct)
-			)
-			.Collect();
+		var aggregateClasses = context.SyntaxProvider.ForAttributeWithMetadataName(
+			GenerateAggregateAttributeName,
+			predicate: static (node, _) => node is ClassDeclarationSyntax,
+			transform: static (ctx, ct) => GetAggregateGenerationResult(ctx, ct)
+		);
 
-		var standaloneEventMethods = context
-			.SyntaxProvider.ForAttributeWithMetadataName(
-				GenerateAggregateEventAttributeName,
-				predicate: static (node, _) => node is MethodDeclarationSyntax,
-				transform: static (ctx, _) => GetStandaloneEventMethodValidationResult(ctx)
-			)
-			.Collect();
+		var standaloneEventMethods = context.SyntaxProvider.ForAttributeWithMetadataName(
+			GenerateAggregateEventAttributeName,
+			predicate: static (node, _) => node is MethodDeclarationSyntax,
+			transform: static (ctx, _) => GetStandaloneEventMethodValidationResult(ctx)
+		);
 
 		context.RegisterSourceOutput(
-			isDisabled.Combine(aggregateClasses),
+			aggregateClasses.Combine(isDisabled),
 			(spc, data) =>
 			{
-				var (isDisabled, aggregateResults) = data;
-				if (isDisabled)
+				var (result, disabled) = data;
+				if (disabled)
 					return;
 
-				foreach (var result in aggregateResults)
-				{
-					ReportDiagnostics(spc, result.Diagnostics, _logger);
+				ReportDiagnostics(spc, result.Diagnostics, _logger);
 
-					if (result.Info is null)
-						return;
+				if (result.Info is null)
+					return;
 
-					var source = EmitHelper.GenerateAggregateSource(result.Info, _logger);
-					spc.AddSource(result.Info.HintName, source);
-				}
+				var source = EmitHelper.GenerateAggregateSource(result.Info, _logger);
+				spc.AddSource(result.Info.HintName, source);
 			}
 		);
 
 		context.RegisterSourceOutput(
-			isDisabled.Combine(standaloneEventMethods),
+			standaloneEventMethods.Combine(isDisabled),
 			(spc, result) =>
 			{
-				var (isDisabled, validationResults) = result;
-				if (isDisabled)
+				var (validationResult, disabled) = result;
+				if (disabled)
 					return;
 
-				foreach (var validationResult in validationResults)
-					ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
+				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
 			}
 		);
 	}
@@ -131,6 +123,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		var compilation = ctx.SemanticModel.Compilation;
 		var aggregateBaseSymbol = compilation.GetTypeByMetadataName(AggregateBaseMetadataName);
 		var eventAttributeSymbol = compilation.GetTypeByMetadataName(GenerateAggregateEventAttributeName);
+		var valueObjectContextType = compilation.GetTypeByMetadataName(ValueObjectContextMetadataName);
 
 		var isPartial = false;
 		foreach (var modifier in syntax.Modifiers)
@@ -222,55 +215,55 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 		var properties = new List<AggregateStatePropertyInfo>();
 		var propertySymbolsByName = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
+		var attributedMethods = new List<IMethodSymbol>();
 		foreach (var member in classSymbol.GetMembers())
 		{
 			ct.ThrowIfCancellationRequested();
 
-			if (member is not IPropertySymbol propertySymbol)
-				continue;
-
-			if (propertySymbol.IsStatic || propertySymbol.IsIndexer || propertySymbol.IsImplicitlyDeclared)
-				continue;
-
-			propertySymbolsByName[propertySymbol.Name] = propertySymbol;
-
-			if (propertySymbol.SetMethod is null)
-				continue;
-
-			if (propertySymbol.SetMethod.DeclaredAccessibility is not Accessibility.Private)
+			if (member is IPropertySymbol propertySymbol)
 			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.AggregatePropertySetterShouldBePrivate,
-						propertySymbol.SetMethod.Locations.FirstOrDefault()
-							?? propertySymbol.Locations.FirstOrDefault(),
-						propertySymbol.Name,
-						classSymbol.Name,
-						propertySymbol.SetMethod.DeclaredAccessibility.ToString()
-					)
-				);
-			}
+				if (propertySymbol.IsStatic || propertySymbol.IsIndexer || propertySymbol.IsImplicitlyDeclared)
+					continue;
 
-			properties.Add(
-				new AggregateStatePropertyInfo(
-					propertySymbol.Name,
-					propertySymbol.Type.ToDisplayString(
-						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+				propertySymbolsByName[propertySymbol.Name] = propertySymbol;
+
+				if (propertySymbol.SetMethod is null)
+					continue;
+
+				if (propertySymbol.SetMethod.DeclaredAccessibility is not Accessibility.Private)
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.AggregatePropertySetterShouldBePrivate,
+							propertySymbol.SetMethod.Locations.FirstOrDefault()
+								?? propertySymbol.Locations.FirstOrDefault(),
+							propertySymbol.Name,
+							classSymbol.Name,
+							propertySymbol.SetMethod.DeclaredAccessibility.ToString()
+						)
+					);
+				}
+
+				properties.Add(
+					new AggregateStatePropertyInfo(
+						propertySymbol.Name,
+						propertySymbol.Type.ToDisplayString(
+							SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+								SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+									| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+							)
 						)
 					)
-				)
-			);
+				);
+				continue;
+			}
+
+			if (member is IMethodSymbol methodSymbol && HasAttribute(methodSymbol, eventAttributeSymbol))
+				attributedMethods.Add(methodSymbol);
 		}
 
 		var methods = new List<AggregateEventMethodInfo>();
 		var invalidMethods = new List<InvalidAggregateEventMethodInfo>();
-		var attributedMethods = classSymbol
-			.GetMembers()
-			.OfType<IMethodSymbol>()
-			.Where(method => HasAttribute(method, eventAttributeSymbol))
-			.ToArray();
 		var methodsByEventType = new Dictionary<(string EventNamespace, string EventName), IMethodSymbol>();
 
 		foreach (var methodSymbol in attributedMethods)
@@ -285,6 +278,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					methodSymbol,
 					propertySymbolsByName,
 					compilation,
+					valueObjectContextType,
 					namespaceName,
 					aggregateEventNamespaceOverride,
 					diagnostics,
@@ -364,9 +358,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	static EventMethodValidationResult GetStandaloneEventMethodValidationResult(GeneratorAttributeSyntaxContext ctx)
 	{
 		return ctx.TargetSymbol is not IMethodSymbol methodSymbol ? new EventMethodValidationResult([])
-			: ctx.SemanticModel.Compilation.GetTypeByMetadataName(GenerateAggregateAttributeName)
-				is { } aggregateAttribute
-			&& HasAttribute(methodSymbol.ContainingType, aggregateAttribute)
+			: HasAttribute(methodSymbol.ContainingType, GenerateAggregateAttributeName)
 				? new EventMethodValidationResult([])
 			: new EventMethodValidationResult([
 				Diagnostic.Create(
@@ -382,6 +374,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		IMethodSymbol methodSymbol,
 		Dictionary<string, IPropertySymbol> propertySymbolsByName,
 		Compilation compilation,
+		INamedTypeSymbol? valueObjectContextType,
 		string? aggregateNamespace,
 		string? aggregateEventNamespaceOverride,
 		List<Diagnostic> diagnostics,
@@ -392,15 +385,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		methodInfo = default!;
 		var hasErrors = false;
 		var methodLocation = methodSymbol.Locations.FirstOrDefault();
-		var methodDeclarations = methodSymbol
-			.DeclaringSyntaxReferences.Select(reference => reference.GetSyntax(ct))
-			.OfType<MethodDeclarationSyntax>()
-			.ToArray();
-
-		var isPartial = methodDeclarations.Any(declaration =>
-			declaration.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.PartialKeyword))
-		);
-		if (!isPartial)
+		if (!methodSymbol.IsPartialDefinition)
 		{
 			diagnostics.Add(
 				Diagnostic.Create(GeneratorDiagnostics.EventMethodMustBePartial, methodLocation, methodSymbol.Name)
@@ -432,11 +417,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			ReportUnsupportedSignature("methods must return void, bool, or the containing aggregate type");
 		}
 
-		if (
-			methodDeclarations.Any(declaration =>
-				declaration.Body is not null || declaration.ExpressionBody is not null
-			)
-		)
+		if (methodSymbol.PartialImplementationPart is not null)
 			ReportUnsupportedSignature("methods must be partial declarations without a body");
 
 		foreach (var parameter in methodSymbol.Parameters)
@@ -454,17 +435,19 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		var parameters = new List<EventPropertyInfo>();
 		foreach (var parameter in methodSymbol.Parameters)
 		{
+			ct.ThrowIfCancellationRequested();
+
 			var propertyName = EventPropertyInfo.ToPropertyName(parameter.Name);
 			var parameterLocation = parameter.Locations.FirstOrDefault() ?? methodLocation;
+			var parameterTypeName = parameter.Type.ToDisplayString(
+				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+				)
+			);
 
 			if (!propertySymbolsByName.TryGetValue(propertyName, out var propertySymbol))
 			{
-				var parameterTypeName = parameter.Type.ToDisplayString(
-					SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-						SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-							| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-					)
-				);
 				parameters.Add(
 					new EventPropertyInfo(
 						parameter.Name,
@@ -512,11 +495,19 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				continue;
 			}
 
+			var propertyTypeName = propertySymbol.Type.ToDisplayString(
+				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+				)
+			);
+
 			var conversionKind = ResolveParameterConversionKind(
 				compilation,
 				classSymbol,
 				parameter.Type,
-				propertySymbol.Type
+				propertySymbol.Type,
+				valueObjectContextType
 			);
 			if (conversionKind is null)
 			{
@@ -527,7 +518,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						parameter.Name,
 						methodSymbol.Name,
 						classSymbol.Name,
-						$"parameter type '{parameter.Type.ToDisplayString()}' cannot be mapped to property '{propertyName}' of type '{propertySymbol.Type.ToDisplayString()}' via implicit conversion or value-object Create(...)"
+						$"parameter type '{parameterTypeName}' cannot be mapped to property '{propertyName}' of type '{propertyTypeName}' via implicit conversion or value-object Create(...)"
 					)
 				);
 				hasErrors = true;
@@ -537,26 +528,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			parameters.Add(
 				new EventPropertyInfo(
 					parameter.Name,
-					parameter.Type.ToDisplayString(
-						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-						)
-					),
-					propertySymbol.Type.ToDisplayString(
-						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-						)
-					),
+					parameterTypeName,
+					propertyTypeName,
 					propertySymbol.Name,
 					true,
-					propertySymbol.Type.ToDisplayString(
-						SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-							SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-								| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-						)
-					),
+					propertyTypeName,
 					parameter.Type.SpecialType == SpecialType.System_String
 						&& propertySymbol.Type.SpecialType == SpecialType.System_String,
 					conversionKind.Value
@@ -620,7 +596,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		Compilation compilation,
 		INamedTypeSymbol aggregateType,
 		ITypeSymbol parameterType,
-		ITypeSymbol propertyType
+		ITypeSymbol propertyType,
+		INamedTypeSymbol? valueObjectContextType
 	)
 	{
 		if (SymbolEqualityComparer.Default.Equals(parameterType, propertyType))
@@ -629,10 +606,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		if (
 			propertyType is INamedTypeSymbol namedPropertyType
 			&& TryResolveValueObjectCreateConversion(
-				compilation,
 				aggregateType,
 				namedPropertyType,
 				parameterType,
+				valueObjectContextType,
 				out var createConversionKind
 			)
 		)
@@ -645,27 +622,23 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	}
 
 	static bool TryResolveValueObjectCreateConversion(
-		Compilation compilation,
 		INamedTypeSymbol aggregateType,
 		INamedTypeSymbol propertyType,
 		ITypeSymbol parameterType,
+		INamedTypeSymbol? contextTypeDefinition,
 		out EventParameterConversionKind conversionKind
 	)
 	{
 		conversionKind = EventParameterConversionKind.None;
 
-		var contextTypeDefinition = compilation.GetTypeByMetadataName(ValueObjectContextMetadataName);
-
 		var hasScalarAttribute = propertyType
 			.GetAttributes()
 			.Any(attribute => attribute.AttributeClass?.ToDisplayString() == ScalarAttributeMetadataName);
+		var createMethods = propertyType.GetMembers("Create").OfType<IMethodSymbol>().ToArray();
 
-		var hasContextualCreate = propertyType
-			.GetMembers("Create")
-			.OfType<IMethodSymbol>()
-			.Any(method =>
-				IsContextualCreateMethod(method, propertyType, aggregateType, parameterType, contextTypeDefinition)
-			);
+		var hasContextualCreate = createMethods.Any(method =>
+			IsContextualCreateMethod(method, propertyType, aggregateType, parameterType, contextTypeDefinition)
+		);
 
 		if (hasContextualCreate)
 		{
@@ -673,10 +646,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return true;
 		}
 
-		var hasSimpleCreate = propertyType
-			.GetMembers("Create")
-			.OfType<IMethodSymbol>()
-			.Any(method => IsSimpleCreateMethod(method, propertyType, parameterType));
+		var hasSimpleCreate = createMethods.Any(method => IsSimpleCreateMethod(method, propertyType, parameterType));
 
 		if (hasSimpleCreate || hasScalarAttribute)
 		{
@@ -860,6 +830,9 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 		return false;
 	}
+
+	static bool HasAttribute(ISymbol symbol, string metadataName) =>
+		symbol.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == metadataName);
 
 	static bool InheritsFromAggregateBase(INamedTypeSymbol classSymbol, INamedTypeSymbol aggregateBaseSymbol)
 	{

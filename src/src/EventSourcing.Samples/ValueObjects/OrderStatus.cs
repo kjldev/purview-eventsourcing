@@ -36,7 +36,7 @@ public readonly partial record struct OrderStatus : IContextualValueObject<Order
 			throw new InvalidOperationException($"Cannot transition order status from {current} to {value}.");
 		}
 
-		if (value == OrderStatusCode.Confirmed && context.Aggregate.LineItems.IsEmpty)
+		if (value == OrderStatusCode.Confirmed && context.Aggregate.LineItems.Count == 0)
 			throw new InvalidOperationException("Cannot confirm an order with no line items.");
 
 		return value == OrderStatusCode.Shipped && string.IsNullOrWhiteSpace(context.Aggregate.ShippingAddress)

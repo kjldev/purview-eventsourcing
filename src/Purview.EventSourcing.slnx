@@ -33,6 +33,7 @@
 	</Folder>
 	<Folder Name="/tests/">
 		<Project Path="tests\EventSourcing.IntegrationTests\EventSourcing.IntegrationTests.csproj" />
+		<Project Path="tests\EventSourcing.SourceGenerator.PerformanceTests\EventSourcing.SourceGenerator.PerformanceTests.csproj" />
 		<Project Path="tests\EventSourcing.SourceGenerator.UnitTests\EventSourcing.SourceGenerator.UnitTests.csproj" />
 		<Project Path="tests\EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
 		<Project Path="tests\SharedTestingFramework\SharedTestingFramework.csproj" />

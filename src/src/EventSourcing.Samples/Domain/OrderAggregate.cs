@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.ValueObjects;
@@ -23,7 +22,7 @@ public sealed partial class OrderAggregate : AggregateBase
 	[Range(0, double.MaxValue)]
 	public decimal TotalAmount { get; private set; }
 
-	public ImmutableArray<OrderLineItem> LineItems { get; private set; } = [];
+	public List<OrderLineItem> LineItems { get; private set; } = [];
 
 	public string? ShippingAddress { get; private set; }
 
@@ -70,14 +69,12 @@ public sealed partial class OrderAggregate : AggregateBase
 		ArgumentOutOfRangeException.ThrowIfNegative(unitPrice);
 
 		var existingLineItem = LineItems.FirstOrDefault(li => li.ProductId == productId);
-		var updatedLineItems = existingLineItem is null
-			? LineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice))
-			:
-			[
-				.. LineItems.Select(li =>
-					li.ProductId == productId ? li with { Quantity = li.Quantity + quantity } : li
-				),
-			];
+		var updatedLineItems = LineItems
+			.Select(li => li.ProductId == productId ? li with { Quantity = li.Quantity + quantity } : li)
+			.ToList();
+
+		if (existingLineItem is null)
+			updatedLineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice));
 
 		return AddLineItem(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}
@@ -90,12 +87,12 @@ public sealed partial class OrderAggregate : AggregateBase
 		if (!LineItems.Any(li => li.ProductId == productId))
 			throw new InvalidOperationException($"Product '{productId}' not found in order.");
 
-		var updatedLineItems = LineItems.Where(li => li.ProductId != productId).ToImmutableArray();
+		var updatedLineItems = LineItems.Where(li => li.ProductId != productId).ToList();
 
 		return RemoveLineItem(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
 	}
 
-	static decimal CalculateTotalAmount(ImmutableArray<OrderLineItem> lineItems) =>
+	static decimal CalculateTotalAmount(IEnumerable<OrderLineItem> lineItems) =>
 		lineItems.Sum(lineItem => lineItem.Quantity * lineItem.UnitPrice);
 
 	#endregion Helper Methods
@@ -122,13 +119,13 @@ public sealed partial class OrderAggregate : AggregateBase
 		}
 	}
 
-	partial void OnCreatingAddLineItem(ref ImmutableArray<OrderLineItem> lineItems, ref decimal totalAmount)
+	partial void OnCreatingAddLineItem(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only add items to draft orders.");
 	}
 
-	partial void OnCreatingRemoveLineItem(ref ImmutableArray<OrderLineItem> lineItems, ref decimal totalAmount)
+	partial void OnCreatingRemoveLineItem(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only remove items from draft orders.");
@@ -142,10 +139,10 @@ public sealed partial class OrderAggregate : AggregateBase
 	public partial OrderAggregate CreateOrder(string customerId);
 
 	[GenerateAggregateEvent]
-	public partial OrderAggregate AddLineItem(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
+	public partial OrderAggregate AddLineItem(List<OrderLineItem> lineItems, decimal totalAmount);
 
 	[GenerateAggregateEvent]
-	public partial OrderAggregate RemoveLineItem(ImmutableArray<OrderLineItem> lineItems, decimal totalAmount);
+	public partial OrderAggregate RemoveLineItem(List<OrderLineItem> lineItems, decimal totalAmount);
 
 	[GenerateAggregateEvent]
 	public partial OrderAggregate SetShippingAddress(string? shippingAddress);

@@ -63,6 +63,19 @@ builder.Services.AddSqlServerSnapshotQueryableEventStore();
 - SQL Server and Azure SQL configuration binding
 - JSON-column-backed queryable snapshot persistence
 
+## Payload shape
+
+The snapshot payload is the fully serialized aggregate graph stored in a single JSON column. EF queries run against that JSON payload, so aggregate properties remain transparent to callers.
+
+Supported members are:
+
+- Writable primitive properties
+- `[Scalar]` value objects
+- Complex properties composed of supported members
+- Arrays and read/write collections of supported primitive or complex members
+
+Unsupported shapes fail during model creation, including immutable collection types such as `ImmutableArray<T>` and unsupported object types such as dictionaries. Read-only and `[JsonIgnore]` members are excluded from the JSON payload.
+
 ## Documentation
 
 - Repository README: https://github.com/kjldev/purview-eventsourcing/blob/main/README.md

@@ -146,9 +146,7 @@ partial class SqlServerSnapshotEventStore<T>
 			var fulfilledResults = results.Select(FulfilRequirements).ToArray();
 
 			sw.Stop();
-			_telemetry.SnapshotQueried(aggregateTypeName);
-			_telemetry.QueryCompleted(activity, fulfilledResults.Length);
-			_telemetry.SnapshotQueryComplete(aggregateTypeName, fulfilledResults.Length, sw.ElapsedMilliseconds);
+			_telemetry.QueryCompleted(activity, aggregateTypeName, fulfilledResults.Length, sw.ElapsedMilliseconds);
 
 			return new ContinuationResponse<T>
 			{

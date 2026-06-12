@@ -27,6 +27,8 @@ public sealed class SqlServerSnapshotTestContext
 
 	internal AzureBlobClient BlobClient { get; private set; } = default!;
 
+	public string SqlServerConnectionString => _sqlServerConnectionString;
+
 	public SqlServerSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
 
 	public SqlServerSnapshotTestContext(

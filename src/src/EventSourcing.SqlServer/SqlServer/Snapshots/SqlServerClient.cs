@@ -1,69 +1,30 @@
-using System.Collections.Immutable;
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Serialization;
 
 namespace Purview.EventSourcing.SqlServer;
 
 sealed partial class SqlServerClient
 {
+	static readonly ConcurrentDictionary<string, SemaphoreSlim> EnsureTableLocks = new(StringComparer.Ordinal);
+	static readonly ConcurrentDictionary<string, byte> EnsuredTables = new(StringComparer.Ordinal);
+
 	readonly SqlServerClientOptions _options;
-	readonly string _ensureTableSql;
-	readonly string _ensureTableLockResource;
-	readonly string _quotedFullName;
+	readonly string _tableEnsureKey;
 
 	public SqlServerClient(SqlServerClientOptions options)
 	{
 		_options = options ?? throw new ArgumentNullException(nameof(options));
-		_ensureTableLockResource = CreateEnsureTableLockResource(_options.SchemaName, _options.TableName);
-
-		var quotedSchema = QuoteIdentifier(_options.SchemaName);
-		var quotedTable = QuoteIdentifier(_options.TableName);
-		_quotedFullName = $"{quotedSchema}.{quotedTable}";
-
-		_ensureTableSql = $"""
-			DECLARE @LockResult INT;
-
-			BEGIN TRANSACTION;
-			BEGIN TRY
-				EXEC @LockResult = sp_getapplock
-					@Resource = @LockResource,
-					@LockMode = 'Exclusive',
-					@LockOwner = 'Transaction',
-					@LockTimeout = @LockTimeoutMs;
-
-				IF @LockResult < 0
-					THROW 50000, 'Failed to acquire the table creation lock.', 1;
-
-				IF OBJECT_ID(@FullTableName, 'U') IS NULL
-				BEGIN
-					CREATE TABLE {_quotedFullName} (
-						[Id] NVARCHAR(450) NOT NULL,
-						[AggregateType] NVARCHAR(450) NOT NULL,
-						[Payload] json NOT NULL,
-						CONSTRAINT {QuoteIdentifier($"PK_{_options.TableName}")} PRIMARY KEY ([Id])
-					);
-
-					CREATE NONCLUSTERED INDEX {QuoteIdentifier($"IX_{_options.TableName}_AggregateType")}
-						ON {_quotedFullName} ([AggregateType])
-						INCLUDE ([Payload]);
-				END
-
-				COMMIT TRANSACTION;
-			END TRY
-			BEGIN CATCH
-				IF XACT_STATE() <> 0
-					ROLLBACK TRANSACTION;
-
-				THROW;
-			END CATCH
-			""";
+		_tableEnsureKey = $"{_options.ConnectionString}|{_options.SchemaName}|{_options.TableName}";
 
 		ValidateIdentifier(_options.SchemaName);
 		ValidateIdentifier(_options.TableName);
@@ -74,8 +35,7 @@ sealed partial class SqlServerClient
 		if (!_options.AutoCreateTable)
 			return;
 
-		await using var context = CreateStorageContext();
-		await EnsureTableWithEfAsync(context, cancellationToken);
+		await EnsureTableIfEnabledAsync(cancellationToken);
 	}
 
 	public async Task EnsureTableExistsAsync(SqlConnection connection, CancellationToken cancellationToken = default)
@@ -85,8 +45,7 @@ sealed partial class SqlServerClient
 		if (!_options.AutoCreateTable)
 			return;
 
-		await using var context = CreateStorageContext(connection);
-		await EnsureTableWithEfAsync(context, cancellationToken);
+		await EnsureTableIfEnabledAsync(connection, transaction: null, cancellationToken);
 	}
 
 	public async Task<bool> UpsertAsync<T>(
@@ -97,10 +56,8 @@ sealed partial class SqlServerClient
 	)
 		where T : class
 	{
-		await using var context = CreateStorageContext();
-		await EnsureTableIfEnabledAsync(context, cancellationToken);
+		await EnsureTableIfEnabledAsync(cancellationToken);
 		await using var queryContext = CreateQueryContext<T>();
-		await EnsureTableIfEnabledAsync(queryContext, cancellationToken);
 		return await UpsertAsync(aggregate, id, aggregateType, queryContext, cancellationToken);
 	}
 
@@ -117,9 +74,7 @@ sealed partial class SqlServerClient
 		ArgumentNullException.ThrowIfNull(connection);
 		ArgumentNullException.ThrowIfNull(transaction);
 
-		await using var ensureContext = CreateStorageContext(connection);
-		await ensureContext.Database.UseTransactionAsync(transaction, cancellationToken);
-		await EnsureTableIfEnabledAsync(ensureContext, cancellationToken);
+		await EnsureTableIfEnabledAsync(connection, transaction, cancellationToken);
 
 		await using var queryContext = CreateQueryContext<T>(connection);
 		await queryContext.Database.UseTransactionAsync(transaction, cancellationToken);
@@ -128,8 +83,8 @@ sealed partial class SqlServerClient
 
 	public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
 	{
+		await EnsureTableIfEnabledAsync(cancellationToken);
 		await using var context = CreateStorageContext();
-		await EnsureTableIfEnabledAsync(context, cancellationToken);
 		var existing = await context.Snapshots.SingleOrDefaultAsync(s => s.Id == id, cancellationToken);
 		if (existing is null)
 			return false;
@@ -143,8 +98,8 @@ sealed partial class SqlServerClient
 		CancellationToken cancellationToken = default
 	)
 	{
+		await EnsureTableIfEnabledAsync(cancellationToken);
 		await using var context = CreateStorageContext();
-		await EnsureTableIfEnabledAsync(context, cancellationToken);
 		return await context
 			.Snapshots.AsNoTracking()
 			.LongCountAsync(s => s.AggregateType == aggregateType, cancellationToken);
@@ -158,7 +113,7 @@ sealed partial class SqlServerClient
 		where T : class
 	{
 		await using var context = CreateQueryContext<T>();
-		await EnsureTableIfEnabledAsync(context, cancellationToken);
+		await EnsureTableIfEnabledAsync(cancellationToken);
 		var query = BuildAggregateQuery(context, aggregateType, whereClause);
 		return await query.LongCountAsync(cancellationToken);
 	}
@@ -174,7 +129,7 @@ sealed partial class SqlServerClient
 		where T : class
 	{
 		await using var context = CreateQueryContext<T>();
-		await EnsureTableIfEnabledAsync(context, cancellationToken);
+		await EnsureTableIfEnabledAsync(cancellationToken);
 		var normalizedWhereClause = whereClause is null
 			? null
 			: RewriteAggregateTypePredicate(whereClause, aggregateType);
@@ -186,7 +141,10 @@ sealed partial class SqlServerClient
 			aggregateQuery = aggregateQuery.Where(normalizedWhereClause);
 
 		if (orderByClause != null)
+		{
 			aggregateQuery = orderByClause(aggregateQuery);
+			EnsureSupportedOrderByExpression(aggregateQuery.Expression);
+		}
 
 		var page = aggregateQuery.Skip(Math.Max(0, skipCount)).Take(Math.Max(0, takeCount));
 		return await page.ToListAsync(cancellationToken);
@@ -196,7 +154,7 @@ sealed partial class SqlServerClient
 		where T : class
 	{
 		await using var context = CreateQueryContext<T>();
-		await EnsureTableIfEnabledAsync(context, cancellationToken);
+		await EnsureTableIfEnabledAsync(cancellationToken);
 		var query = context.Snapshots.AsNoTracking().AsSplitQuery().Where(s => s.Id == id).Select(s => s.Payload);
 		return await query.SingleOrDefaultAsync(cancellationToken);
 	}
@@ -262,7 +220,7 @@ sealed partial class SqlServerClient
 	}
 
 	[GeneratedRegex(@"^[\w\-\.]+$")]
-	private static partial Regex IdentifierRegex();
+	private static partial System.Text.RegularExpressions.Regex IdentifierRegex();
 
 	sealed class SnapshotStorageDbContext : DbContext
 	{
@@ -323,6 +281,11 @@ sealed partial class SqlServerClient
 
 		public DbSet<SnapshotQueryRow<TAggregate>> Snapshots => Set<SnapshotQueryRow<TAggregate>>();
 
+		protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+		{
+			RegisterScalarValueObjectConversions(configurationBuilder, typeof(TAggregate));
+		}
+
 		protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 		{
 			if (_connection is null)
@@ -335,37 +298,49 @@ sealed partial class SqlServerClient
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
-			RegisterOwnedTypes(modelBuilder, typeof(TAggregate));
-
 			var entity = modelBuilder.Entity<SnapshotQueryRow<TAggregate>>();
 			entity.ToTable(_options.TableName, _options.SchemaName);
-			entity.HasKey(x => x.Id);
-			entity.Property(x => x.Id).HasMaxLength(450);
-			entity.Property(x => x.AggregateType).HasMaxLength(450);
-			entity.HasIndex(x => x.AggregateType);
-			entity.OwnsOne(
-				x => x.Payload,
-				payload =>
+			entity.HasKey(static x => x.Id);
+			entity.Property(static x => x.Id).HasMaxLength(450);
+			entity.Property(static x => x.AggregateType).HasMaxLength(450);
+			entity.HasIndex(static x => x.AggregateType);
+			ValidateAggregatePayloadShape(typeof(TAggregate));
+			entity.ComplexProperty(
+				static x => x.Payload,
+				static payload =>
 				{
 					payload.ToJson();
+					ConfigureComplexGraph(payload, typeof(TAggregate));
 				}
 			);
 		}
 	}
 
-	static void RegisterOwnedTypes(ModelBuilder modelBuilder, Type rootType)
+	static void RegisterScalarValueObjectConversions(ModelConfigurationBuilder configurationBuilder, Type rootType)
 	{
 		var visited = new HashSet<Type>();
-		RegisterOwnedTypesRecursive(modelBuilder, rootType, visited);
+		RegisterScalarValueObjectConversionsRecursive(configurationBuilder, rootType, visited);
 	}
 
-	static void RegisterOwnedTypesRecursive(ModelBuilder modelBuilder, Type type, HashSet<Type> visited)
+	static void RegisterScalarValueObjectConversionsRecursive(
+		ModelConfigurationBuilder configurationBuilder,
+		Type type,
+		HashSet<Type> visited
+	)
 	{
 		type = Nullable.GetUnderlyingType(type) ?? type;
-		if (!ShouldOwnType(type) || !visited.Add(type))
+		if (!visited.Add(type))
 			return;
 
-		modelBuilder.Owned(type);
+		var scalarAttribute = type.GetCustomAttribute<ScalarAttribute>();
+		if (scalarAttribute is not null)
+		{
+			RegisterScalarValueObjectConversion(configurationBuilder, type, scalarAttribute);
+			return;
+		}
+
+		if (!ShouldInspectType(type))
+			return;
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
@@ -376,11 +351,182 @@ sealed partial class SqlServerClient
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
-				RegisterOwnedTypesRecursive(modelBuilder, elementType, visited);
+				RegisterScalarValueObjectConversionsRecursive(configurationBuilder, elementType, visited);
 				continue;
 			}
 
-			RegisterOwnedTypesRecursive(modelBuilder, propertyType, visited);
+			RegisterScalarValueObjectConversionsRecursive(configurationBuilder, propertyType, visited);
+		}
+	}
+
+	static void RegisterScalarValueObjectConversion(
+		ModelConfigurationBuilder configurationBuilder,
+		Type scalarType,
+		ScalarAttribute scalarAttribute
+	)
+	{
+		var scalarProperty =
+			scalarType.GetProperty(scalarAttribute.PropertyName, BindingFlags.Instance | BindingFlags.Public)
+			?? throw new InvalidOperationException(
+				$"'{scalarType.Name}' missing scalar property '{scalarAttribute.PropertyName}'."
+			);
+
+		var converterType = typeof(ScalarValueConverter<,>).MakeGenericType(scalarType, scalarProperty.PropertyType);
+		configurationBuilder.Properties(scalarType, builder => builder.HaveConversion(converterType));
+	}
+
+	static void ConfigureComplexGraph(ComplexPropertyBuilder builder, Type type)
+	{
+		var visited = new HashSet<Type>();
+		ConfigureComplexGraphRecursive(builder, type, visited);
+	}
+
+	static void ConfigureComplexGraphRecursive(ComplexPropertyBuilder builder, Type type, HashSet<Type> visited)
+	{
+		type = Nullable.GetUnderlyingType(type) ?? type;
+		if (!ShouldInspectType(type) || !visited.Add(type))
+			return;
+
+		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+		{
+			if (ShouldSkipJsonProperty(property))
+				continue;
+
+			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+				continue;
+
+			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+				continue;
+
+			if (TryGetEnumerableElementType(propertyType, out var elementType))
+			{
+				if (IsPrimitiveLike(elementType) || elementType.GetCustomAttribute<ScalarAttribute>() is not null)
+					builder.PrimitiveCollection(propertyType, property.Name);
+				else if (ShouldInspectType(elementType))
+					builder.ComplexCollection(
+						propertyType,
+						property.Name,
+						nested => ConfigureComplexGraphRecursive(nested, elementType, visited)
+					);
+				else
+					throw CreateUnsupportedShapeException(type, property);
+
+				continue;
+			}
+
+			if (ShouldOwnType(propertyType))
+			{
+				builder.ComplexProperty(
+					propertyType,
+					property.Name,
+					nested => ConfigureComplexGraphRecursive(nested, propertyType, visited)
+				);
+				continue;
+			}
+
+			if (!IsPrimitiveLike(propertyType))
+				throw CreateUnsupportedShapeException(type, property);
+		}
+	}
+
+	static void ConfigureComplexGraphRecursive(ComplexCollectionBuilder builder, Type type, HashSet<Type> visited)
+	{
+		type = Nullable.GetUnderlyingType(type) ?? type;
+		if (!ShouldInspectType(type) || !visited.Add(type))
+			return;
+
+		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+		{
+			if (ShouldSkipJsonProperty(property))
+				continue;
+
+			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+				continue;
+
+			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+				continue;
+
+			if (TryGetEnumerableElementType(propertyType, out var elementType))
+			{
+				if (IsPrimitiveLike(elementType) || elementType.GetCustomAttribute<ScalarAttribute>() is not null)
+					builder.PrimitiveCollection(propertyType, property.Name);
+				else if (ShouldInspectType(elementType))
+					builder.ComplexCollection(
+						propertyType,
+						property.Name,
+						nested => ConfigureComplexGraphRecursive(nested, elementType, visited)
+					);
+				else
+					throw CreateUnsupportedShapeException(type, property);
+
+				continue;
+			}
+
+			if (ShouldOwnType(propertyType))
+			{
+				builder.ComplexProperty(
+					propertyType,
+					property.Name,
+					nested => ConfigureComplexGraphRecursive(nested, propertyType, visited)
+				);
+				continue;
+			}
+
+			if (!IsPrimitiveLike(propertyType))
+				throw CreateUnsupportedShapeException(type, property);
+		}
+	}
+
+	static void ValidateAggregatePayloadShape(Type type)
+	{
+		var visited = new HashSet<Type>();
+		ValidateAggregatePayloadShapeRecursive(type, visited);
+	}
+
+	static void ValidateAggregatePayloadShapeRecursive(Type type, HashSet<Type> visited)
+	{
+		type = Nullable.GetUnderlyingType(type) ?? type;
+		if (!ShouldInspectType(type) || !visited.Add(type))
+			return;
+
+		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+		{
+			if (ShouldSkipJsonProperty(property))
+				continue;
+
+			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+				continue;
+
+			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+				continue;
+
+			if (TryGetEnumerableElementType(propertyType, out var elementType))
+			{
+				if (!IsPrimitiveLike(elementType) && elementType.GetCustomAttribute<ScalarAttribute>() is null)
+				{
+					if (!ShouldInspectType(elementType))
+						throw CreateUnsupportedShapeException(type, property);
+
+					ValidateAggregatePayloadShapeRecursive(elementType, visited);
+				}
+
+				continue;
+			}
+
+			if (ShouldOwnType(propertyType))
+			{
+				ValidateAggregatePayloadShapeRecursive(propertyType, visited);
+				continue;
+			}
+
+			if (!IsPrimitiveLike(propertyType))
+				throw CreateUnsupportedShapeException(type, property);
 		}
 	}
 
@@ -401,11 +547,43 @@ sealed partial class SqlServerClient
 		)
 			return false;
 
-		if (type.Namespace is not null && type.Namespace.StartsWith("System", StringComparison.Ordinal))
+		return (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal))
+			&& (type.IsClass || (type.IsValueType && !type.IsPrimitive && !type.IsEnum));
+	}
+
+	static bool ShouldInspectType(Type type)
+	{
+		if (type.IsPrimitive || type.IsEnum)
 			return false;
 
-		return type.IsClass || (type.IsValueType && !type.IsPrimitive && !type.IsEnum);
+		return type != typeof(string)
+			&& type != typeof(decimal)
+			&& type != typeof(Guid)
+			&& type != typeof(DateTime)
+			&& type != typeof(DateTimeOffset)
+			&& type != typeof(DateOnly)
+			&& type != typeof(TimeOnly)
+			&& type != typeof(TimeSpan)
+			&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal));
 	}
+
+	static bool ShouldSkipJsonProperty(PropertyInfo property) =>
+		property.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>() is not null
+		|| property.GetGetMethod(true) is null
+		|| property.GetSetMethod(true) is null;
+
+	static bool IsPrimitiveLike(Type type) =>
+		type.IsPrimitive
+		|| type.IsEnum
+		|| type == typeof(string)
+		|| type == typeof(decimal)
+		|| type == typeof(Guid)
+		|| type == typeof(DateTime)
+		|| type == typeof(DateTimeOffset)
+		|| type == typeof(DateOnly)
+		|| type == typeof(TimeOnly)
+		|| type == typeof(TimeSpan)
+		|| type == typeof(byte[]);
 
 	static bool TryGetEnumerableElementType(Type type, out Type elementType)
 	{
@@ -429,7 +607,6 @@ sealed partial class SqlServerClient
 			|| genericDefinition == typeof(IReadOnlyList<>)
 			|| genericDefinition == typeof(IReadOnlyCollection<>)
 			|| genericDefinition == typeof(HashSet<>)
-			|| genericDefinition == typeof(ImmutableArray<>)
 		)
 		{
 			elementType = type.GetGenericArguments()[0];
@@ -439,14 +616,27 @@ sealed partial class SqlServerClient
 		return false;
 	}
 
+	static InvalidOperationException CreateUnsupportedShapeException(Type containingType, MemberInfo member) =>
+		new(
+			$"{containingType.Name}.{member.Name} cannot be mapped into the snapshot JSON payload. "
+				+ "Supported members are primitive types, [Scalar] value objects, complex types, and arrays/collections of those shapes."
+		);
+
+	static void EnsureSupportedOrderByExpression(Expression queryExpression) =>
+		new UnsupportedScalarValueOrderByDetector().Visit(queryExpression);
+
 	static Expression<Func<T, bool>> RewriteAggregateTypePredicate<T>(
 		Expression<Func<T, bool>> whereClause,
 		string aggregateType
 	)
 		where T : class
 	{
-		var visitor = new AggregateTypeExpressionVisitor(aggregateType);
-		return (Expression<Func<T, bool>>)visitor.Visit(whereClause)!;
+		var aggregateTypeVisitor = new AggregateTypeExpressionVisitor(aggregateType);
+		var rewritten = (Expression<Func<T, bool>>)aggregateTypeVisitor.Visit(whereClause)!;
+		var invariantCasingVisitor = new InvariantStringMethodNormalizationVisitor();
+		rewritten = (Expression<Func<T, bool>>)invariantCasingVisitor.Visit(rewritten)!;
+		var scalarVisitor = new ScalarValueMemberAccessPredicateVisitor();
+		return (Expression<Func<T, bool>>)scalarVisitor.Visit(rewritten)!;
 	}
 
 	sealed class AggregateTypeExpressionVisitor(string aggregateType) : ExpressionVisitor
@@ -463,6 +653,104 @@ sealed partial class SqlServerClient
 				return _aggregateType;
 
 			return base.VisitMember(node);
+		}
+	}
+
+	sealed class UnsupportedScalarValueOrderByDetector : ExpressionVisitor
+	{
+		protected override Expression VisitMethodCall(MethodCallExpression node)
+		{
+			if (
+				node.Method.DeclaringType == typeof(Queryable)
+				&& (
+					node.Method.Name == nameof(Queryable.OrderBy)
+					|| node.Method.Name == nameof(Queryable.OrderByDescending)
+					|| node.Method.Name == nameof(Queryable.ThenBy)
+					|| node.Method.Name == nameof(Queryable.ThenByDescending)
+				)
+			)
+			{
+				var lambda = (LambdaExpression)StripQuotes(node.Arguments[1]);
+				new ScalarValueMemberAccessDetector().Visit(lambda.Body);
+			}
+
+			return base.VisitMethodCall(node);
+		}
+
+		static Expression StripQuotes(Expression expression)
+		{
+			while (expression.NodeType == ExpressionType.Quote)
+				expression = ((UnaryExpression)expression).Operand;
+
+			return expression;
+		}
+	}
+
+	sealed class ScalarValueMemberAccessPredicateVisitor : ExpressionVisitor
+	{
+		protected override Expression VisitMember(MemberExpression node)
+		{
+			var visitedExpression = base.VisitMember(node);
+			if (visitedExpression is not MemberExpression visited || visited.Expression is null)
+				return visitedExpression;
+
+			var scalarAttribute = visited.Expression.Type.GetCustomAttribute<ScalarAttribute>();
+			if (scalarAttribute is null || visited.Member.Name != scalarAttribute.PropertyName)
+				return visited;
+
+			try
+			{
+				return Expression.Convert(visited.Expression, visited.Type);
+			}
+			catch (InvalidOperationException)
+			{
+				return visited;
+			}
+		}
+	}
+
+	sealed class InvariantStringMethodNormalizationVisitor : ExpressionVisitor
+	{
+		protected override Expression VisitMethodCall(MethodCallExpression node)
+		{
+			var visitedObject = Visit(node.Object);
+			var visitedArguments = Visit(node.Arguments);
+
+			if (
+				node.Method.DeclaringType == typeof(string)
+				&& node.Arguments.Count == 0
+				&& visitedObject is not null
+			)
+			{
+				if (node.Method.Name == nameof(string.ToLowerInvariant))
+					return Expression.Call(visitedObject, nameof(string.ToLower), Type.EmptyTypes);
+
+				if (node.Method.Name == nameof(string.ToUpperInvariant))
+					return Expression.Call(visitedObject, nameof(string.ToUpper), Type.EmptyTypes);
+			}
+
+			return node.Update(visitedObject, visitedArguments);
+		}
+	}
+
+	sealed class ScalarValueMemberAccessDetector : ExpressionVisitor
+	{
+		protected override Expression VisitMember(MemberExpression node)
+		{
+			var visited = base.VisitMember(node);
+			if (node.Expression is null)
+				return visited;
+
+			var scalarAttribute = node.Expression.Type.GetCustomAttribute<ScalarAttribute>();
+			if (scalarAttribute is not null && node.Member.Name == scalarAttribute.PropertyName)
+			{
+				throw new InvalidOperationException(
+					$"Ordering by '{node.Expression.Type.Name}.{node.Member.Name}' is not supported for SQL snapshot JSON queries. "
+						+ "Order by the scalar value object property itself (for example: c => c.Name) instead of its inner scalar member."
+				);
+			}
+
+			return visited;
 		}
 	}
 
@@ -489,39 +777,94 @@ sealed partial class SqlServerClient
 		}
 	}
 
-	async Task EnsureTableIfEnabledAsync(DbContext context, CancellationToken cancellationToken)
+	async Task EnsureTableIfEnabledAsync(CancellationToken cancellationToken)
 	{
-		if (_options.AutoCreateTable)
-			await EnsureTableWithEfAsync(context, cancellationToken);
+		if (!_options.AutoCreateTable || IsTableEnsured())
+			return;
+
+		var tableLock = EnsureTableLocks.GetOrAdd(_tableEnsureKey, static _ => new SemaphoreSlim(1, 1));
+		await tableLock.WaitAsync(cancellationToken);
+		try
+		{
+			if (IsTableEnsured())
+				return;
+
+			try
+			{
+				await using var context = CreateStorageContext();
+				await CreateStorageTablesWithEfAsync(context, cancellationToken);
+			}
+			catch (Exception ex) when (IsDuplicateTableCreateError(ex, _options.TableName))
+			{
+				// Another writer won the create race for the same table.
+			}
+
+			MarkTableEnsured();
+		}
+		finally
+		{
+			tableLock.Release();
+		}
 	}
 
-	async Task EnsureTableWithEfAsync(DbContext context, CancellationToken cancellationToken)
+	async Task EnsureTableIfEnabledAsync(
+		SqlConnection connection,
+		SqlTransaction? transaction,
+		CancellationToken cancellationToken
+	)
 	{
-		var fullTableName = $"{_options.SchemaName}.{_options.TableName}";
-		var lockTimeout = 30_000;
+		if (!_options.AutoCreateTable || IsTableEnsured())
+			return;
 
-		await context.Database.ExecuteSqlRawAsync(
-			_ensureTableSql,
-			[
-				new SqlParameter("@LockResource", _ensureTableLockResource),
-				new SqlParameter("@LockTimeoutMs", lockTimeout),
-				new SqlParameter("@FullTableName", fullTableName),
-			],
-			cancellationToken
-		);
+		var tableLock = EnsureTableLocks.GetOrAdd(_tableEnsureKey, static _ => new SemaphoreSlim(1, 1));
+		await tableLock.WaitAsync(cancellationToken);
+		try
+		{
+			if (IsTableEnsured())
+				return;
+
+			try
+			{
+				await using var context = CreateStorageContext(connection);
+				if (transaction is not null)
+					await context.Database.UseTransactionAsync(transaction, cancellationToken);
+				await CreateStorageTablesWithEfAsync(context, cancellationToken);
+			}
+			catch (Exception ex) when (IsDuplicateTableCreateError(ex, _options.TableName))
+			{
+				// Another writer won the create race for the same table.
+			}
+
+			MarkTableEnsured();
+		}
+		finally
+		{
+			tableLock.Release();
+		}
 	}
 
-	static string QuoteIdentifier(string identifier)
+	bool IsTableEnsured() => EnsuredTables.ContainsKey(_tableEnsureKey);
+
+	void MarkTableEnsured() => EnsuredTables.TryAdd(_tableEnsureKey, 0);
+
+	static async Task CreateStorageTablesWithEfAsync(DbContext context, CancellationToken cancellationToken)
 	{
-		ValidateIdentifier(identifier);
-		return $"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
+		var creator = context.GetService<IRelationalDatabaseCreator>();
+		if (!await creator.ExistsAsync(cancellationToken))
+			await creator.CreateAsync(cancellationToken);
+
+		await creator.CreateTablesAsync(cancellationToken);
 	}
 
-	static string CreateEnsureTableLockResource(string schemaName, string tableName)
+	static bool IsDuplicateTableCreateError(Exception exception, string tableName)
 	{
-		var fullName = $"{schemaName}.{tableName}";
-		var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fullName)));
-		return $"Purview.EventSourcing.SqlServer:{hash}";
+		for (var current = exception; current is not null; current = current.InnerException)
+		{
+			if (current.Message.Contains("already an object named", StringComparison.OrdinalIgnoreCase))
+				return true;
+		}
+
+		return false;
 	}
 }
 
@@ -555,4 +898,72 @@ sealed class SqlServerClientOptions
 	public bool AutoCreateTable { get; init; } = true;
 
 	public bool UseDataCompression { get; init; }
+}
+
+public sealed class ScalarValueConverter<TScalarObject, TScalar> : ValueConverter<TScalarObject, TScalar>
+{
+	public ScalarValueConverter()
+		: base(BuildToProviderExpression(), BuildFromProviderExpression()) { }
+
+	static Expression<Func<TScalarObject, TScalar>> BuildToProviderExpression()
+	{
+		var scalarProperty = GetScalarProperty();
+		var source = Expression.Parameter(typeof(TScalarObject), "value");
+		var body = Expression.Property(source, scalarProperty);
+		return Expression.Lambda<Func<TScalarObject, TScalar>>(body, source);
+	}
+
+	static Expression<Func<TScalar, TScalarObject>> BuildFromProviderExpression()
+	{
+		var source = Expression.Parameter(typeof(TScalar), "value");
+		var body = BuildCreatorExpression(source);
+		return Expression.Lambda<Func<TScalar, TScalarObject>>(body, source);
+	}
+
+	static PropertyInfo GetScalarProperty()
+	{
+		var scalarType = typeof(TScalarObject);
+		var scalarAttribute =
+			scalarType.GetCustomAttribute<ScalarAttribute>()
+			?? throw new InvalidOperationException($"{scalarType.Name} must be annotated with [Scalar].");
+
+		return scalarType.GetProperty(scalarAttribute.PropertyName, BindingFlags.Instance | BindingFlags.Public)
+			?? throw new InvalidOperationException(
+				$"'{scalarType.Name}' missing scalar property '{scalarAttribute.PropertyName}'."
+			);
+	}
+
+	static Expression BuildCreatorExpression(ParameterExpression source)
+	{
+		var scalarType = typeof(TScalarObject);
+		var scalarPropertyType = typeof(TScalar);
+		var scalarAttribute =
+			scalarType.GetCustomAttribute<ScalarAttribute>()
+			?? throw new InvalidOperationException($"{scalarType.Name} must be annotated with [Scalar].");
+
+		var preferredFactoryName =
+			scalarAttribute.DeserializationMode == ValueObjectDeserializationMode.Strict ? "Create" : "Hydrate";
+		var secondaryFactoryName = preferredFactoryName == "Hydrate" ? "Create" : "Hydrate";
+
+		var create =
+			scalarType.GetMethod(preferredFactoryName, BindingFlags.Public | BindingFlags.Static, [scalarPropertyType])
+			?? scalarType.GetMethod(
+				secondaryFactoryName,
+				BindingFlags.Public | BindingFlags.Static,
+				[scalarPropertyType]
+			);
+		if (create is not null)
+			return Expression.Call(create, source);
+
+		var ctor = scalarType.GetConstructor(
+			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+			[scalarPropertyType]
+		);
+		if (ctor is not null)
+			return Expression.New(ctor, source);
+
+		throw new InvalidOperationException(
+			$"{scalarType.Name} must expose static {preferredFactoryName}({scalarPropertyType.Name}), static {secondaryFactoryName}({scalarPropertyType.Name}), or ctor({scalarPropertyType.Name})."
+		);
+	}
 }

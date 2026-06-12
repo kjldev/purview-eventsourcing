@@ -19,19 +19,15 @@ public interface ISqlServerSnapshotEventStoreTelemetry
 	[Activity]
 	Activity? SnapshotDelete(string aggregateId, [Baggage] string aggregateType);
 
+	[Debug]
+	[AutoCounter]
 	[Event]
-	void QueryCompleted(Activity? activity, int resultCount);
-
-	// Metrics (counters)
-
-	[AutoCounter]
-	void SnapshotCreated(string aggregateType);
-
-	[AutoCounter]
-	void SnapshotDeleted(string aggregateType);
-
-	[AutoCounter]
-	void SnapshotQueried(string aggregateType);
+	void QueryCompleted(
+		Activity? activity,
+		[ExcludeTargets(Targets.Activities)] string aggregateType,
+		int resultCount,
+		[ExcludeTargets(Targets.Activities)] long elapsedMilliseconds
+	);
 
 	// Logging
 
@@ -39,6 +35,7 @@ public interface ISqlServerSnapshotEventStoreTelemetry
 	void SnapshotSaveStart(string aggregateId, string aggregateType);
 
 	[Debug]
+	[AutoCounter]
 	void SnapshotSaveComplete(string aggregateId, string aggregateType);
 
 	[Error]
@@ -48,6 +45,7 @@ public interface ISqlServerSnapshotEventStoreTelemetry
 	void SnapshotDeleteStart(string aggregateId, string aggregateType);
 
 	[Debug]
+	[AutoCounter]
 	void SnapshotDeleteComplete(string aggregateId, string aggregateType);
 
 	[Error]
@@ -57,6 +55,7 @@ public interface ISqlServerSnapshotEventStoreTelemetry
 	void SnapshotQueryStart(string aggregateType, int maxRecords);
 
 	[Debug]
+	[AutoCounter]
 	void SnapshotQueryComplete(string aggregateType, int resultCount, long elapsedMilliseconds);
 
 	[Error]

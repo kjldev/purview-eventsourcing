@@ -54,27 +54,24 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 			MaxRecords = PageSize,
 		};
 
-		var search = (Search?.Trim() ?? string.Empty).ToLowerInvariant();
+		var search = Search.OrDefault();
 		var activeFilter = ActiveFilter;
 		var hasFilter = search.Length > 0 || activeFilter.HasValue;
 
 		Expression<Func<CustomerAggregate, bool>>? where = hasFilter
 			? c =>
-				(
-					string.IsNullOrEmpty(search)
-					|| c.Name.Value.ToLowerInvariant().Contains(search)
-					|| c.Email.Value.ToLowerInvariant().Contains(search)
-				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
+				(string.IsNullOrEmpty(search) || c.Name.Value.Contains(search) || c.Email.Value.Contains(search))
+				&& (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: null;
 
 		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch
 		{
-			("email", "desc") => q => q.OrderByDescending(c => c.Email.Value),
-			("email", _) => q => q.OrderBy(c => c.Email.Value),
+			("email", "desc") => q => q.OrderByDescending(c => c.Email),
+			("email", _) => q => q.OrderBy(c => c.Email),
 			("status", "desc") => q => q.OrderByDescending(c => c.IsActive),
 			("status", _) => q => q.OrderBy(c => c.IsActive),
-			("name", "desc") => q => q.OrderByDescending(c => c.Name.Value),
-			_ => q => q.OrderBy(c => c.Name.Value),
+			("name", "desc") => q => q.OrderByDescending(c => c.Name),
+			_ => q => q.OrderBy(c => c.Name),
 		};
 
 		TotalCount = await store.CountAsync(hasFilter ? where : null, ct);
