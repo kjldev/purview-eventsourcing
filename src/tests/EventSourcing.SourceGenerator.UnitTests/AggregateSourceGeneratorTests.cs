@@ -661,9 +661,9 @@ namespace Testing
 
 		// Assert — parameterless event uses () constructor
 		await Assert.That(generatedSource).Contains("public partial void Increment()");
-		await Assert.That(generatedSource).Contains(
-			"private partial void Apply(global::Testing.CounterEvents.IncrementedEvent @event);"
-		);
+		await Assert
+			.That(generatedSource)
+			.Contains("private partial void Apply(global::Testing.CounterEvents.IncrementedEvent @event);");
 		await Assert
 			.That(generatedSource)
 			.Contains("protected override void BuildEventHash(ref global::System.HashCode _)");

@@ -39,36 +39,41 @@ public sealed partial class InventoryAggregate : AggregateBase
 		return ReceiveStock(quantityOnHand: QuantityOnHand + quantity, reservedQuantity: ReservedQuantity);
 	}
 
-	public InventoryAggregate ReserveStock(int quantity, string orderId)
+	public InventoryAggregate ReserveStock(int quantity, string? orderId)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
 		return quantity > AvailableQuantity
 			? throw new InvalidOperationException(
 				$"Cannot reserve {quantity} units. Only {AvailableQuantity} available."
 			)
-			: ReserveStock(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity);
+			: ReserveStock(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity + quantity, orderId);
 	}
 
-	public InventoryAggregate ReleaseReservation(int quantity, string orderId)
+	public InventoryAggregate ReleaseReservation(int quantity, string? orderId)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
 		return quantity > ReservedQuantity
 			? throw new InvalidOperationException($"Cannot release {quantity} units. Only {ReservedQuantity} reserved.")
-			: ReleaseStockReservation(quantityOnHand: QuantityOnHand, reservedQuantity: ReservedQuantity - quantity);
+			: ReleaseStockReservation(
+				quantityOnHand: QuantityOnHand,
+				reservedQuantity: ReservedQuantity - quantity,
+				orderId
+			);
 	}
 
-	public InventoryAggregate ShipStock(int quantity, string orderId)
+	public InventoryAggregate ShipStock(int quantity, string? orderId)
 	{
 		ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
-		ArgumentException.ThrowIfNullOrWhiteSpace(orderId);
 
 		return quantity > ReservedQuantity
 			? throw new InvalidOperationException($"Cannot ship {quantity} units. Only {ReservedQuantity} reserved.")
-			: ShipStock(quantityOnHand: QuantityOnHand - quantity, reservedQuantity: ReservedQuantity - quantity);
+			: ShipStock(
+				quantityOnHand: QuantityOnHand - quantity,
+				reservedQuantity: ReservedQuantity - quantity,
+				orderId
+			);
 	}
 
 	public InventoryAggregate AdjustStock(int newQuantity, string reason)
@@ -109,13 +114,21 @@ public sealed partial class InventoryAggregate : AggregateBase
 	public partial InventoryAggregate ReceiveStock(int quantityOnHand, int reservedQuantity);
 
 	[GenerateAggregateEvent]
-	public partial InventoryAggregate ReserveStock(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate ReserveStock(
+		int quantityOnHand,
+		int reservedQuantity,
+		[Metadata] string? orderId
+	);
 
 	[GenerateAggregateEvent]
-	public partial InventoryAggregate ReleaseStockReservation(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate ReleaseStockReservation(
+		int quantityOnHand,
+		int reservedQuantity,
+		[Metadata] string? orderId
+	);
 
 	[GenerateAggregateEvent]
-	public partial InventoryAggregate ShipStock(int quantityOnHand, int reservedQuantity);
+	public partial InventoryAggregate ShipStock(int quantityOnHand, int reservedQuantity, [Metadata] string? orderId);
 
 	[GenerateAggregateEvent]
 	public partial InventoryAggregate AdjustStock(int quantityOnHand, int reservedQuantity);

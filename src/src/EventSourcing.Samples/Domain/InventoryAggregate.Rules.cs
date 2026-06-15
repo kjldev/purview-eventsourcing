@@ -18,4 +18,7 @@ partial class InventoryAggregate
 		ArgumentOutOfRangeException.ThrowIfNegative(initialQuantity);
 		ArgumentOutOfRangeException.ThrowIfNegative(reservedQuantity);
 	}
+
+	partial void OnRaisingProductNameUpdatedEvent(ref string productName) =>
+		ArgumentException.ThrowIfNullOrWhiteSpace(productName);
 }

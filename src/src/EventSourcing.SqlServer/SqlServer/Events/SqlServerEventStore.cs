@@ -1,7 +1,7 @@
-using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Options;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events.Upcasting;
 using Purview.EventSourcing.Aggregates.Snapshotting;

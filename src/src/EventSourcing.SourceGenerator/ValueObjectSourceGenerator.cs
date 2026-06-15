@@ -21,21 +21,17 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{
-		var scalarCandidates = context
-			.SyntaxProvider.ForAttributeWithMetadataName(
-				ScalarAttributeName,
-				predicate: static (node, _) => node is TypeDeclarationSyntax,
-				transform: static (ctx, ct) => BuildScalarGenerationResult(ctx, ct)
-			)
-			;
+		var scalarCandidates = context.SyntaxProvider.ForAttributeWithMetadataName(
+			ScalarAttributeName,
+			predicate: static (node, _) => node is TypeDeclarationSyntax,
+			transform: static (ctx, ct) => BuildScalarGenerationResult(ctx, ct)
+		);
 
-		var complexCandidates = context
-			.SyntaxProvider.ForAttributeWithMetadataName(
-				ValueObjectAttributeName,
-				predicate: static (node, _) => node is TypeDeclarationSyntax,
-				transform: static (ctx, ct) => BuildComplexGenerationResult(ctx, ct)
-			)
-			;
+		var complexCandidates = context.SyntaxProvider.ForAttributeWithMetadataName(
+			ValueObjectAttributeName,
+			predicate: static (node, _) => node is TypeDeclarationSyntax,
+			transform: static (ctx, ct) => BuildComplexGenerationResult(ctx, ct)
+		);
 
 		context.RegisterSourceOutput(scalarCandidates, EmitResult);
 		context.RegisterSourceOutput(complexCandidates, EmitResult);
