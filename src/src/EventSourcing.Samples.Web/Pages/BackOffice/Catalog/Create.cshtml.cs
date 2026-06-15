@@ -64,7 +64,7 @@ sealed class CreateModel(IQueryableEventStore store) : PageModel
 		}
 
 		var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: ct);
-		item.Initialize(productId, productName, location.LocationId, location.LocationName, InitialQuantity);
+		item.Create(productId, productName, location.LocationId, location.LocationName, InitialQuantity);
 		await store.SaveAsync(item, ct);
 
 		TempData["Success"] = $"Inventory item '{item.ProductName}' created.";

@@ -7,14 +7,14 @@ public class InventoryAggregateTests
 		var inv = new InventoryAggregate();
 		if (id is not null)
 			inv.Details.Id = id;
-		inv.Initialize("prod-1", "Widget A", "loc-1", "Main Warehouse", initialQty);
+		inv.Create("prod-1", "Widget A", "loc-1", "Main Warehouse", initialQty);
 		return inv;
 	}
 
-	#region Initialize Tests
+	#region Create Tests
 
 	[Test]
-	public async Task Initialize_GivenValidData_SetsProperties()
+	public async Task Create_GivenValidData_SetsProperties()
 	{
 		// Arrange & Act
 		var inv = CreateInventory("inv-1", initialQty: 50);
@@ -30,24 +30,24 @@ public class InventoryAggregateTests
 	}
 
 	[Test]
-	public void Initialize_GivenNullProductId_ThrowsArgumentException()
+	public void Create_GivenNullProductId_ThrowsArgumentException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentException>(() => inv.Initialize(null!, "name", "loc-1", "Main Warehouse"));
+		Assert.Throws<ArgumentException>(() => inv.Create(null!, "name", "loc-1", "Main Warehouse"));
 	}
 
 	[Test]
-	public void Initialize_GivenNullLocationId_ThrowsArgumentException()
+	public void Create_GivenNullLocationId_ThrowsArgumentException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentException>(() => inv.Initialize("p1", "name", null!, "Main Warehouse"));
+		Assert.Throws<ArgumentException>(() => inv.Create("p1", "name", null!, "Main Warehouse"));
 	}
 
 	[Test]
-	public void Initialize_GivenNegativeQuantity_ThrowsArgumentOutOfRangeException()
+	public void Create_GivenNegativeQuantity_ThrowsArgumentOutOfRangeException()
 	{
 		var inv = new InventoryAggregate();
-		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Initialize("p1", "name", "loc-1", "Main Warehouse", -1));
+		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Create("p1", "name", "loc-1", "Main Warehouse", -1));
 	}
 
 	#endregion

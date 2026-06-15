@@ -2,12 +2,12 @@
 
 partial class InventoryAggregate
 {
-	partial void OnCreatingInventoryCreated(
+	partial void OnCreatingCreated(
 		ref string productId,
 		ref string productName,
 		ref string locationId,
 		ref string locationName,
-		ref int quantityOnHand,
+		ref int initialQuantity,
 		ref int reservedQuantity
 	)
 	{
@@ -15,6 +15,7 @@ partial class InventoryAggregate
 		ArgumentException.ThrowIfNullOrWhiteSpace(productName);
 		ArgumentException.ThrowIfNullOrWhiteSpace(locationId);
 		ArgumentException.ThrowIfNullOrWhiteSpace(locationName);
-		ArgumentOutOfRangeException.ThrowIfNegative(quantityOnHand);
+		ArgumentOutOfRangeException.ThrowIfNegative(initialQuantity);
+		ArgumentOutOfRangeException.ThrowIfNegative(reservedQuantity);
 	}
 }

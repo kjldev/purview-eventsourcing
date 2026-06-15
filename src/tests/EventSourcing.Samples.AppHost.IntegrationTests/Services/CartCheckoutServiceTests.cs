@@ -139,7 +139,7 @@ public sealed class CartCheckoutServiceTests(AppHostFixture fixture)
 	)
 	{
 		var inventory = await inventoryStore.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
-		inventory.Initialize(
+		inventory.Create(
 			$"sku-{Guid.NewGuid():N}",
 			"Transactional Widget",
 			$"loc-{Guid.NewGuid():N}",

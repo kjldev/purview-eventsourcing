@@ -207,7 +207,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			var (locationId, locationName) = Locations[i % Locations.Length];
 
 			var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
-			item.Initialize(productId, productName, locationId, locationName, initialQty);
+			item.Create(productId, productName, locationId, locationName, initialQty);
 
 			var result = await store.SaveAsync(item, cancellationToken);
 			ids.Add((result.Aggregate.Id(), i));

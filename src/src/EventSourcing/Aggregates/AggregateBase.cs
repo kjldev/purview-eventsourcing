@@ -132,11 +132,6 @@ public abstract class AggregateBase : IAggregate
 	{
 		ArgumentNullException.ThrowIfNull(applier);
 
-		if (!typeof(TEvent).Name.EndsWith("Event", StringComparison.InvariantCulture))
-			throw new InvalidOperationException(
-				$"Registering events failed, events must end with name 'Event'.\n\nFailed even type: {typeof(TEvent).FullName}"
-			);
-
 		_appliersByEventType.Add(typeof(TEvent), ev => applier((TEvent)ev));
 	}
 

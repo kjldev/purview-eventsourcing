@@ -3,7 +3,7 @@ namespace Purview.EventSourcing.SourceGenerator;
 public sealed class EventNamingTests
 {
 	[Test]
-	public async Task EventVerbMap_ReturnsExpectedPastTense(CancellationToken cancellationToken)
+	public async Task EventVerbMap_ReturnsExpectedPastTense()
 	{
 		var cases = new (string Verb, string PastTense)[]
 		{
@@ -13,7 +13,7 @@ public sealed class EventNamingTests
 			("Set", "Set"),
 			("Withdraw", "Withdrawn"),
 			("Submit", "Submitted"),
-			("Cancel", "Cancelled"),
+			("Cancel", "Canceled"),
 			("Split", "Split"),
 			("Reactivate", "Reactivated"),
 		};
@@ -26,7 +26,7 @@ public sealed class EventNamingTests
 	}
 
 	[Test]
-	public async Task EventVerbMap_InfersExpectedGeneratedEventNames(CancellationToken cancellationToken)
+	public async Task EventVerbMap_InfersExpectedGeneratedEventNames()
 	{
 		var cases = new (string MethodName, string AggregateName, string ExpectedEventName)[]
 		{
@@ -51,7 +51,7 @@ public sealed class EventNamingTests
 	}
 
 	[Test]
-	public async Task EventVerbMap_ValidatesPastTenseEventNames(CancellationToken cancellationToken)
+	public async Task EventVerbMap_ValidatesPastTenseEventNames()
 	{
 		var validNames = new[]
 		{

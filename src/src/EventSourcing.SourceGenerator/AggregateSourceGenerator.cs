@@ -36,6 +36,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 			ctx.AddEmbeddedAttributeDefinition();
 			ctx.AddSource(
+				"AggregatePropertyAttribute.g.cs",
+				EmbeddedResources.LoadTemplate("AggregatePropertyAttribute")
+			);
+			ctx.AddSource(
 				"GenerateAggregateAttribute.g.cs",
 				EmbeddedResources.LoadTemplate("GenerateAggregateAttribute")
 			);
@@ -43,10 +47,6 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				"GenerateAggregateEventAttribute.g.cs",
 				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);
-			//ctx.AddSource(
-			//    "AggregateValidationAttribute.g.cs",
-			//    EmbeddedResources.LoadTemplate("AggregateValidationAttribute")
-			//);
 		});
 
 		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
@@ -77,7 +77,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		);
 
 		var manualEventTypes = context.SyntaxProvider.CreateSyntaxProvider(
-			predicate: static (node, _) => node is TypeDeclarationSyntax typeDeclaration && typeDeclaration.BaseList is not null,
+			predicate: static (node, _) =>
+				node is TypeDeclarationSyntax typeDeclaration && typeDeclaration.BaseList is not null,
 			transform: static (ctx, _) => GetEventTypeValidationResult(ctx)
 		);
 
@@ -393,7 +394,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		if (ctx.Node is not TypeDeclarationSyntax typeDeclaration)
 			return new EventTypeValidationResult([]);
 
-		if (ctx.SemanticModel.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol typeSymbol || typeSymbol.IsAbstract)
+		if (
+			ctx.SemanticModel.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol typeSymbol
+			|| typeSymbol.IsAbstract
+		)
 			return new EventTypeValidationResult([]);
 
 		if (!IsEventType(typeSymbol))

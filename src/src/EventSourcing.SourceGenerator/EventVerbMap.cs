@@ -1,10 +1,13 @@
 using System.Collections.Frozen;
+using System.Text.RegularExpressions;
 
 namespace Purview.EventSourcing.SourceGenerator;
 
 static class EventVerbMap
 {
-	static readonly FrozenDictionary<string, string> VerbPairs = new Dictionary<string, string>
+	#region Data set
+
+	static readonly FrozenDictionary<string, string> PastTenseByVerb = new Dictionary<string, string>
 	{
 		// ── Original entries (Cancel now US-spelled) ──
 		{ "Reactivate", "Reactivated" },
@@ -299,19 +302,48 @@ static class EventVerbMap
 		("Remove", "Removed"),
 	];
 
+	// Modifier prefixes that attach to a following verb rather than acting as the verb.
+	// "ForceSave" -> Force + Save -> "ForceSaved" (inflect last, keep order).
+	// Matched case-insensitively against the FIRST PascalCase segment.
+	static readonly HashSet<string> ModifierPrefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+	{
+		"Force",
+		"Bulk",
+		"Soft",
+		"Hard",
+		"Auto",
+		"Batch",
+		"Mass",
+		"Quick",
+		"Partial",
+		"Full",
+	};
+
 	static readonly string[] PastTenseSuffixes =
 	[
-		.. VerbPairs
+		.. PastTenseByVerb
 			.Select(static pair => pair.Value)
 			.Distinct(StringComparer.Ordinal)
 			.OrderByDescending(static value => value.Length)
 			.ThenBy(static value => value, StringComparer.Ordinal),
 	];
 
-	static readonly FrozenDictionary<string, string> VerbPairsByPrefixLength = VerbPairs
+	static readonly FrozenDictionary<string, string> VerbPairsByPrefixLength = PastTenseByVerb
 		.OrderByDescending(static pair => pair.Key.Length)
 		.ThenBy(static pair => pair.Key, StringComparer.Ordinal)
 		.ToFrozenDictionary();
+
+	#endregion Data set
+
+	static readonly Regex PascalCaseSplitter = new(
+		// Boundary before an uppercase letter that starts a new word:
+		//  - lower/digit -> Upper   (forceSave -> force|Save)
+		//  - Upper -> Upper+lower   (XMLParse  -> XML|Parse)
+		@"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])",
+		RegexOptions.Compiled
+	);
+
+	static List<string> SplitPascalCase(string identifier) => [.. PascalCaseSplitter.Split(identifier)];
 
 	public static bool TryGetPastTense(string verb, out string pastTense)
 	{
@@ -330,6 +362,13 @@ static class EventVerbMap
 
 	public static bool TryCreateGeneratedEventName(string methodName, string aggregateClassName, out string eventName)
 	{
+		var match = ToPastTense(methodName);
+		if (match is not null)
+		{
+			eventName = match;
+			return true;
+		}
+
 		if (TryCreatePropertySpecificEventName(methodName, out eventName))
 			return true;
 
@@ -340,27 +379,71 @@ static class EventVerbMap
 		return false;
 	}
 
-	public static bool IsVerbPhrase(string methodName)
-	{
-		if (TryCreatePropertySpecificEventName(methodName, out _))
-			return true;
-
-		return TryGetVerbPrefix(methodName, out _, out _);
-	}
+	public static bool IsVerbPhrase(string methodName) =>
+		TryCreatePropertySpecificEventName(methodName, out _) || TryGetVerbPrefix(methodName, out _, out _);
 
 	public static bool IsPastTenseEventName(string eventName)
 	{
 		var coreName = TrimEventSuffix(eventName);
-		if (string.IsNullOrWhiteSpace(coreName))
-			return false;
-
-		return TryGetPastTenseSuffix(coreName, out _);
+		return !string.IsNullOrWhiteSpace(coreName) && TryGetPastTenseSuffix(coreName, out _);
 	}
 
 	public static bool TryGetPastTenseEventNameCore(string eventName, out string coreName)
 	{
 		coreName = TrimEventSuffix(eventName);
 		return !string.IsNullOrWhiteSpace(coreName) && IsPastTenseEventName(coreName);
+	}
+
+	/// <summary>
+	/// Converts a command-style identifier into its past-tense event form.
+	/// Default (verb-object): "CreateOrder" -> "OrderCreated", "ShipOrder" -> "OrderShipped".
+	/// Single verb:           "Ship" -> "Shipped".
+	/// Modifier prefix:       "ForceSave" -> "ForceSaved" (inflect last word, preserve order).
+	/// </summary>
+	/// <returns>The past-tense event identifier, or null if no verb could be resolved.</returns>
+	static string ToPastTense(string identifier)
+	{
+		if (string.IsNullOrEmpty(identifier))
+			return null;
+
+		// 1. Fixed whole-identifier forms (e.g. "Rollback" -> "RolledBack").
+		if (PastTenseByVerb.TryGetValue(identifier, out var wholePast))
+			return wholePast;
+
+		var words = SplitPascalCase(identifier);
+		if (words.Count == 0)
+			return null;
+
+		// 2. Single word: it's the verb. "Ship" -> "Shipped".
+		if (words.Count == 1)
+		{
+			return PastTenseByVerb.TryGetValue(words[0], out var single) ? single : null;
+		}
+
+		var lastIndex = words.Count - 1;
+
+		// 3. Modifier-prefix compound: inflect the LAST word, preserve word order.
+		//    "ForceSave" -> "Force" + "Saved" = "ForceSaved".
+		if (ModifierPrefixes.Contains(words[0]))
+		{
+			if (!PastTenseByVerb.TryGetValue(words[lastIndex], out var headPast))
+				return null;
+
+			words[lastIndex] = headPast;
+			return string.Concat(words);
+		}
+
+		// 4. Default verb-object: FIRST word is the verb, remainder is the object.
+		//    Reorder to object + past-verb. "CreateOrder" -> "Order" + "Created" = "OrderCreated".
+		if (!PastTenseByVerb.TryGetValue(words[0], out var verbPast))
+			return null;
+
+		var sb = new System.Text.StringBuilder();
+		for (var i = 1; i < words.Count; i++)
+			sb.Append(words[i]); // object: "Order" (or multi-word "LineItem")
+		sb.Append(verbPast); // past verb: "Created"
+
+		return sb.ToString();
 	}
 
 	public static bool TrySuggestVerbPhrase(string methodName, out string suggestedMethodName)

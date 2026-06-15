@@ -24,20 +24,6 @@ public partial class AggregateBaseTests
 	}
 
 	[Test]
-	public async Task Register_GivenEventTypeNotEndingWithEvent_ThrowsInvalidOperationException()
-	{
-		// Arrange/ Act
-		static void Act()
-		{
-			InvalidEventTestAggregate aggregate = new();
-		}
-
-		// Assert
-		var ex = await Assert.That(Act).Throws<InvalidOperationException>();
-		await Assert.That(ex!.Message).Contains(typeof(InvalidEventType).FullName!);
-	}
-
-	[Test]
 	public async Task RecordEvent_GivenEvent_AppliesEvent()
 	{
 		// Arrange

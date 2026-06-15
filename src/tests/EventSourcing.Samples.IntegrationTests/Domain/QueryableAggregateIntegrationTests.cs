@@ -255,7 +255,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 	{
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
-		inventory.Initialize(productId, productName, "loc-1", "Main", initialQuantity: quantityOnHand);
+		inventory.Create(productId, productName, "loc-1", "Main", initialQuantity: quantityOnHand);
 		if (reserved > 0)
 			inventory.ReserveStock(reserved, $"order-{Guid.NewGuid():N}");
 

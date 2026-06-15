@@ -52,7 +52,7 @@ public sealed class StockTransferService(IEventStoreTransactionFactory transacti
 		if (destination is null)
 		{
 			destination = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
-			destination.Initialize(
+			destination.Create(
 				source.ProductId,
 				source.ProductName,
 				destinationLocation.LocationId,

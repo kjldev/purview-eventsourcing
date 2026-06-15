@@ -30,7 +30,7 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		// --- Phase 2: Initialize inventory ---
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
-		inventory.Initialize("widget-1", "Premium Widget", "loc-1", "Main Warehouse", initialQuantity: 100);
+		inventory.Create("widget-1", "Premium Widget", "loc-1", "Main Warehouse", initialQuantity: 100);
 		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Phase 3: Create order for the customer ---
@@ -95,7 +95,7 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		// --- Set up inventory ---
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
-		inventory.Initialize("gadget-1", "Super Gadget", "loc-2", "Returns Warehouse", initialQuantity: 50);
+		inventory.Create("gadget-1", "Super Gadget", "loc-2", "Returns Warehouse", initialQuantity: 50);
 		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Create and confirm order ---

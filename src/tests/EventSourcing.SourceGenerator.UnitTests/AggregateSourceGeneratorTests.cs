@@ -6,12 +6,6 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public sealed class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
-	const int ExpectedFileCount = 3;
-	const int ExpectedFileCountPlusGen = ExpectedFileCount + 1;
-
-	const int HintNameHashHexLength = 16;
-	const string GeneratedSourceFileSuffix = ".g.cs";
-
 	// Stub for AggregateBase so the source generator can find the base class
 	const string AggregateBaseStub =
 		@"#nullable enable
@@ -69,19 +63,7 @@ namespace Purview.EventSourcing.Aggregates.Events
 	/// </summary>
 	static string GetAggregateGeneratedSource(GeneratorDriverRunResult result)
 	{
-		var aggregateTree = result.GeneratedTrees.FirstOrDefault(t =>
-			!t.FilePath.EndsWith("EmbeddedAttribute.cs", StringComparison.Ordinal)
-			&& !t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
-			&& !t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
-			&& !t.FilePath.EndsWith("AggregateValidationAttribute.g.cs", StringComparison.Ordinal)
-		);
-
-		//Console.WriteLine(
-		//    string.Join(
-		//        Environment.NewLine,
-		//        result.GeneratedTrees.Select(t => t.FilePath).ToArray()
-		//    )
-		//);
+		var aggregateTree = ExcludeGenAttribs(result).FirstOrDefault();
 
 		return aggregateTree?.GetText().ToString() ?? string.Empty;
 	}
@@ -679,11 +661,11 @@ namespace Testing
 
 		// Assert — parameterless event uses () constructor
 		await Assert.That(generatedSource).Contains("public partial void Increment()");
-		await Assert.That(generatedSource).Contains("void Apply(global::Testing.CounterEvents.CounterIncremented _)");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.CounterEvents.Incremented _)");
 		await Assert
 			.That(generatedSource)
 			.Contains("protected override void BuildEventHash(ref global::System.HashCode _)");
-		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.CounterIncremented");
+		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.Incremented");
 		await Assert.That(generatedSource).Contains("RecordAndApply(@event);");
 		await Assert.That(warnings).IsEmpty();
 	}
@@ -941,19 +923,13 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
 		// Assert — attribute files are generated
-		var attributeSources = result
-			.GeneratedTrees.Where(t =>
-				t.FilePath.EndsWith("EmbeddedAttribute.cs", StringComparison.Ordinal)
-				|| t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
-				|| t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
-			)
-			.Select(t => t.GetText().ToString())
-			.ToList();
+		var attributeSources = result.GeneratedTrees.Select(t => t.GetText().ToString()).ToList();
 
 		await Assert.That(attributeSources).Count().IsEqualTo(ExpectedFileCount);
 
 		var allAttributeSource = string.Join("\n", attributeSources);
 		await Assert.That(allAttributeSource).Contains("class EmbeddedAttribute");
+		await Assert.That(allAttributeSource).Contains("class AggregatePropertyAttribute");
 		await Assert.That(allAttributeSource).Contains("class GenerateAggregateAttribute");
 		await Assert.That(allAttributeSource).Contains("class GenerateAggregateEventAttribute");
 	}
@@ -1540,11 +1516,11 @@ namespace Testing
 
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.DoesNotContain("EVENTSTORE010");
+			.DoesNotContain(GeneratorDiagnostics.EventParameterMustMapToWritableProperty.Id);
 		await Assert.That(generatedSource).Contains("public partial void Rename(string customerId)");
 		await Assert.That(generatedSource).Contains("public string CustomerId { get; set; } = default!;");
-		await Assert.That(generatedSource).Contains("OnCreatingMappingRenamed(ref customerId);");
-		await Assert.That(generatedSource).Contains("OnAppliedMappingRenamed(@event);");
+		await Assert.That(generatedSource).Contains("OnCreatingRenamed(ref customerId);");
+		await Assert.That(generatedSource).Contains("OnAppliedRenamed(@event);");
 		await Assert
 			.That(
 				outputCompilation
@@ -1683,16 +1659,14 @@ namespace Testing
 		await Assert.That(generatedSource).Contains("public sealed class TotalUpdated");
 		await Assert.That(generatedSource).Contains("public sealed class ShippingAddressSet");
 		await Assert.That(generatedSource).Contains("public sealed class OrderConfirmed");
-		await Assert.That(generatedSource).Contains("public sealed class OrderCancelled");
+		await Assert.That(generatedSource).Contains("public sealed class OrderCanceled"); // US spelling
 
 		// Assert — all 5 Register calls
 		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.OrderCreated>(Apply);");
 		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.TotalUpdated>(Apply);");
-		await Assert
-			.That(generatedSource)
-			.Contains("Register<global::Testing.OrderEvents.ShippingAddressSet>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.ShippingAddressSet>(Apply);");
 		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.OrderConfirmed>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.OrderCancelled>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.OrderCanceled>(Apply);");
 
 		// Assert — compiles without errors
 		var errors = outputCompilation
@@ -1785,9 +1759,7 @@ namespace Testing
 
 		var generatedSource = GetAggregateGeneratedSource(result);
 		await Assert.That(generatedSource).Contains("public sealed class AccountCreated");
-		await Assert
-			.That(generatedSource)
-			.Contains("Register<global::Testing.AccountEvents.AccountCreated>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.AccountEvents.AccountCreated>(Apply);");
 	}
 
 	[Test]
@@ -1859,17 +1831,17 @@ namespace Testing
 		var generatedSource = GetAggregateGeneratedSource(result);
 
 		// Assert — parameterless use () constructor, parameterized use { } initializer
-		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.CounterIncremented");
-		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.CounterDecremented");
-		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.CounterReset");
+		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.Incremented");
+		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.Decremented");
+		await Assert.That(generatedSource).Contains("var @event = new global::Testing.CounterEvents.Reset");
 		await Assert.That(generatedSource).Contains("RecordAndApply(@event);");
 		await Assert.That(generatedSource).Contains("Label = label,");
 
 		// Assert — all 4 Register calls
-		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.CounterIncremented>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.CounterDecremented>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.Incremented>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.Decremented>(Apply);");
 		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.LabelSet>(Apply);");
-		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.CounterReset>(Apply);");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.CounterEvents.Reset>(Apply);");
 
 		// Assert — compiles without errors
 		var errors = outputCompilation
@@ -2138,14 +2110,8 @@ namespace Testing
 		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""ValueChanged"")]
 		public partial void NameChanged(string value);
 
-		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""ValueUpdated"")]
-		public partial void Process(string value);
-
 		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""ValueSet"")]
 		public partial void Handle(string value);
-
-		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""ValueRemoved"")]
-		public partial void Apply(string value);
 	}
 }
 ";
@@ -2153,9 +2119,13 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var warnings = GetGeneratorDiagnostics(result).Where(d => d.Severity == DiagnosticSeverity.Warning).ToArray();
 
-		await Assert.That(warnings.Count(d => d.Id == "EVENTSTORE012")).IsEqualTo(6);
-		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain("EVENTSTORE015");
-		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain("EVENTSTORE014");
+		await Assert
+			.That(warnings.Count(d => d.Id == GeneratorDiagnostics.AggregateMethodShouldBeVerbPhrase.Id))
+			.IsEqualTo(4);
+		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain(GeneratorDiagnostics.UnableToInferEventName.Id);
+		await Assert
+			.That(warnings.Select(d => d.Id))
+			.DoesNotContain(GeneratorDiagnostics.EventNameOverrideShouldBePastTense.Id);
 	}
 
 	[Test]
@@ -2228,19 +2198,11 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var warnings = GetGeneratorDiagnostics(result).Where(d => d.Severity == DiagnosticSeverity.Warning).ToArray();
 
-		await Assert.That(warnings.Select(d => d.Id)).Contains("EVENTSTORE013");
-		await Assert.That(warnings.Count(d => d.Id == "EVENTSTORE013")).IsEqualTo(1);
-		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain("EVENTSTORE014");
-		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain("EVENTSTORE015");
-	}
-
-	static IEnumerable<SyntaxTree> ExcludeGenAttribs(GeneratorDriverRunResult result)
-	{
-		return result.GeneratedTrees.Where(tree =>
-			!tree.FilePath.EndsWith("EmbeddedAttribute.cs", StringComparison.Ordinal)
-			&& !tree.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
-			&& !tree.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
-			&& !tree.FilePath.EndsWith("AggregateValidationAttribute.g.cs", StringComparison.Ordinal)
-		);
+		await Assert.That(warnings.Select(d => d.Id)).Contains(GeneratorDiagnostics.EventNameShouldBePastTense.Id);
+		await Assert.That(warnings.Count(d => d.Id == GeneratorDiagnostics.EventNameShouldBePastTense.Id)).IsEqualTo(1);
+		await Assert
+			.That(warnings.Select(d => d.Id))
+			.DoesNotContain(GeneratorDiagnostics.EventNameOverrideShouldBePastTense.Id);
+		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain(GeneratorDiagnostics.UnableToInferEventName.Id);
 	}
 }

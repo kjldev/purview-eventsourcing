@@ -18,7 +18,7 @@ public sealed class OrderFulfillmentServiceTests
 	{
 		var i = new InventoryAggregate();
 		i.Details.Id = id;
-		i.Initialize("widget-sku", "Widget", "warehouse-1", "Main Warehouse", initialQuantity: quantity);
+		i.Create("widget-sku", "Widget", "warehouse-1", "Main Warehouse", initialQuantity: quantity);
 		return i;
 	}
 

@@ -8,6 +8,20 @@ namespace Purview.EventSourcing.SourceGenerator;
 public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError = true)
 	where TGenerator : class, IIncrementalGenerator, new()
 {
+	public static readonly string[] GeneratedAttributes =
+	[
+		"EmbeddedAttribute.cs",
+		"AggregatePropertyAttribute.g.cs",
+		"GenerateAggregateAttribute.g.cs",
+		"GenerateAggregateEventAttribute.g.cs",
+	];
+
+	public static readonly int ExpectedFileCount = GeneratedAttributes.Length;
+	public static readonly int ExpectedFileCountPlusGen = ExpectedFileCount + 1;
+
+	public const int HintNameHashHexLength = 16;
+	public const string GeneratedSourceFileSuffix = ".g.cs";
+
 	protected async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
 		string source,
 		CancellationToken cancellationToken
@@ -99,5 +113,12 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 
 		assemblyStream.Position = 0;
 		return System.Reflection.Assembly.Load(assemblyStream.ToArray());
+	}
+
+	protected static IEnumerable<SyntaxTree> ExcludeGenAttribs(GeneratorDriverRunResult result)
+	{
+		return result.GeneratedTrees.Where(tree =>
+			!GeneratedAttributes.Any(attr => tree.FilePath.EndsWith(attr, StringComparison.Ordinal))
+		);
 	}
 }

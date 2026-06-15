@@ -107,7 +107,7 @@ public sealed partial class InventoryAggregate : AggregateBase
 		string productName,
 		string locationId,
 		string locationName,
-		[AggregateProperty(nameof(QuantityOnHand))] int initialQuantity,
+		[AggregateProperty(nameof(QuantityOnHand))] int initialQuantity = 0,
 		int reservedQuantity = 0
 	);
 

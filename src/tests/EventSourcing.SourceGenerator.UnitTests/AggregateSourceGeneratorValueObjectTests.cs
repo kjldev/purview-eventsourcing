@@ -74,12 +74,7 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 
 	static string GetAggregateGeneratedSource(GeneratorDriverRunResult result)
 	{
-		var aggregateTree = result.GeneratedTrees.FirstOrDefault(t =>
-			!t.FilePath.EndsWith("EmbeddedAttribute.cs", StringComparison.Ordinal)
-			&& !t.FilePath.EndsWith("GenerateAggregateAttribute.g.cs", StringComparison.Ordinal)
-			&& !t.FilePath.EndsWith("GenerateAggregateEventAttribute.g.cs", StringComparison.Ordinal)
-			&& !t.FilePath.EndsWith("AggregateValidationAttribute.g.cs", StringComparison.Ordinal)
-		);
+		var aggregateTree = ExcludeGenAttribs(result)?.FirstOrDefault();
 
 		return aggregateTree?.GetText().ToString() ?? string.Empty;
 	}

@@ -33,11 +33,11 @@ static async Task SeedAsync(IQueryableEventStore store)
 	await store.SaveAsync(customer);
 
 	var keyboard = await store.CreateAsync<InventoryAggregate>("inventory-keyboard");
-	keyboard.Initialize("SKU-KEYBOARD", "Wireless Keyboard", "LOC-1", "Main Warehouse", initialQuantity: 25);
+	keyboard.Create("SKU-KEYBOARD", "Wireless Keyboard", "LOC-1", "Main Warehouse", initialQuantity: 25);
 	await store.SaveAsync(keyboard);
 
 	var dock = await store.CreateAsync<InventoryAggregate>("inventory-dock");
-	dock.Initialize("SKU-DOCK", "USB-C Dock", "LOC-1", "Main Warehouse", initialQuantity: 15);
+	dock.Create("SKU-DOCK", "USB-C Dock", "LOC-1", "Main Warehouse", initialQuantity: 15);
 	await store.SaveAsync(dock);
 
 	Console.WriteLine("Seeded one customer and two inventory aggregates.");
