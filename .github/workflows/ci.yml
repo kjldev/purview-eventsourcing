@@ -25,10 +25,10 @@ jobs:
         with:
           global-json-file: ./global.json
 
-      - name: Restore dotnet tools
+      - name: Restore .NET Tools
         run: dotnet tool restore
 
-      - name: CSharpier format check
+      - name: CSharpier Format Check
         run: dotnet csharpier check ./src
 
   build-and-test:
@@ -48,14 +48,53 @@ jobs:
         with:
           global-json-file: ./global.json
 
-      - name: Restore dependencies
+      - name: Restore Dependencies
         run: dotnet restore ${{ env.SOLUTION }}
 
       - name: Build
         run: dotnet build ${{ env.SOLUTION }} --no-restore --configuration ${{ env.CONFIGURATION }}
 
-      - name: Run tests
-        run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal --configuration ${{ env.CONFIGURATION }}
+      - name: Run Unit Tests
+        run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal --configuration ${{ env.CONFIGURATION }} --ignore-exit-code 8 --treenode-filter "/*UnitTest*/*/*/*" --results-directory ./TestResults -- --coverage --report-trx
+
+      - name: Comment PR with results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ./TestResults/*.trx
+          comment_mode: always
+
+      - name: Upload Test Results
+        if: always() # Run even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./TestResults/*.trx
+
+      - name: Upload Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: ./TestResults/*.coverage
+
+  publish-results:
+    name: Publish Test Results
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          path: ./TestResults
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ./TestResults/**/*.trx
 
   ci-gate:
     name: CI Gate
