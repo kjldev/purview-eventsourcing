@@ -23,9 +23,9 @@
 		<Copyright>Copyright © $(CurrentYear) KJL Solutions</Copyright>
 		<PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
 		<RepositoryType>git</RepositoryType>
-		<!--<PackageLicenseFile>$(MSBuildThisFileDirectory)..\LICENSE.md</PackageLicenseFile>
-		<PackageIcon>$(MSBuildThisFileDirectory)../assets/images/kjldev-logo.png</PackageIcon>
-		<PackageReadmeFile>$(MSBuildThisFileDirectory)../README.md</PackageReadmeFile>-->
+		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+		<PackageIcon>kjldev-logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 	</PropertyGroup>
 
