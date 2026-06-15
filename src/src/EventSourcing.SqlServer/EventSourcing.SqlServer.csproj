@@ -7,8 +7,8 @@
 		<IsPackable>true</IsPackable>
 		<Title>Purview Event Store for Azure SQL and SQL Server</Title>
 		<Description>Azure SQL and SQL Server event stream storage provider for Purview EventSourcing.</Description>
+		<PackageId>Purview.EventSourcing.SqlServer</PackageId>
 		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;sql-server;azure-sql;events;</PackageTags>
-		<DefineConstants>EventsBasedStore</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>

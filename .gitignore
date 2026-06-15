@@ -559,9 +559,6 @@ sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/openframeworks+visualstudio,nextjs,react,web,visualstudiocode,node,aspnetcore,ncrunch
 
-!scripts/*
-!src/src/EventSourcing/build
-
 *.binlog
 
 # BEGIN KL-PROFILE-AGENT-CONFIG
@@ -591,3 +588,6 @@ coverage/
 .claude/settings.local.json
 .opencode/*.local.json
 # END KL-PROFILE-AGENT-CONFIG
+
+!scripts/*
+!src/src/EventSourcing/build

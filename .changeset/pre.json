@@ -1,6 +1,6 @@
 {
   "mode": "pre",
-  "tag": "Init20Release",
+  "tag": "prerelease",
   "initialVersions": {
     "purview-eventsourcing": "2.0.0-prerelease.0"
   },

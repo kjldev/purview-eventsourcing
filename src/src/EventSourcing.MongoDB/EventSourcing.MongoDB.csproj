@@ -7,6 +7,7 @@
 		<IsPackable>true</IsPackable>
 		<Title>Purview Event Store for MongoDB</Title>
 		<Description>MongoDB event stream and snapshot storage provider for Purview EventSourcing.</Description>
+		<PackageId>Purview.EventSourcing.MongoDB</PackageId>
 		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;mongodb;events;snapshots;</PackageTags>
 	</PropertyGroup>
 

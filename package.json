@@ -1,6 +1,6 @@
 {
   "name": "purview-eventsourcing",
-  "version": "2.0.0-Init20Release.1",
+  "version": "2.0.0-prerelease.1",
   "devDependencies": {
     "@changesets/cli": "^2.31.0"
   }
