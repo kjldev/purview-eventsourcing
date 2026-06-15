@@ -1,11 +1,11 @@
-# SQL Server Event Store
+# SQL Server Event and Snapshot Stores
 
-Purview Event Sourcing ships two SQL Server-backed stores:
+Purview Event Sourcing ships separate SQL Server-backed event and snapshot implementations in a single NuGet package:
 
 | Package | Class | Purpose |
 |---------|-------|---------|
-| `EventSourcing.SqlServer.Events` | `SqlServerEventStore<T>` | Pure event-sourced store — events are the source of truth |
-| `EventSourcing.SqlServer` | `SqlServerSnapshotEventStore<T>` | Queryable snapshot store — wraps an events store and maintains a projection |
+| `Purview.EventSourcing.SqlServer` | `SqlServerEventStore<T>` | Pure event-sourced store — events are the source of truth |
+| `Purview.EventSourcing.SqlServer` | `SqlServerSnapshotEventStore<T>` | Queryable snapshot store — optimized for query/list/count over snapshots |
 
 Both stores create their tables automatically on first use (configurable) and use a **single shared table** for all aggregate types.
 
@@ -28,10 +28,6 @@ Both stores create their tables automatically on first use (configurable) and us
 ## Installation
 
 ```xml
-<!-- Events-only store -->
-<PackageReference Include="Purview.EventSourcing.SqlServer.Events" />
-
-<!-- Queryable snapshot store (also bring in an events store) -->
 <PackageReference Include="Purview.EventSourcing.SqlServer" />
 ```
 
@@ -73,8 +69,8 @@ public class OrderService(IEventStore store)
 
 ```csharp
 // Program.cs
-builder.Services.AddSqlServerSnapshotEventStore();
-builder.Services.AddSqlServerEventStore(); // still needed as the backing events store
+builder.Services.AddSqlServerEventStore();
+builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
 // appsettings.json
 {
@@ -332,10 +328,11 @@ void Apply(OrderCreated e)
 
 ## Source Generator
 
-Add the source generator NuGet package to your domain project:
+The source generator ships with `Purview.EventSourcing` and does not require a separate package.
+Add `Purview.EventSourcing` to your domain project:
 
 ```xml
-<PackageReference Include="Purview.EventSourcing.SourceGenerator" />
+<PackageReference Include="Purview.EventSourcing" />
 ```
 
 ### Defining an aggregate

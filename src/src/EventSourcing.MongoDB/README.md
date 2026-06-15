@@ -1,50 +1,26 @@
-# Purview.EventSourcing.MongoDB.Events
+# Purview.EventSourcing.MongoDB
 
-`Purview.EventSourcing.MongoDB.Events` adds MongoDB event stream persistence to Purview EventSourcing.
+`Purview.EventSourcing.MongoDB` provides both MongoDB event-stream persistence and MongoDB queryable snapshot persistence for Purview EventSourcing.
 
 ## Install
 
 ```bash
-dotnet add package Purview.EventSourcing.MongoDB.Events
+dotnet add package Purview.EventSourcing.MongoDB
 ```
 
-## Register the provider
+## Register the providers
 
 ```csharp
 builder.Services.AddMongoDBEventStore();
-```
-
-## What it provides
-
-- MongoDB-backed event stream persistence
-- Configuration binding for the MongoDB event store
-- Telemetry registration for MongoDB event operations
-
-## Documentation
-
-- Repository README: https://github.com/kjldev/purview-eventsourcing/blob/main/README.md
-
-# Purview.EventSourcing.MongoDB.Snapshot
-
-`Purview.EventSourcing.MongoDB.Snapshot` adds MongoDB queryable snapshot persistence to Purview EventSourcing.
-
-## Install
-
-```bash
-dotnet add package Purview.EventSourcing.MongoDB.Snapshot
-```
-
-## Register the provider
-
-```csharp
 builder.Services.AddMongoDBSnapshotQueryableEventStore();
 ```
 
 ## What it provides
 
-- Query, list, count, and first/single lookups through `IQueryableEventStore`
-- MongoDB-backed snapshot persistence for aggregate read models
-- Configuration binding for the MongoDB snapshot store
+- MongoDB-backed event-stream persistence through `IEventStore`
+- Query/list/count/first/single snapshot-backed reads through `IQueryableEventStore`
+- Configuration binding for event and snapshot MongoDB stores
+- Telemetry registration for MongoDB event and snapshot operations
 
 ## Documentation
 
