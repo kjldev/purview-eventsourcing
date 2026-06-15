@@ -132,6 +132,11 @@ sealed class EventMethodValidationResult(ImmutableArray<Diagnostic> diagnostics)
 	public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 }
 
+sealed class EventTypeValidationResult(ImmutableArray<Diagnostic> diagnostics)
+{
+	public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
+}
+
 enum EventMethodReturnKind
 {
 	Void = 0,

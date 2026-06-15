@@ -295,14 +295,14 @@ public partial class OrderAggregate : AggregateBase
 }
 ```
 
-The generator emits `public override int SchemaVersion => 2;` in the `CreateOrderEvent` class.
+The generator emits `public override int SchemaVersion => 2;` in the `OrderCreated` class.
 
 ### Manually
 
 Override `SchemaVersion` on any `EventBase` subclass:
 
 ```csharp
-public sealed class CreateOrderEvent : EventBase
+public sealed class OrderCreated : EventBase
 {
     public string CustomerId { get; set; } = default!;
     public string Currency   { get; set; } = default!;
@@ -320,7 +320,7 @@ public sealed class CreateOrderEvent : EventBase
 The `SchemaVersion` value is serialized as part of the event's JSON payload. When the event is replayed from the store the version is available via `@event.SchemaVersion`, enabling conditional up-casting:
 
 ```csharp
-void Apply(CreateOrderEvent e)
+void Apply(OrderCreated e)
 {
     CustomerId = e.CustomerId;
     // Up-cast: v1 events did not have Currency; default to "GBP"
@@ -361,10 +361,10 @@ public partial class OrderAggregate : AggregateBase
 
 The generator produces (in `OrderAggregate.g.cs`):
 
-- `Testing.Events.CreateOrderEvent` — sealed class with `CustomerId` and `Total` properties, `BuildEventHash`, and `SchemaVersion`
-- `Testing.Events.UpdateTotalEvent` — sealed class with `Total` property
+- `Testing.Events.OrderCreated` — sealed class with `CustomerId` and `Total` properties, `BuildEventHash`, and `SchemaVersion`
+- `Testing.Events.TotalUpdated` — sealed class with `Total` property
 - `OrderAggregate.RegisterEvents()` — registers all events
-- `OrderAggregate.Apply(CreateOrderEvent)` and `Apply(UpdateTotalEvent)`
+- `OrderAggregate.Apply(OrderCreated)` and `Apply(TotalUpdated)`
 - Implementations of the two partial command methods
 
 ### Parameterless events
@@ -374,7 +374,7 @@ The generator produces (in `OrderAggregate.g.cs`):
 public partial void Activate();
 ```
 
-Generates `ActivateEvent` with no properties and `RecordAndApply(new ActivateEvent())`.
+Generates `OrderActivated` with no properties and `RecordAndApply(new OrderActivated())`.
 
 ### Versioned events
 
@@ -383,7 +383,7 @@ Generates `ActivateEvent` with no properties and `RecordAndApply(new ActivateEve
 public partial void CreateOrder(string customerId, decimal total, string currency);
 ```
 
-Generates `CreateOrderEvent` with `SchemaVersion => 2`.
+Generates `OrderCreated` with `SchemaVersion => 2`.
 
 ---
 

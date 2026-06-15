@@ -15,6 +15,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	const string GenerateAggregateEventAttributeName =
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
+	const string EventBaseMetadataName = "Purview.EventSourcing.Aggregates.Events.EventBase";
+	const string IEventMetadataName = "Purview.EventSourcing.Aggregates.Events.IEvent";
 	const string ScalarAttributeMetadataName = "Purview.EventSourcing.Serialization.ScalarAttribute";
 	const string ValueObjectContextMetadataName = "Purview.EventSourcing.ValueObjects.ValueObjectContext`1";
 	const int HintNameHashHexLength = 16;
@@ -74,6 +76,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			transform: static (ctx, _) => GetStandaloneEventMethodValidationResult(ctx)
 		);
 
+		var manualEventTypes = context.SyntaxProvider.CreateSyntaxProvider(
+			predicate: static (node, _) => node is TypeDeclarationSyntax typeDeclaration && typeDeclaration.BaseList is not null,
+			transform: static (ctx, _) => GetEventTypeValidationResult(ctx)
+		);
+
 		context.RegisterSourceOutput(
 			aggregateClasses.Combine(isDisabled),
 			(spc, data) =>
@@ -94,6 +101,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 		context.RegisterSourceOutput(
 			standaloneEventMethods.Combine(isDisabled),
+			(spc, result) =>
+			{
+				var (validationResult, disabled) = result;
+				if (disabled)
+					return;
+
+				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
+			}
+		);
+
+		context.RegisterSourceOutput(
+			manualEventTypes.Combine(isDisabled),
 			(spc, result) =>
 			{
 				var (validationResult, disabled) = result;
@@ -369,6 +388,30 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			]);
 	}
 
+	static EventTypeValidationResult GetEventTypeValidationResult(GeneratorSyntaxContext ctx)
+	{
+		if (ctx.Node is not TypeDeclarationSyntax typeDeclaration)
+			return new EventTypeValidationResult([]);
+
+		if (ctx.SemanticModel.GetDeclaredSymbol(typeDeclaration) is not INamedTypeSymbol typeSymbol || typeSymbol.IsAbstract)
+			return new EventTypeValidationResult([]);
+
+		if (!IsEventType(typeSymbol))
+			return new EventTypeValidationResult([]);
+
+		var displayName = GetDisplayEventName(typeSymbol.Name);
+		if (EventVerbMap.IsPastTenseEventName(displayName))
+			return new EventTypeValidationResult([]);
+
+		return new EventTypeValidationResult([
+			Diagnostic.Create(
+				GeneratorDiagnostics.EventNameShouldBePastTense,
+				typeDeclaration.GetLocation(),
+				displayName
+			),
+		]);
+	}
+
 	static bool TryCreateEventMethodInfo(
 		INamedTypeSymbol classSymbol,
 		IMethodSymbol methodSymbol,
@@ -404,6 +447,17 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				)
 			);
 			hasErrors = true;
+		}
+
+		if (methodSymbol.DeclaredAccessibility == Accessibility.Public && !EventVerbMap.IsVerbPhrase(methodSymbol.Name))
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.AggregateMethodShouldBeVerbPhrase,
+					methodLocation,
+					methodSymbol.Name
+				)
+			);
 		}
 
 		if (methodSymbol.IsStatic)
@@ -544,7 +598,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return false;
 
 		var version = 1;
-		var eventName = methodSymbol.Name + "Event";
+		var eventName = string.Empty;
+		var hasExplicitEventName = false;
 		string? eventNamespaceOverride = null;
 		foreach (var attribute in methodSymbol.GetAttributes())
 		{
@@ -562,7 +617,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 				if (namedArgument.Key == "EventName" && namedArgument.Value.Value is string explicitEventName)
 				{
-					eventName = explicitEventName;
+					eventName = explicitEventName.Trim();
+					hasExplicitEventName = true;
 					continue;
 				}
 
@@ -572,6 +628,40 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 			break;
 		}
+
+		if (hasExplicitEventName)
+		{
+			if (!EventVerbMap.IsPastTenseEventName(eventName))
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.EventNameOverrideShouldBePastTense,
+						methodLocation,
+						eventName,
+						methodSymbol.Name
+					)
+				);
+			}
+		}
+		else if (!EventVerbMap.TryCreateGeneratedEventName(methodSymbol.Name, classSymbol.Name, out eventName))
+		{
+			var suggestedMethodName = EventVerbMap.TrySuggestVerbPhrase(methodSymbol.Name, out var suggestedVerbPhrase)
+				? suggestedVerbPhrase
+				: $"Create{TrimAggregateSuffix(classSymbol.Name)}";
+
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.UnableToInferEventName,
+					methodLocation,
+					methodSymbol.Name,
+					suggestedMethodName
+				)
+			);
+			hasErrors = true;
+		}
+
+		if (hasErrors)
+			return false;
 
 		var eventNamespace = string.IsNullOrWhiteSpace(eventNamespaceOverride)
 			? string.IsNullOrWhiteSpace(aggregateEventNamespaceOverride)
@@ -727,6 +817,33 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 		return null;
 	}
+
+	static bool IsEventType(INamedTypeSymbol typeSymbol)
+	{
+		for (var current = typeSymbol; current is not null; current = current.BaseType)
+		{
+			if (current.ToDisplayString() == EventBaseMetadataName)
+				return true;
+		}
+
+		foreach (var implementedInterface in typeSymbol.AllInterfaces)
+		{
+			if (implementedInterface.ToDisplayString() == IEventMetadataName)
+				return true;
+		}
+
+		return false;
+	}
+
+	static string GetDisplayEventName(string eventName) =>
+		eventName.EndsWith("Event", StringComparison.Ordinal)
+			? eventName.Substring(0, eventName.Length - "Event".Length)
+			: eventName;
+
+	static string TrimAggregateSuffix(string aggregateClassName) =>
+		aggregateClassName.EndsWith("Aggregate", StringComparison.Ordinal)
+			? aggregateClassName.Substring(0, aggregateClassName.Length - "Aggregate".Length)
+			: aggregateClassName;
 
 	static string CreateDefaultEventNamespace(string? aggregateNamespace, string aggregateClassName)
 	{

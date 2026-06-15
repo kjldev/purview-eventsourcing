@@ -10,10 +10,10 @@ namespace Purview.EventSourcing.Aggregates;
 /// <para>
 /// The method parameters become the event's properties. The generator creates:
 /// <list type="bullet">
-///   <item>An event class named <c>{MethodName}Event</c> extending <c>EventBase</c></item>
-///   <item>A <c>Register&lt;{MethodName}Event&gt;(Apply)</c> call in <c>RegisterEvents()</c></item>
-///   <item>An <c>Apply({MethodName}Event)</c> method that sets matching properties</item>
-///   <item>The method body calls <c>RecordAndApply(new {MethodName}Event { ... })</c></item>
+///   <item>An event class named from the method using a deterministic past-tense convention, such as <c>NameChanged</c> or <c>CustomerRegistered</c></item>
+///   <item>A <c>Register&lt;{EventName}&gt;(Apply)</c> call in <c>RegisterEvents()</c></item>
+///   <item>An <c>Apply({EventName})</c> method that sets matching properties</item>
+///   <item>The method body calls <c>RecordAndApply(new {EventName} { ... })</c></item>
 /// </list>
 /// </para>
 /// </summary>
@@ -38,7 +38,7 @@ sealed class GenerateAggregateEventAttribute : global::System.Attribute
 
 	/// <summary>
 	/// Overrides the generated event type name for this method.
-	/// Defaults to <c>{MethodName}Event</c>.
+	/// Defaults to a deterministic past-tense event name inferred from the method name.
 	/// </summary>
 	public string? EventName { get; set; }
 

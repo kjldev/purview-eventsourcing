@@ -105,6 +105,42 @@ static class GeneratorDiagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor AggregateMethodShouldBeVerbPhrase = new(
+		id: "EVENTSTORE012",
+		title: "Aggregate methods should be verb phrases",
+		messageFormat: "Method '{0}' does not appear to be a verb phrase. Aggregate mutation methods should describe an action, for example 'ChangeName', 'RegisterCustomer', or 'Deactivate'.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor EventNameShouldBePastTense = new(
+		id: "EVENTSTORE013",
+		title: "Event names should be past tense",
+		messageFormat: "Event name '{0}' does not appear to be a past-tense fact. Events should describe something that has happened, for example 'NameChanged' or 'CustomerRegistered'.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor EventNameOverrideShouldBePastTense = new(
+		id: "EVENTSTORE014",
+		title: "Event name overrides should be past tense",
+		messageFormat: "Event name override '{0}' on method '{1}' does not appear to be a past-tense fact",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor UnableToInferEventName = new(
+		id: "EVENTSTORE015",
+		title: "Unable to infer a past-tense event name",
+		messageFormat: "Unable to infer a past-tense event name for method '{0}'. Rename the method to a verb phrase such as '{1}', or add an explicit event name override.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
 	public static readonly DiagnosticDescriptor ValueObjectMustBePartial = new(
 		id: "EVENTSTORE101",
 		title: "Value object must be partial",
