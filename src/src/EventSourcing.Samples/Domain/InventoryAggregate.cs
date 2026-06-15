@@ -87,16 +87,10 @@ public sealed partial class InventoryAggregate : AggregateBase
 	public InventoryAggregate UpdateDetails(string? productName = null, string? locationName = null)
 	{
 		if (productName is not null)
-		{
-			ArgumentException.ThrowIfNullOrWhiteSpace(productName);
 			UpdateProductName(productName);
-		}
 
 		if (locationName is not null)
-		{
-			ArgumentException.ThrowIfNullOrWhiteSpace(locationName);
 			UpdateLocationName(locationName);
-		}
 
 		return this;
 	}

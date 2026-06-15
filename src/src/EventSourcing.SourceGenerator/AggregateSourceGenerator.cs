@@ -17,6 +17,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	const string GenerateAggregateEventAttributeName =
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
 	const string AggregatePropertyAttributeMetadataName = "Purview.EventSourcing.Aggregates.AggregatePropertyAttribute";
+	const string MetadataAttributeMetadataName = "Purview.EventSourcing.Aggregates.MetadataAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
 	const string EventBaseMetadataName = "Purview.EventSourcing.Aggregates.Events.EventBase";
 	const string IEventMetadataName = "Purview.EventSourcing.Aggregates.Events.IEvent";
@@ -54,6 +55,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				"GenerateAggregateEventAttribute.g.cs",
 				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);
+			ctx.AddSource("MetadataAttribute.g.cs", EmbeddedResources.LoadTemplate("MetadataAttribute"));
 		});
 
 		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
@@ -442,14 +444,20 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		Compilation compilation,
 		INamedTypeSymbol? valueObjectContextType,
 		string? aggregateNamespace,
-		string? aggregateEventNamespaceOverride,
-		string? aggregateEventSuffixOverride,
-		string? assemblyEventSuffix,
+		AttributeStringValue aggregateEventNamespaceOverride,
+		AttributeStringValue aggregateEventSuffixOverride,
+		AttributeStringValue assemblyEventSuffix,
 		List<Diagnostic> diagnostics,
 		CancellationToken ct,
 		out AggregateEventMethodInfo methodInfo
 	)
 	{
+		var eventSuffix = (
+			aggregateEventSuffixOverride.IsPresent ? aggregateEventSuffixOverride.Value
+			: assemblyEventSuffix.IsPresent ? assemblyEventSuffix.Value
+			: "Event"
+		)?.Trim();
+
 		methodInfo = default!;
 		var hasErrors = false;
 		var methodLocation = methodSymbol.Locations.FirstOrDefault();
@@ -526,7 +534,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				)
 			);
 
-			if (!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var propertySymbol))
+			if (TryGetMetadataStoreSetting(parameter, out var storeMetadata))
 			{
 				parameters.Add(
 					new EventPropertyInfo(
@@ -535,11 +543,28 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						parameterTypeName,
 						aggregatePropertyName,
 						false,
+						storeMetadata,
 						parameterTypeName,
 						parameter.Type.SpecialType == SpecialType.System_String,
 						EventParameterConversionKind.None
 					)
 				);
+				continue;
+			}
+
+			if (!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var propertySymbol))
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+						parameterLocation,
+						parameter.Name,
+						methodSymbol.Name,
+						classSymbol.Name,
+						$"property '{aggregatePropertyName}' does not exist"
+					)
+				);
+				hasErrors = true;
 				continue;
 			}
 
@@ -611,6 +636,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					parameterTypeName,
 					propertyTypeName,
 					propertySymbol.Name,
+					true,
 					true,
 					propertyTypeName,
 					parameter.Type.SpecialType == SpecialType.System_String
@@ -687,16 +713,16 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		}
 		else
 		{
-			eventName = eventName + ResolveEventSuffix(aggregateEventSuffixOverride, assemblyEventSuffix);
+			eventName += eventSuffix;
 		}
 
 		if (hasErrors)
 			return false;
 
 		var eventNamespace = string.IsNullOrWhiteSpace(eventNamespaceOverride)
-			? string.IsNullOrWhiteSpace(aggregateEventNamespaceOverride)
+			? string.IsNullOrWhiteSpace(aggregateEventNamespaceOverride.Value)
 				? CreateDefaultEventNamespace(aggregateNamespace, classSymbol.Name)
-				: aggregateEventNamespaceOverride!.Trim()
+				: aggregateEventNamespaceOverride!.Value!.Trim()
 			: eventNamespaceOverride!.Trim();
 
 		methodInfo = new AggregateEventMethodInfo(
@@ -826,7 +852,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		return SymbolEqualityComparer.Default.Equals(contextType.TypeArguments[0], aggregateType);
 	}
 
-	static string? GetAttributeStringNamedArgument(
+	static AttributeStringValue GetAttributeStringNamedArgument(
 		ImmutableArray<AttributeData> attributes,
 		string attributeMetadataName,
 		string argumentName
@@ -841,11 +867,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			foreach (var namedArgument in attribute.NamedArguments)
 			{
 				if (namedArgument.Key == argumentName && namedArgument.Value.Value is string value)
-					return value;
+					return new(value, true);
 			}
 		}
 
-		return null;
+		return new AttributeStringValue(null, false);
 	}
 
 	static string? GetAggregatePropertyNameOverride(IParameterSymbol parameterSymbol)
@@ -865,15 +891,23 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		return null;
 	}
 
-	static string ResolveEventSuffix(string? aggregateEventSuffixOverride, string? assemblyEventSuffix)
+	static bool TryGetMetadataStoreSetting(IParameterSymbol parameterSymbol, out bool storeMetadata)
 	{
-		if (aggregateEventSuffixOverride is not null)
-			return aggregateEventSuffixOverride.Trim();
+		storeMetadata = true;
 
-		if (assemblyEventSuffix is not null)
-			return assemblyEventSuffix.Trim();
+		foreach (var attribute in parameterSymbol.GetAttributes())
+		{
+			var attributeClass = attribute.AttributeClass;
+			if (attributeClass is null || attributeClass.ToDisplayString() != MetadataAttributeMetadataName)
+				continue;
 
-		return string.Empty;
+			if (attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is bool value)
+				storeMetadata = value;
+
+			return true;
+		}
+
+		return false;
 	}
 
 	static bool IsEventType(INamedTypeSymbol typeSymbol)

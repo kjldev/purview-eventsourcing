@@ -97,18 +97,20 @@ static class EmitHelper
 
 	static void GenerateEventClass(StringBuilder sb, AggregateEventMethodInfo method, GenerationLogger? logger)
 	{
+		var storedParameters = method.Parameters.Where(static parameter => parameter.IncludeInEvent).ToList();
+
 		logger?.Debug(
-			$"Generating event class '{method.EventName}' for method '{method.MethodName}' with {method.Parameters.Count} parameters and version {method.Version}."
+			$"Generating event class '{method.EventName}' for method '{method.MethodName}' with {storedParameters.Count} stored parameters and version {method.Version}."
 		);
 
-		var hashParameterName = method.Parameters.Count == 0 ? "_" : "hash";
+		var hashParameterName = storedParameters.Count == 0 ? "_" : "hash";
 
 		sb.AppendLine(
 			$"\tpublic sealed class {method.EventName} : global::Purview.EventSourcing.Aggregates.Events.EventBase"
 		);
 		sb.AppendLine("\t{");
 
-		foreach (var prop in method.Parameters)
+		foreach (var prop in storedParameters)
 		{
 			sb.AppendLine($"\t\tpublic {prop.PropertyTypeName} {prop.PropertyName} {{ get; set; }} = default!;");
 		}
@@ -123,7 +125,7 @@ static class EmitHelper
 		sb.AppendLine($"\t\tprotected override void BuildEventHash(ref global::System.HashCode {hashParameterName})");
 		sb.AppendLine("\t\t{");
 
-		foreach (var prop in method.Parameters)
+		foreach (var prop in storedParameters)
 		{
 			sb.AppendLine($"\t\t\t{hashParameterName}.Add({prop.PropertyName});");
 		}
@@ -180,7 +182,16 @@ static class EmitHelper
 
 	static void GenerateApplyMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
 	{
-		var eventParameterName = method.Parameters.Count == 0 ? "_" : "@event";
+		if (method.Parameters.Count == 0)
+		{
+			sb.AppendLine(
+				$"{indent}\tprivate partial void Apply(global::{method.EventNamespace}.{method.EventName} @event);"
+			);
+			sb.AppendLine();
+			return;
+		}
+
+		const string eventParameterName = "@event";
 		var mappedParameters = method.Parameters.Where(static parameter => parameter.HasAggregateProperty).ToList();
 
 		sb.AppendLine($"{indent}\tvoid Apply(global::{method.EventNamespace}.{method.EventName} {eventParameterName})");
@@ -231,6 +242,7 @@ static class EmitHelper
 	)
 	{
 		var paramList = new StringBuilder();
+		var storedParameters = method.Parameters.Where(static parameter => parameter.IncludeInEvent).ToList();
 		for (var i = 0; i < method.Parameters.Count; i++)
 		{
 			if (i > 0)
@@ -271,12 +283,26 @@ static class EmitHelper
 				sb.AppendLine();
 		}
 
+		EmitEventCreation(sb, method, storedParameters, indent, declareVariable: true);
+		sb.AppendLine($"{indent}\t\tif (!ShouldApply{hookSuffix}(@event))");
+		sb.AppendLine($"{indent}\t\t{{");
+		EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+		sb.AppendLine($"{indent}\t\t}}");
+
+		sb.AppendLine();
 		if (method.Parameters.Count == 0)
 			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}();");
 		else
 		{
 			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
 		}
+
+		sb.AppendLine();
+		EmitEventCreation(sb, method, storedParameters, indent, declareVariable: false);
+		sb.AppendLine($"{indent}\t\tif (!ShouldApply{hookSuffix}(@event))");
+		sb.AppendLine($"{indent}\t\t{{");
+		EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+		sb.AppendLine($"{indent}\t\t}}");
 
 		if (method.Parameters.Count > 0)
 		{
@@ -290,24 +316,6 @@ static class EmitHelper
 				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
 				sb.AppendLine($"{indent}\t\t}}");
 			}
-		}
-
-		sb.AppendLine();
-		sb.AppendLine($"{indent}\t\tvar @event = new global::{method.EventNamespace}.{method.EventName}");
-
-		if (method.Parameters.Count > 0)
-		{
-			sb.AppendLine($"{indent}\t\t{{");
-			foreach (var prop in method.Parameters)
-			{
-				sb.AppendLine($"{indent}\t\t\t{prop.PropertyName} = {GetWorkingValueName(prop)},");
-			}
-
-			sb.AppendLine($"{indent}\t\t}};");
-		}
-		else
-		{
-			sb.AppendLine($"{indent}\t\t();");
 		}
 
 		sb.AppendLine();
@@ -329,6 +337,19 @@ static class EmitHelper
 			);
 		}
 
+		EmitCa1822Suppression(sb, indent);
+		sb.AppendLine(
+			$"{indent}\tbool ShouldApply{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event)"
+		);
+		sb.AppendLine($"{indent}\t{{");
+		sb.AppendLine($"{indent}\t\tvar shouldApply = true;");
+		sb.AppendLine($"{indent}\t\tOnShouldApply{hookSuffix}(@event, ref shouldApply);");
+		sb.AppendLine($"{indent}\t\treturn shouldApply;");
+		sb.AppendLine($"{indent}\t}}");
+		EmitCa1822Suppression(sb, indent);
+		sb.AppendLine(
+			$"{indent}\tpartial void OnShouldApply{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event, ref bool shouldApply);"
+		);
 		EmitCa1822Suppression(sb, indent);
 		sb.AppendLine(
 			$"{indent}\tpartial void OnRaised{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
@@ -378,6 +399,35 @@ static class EmitHelper
 			", ",
 			parameters.Select(static parameter => $"ref {parameter.PropertyTypeName} {parameter.ParameterName}")
 		);
+
+	static void EmitEventCreation(
+		StringBuilder sb,
+		AggregateEventMethodInfo method,
+		List<EventPropertyInfo> storedParameters,
+		string indent,
+		bool declareVariable
+	)
+	{
+		var declarationPrefix = declareVariable ? "var " : string.Empty;
+		sb.AppendLine(
+			$"{indent}\t\t{declarationPrefix}@event = new global::{method.EventNamespace}.{method.EventName}"
+		);
+
+		if (storedParameters.Count > 0)
+		{
+			sb.AppendLine($"{indent}\t\t{{");
+			foreach (var prop in storedParameters)
+			{
+				sb.AppendLine($"{indent}\t\t\t{prop.PropertyName} = {GetWorkingValueName(prop)},");
+			}
+
+			sb.AppendLine($"{indent}\t\t}};");
+		}
+		else
+		{
+			sb.AppendLine($"{indent}\t\t();");
+		}
+	}
 
 	static string BuildPropertyValueExpression(
 		AggregateInfo info,

@@ -50,7 +50,18 @@ sealed partial class SqlServerEventStoreClient
 		await EnsureConfiguredAsync(cancellationToken);
 		await using var context = CreateContext();
 		context.EventStoreEntities.Add(
-			CreateEntity(id, entityType, aggregateId, aggregateType, version, isDeleted, payload, eventType, idempotencyId, timestamp)
+			CreateEntity(
+				id,
+				entityType,
+				aggregateId,
+				aggregateType,
+				version,
+				isDeleted,
+				payload,
+				eventType,
+				idempotencyId,
+				timestamp
+			)
 		);
 		await context.SaveChangesAsync(cancellationToken);
 	}
@@ -225,7 +236,9 @@ sealed partial class SqlServerEventStoreClient
 	{
 		await EnsureConfiguredAsync(cancellationToken);
 		await using var context = CreateContext();
-		var entities = await context.EventStoreEntities.Where(x => x.AggregateId == aggregateId).ToListAsync(cancellationToken);
+		var entities = await context
+			.EventStoreEntities.Where(x => x.AggregateId == aggregateId)
+			.ToListAsync(cancellationToken);
 		if (entities.Count == 0)
 			return 0;
 
@@ -238,7 +251,9 @@ sealed partial class SqlServerEventStoreClient
 	{
 		await EnsureConfiguredAsync(cancellationToken);
 		await using var context = CreateContext();
-		var entity = await context.EventStoreEntities.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+		var entity = await context
+			.EventStoreEntities.AsNoTracking()
+			.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 		return entity is null ? null : ToRow(entity);
 	}
 
@@ -252,7 +267,9 @@ sealed partial class SqlServerEventStoreClient
 		ArgumentNullException.ThrowIfNull(connection);
 		await EnsureTableIfEnabledAsync(connection, transaction, cancellationToken);
 		await using var context = CreateContext(connection, transaction);
-		var entity = await context.EventStoreEntities.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+		var entity = await context
+			.EventStoreEntities.AsNoTracking()
+			.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 		return entity is null ? null : ToRow(entity);
 	}
 
@@ -299,10 +316,7 @@ sealed partial class SqlServerEventStoreClient
 		var events = context
 			.EventStoreEntities.AsNoTracking()
 			.Where(x =>
-				x.AggregateId == aggregateId
-				&& x.EntityType == 1
-				&& x.Version >= versionFrom
-				&& x.Version <= versionTo
+				x.AggregateId == aggregateId && x.EntityType == 1 && x.Version >= versionFrom && x.Version <= versionTo
 			)
 			.OrderBy(x => x.Version)
 			.AsAsyncEnumerable();
@@ -335,11 +349,7 @@ sealed partial class SqlServerEventStoreClient
 		await using var context = CreateContext();
 		var aggregateIds = context
 			.EventStoreEntities.AsNoTracking()
-			.Where(x =>
-				x.AggregateType == aggregateType
-				&& x.EntityType == 0
-				&& (includeDeleted || !x.IsDeleted)
-			)
+			.Where(x => x.AggregateType == aggregateType && x.EntityType == 0 && (includeDeleted || !x.IsDeleted))
 			.Select(x => x.AggregateId)
 			.AsAsyncEnumerable();
 
@@ -421,10 +431,7 @@ sealed partial class SqlServerEventStoreClient
 	{
 		var optionsBuilder = new DbContextOptionsBuilder<EventStoreDbContext>();
 		var commandTimeout = Math.Max(1, _options.TimeoutInSeconds ?? 60);
-		optionsBuilder.UseSqlServer(
-			_options.ConnectionString,
-			sql => sql.CommandTimeout(commandTimeout)
-		);
+		optionsBuilder.UseSqlServer(_options.ConnectionString, sql => sql.CommandTimeout(commandTimeout));
 		return new EventStoreDbContext(optionsBuilder.Options, _options.SchemaName, _options.TableName);
 	}
 
@@ -458,7 +465,18 @@ sealed partial class SqlServerEventStoreClient
 		if (entity is null)
 		{
 			context.EventStoreEntities.Add(
-				CreateEntity(id, entityType, aggregateId, aggregateType, version, isDeleted, payload, eventType, idempotencyId, timestamp)
+				CreateEntity(
+					id,
+					entityType,
+					aggregateId,
+					aggregateType,
+					version,
+					isDeleted,
+					payload,
+					eventType,
+					idempotencyId,
+					timestamp
+				)
 			);
 		}
 		else

@@ -46,4 +46,20 @@ partial class CustomerAggregateTests
 		// Assert
 		await Assert.That(customer.IsActive).IsTrue();
 	}
+
+	[Test]
+	public async Task Reactivate_GivenAlreadyActive_DoesNotRecordEvent()
+	{
+		// Arrange
+		var customer = CreateCustomer("cust-1");
+		customer.RegisterCustomer("Jane", "jane@test.com");
+		customer.Reactivate();
+		var eventCountBefore = customer.GetUnsavedEvents().Count();
+
+		// Act
+		customer.Reactivate();
+
+		// Assert
+		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(eventCountBefore);
+	}
 }

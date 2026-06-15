@@ -305,7 +305,7 @@ static class EventVerbMap
 	// Modifier prefixes that attach to a following verb rather than acting as the verb.
 	// "ForceSave" -> Force + Save -> "ForceSaved" (inflect last, keep order).
 	// Matched case-insensitively against the FIRST PascalCase segment.
-	static readonly HashSet<string> ModifierPrefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+	static readonly HashSet<string> ModifierPrefixes = new(StringComparer.OrdinalIgnoreCase)
 	{
 		"Force",
 		"Bulk",
@@ -401,7 +401,7 @@ static class EventVerbMap
 	/// Modifier prefix:       "ForceSave" -> "ForceSaved" (inflect last word, preserve order).
 	/// </summary>
 	/// <returns>The past-tense event identifier, or null if no verb could be resolved.</returns>
-	static string ToPastTense(string identifier)
+	static string? ToPastTense(string identifier)
 	{
 		if (string.IsNullOrEmpty(identifier))
 			return null;

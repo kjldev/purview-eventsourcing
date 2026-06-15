@@ -37,11 +37,13 @@ public sealed partial class CustomerAggregate : AggregateBase
 		return this;
 	}
 
-	public CustomerAggregate Deactivate() => IsActive ? ChangeIsActive(isActive: false) : this;
-
-	public CustomerAggregate Reactivate() => IsActive ? this : ChangeIsActive(isActive: true);
-
 	// Generated methods.
+
+	[GenerateAggregateEvent]
+	public partial CustomerAggregate Deactivate();
+
+	[GenerateAggregateEvent]
+	public partial CustomerAggregate Reactivate();
 
 	[GenerateAggregateEvent]
 	public partial CustomerAggregate RegisterCustomer(string name, string email, bool isActive = true);
@@ -54,7 +56,4 @@ public sealed partial class CustomerAggregate : AggregateBase
 
 	[GenerateAggregateEvent]
 	public partial CustomerAggregate ChangePhoneNumber(string? phoneNumber);
-
-	[GenerateAggregateEvent]
-	private partial CustomerAggregate ChangeIsActive(bool isActive);
 }

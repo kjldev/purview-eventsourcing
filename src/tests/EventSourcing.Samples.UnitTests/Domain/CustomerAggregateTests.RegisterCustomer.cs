@@ -28,7 +28,7 @@ partial class CustomerAggregateTests
 
 		// Assert
 		await Assert.That(customer.GetUnsavedEvents().Count()).IsEqualTo(1);
-		await Assert.That(customer.GetUnsavedEvents().First()).IsTypeOf<CustomerEvents.CustomerRegistered>();
+		await Assert.That(customer.GetUnsavedEvents().First()).IsTypeOf<CustomerEvents.CustomerRegisteredEvent>();
 	}
 
 	[Test]

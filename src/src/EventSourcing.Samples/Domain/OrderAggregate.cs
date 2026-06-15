@@ -112,11 +112,6 @@ public sealed partial class OrderAggregate : AggregateBase
 	private partial OrderAggregate SetStatusCode(OrderStatusCode status);
 
 	[GenerateAggregateEvent]
-	//(EventName = "OrderShipped")]
-	//[SuppressMessage(
-	//	"Purview.EventSourcing.SourceGenerator",
-	//	"EVENTSTORE014:Event name overrides should be past tense"
-	//)]
 	private partial OrderAggregate ShipOrder(OrderStatusCode status, DateTimeOffset shippedAt);
 
 	[GenerateAggregateEvent]

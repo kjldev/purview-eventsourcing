@@ -80,6 +80,7 @@ sealed class EventPropertyInfo(
 	string propertyTypeName,
 	string aggregatePropertyName,
 	bool hasAggregateProperty,
+	bool includeInEvent,
 	string equalityComparerTypeName,
 	bool useStringOrdinalComparison,
 	EventParameterConversionKind parameterConversionKind
@@ -96,6 +97,8 @@ sealed class EventPropertyInfo(
 	public string AggregatePropertyName { get; } = aggregatePropertyName;
 
 	public bool HasAggregateProperty { get; } = hasAggregateProperty;
+
+	public bool IncludeInEvent { get; } = includeInEvent;
 
 	public string EqualityComparerTypeName { get; } = equalityComparerTypeName;
 
