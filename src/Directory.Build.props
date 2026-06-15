@@ -1,8 +1,6 @@
 ﻿<Project>
 	<PropertyGroup>
-		<!-- Set the default namespace for all projects -->
 		<NamespacePrefix>Purview</NamespacePrefix>
-		<!-- Set the repository URL here -->
 		<RepositoryUrl>https://github.com/kjldev/purview-eventsourcing</RepositoryUrl>
 	</PropertyGroup>
 
@@ -19,23 +17,20 @@
 		<NoWarn>$(NoWarn);CA1031;CA2234</NoWarn>
 	</PropertyGroup>
 
-	<PropertyGroup Label="NuGet package metadata" Condition="'$(IsPackable)' == 'true'">
-		<PackageId>$(NamespacePrefix).$(MSBuildProjectName)</PackageId>
-		<Authors Condition="'$(Authors)' == ''">Kieron Lanning</Authors>
-		<Company Condition="'$(Company)' == ''">KJL Solutions Ltd.</Company>
-		<Copyright Condition="'$(Copyright)' == ''">Copyright © $(CurrentYear) KJL Solutions</Copyright>
-		<PackageProjectUrl Condition="'$(PackageProjectUrl)' == ''">$(RepositoryUrl)</PackageProjectUrl>
-		<RepositoryType Condition="'$(RepositoryType)' == ''">git</RepositoryType>
-		<PackageLicenseFile Condition="'$(PackageLicenseFile)' == ''">LICENSE.md</PackageLicenseFile>
-		<PackageIcon Condition="'$(PackageIcon)' == ''">kjldev-logo.png</PackageIcon>
-		<PackageReadmeFile Condition="'$(PackageReadmeFile)' == ''">README.md</PackageReadmeFile>
-		<PackageRequireLicenseAcceptance Condition="'$(PackageRequireLicenseAcceptance)' == ''">
-			false
-		</PackageRequireLicenseAcceptance>
+	<PropertyGroup Label="NuGet package metadata">
+		<Authors>Kieron Lanning</Authors>
+		<Company>KJL Solutions Ltd.</Company>
+		<Copyright>Copyright © $(CurrentYear) KJL Solutions</Copyright>
+		<PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+		<RepositoryType>git</RepositoryType>
+		<!--<PackageLicenseFile>$(MSBuildThisFileDirectory)..\LICENSE.md</PackageLicenseFile>
+		<PackageIcon>$(MSBuildThisFileDirectory)../assets/images/kjldev-logo.png</PackageIcon>
+		<PackageReadmeFile>$(MSBuildThisFileDirectory)../README.md</PackageReadmeFile>-->
+		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 	</PropertyGroup>
 
 	<ItemGroup Label="NuGet package assets" Condition="'$(IsPackable)' == 'true'">
-		<None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="/" />
+		<None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
 		<None Include="$(MSBuildThisFileDirectory)../LICENSE.md" Pack="true" PackagePath="/" />
 		<None
 			Include="$(MSBuildThisFileDirectory)../assets/images/kjldev-logo.png"
