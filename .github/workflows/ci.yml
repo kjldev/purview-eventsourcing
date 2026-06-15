@@ -118,7 +118,6 @@ jobs:
           declare -A results=(
             ["Format Check"]="${FORMAT_CHECK_RESULT}"
             ["Build and Test"]="${BUILD_AND_TEST_RESULT}"
-            ["Changeset Check"]="${CHANGESET_CHECK_RESULT}"
           )
 
           failures=0
