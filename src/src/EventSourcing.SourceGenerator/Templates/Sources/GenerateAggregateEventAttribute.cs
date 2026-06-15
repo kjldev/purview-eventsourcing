@@ -39,6 +39,8 @@ sealed class GenerateAggregateEventAttribute : global::System.Attribute
 	/// <summary>
 	/// Overrides the generated event type name for this method.
 	/// Defaults to a deterministic past-tense event name inferred from the method name.
+	/// If not set, <see cref="GenerateAggregateAttribute.EventSuffix"/> and
+	/// <see cref="GenerateAggregateDefaultsAttribute.EventSuffix"/> may append a suffix.
 	/// </summary>
 	public string? EventName { get; set; }
 

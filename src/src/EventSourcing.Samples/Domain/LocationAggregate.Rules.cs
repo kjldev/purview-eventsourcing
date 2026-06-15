@@ -2,7 +2,7 @@
 
 partial class LocationAggregate
 {
-	partial void OnCreatingCreated(ref string locationId, ref string locationName)
+	partial void OnRaisingCreatedEvent(ref string locationId, ref string locationName)
 	{
 		if (Details.SavedVersion > 0)
 			throw new InvalidOperationException("Location has already been created.");

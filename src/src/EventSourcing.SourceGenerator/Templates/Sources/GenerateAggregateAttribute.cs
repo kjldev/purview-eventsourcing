@@ -19,4 +19,12 @@ sealed class GenerateAggregateAttribute : global::System.Attribute
 	/// <c>{AggregateNamespace}.{AggregateNameWithoutAggregateSuffix}</c>.
 	/// </summary>
 	public string? EventNamespace { get; set; }
+
+	/// <summary>
+	/// Appends a suffix to generated event type names when no explicit
+	/// <see cref="GenerateAggregateEventAttribute.EventName"/> is provided.
+	/// Overrides <see cref="GenerateAggregateDefaultsAttribute.EventSuffix"/> for this aggregate.
+	/// Defaults to <c>Event</c>.
+	/// </summary>
+	public string? EventSuffix { get; set; } = "Event";
 }

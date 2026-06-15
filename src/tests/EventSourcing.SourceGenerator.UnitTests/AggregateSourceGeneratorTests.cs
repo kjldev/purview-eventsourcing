@@ -117,7 +117,7 @@ namespace Testing
 		// Act
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		// Assert — 3 attribute files + 1 generated aggregate file
+		// Assert — 4 attribute files + 1 generated aggregate file
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 	}
 
@@ -832,7 +832,7 @@ namespace Testing
 		// Act
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		// Assert — Only the 2 attribute files, no generated aggregate
+		// Assert — only attribute files, no generated aggregate
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCount);
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
@@ -931,6 +931,7 @@ namespace Testing
 		await Assert.That(allAttributeSource).Contains("class EmbeddedAttribute");
 		await Assert.That(allAttributeSource).Contains("class AggregatePropertyAttribute");
 		await Assert.That(allAttributeSource).Contains("class GenerateAggregateAttribute");
+		await Assert.That(allAttributeSource).Contains("class GenerateAggregateDefaultsAttribute");
 		await Assert.That(allAttributeSource).Contains("class GenerateAggregateEventAttribute");
 	}
 
@@ -1135,6 +1136,112 @@ namespace Testing
 		);
 		var aggregateAttributeSource = (await aggregateAttributeTree.GetTextAsync(cancellationToken)).ToString();
 		await Assert.That(aggregateAttributeSource).Contains("string? EventNamespace");
+		await Assert.That(aggregateAttributeSource).Contains("string? EventSuffix");
+
+		var aggregateDefaultsAttributeTree = result.GeneratedTrees.First(t =>
+			t.FilePath.EndsWith("GenerateAggregateDefaultsAttribute.g.cs", StringComparison.Ordinal)
+		);
+		var aggregateDefaultsAttributeSource = (
+			await aggregateDefaultsAttributeTree.GetTextAsync(cancellationToken)
+		).ToString();
+		await Assert.That(aggregateDefaultsAttributeSource).Contains("string? EventSuffix");
+	}
+
+	[Test]
+	public async Task Generate_GivenInferredEventName_DoesNotApplySuffixByDefault(CancellationToken cancellationToken)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public sealed class OrderCreated");
+		await Assert.That(generatedSource).Contains("Register<global::Testing.OrderEvents.OrderCreated>(Apply);");
+		await Assert.That(generatedSource).Contains("void Apply(global::Testing.OrderEvents.OrderCreated @event)");
+	}
+
+	[Test]
+	public async Task Generate_GivenAssemblyEventSuffixOverride_UsesAssemblyConfiguredSuffix(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			@"[assembly: Purview.EventSourcing.Aggregates.GenerateAggregateDefaults(EventSuffix = ""DomainEvent"")]
+"
+			+ AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public sealed class OrderCreatedDomainEvent");
+		await Assert
+			.That(generatedSource)
+			.Contains("Register<global::Testing.OrderEvents.OrderCreatedDomainEvent>(Apply);");
+		await Assert
+			.That(generatedSource)
+			.Contains("void Apply(global::Testing.OrderEvents.OrderCreatedDomainEvent @event)");
+	}
+
+	[Test]
+	public async Task Generate_GivenAggregateEventSuffixOverride_PrefersAggregateSuffixOverAssembly(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			@"[assembly: Purview.EventSourcing.Aggregates.GenerateAggregateDefaults(EventSuffix = ""DomainEvent"")]
+"
+			+ AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate(EventSuffix = ""CustomEvent"")]
+	public partial class OrderAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string CustomerId { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateOrder(string customerId);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public sealed class OrderCreatedCustomEvent");
+		await Assert
+			.That(generatedSource)
+			.Contains("Register<global::Testing.OrderEvents.OrderCreatedCustomEvent>(Apply);");
+		await Assert
+			.That(generatedSource)
+			.Contains("void Apply(global::Testing.OrderEvents.OrderCreatedCustomEvent @event)");
 	}
 
 	[Test]
@@ -1519,8 +1626,44 @@ namespace Testing
 			.DoesNotContain(GeneratorDiagnostics.EventParameterMustMapToWritableProperty.Id);
 		await Assert.That(generatedSource).Contains("public partial void Rename(string customerId)");
 		await Assert.That(generatedSource).Contains("public string CustomerId { get; set; } = default!;");
-		await Assert.That(generatedSource).Contains("OnCreatingRenamed(ref customerId);");
-		await Assert.That(generatedSource).Contains("OnAppliedRenamed(@event);");
+		await Assert.That(generatedSource).Contains("OnRaisingRenamedEvent(ref customerId);");
+		await Assert.That(generatedSource).Contains("OnRaisedRenamedEvent(@event);");
+		await Assert
+			.That(
+				outputCompilation
+					.GetDiagnostics(cancellationToken)
+					.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+					.Select(static diagnostic => diagnostic.Id)
+			)
+			.DoesNotContain("CS8795");
+	}
+
+	[Test]
+	public async Task Generate_GivenAggregatePropertyOverride_MapsParameterToSpecifiedAggregateProperty(
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			AggregateBaseStub
+			+ @"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class MappingAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public int QuantityOnHand { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void ReceiveStock([Purview.EventSourcing.Aggregates.AggregateProperty(nameof(QuantityOnHand))] int initialQuantity);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public int InitialQuantity { get; set; } = default!;");
+		await Assert.That(generatedSource).Contains("QuantityOnHand = @event.InitialQuantity;");
 		await Assert
 			.That(
 				outputCompilation
@@ -1754,7 +1897,7 @@ namespace Testing
 		// Act
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 
-		// Assert — 3 trees: 2 attributes + 1 generated aggregate
+		// Assert — attribute files + 1 generated aggregate
 		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
 
 		var generatedSource = GetAggregateGeneratedSource(result);
@@ -1971,8 +2114,8 @@ namespace Testing
 			"OnCustomerIdChanging(ref customerId);",
 			StringComparison.Ordinal
 		);
-		var onCreatingIndex = generatedSource.IndexOf(
-			"OnCreatingCustomerIdSet(ref customerId);",
+		var onRaisingIndex = generatedSource.IndexOf(
+			"OnRaisingCustomerIdSetEvent(ref customerId);",
 			StringComparison.Ordinal
 		);
 		var noChangeIndex = generatedSource.IndexOf(
@@ -1981,10 +2124,10 @@ namespace Testing
 		);
 
 		await Assert.That(onChangingIndex).IsGreaterThanOrEqualTo(0);
-		await Assert.That(onCreatingIndex).IsGreaterThanOrEqualTo(0);
+		await Assert.That(onRaisingIndex).IsGreaterThanOrEqualTo(0);
 		await Assert.That(noChangeIndex).IsGreaterThanOrEqualTo(0);
 		await Assert.That(onChangingIndex).IsLessThan(noChangeIndex);
-		await Assert.That(onCreatingIndex).IsLessThan(noChangeIndex);
+		await Assert.That(onRaisingIndex).IsLessThan(noChangeIndex);
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var aggregateType = assembly.GetType("Testing.CustomerAggregate")!;

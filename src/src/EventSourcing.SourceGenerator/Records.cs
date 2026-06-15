@@ -137,6 +137,8 @@ sealed class EventTypeValidationResult(ImmutableArray<Diagnostic> diagnostics)
 	public ImmutableArray<Diagnostic> Diagnostics { get; } = diagnostics;
 }
 
+readonly record struct AttributeStringValue(string? Value, bool IsPresent);
+
 enum EventMethodReturnKind
 {
 	Void = 0,

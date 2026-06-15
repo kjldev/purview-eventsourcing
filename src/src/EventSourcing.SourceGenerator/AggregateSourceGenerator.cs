@@ -12,8 +12,11 @@ namespace Purview.EventSourcing.SourceGenerator;
 public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSupport
 {
 	const string GenerateAggregateAttributeName = "Purview.EventSourcing.Aggregates.GenerateAggregateAttribute";
+	const string GenerateAggregateDefaultsAttributeName =
+		"Purview.EventSourcing.Aggregates.GenerateAggregateDefaultsAttribute";
 	const string GenerateAggregateEventAttributeName =
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
+	const string AggregatePropertyAttributeMetadataName = "Purview.EventSourcing.Aggregates.AggregatePropertyAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
 	const string EventBaseMetadataName = "Purview.EventSourcing.Aggregates.Events.EventBase";
 	const string IEventMetadataName = "Purview.EventSourcing.Aggregates.Events.IEvent";
@@ -42,6 +45,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			ctx.AddSource(
 				"GenerateAggregateAttribute.g.cs",
 				EmbeddedResources.LoadTemplate("GenerateAggregateAttribute")
+			);
+			ctx.AddSource(
+				"GenerateAggregateDefaultsAttribute.g.cs",
+				EmbeddedResources.LoadTemplate("GenerateAggregateDefaultsAttribute")
 			);
 			ctx.AddSource(
 				"GenerateAggregateEventAttribute.g.cs",
@@ -232,6 +239,16 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			GenerateAggregateAttributeName,
 			"EventNamespace"
 		);
+		var aggregateEventSuffixOverride = GetAttributeStringNamedArgument(
+			classSymbol.GetAttributes(),
+			GenerateAggregateAttributeName,
+			"EventSuffix"
+		);
+		var assemblyEventSuffix = GetAttributeStringNamedArgument(
+			compilation.Assembly.GetAttributes(),
+			GenerateAggregateDefaultsAttributeName,
+			"EventSuffix"
+		);
 
 		var properties = new List<AggregateStatePropertyInfo>();
 		var propertySymbolsByName = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
@@ -301,6 +318,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					valueObjectContextType,
 					namespaceName,
 					aggregateEventNamespaceOverride,
+					aggregateEventSuffixOverride,
+					assemblyEventSuffix,
 					diagnostics,
 					ct,
 					out var methodInfo
@@ -424,6 +443,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		INamedTypeSymbol? valueObjectContextType,
 		string? aggregateNamespace,
 		string? aggregateEventNamespaceOverride,
+		string? aggregateEventSuffixOverride,
+		string? assemblyEventSuffix,
 		List<Diagnostic> diagnostics,
 		CancellationToken ct,
 		out AggregateEventMethodInfo methodInfo
@@ -495,7 +516,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		{
 			ct.ThrowIfCancellationRequested();
 
-			var propertyName = EventPropertyInfo.ToPropertyName(parameter.Name);
+			var aggregatePropertyName =
+				GetAggregatePropertyNameOverride(parameter) ?? EventPropertyInfo.ToPropertyName(parameter.Name);
 			var parameterLocation = parameter.Locations.FirstOrDefault() ?? methodLocation;
 			var parameterTypeName = parameter.Type.ToDisplayString(
 				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
@@ -504,14 +526,14 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				)
 			);
 
-			if (!propertySymbolsByName.TryGetValue(propertyName, out var propertySymbol))
+			if (!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var propertySymbol))
 			{
 				parameters.Add(
 					new EventPropertyInfo(
 						parameter.Name,
 						parameterTypeName,
 						parameterTypeName,
-						propertyName,
+						aggregatePropertyName,
 						false,
 						parameterTypeName,
 						parameter.Type.SpecialType == SpecialType.System_String,
@@ -530,7 +552,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						parameter.Name,
 						methodSymbol.Name,
 						classSymbol.Name,
-						$"property '{propertyName}' does not have a setter"
+						$"property '{aggregatePropertyName}' does not have a setter"
 					)
 				);
 				hasErrors = true;
@@ -546,7 +568,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						parameter.Name,
 						methodSymbol.Name,
 						classSymbol.Name,
-						$"property '{propertyName}' is init-only"
+						$"property '{aggregatePropertyName}' is init-only"
 					)
 				);
 				hasErrors = true;
@@ -576,7 +598,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						parameter.Name,
 						methodSymbol.Name,
 						classSymbol.Name,
-						$"parameter type '{parameterTypeName}' cannot be mapped to property '{propertyName}' of type '{propertyTypeName}' via implicit conversion or value-object Create(...)"
+						$"parameter type '{parameterTypeName}' cannot be mapped to property '{aggregatePropertyName}' of type '{propertyTypeName}' via implicit conversion or value-object Create(...)"
 					)
 				);
 				hasErrors = true;
@@ -662,6 +684,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				)
 			);
 			hasErrors = true;
+		}
+		else
+		{
+			eventName = eventName + ResolveEventSuffix(aggregateEventSuffixOverride, assemblyEventSuffix);
 		}
 
 		if (hasErrors)
@@ -820,6 +846,34 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		}
 
 		return null;
+	}
+
+	static string? GetAggregatePropertyNameOverride(IParameterSymbol parameterSymbol)
+	{
+		foreach (var attribute in parameterSymbol.GetAttributes())
+		{
+			var attributeClass = attribute.AttributeClass;
+			if (attributeClass is null || attributeClass.ToDisplayString() != AggregatePropertyAttributeMetadataName)
+				continue;
+
+			if (attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is string value)
+				return value.Trim();
+
+			break;
+		}
+
+		return null;
+	}
+
+	static string ResolveEventSuffix(string? aggregateEventSuffixOverride, string? assemblyEventSuffix)
+	{
+		if (aggregateEventSuffixOverride is not null)
+			return aggregateEventSuffixOverride.Trim();
+
+		if (assemblyEventSuffix is not null)
+			return assemblyEventSuffix.Trim();
+
+		return string.Empty;
 	}
 
 	static bool IsEventType(INamedTypeSymbol typeSymbol)

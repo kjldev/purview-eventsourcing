@@ -121,7 +121,7 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 
 					public void AddLineItem() => LineItems++;
 
-					partial void OnCreatingOrderConfirmed(ref OrderStatus status)
+					partial void OnRaisingOrderConfirmedEvent(ref OrderStatus status)
 					{
 						if (Status.Value != OrderStatusCode.Draft)
 							throw new System.InvalidOperationException("Can only confirm draft orders.");
@@ -136,8 +136,8 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetAggregateGeneratedSource(result);
 
-		await Assert.That(generatedSource).Contains("OnCreatingOrderConfirmed(ref __statusValue);");
-		await Assert.That(generatedSource).Contains("OnCreatedOrderConfirmed(@event);");
+		await Assert.That(generatedSource).Contains("OnRaisingOrderConfirmedEvent(ref __statusValue);");
+		await Assert.That(generatedSource).Contains("OnRaisedOrderConfirmedEvent(@event);");
 		await Assert
 			.That(generatedSource)
 			.Contains(
@@ -188,7 +188,7 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 
 					public void AddLineItem() => LineItems++;
 
-					partial void OnCreatingOrderConfirmed(ref OrderStatus status)
+					partial void OnRaisingOrderConfirmedEvent(ref OrderStatus status)
 					{
 						if (LineItems == 0)
 							throw new System.InvalidOperationException("Cannot confirm an order with no items.");
@@ -290,12 +290,12 @@ public sealed class AggregateSourceGeneratorValueObjectTests : SourceGeneratorTe
 						CurrentEmailValue = current.Value;
 					}
 
-					partial void OnCreatingCustomerEmailChanged(ref EmailAddress email)
+					partial void OnRaisingCustomerEmailChangedEvent(ref EmailAddress email)
 					{
 						Trace += "E";
 					}
 
-					partial void OnAppliedCustomerEmailChanged(global::Testing.CustomerEvents.CustomerEmailChanged @event)
+					partial void OnAppliedCustomerEmailChangedEvent(global::Testing.CustomerEvents.CustomerEmailChanged @event)
 					{
 						Trace += "A";
 					}

@@ -4,24 +4,16 @@
 		<File Path="../Directory.Packages.props" />
 		<File Path="Directory.Build.props" />
 		<File Path="Directory.Build.targets" />
+		<File Path="to-do.txt" />
 	</Folder>
 	<Folder Name="/src/">
 		<Project Path="src\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" />
 		<Project Path="src\EventSourcing\EventSourcing.csproj" />
 	</Folder>
 	<Folder Name="/src/implementations/">
-		<Project
-			Path="src/EventSourcing.CosmosDb/EventSourcing.CosmosDb.csproj"
-			Id="49d7274a-a63e-4975-9841-96ffd78071c2"
-		/>
-		<Project
-			Path="src/EventSourcing.MongoDB/EventSourcing.MongoDB.csproj"
-			Id="8a60d312-155e-44e4-8d0a-014bb0ab7c50"
-		/>
-		<Project
-			Path="src/EventSourcing.SqlServer/EventSourcing.SqlServer.csproj"
-			Id="e771c706-e382-4d6d-8564-15f5172513db"
-		/>
+		<Project Path="src/EventSourcing.CosmosDb/EventSourcing.CosmosDb.csproj" Id="49d7274a-a63e-4975-9841-96ffd78071c2" />
+		<Project Path="src/EventSourcing.MongoDB/EventSourcing.MongoDB.csproj" Id="8a60d312-155e-44e4-8d0a-014bb0ab7c50" />
+		<Project Path="src/EventSourcing.SqlServer/EventSourcing.SqlServer.csproj" Id="e771c706-e382-4d6d-8564-15f5172513db" />
 		<Project Path="src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
 	</Folder>
 	<Folder Name="/src/samples/">

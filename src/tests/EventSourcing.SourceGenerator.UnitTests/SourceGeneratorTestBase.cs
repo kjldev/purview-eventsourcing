@@ -13,6 +13,7 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 		"EmbeddedAttribute.cs",
 		"AggregatePropertyAttribute.g.cs",
 		"GenerateAggregateAttribute.g.cs",
+		"GenerateAggregateDefaultsAttribute.g.cs",
 		"GenerateAggregateEventAttribute.g.cs",
 	];
 

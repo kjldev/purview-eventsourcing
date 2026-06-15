@@ -2,7 +2,7 @@
 
 partial class InventoryAggregate
 {
-	partial void OnCreatingCreated(
+	partial void OnRaisingCreatedEvent(
 		ref string productId,
 		ref string productName,
 		ref string locationId,

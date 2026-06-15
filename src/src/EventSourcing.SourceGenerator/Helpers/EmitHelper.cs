@@ -209,10 +209,18 @@ static class EmitHelper
 			);
 		}
 
-		var hookSuffix = GetHookSuffix(method.EventName);
+		var hookSuffix = GetHookName(method.EventName);
 		sb.AppendLine($"{indent}\t\tOnApplied{hookSuffix}({eventParameterName});");
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
+	}
+
+	static string GetHookName(string eventName)
+	{
+		if (!eventName.EndsWith("Event", StringComparison.Ordinal))
+			eventName += "Event";
+
+		return eventName;
 	}
 
 	static void GenerateCommandMethod(
@@ -230,7 +238,7 @@ static class EmitHelper
 			paramList.Append($"{method.Parameters[i].ParameterTypeName} {method.Parameters[i].ParameterName}");
 		}
 
-		var hookSuffix = GetHookSuffix(method.EventName);
+		var hookSuffix = GetHookName(method.EventName);
 		var methodAccessModifier = GetAccessModifier(method.MethodAccessibility);
 		sb.AppendLine(
 			$"{indent}\t{methodAccessModifier} partial {method.ReturnTypeName} {method.MethodName}({paramList})"
@@ -264,10 +272,10 @@ static class EmitHelper
 		}
 
 		if (method.Parameters.Count == 0)
-			sb.AppendLine($"{indent}\t\tOnCreating{hookSuffix}();");
+			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}();");
 		else
 		{
-			sb.AppendLine($"{indent}\t\tOnCreating{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
+			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
 		}
 
 		if (method.Parameters.Count > 0)
@@ -303,7 +311,7 @@ static class EmitHelper
 		}
 
 		sb.AppendLine();
-		sb.AppendLine($"{indent}\t\tOnCreated{hookSuffix}(@event);");
+		sb.AppendLine($"{indent}\t\tOnRaised{hookSuffix}(@event);");
 		sb.AppendLine($"{indent}\t\tRecordAndApply(@event);");
 		sb.AppendLine();
 		EmitSuccessReturn(sb, method.ReturnKind, indent, 2);
@@ -313,17 +321,17 @@ static class EmitHelper
 
 		EmitCa1822Suppression(sb, indent);
 		if (method.Parameters.Count == 0)
-			sb.AppendLine($"{indent}\tpartial void OnCreating{hookSuffix}();");
+			sb.AppendLine($"{indent}\tpartial void OnRaising{hookSuffix}();");
 		else
 		{
 			sb.AppendLine(
-				$"{indent}\tpartial void OnCreating{hookSuffix}({BuildOnCreatingDeclarationParameterList(method.Parameters)});"
+				$"{indent}\tpartial void OnRaising{hookSuffix}({BuildOnCreatingDeclarationParameterList(method.Parameters)});"
 			);
 		}
 
 		EmitCa1822Suppression(sb, indent);
 		sb.AppendLine(
-			$"{indent}\tpartial void OnCreated{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
+			$"{indent}\tpartial void OnRaised{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
 		);
 		EmitCa1822Suppression(sb, indent);
 		sb.AppendLine(
@@ -359,11 +367,6 @@ static class EmitHelper
 		sb.AppendLine(
 			$"{indent}\t[global::System.Diagnostics.CodeAnalysis.SuppressMessage(\"Performance\", \"CA1822:Mark members as static\", Justification = \"Generated partial hook declaration must match instance signature and cannot be static.\")]"
 		);
-
-	static string GetHookSuffix(string eventName) =>
-		eventName.EndsWith("Event", global::System.StringComparison.Ordinal)
-			? eventName.Substring(0, eventName.Length - 5)
-			: eventName;
 
 	static string GetLocalValueName(EventPropertyInfo parameter) => $"__{parameter.ParameterName}Value";
 

@@ -24,13 +24,13 @@ partial class OrderAggregate
 		}
 	}
 
-	partial void OnCreatingLineItemAdded(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
+	partial void OnRaisingLineItemAddedEvent(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only add items to draft orders.");
 	}
 
-	partial void OnCreatingLineItemRemoved(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
+	partial void OnRaisingLineItemRemovedEvent(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only remove items from draft orders.");
