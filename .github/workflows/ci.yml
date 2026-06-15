@@ -29,7 +29,7 @@ jobs:
         run: dotnet tool restore
 
       - name: CSharpier format check
-        run: dotnet csharpier check .
+        run: dotnet csharpier check ./src
 
   build-and-test:
     name: Build and Test
