@@ -2,10 +2,10 @@
 
 /// <summary>
 /// Represents an <see cref="IEvent"/> that tracks
-/// the restoring of an <see cref="IAggregate"/> following a soft delete.
+/// the soft-deleting of an <see cref="IAggregate"/>.
 /// </summary>
-public sealed class RestoreEvent : EventBase
+public sealed class Deleted : EventBase
 {
-	///<inheritdoc/>
+	///<inheritdoc />
 	protected override void BuildEventHash(ref HashCode hash) { }
 }

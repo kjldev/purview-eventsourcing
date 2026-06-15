@@ -18,12 +18,6 @@ public sealed partial class CustomerAggregate : AggregateBase
 
 	public bool IsActive { get; private set; }
 
-	partial void OnEmailChanging(ref EmailAddress email)
-	{
-		if (email.Domain.Contains("eventsourcing-sample.", StringComparison.Ordinal))
-			throw new ArgumentException("Employees of Event-Sourcing-Sample PLC cannot be customers");
-	}
-
 	/// <summary>
 	/// Updates one or more customer details in a single operation, raising a granular event
 	/// for each field that has actually changed. Pass <see langword="null"/> for any field

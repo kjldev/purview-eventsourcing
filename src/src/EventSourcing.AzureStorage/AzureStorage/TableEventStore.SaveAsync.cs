@@ -95,7 +95,7 @@ partial class TableEventStore<T>
 
 		if (
 			operationContext.NotificationMode.HasFlag(NotificationModes.BeforeDelete)
-			&& changeEvents.OfType<DeleteEvent>().Any()
+			&& changeEvents.OfType<Deleted>().Any()
 		)
 			await _aggregateChangeNotifier.BeforeDeleteAsync(aggregate, cancellationToken);
 		else if (operationContext.NotificationMode.HasFlag(NotificationModes.BeforeSave))
@@ -105,7 +105,7 @@ partial class TableEventStore<T>
 		var hasStreamEntity = streamEntity != null;
 		if (streamEntity?.IsDeleted == true)
 		{
-			var throwIfDeleted = !changeEvents.OfType<RestoreEvent>().Any();
+			var throwIfDeleted = !changeEvents.OfType<Restored>().Any();
 			if (throwIfDeleted)
 				throw new Exceptions.AggregateDeletedException(aggregate.Id(), idempotencyId);
 		}
@@ -204,9 +204,9 @@ partial class TableEventStore<T>
 			if (shouldSnapshot)
 				await CreateSnapshotAsync(aggregate, cancellationToken);
 
-			if (changeEvents.OfType<DeleteEvent>().Any())
+			if (changeEvents.OfType<Deleted>().Any())
 				_eventStoreTelemetry.AggregateDeleted(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
-			else if (changeEvents.OfType<RestoreEvent>().Any())
+			else if (changeEvents.OfType<Restored>().Any())
 				_eventStoreTelemetry.AggregateRestored(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
 
 			_eventStoreTelemetry.SavedAggregate(
@@ -231,7 +231,7 @@ partial class TableEventStore<T>
 
 			if (operationContext.NotificationMode.HasFlag(NotificationModes.OnFailure))
 			{
-				var deleteRequested = changeEvents.OfType<DeleteEvent>().Any();
+				var deleteRequested = changeEvents.OfType<Deleted>().Any();
 				await _aggregateChangeNotifier.FailureAsync(aggregate, deleteRequested, ex);
 			}
 
@@ -256,7 +256,7 @@ partial class TableEventStore<T>
 	bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
 		return aggregate.Details.IsDeleted
-			|| events.OfType<RestoreEvent>().Any()
+			|| events.OfType<Restored>().Any()
 			|| (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
 				>= _eventStoreOptions.Value.SnapshotInterval;
 	}

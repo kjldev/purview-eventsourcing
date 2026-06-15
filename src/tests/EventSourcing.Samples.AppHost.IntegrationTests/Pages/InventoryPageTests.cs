@@ -184,13 +184,13 @@ public sealed class InventoryPageTests(AppHostFixture fixture)
 
 		var locationId = $"LOC-{prefix}";
 		var location = await store.CreateAsync<LocationAggregate>(locationId, cancellationToken);
-		location.Initialize(locationId, $"Location {prefix}");
+		location.Create(locationId, $"Location {prefix}");
 		await store.SaveAsync(location, cancellationToken);
 
 		for (var i = 0; i < count; i++)
 		{
 			var item = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
-			item.Initialize(
+			item.Create(
 				$"{prefix}-{i:D2}",
 				$"{prefix}-item-{i:D2}",
 				locationId,

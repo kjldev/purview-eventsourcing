@@ -16,14 +16,14 @@ public sealed class StockTransferServiceTests
 	{
 		InventoryAggregate item = new();
 		item.Details.Id = id;
-		return item.Initialize(productId, "Widget", locationId, locationName, initialQuantity: qty);
+		return item.Create(productId, "Widget", locationId, locationName, initialQuantity: qty);
 	}
 
 	static LocationAggregate Location(string id, string name)
 	{
 		LocationAggregate location = new();
 		location.Details.Id = id;
-		return location.Initialize(id, name);
+		return location.Create(id, name);
 	}
 
 	static TransactionResult SuccessfulTransaction(params IAggregate[] aggregates) =>

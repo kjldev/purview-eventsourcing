@@ -164,7 +164,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 				continue;
 
 			var location = await store.CreateAsync<LocationAggregate>(locationId, cancellationToken);
-			location.Initialize(locationId, locationName);
+			location.Create(locationId, locationName);
 			await store.SaveAsync(location, cancellationToken);
 		}
 	}

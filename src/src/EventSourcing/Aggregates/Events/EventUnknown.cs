@@ -11,7 +11,11 @@
 /// </para>
 /// <para>However, the event data still exists in the underlying store.</para>
 /// </remarks>
-public sealed class UnknownEvent : EventBase
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+	"Purview.EventSourcing.SourceGenerator",
+	"EVENTSTORE013:Event names should be past tense"
+)]
+public sealed class EventUnknown : EventBase
 {
 	/// <summary>
 	/// Represents the serialized payload that was the

@@ -105,16 +105,16 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 
 		var sourceLocationId = $"LOC-TEST-SRC-{Guid.NewGuid():N}";
 		var sourceLocation = await store.CreateAsync<LocationAggregate>(sourceLocationId, cancellationToken);
-		sourceLocation.Initialize(sourceLocationId, $"Transfer Source {Guid.NewGuid():N}");
+		sourceLocation.Create(sourceLocationId, $"Transfer Source {Guid.NewGuid():N}");
 		await store.SaveAsync(sourceLocation, cancellationToken);
 
 		var destinationLocationId = $"LOC-TEST-DST-{Guid.NewGuid():N}";
 		var destinationLocation = await store.CreateAsync<LocationAggregate>(destinationLocationId, cancellationToken);
-		destinationLocation.Initialize(destinationLocationId, $"Transfer Destination {Guid.NewGuid():N}");
+		destinationLocation.Create(destinationLocationId, $"Transfer Destination {Guid.NewGuid():N}");
 		await store.SaveAsync(destinationLocation, cancellationToken);
 
 		var inventory = await store.CreateAsync<InventoryAggregate>(cancellationToken: cancellationToken);
-		inventory.Initialize(
+		inventory.Create(
 			$"SKU-TRANSFER-{Guid.NewGuid():N}",
 			"Transfer Test Widget",
 			sourceLocationId,

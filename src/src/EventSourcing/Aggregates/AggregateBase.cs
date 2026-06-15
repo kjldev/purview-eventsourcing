@@ -36,21 +36,11 @@ public abstract class AggregateBase : IAggregate
 	///<inheritdoc/>
 	public AggregateDetails Details { get; init; } = new();
 
-	///// <summary>
-	///// The last generated aggregate operation result. This is runtime-only state.
-	///// </summary>
-	//public IAggregateOperationResult? LastOperation { get; private set; }
-
-	///// <summary>
-	///// Indicates whether the last operation failed validation.
-	///// </summary>
-	//public bool HasOperationFailures => LastOperation is { IsSuccess: false };
-
 	void RegisterSystemEvents()
 	{
-		Register<DeleteEvent>(_ => Details.IsDeleted = true);
-		Register<RestoreEvent>(_ => Details.IsDeleted = false);
-		Register<ForceSaveEvent>(_ => { });
+		Register<Deleted>(_ => Details.IsDeleted = true);
+		Register<Restored>(_ => Details.IsDeleted = false);
+		Register<ForceSaved>(_ => { });
 	}
 
 	/// <summary>
@@ -118,7 +108,7 @@ public abstract class AggregateBase : IAggregate
 	}
 
 	/// <summary>
-	/// Applies the <see cref="ForceSaveEvent"/> to the aggregate,
+	/// Applies the <see cref="ForceSaved"/> to the aggregate,
 	/// allowing the aggregate to be saved, regardless of other operations.
 	/// </summary>
 	/// <remarks>This is only applied if <see cref="HasUnsavedEvents"/> returns false. This can be useful for situations where
@@ -126,7 +116,7 @@ public abstract class AggregateBase : IAggregate
 	public void ForceSave()
 	{
 		if (!HasUnsavedEvents())
-			RecordAndApply(new ForceSaveEvent());
+			RecordAndApply(new ForceSaved());
 	}
 
 	/// <summary>
@@ -149,21 +139,6 @@ public abstract class AggregateBase : IAggregate
 
 		_appliersByEventType.Add(typeof(TEvent), ev => applier((TEvent)ev));
 	}
-
-	///// <summary>
-	///// Validates and transforms the aggregate instance according to registered validation and transformation rules.
-	///// </summary>
-	///// <returns>True if validation passes, false otherwise.</returns>
-	//protected bool ValidateAndTransform()
-	//{
-	//    // This method will be implemented in subclasses that need validation
-	//    return true;
-	//}
-
-	///// <summary>
-	///// Throws if the last operation failed.
-	///// </summary>
-	//public void GuardLastOperation() => LastOperation?.Guard();
 
 #pragma warning disable CA1033 // Interface methods should be callable by child types
 

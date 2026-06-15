@@ -145,7 +145,7 @@ partial class SqlServerEventStore<T>
 
 		if (
 			operationContext.NotificationMode.HasFlag(NotificationModes.BeforeDelete)
-			&& changeEvents.OfType<DeleteEvent>().Any()
+			&& changeEvents.OfType<Deleted>().Any()
 		)
 			await _aggregateChangeNotifier.BeforeDeleteAsync(aggregate, cancellationToken);
 		else if (operationContext.NotificationMode.HasFlag(NotificationModes.BeforeSave))
@@ -161,7 +161,7 @@ partial class SqlServerEventStore<T>
 
 		if (streamEntity?.IsDeleted == true)
 		{
-			var throwIfDeleted = !changeEvents.OfType<RestoreEvent>().Any();
+			var throwIfDeleted = !changeEvents.OfType<Restored>().Any();
 			if (throwIfDeleted)
 			{
 				activity?.Dispose();
@@ -257,13 +257,13 @@ partial class SqlServerEventStore<T>
 					{
 						FinalizeSuccessfulSave(aggregate, shouldSnapshot);
 
-						if (changeEvents.OfType<DeleteEvent>().Any())
+						if (changeEvents.OfType<Deleted>().Any())
 							_eventStoreTelemetry.AggregateDeleted(
 								aggregate.Id(),
 								_aggregateTypeFullName,
 								aggregate.AggregateType
 							);
-						else if (changeEvents.OfType<RestoreEvent>().Any())
+						else if (changeEvents.OfType<Restored>().Any())
 							_eventStoreTelemetry.AggregateRestored(
 								aggregate.Id(),
 								_aggregateTypeFullName,
@@ -315,7 +315,7 @@ partial class SqlServerEventStore<T>
 
 			if (operationContext.NotificationMode.HasFlag(NotificationModes.OnFailure))
 			{
-				var deleteRequested = changeEvents.OfType<DeleteEvent>().Any();
+				var deleteRequested = changeEvents.OfType<Deleted>().Any();
 				await _aggregateChangeNotifier.FailureAsync(aggregate, deleteRequested, ex);
 			}
 
@@ -337,7 +337,7 @@ partial class SqlServerEventStore<T>
 
 	bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
-		if (aggregate.Details.IsDeleted || events.OfType<RestoreEvent>().Any())
+		if (aggregate.Details.IsDeleted || events.OfType<Restored>().Any())
 			return true;
 
 		var savedVersion = aggregate.Details.SavedVersion;

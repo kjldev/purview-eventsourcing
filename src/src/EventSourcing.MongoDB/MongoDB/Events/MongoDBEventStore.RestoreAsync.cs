@@ -18,7 +18,7 @@ partial class MongoDBEventStore<T>
 
 		operationContext ??= EventStoreOperationContext.DefaultContext;
 
-		RestoreEvent restoreAggregateEvent = new()
+		Restored restoreAggregateEvent = new()
 		{
 			Details = { AggregateVersion = aggregate.Details.CurrentVersion + 1, When = DateTimeOffset.UtcNow },
 		};

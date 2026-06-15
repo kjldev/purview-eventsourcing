@@ -24,7 +24,7 @@ partial class SqlServerEventStore<T>
 		if (operationContext.PermanentlyDelete)
 			return await PermanentlyDeleteAsync(aggregate, operationContext, cancellationToken);
 
-		DeleteEvent deleteAggregateEvent = new()
+		Deleted deleteAggregateEvent = new()
 		{
 			Details = { AggregateVersion = aggregate.Details.CurrentVersion + 1, When = DateTimeOffset.UtcNow },
 		};

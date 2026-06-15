@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.ValueObjects;
 
@@ -111,7 +112,11 @@ public sealed partial class OrderAggregate : AggregateBase
 	[GenerateAggregateEvent]
 	private partial OrderAggregate SetStatusCode(OrderStatusCode status);
 
-	[GenerateAggregateEvent]
+	[GenerateAggregateEvent(EventName = "OrderShipped")]
+	[SuppressMessage(
+		"Purview.EventSourcing.SourceGenerator",
+		"EVENTSTORE014:Event name overrides should be past tense"
+	)]
 	private partial OrderAggregate ShipOrder(OrderStatusCode status, DateTimeOffset shippedAt);
 
 	[GenerateAggregateEvent]
