@@ -261,6 +261,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		var scalarCanBeNull =
 			scalarProperty.Type.IsReferenceType
 			|| scalarProperty.Type.NullableAnnotation == NullableAnnotation.Annotated;
+		var isReferenceType = typeSymbol.TypeKind == TypeKind.Class;
 		var scalarPropertyName = scalarProperty.Name;
 		var createExists = HasStaticFactory(typeSymbol, "Create", [scalarProperty.Type]);
 		var hydrateExists = HasStaticFactory(typeSymbol, "Hydrate", [scalarProperty.Type]);
@@ -268,6 +269,34 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		var compareToSelfExists = HasInstanceMethod(typeSymbol, "CompareTo", [typeSymbol]);
 		var compareToPrimitiveExists = HasInstanceMethod(typeSymbol, "CompareTo", [scalarProperty.Type]);
 		var compareToObjectExists = HasCompareToObject(typeSymbol);
+		var equalsSelfExists = typeSymbol.IsRecord || HasInstanceMethod(typeSymbol, "Equals", [typeSymbol]);
+		var equalsPrimitiveExists = HasInstanceMethod(typeSymbol, "Equals", [scalarProperty.Type]);
+		var equalsObjectExists = HasEqualsObject(typeSymbol);
+		var getHashCodeExists = HasParameterlessMethod(typeSymbol, "GetHashCode");
+		var sameTypeEqualityOperatorExists =
+			typeSymbol.IsRecord || HasBinaryOperator(typeSymbol, "op_Equality", [typeSymbol, typeSymbol]);
+		var sameTypeInequalityOperatorExists =
+			typeSymbol.IsRecord || HasBinaryOperator(typeSymbol, "op_Inequality", [typeSymbol, typeSymbol]);
+		var primitiveEqualityOperatorExists = HasBinaryOperator(
+			typeSymbol,
+			"op_Equality",
+			[typeSymbol, scalarProperty.Type]
+		);
+		var primitiveInequalityOperatorExists = HasBinaryOperator(
+			typeSymbol,
+			"op_Inequality",
+			[typeSymbol, scalarProperty.Type]
+		);
+		var reversePrimitiveEqualityOperatorExists = HasBinaryOperator(
+			typeSymbol,
+			"op_Equality",
+			[scalarProperty.Type, typeSymbol]
+		);
+		var reversePrimitiveInequalityOperatorExists = HasBinaryOperator(
+			typeSymbol,
+			"op_Inequality",
+			[scalarProperty.Type, typeSymbol]
+		);
 		var toStringExists = HasParameterlessMethod(typeSymbol, "ToString");
 		var hasJsonConverterAttribute = HasAttribute(typeSymbol, JsonConverterAttributeName);
 		var declareOnNormalize = ShouldEmitScalarHookDeclaration(typeSymbol, "OnNormalize", 1, includeRef: true);
@@ -324,7 +353,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 {indent}	{{
 {indent}		OnNormalize(ref value);
 {indent}		OnValidate(value);
-{indent}		{CreateNewOrThrow(typeName, ctorExists, "value")}
+{indent}		return new(value);
 {indent}	}}"
 			);
 			sb.AppendLine();
@@ -335,7 +364,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine(
 				$@"{indent}	public static {typeName} Hydrate({scalarTypeName} value)
 {indent}	{{
-{indent}		{CreateNewOrThrow(typeName, ctorExists, "value")}
+{indent}		return new(value);
 {indent}	}}"
 			);
 			sb.AppendLine();
@@ -407,6 +436,112 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine();
 		}
 
+		if (!ctorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$"{indent}\tprivate {typeModel.Name}({scalarTypeName} value) => {scalarPropertyName} = value;"
+			);
+		}
+
+		if (!equalsSelfExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				isReferenceType
+					? $@"{indent}	public bool Equals({typeName} other) => other is not null && global::System.Collections.Generic.EqualityComparer<{scalarTypeName}>.Default.Equals({scalarPropertyName}, other.{scalarPropertyName});"
+					: $@"{indent}	public bool Equals({typeName} other) => global::System.Collections.Generic.EqualityComparer<{scalarTypeName}>.Default.Equals({scalarPropertyName}, other.{scalarPropertyName});"
+			);
+		}
+
+		if (!equalsPrimitiveExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$"{indent}\tpublic bool Equals({scalarTypeName} other) => global::System.Collections.Generic.EqualityComparer<{scalarTypeName}>.Default.Equals({scalarPropertyName}, other);"
+			);
+		}
+
+		if (!equalsObjectExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	public override bool Equals(object? obj) =>
+{indent}		obj is {typeName} other ? Equals(other) : obj is {scalarTypeName} primitive && Equals(primitive);"
+			);
+		}
+
+		if (!getHashCodeExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$"{indent}\tpublic override int GetHashCode() => global::System.Collections.Generic.EqualityComparer<{scalarTypeName}>.Default.GetHashCode({scalarPropertyName});"
+			);
+		}
+
+		if (!sameTypeEqualityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				isReferenceType
+					? $@"{indent}	public static bool operator ==({typeName} left, {typeName} right) =>
+{indent}		left is null ? right is null : left.Equals(right);"
+					: $@"{indent}	public static bool operator ==({typeName} left, {typeName} right) =>
+{indent}		left.Equals(right);"
+			);
+		}
+
+		if (!sameTypeInequalityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	public static bool operator !=({typeName} left, {typeName} right) =>
+{indent}		!(left == right);"
+			);
+		}
+
+		if (!primitiveEqualityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				isReferenceType
+					? $@"{indent}	public static bool operator ==({typeName} left, {scalarTypeName} right) =>
+{indent}		left is null ? false : left.Equals(right);"
+					: $@"{indent}	public static bool operator ==({typeName} left, {scalarTypeName} right) =>
+{indent}		left.Equals(right);"
+			);
+		}
+
+		if (!primitiveInequalityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	public static bool operator !=({typeName} left, {scalarTypeName} right) =>
+{indent}		!(left == right);"
+			);
+		}
+
+		if (!reversePrimitiveEqualityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				isReferenceType
+					? $@"{indent}	public static bool operator ==({scalarTypeName} left, {typeName} right) =>
+{indent}		right is not null && right.Equals(left);"
+					: $@"{indent}	public static bool operator ==({scalarTypeName} left, {typeName} right) =>
+{indent}		right.Equals(left);"
+			);
+		}
+
+		if (!reversePrimitiveInequalityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	public static bool operator !=({scalarTypeName} left, {typeName} right) =>
+{indent}		!(left == right);"
+			);
+		}
+
 		if (options.GenerateImplicitToPrimitive && !HasConversionOperator(typeSymbol, scalarProperty.Type, false))
 		{
 			sb.AppendLine(
@@ -472,6 +607,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		var hydrateExists = HasStaticFactory(typeSymbol, "Hydrate", [.. properties.Select(property => property.Type)]);
 		var compareToSelfExists = HasInstanceMethod(typeSymbol, "CompareTo", [typeSymbol]);
 		var compareToObjectExists = HasCompareToObject(typeSymbol);
+		var isReferenceType = typeSymbol.TypeKind == TypeKind.Class;
+		var equalsSelfExists = typeSymbol.IsRecord || HasInstanceMethod(typeSymbol, "Equals", [typeSymbol]);
+		var equalsObjectExists = HasEqualsObject(typeSymbol);
+		var getHashCodeExists = HasParameterlessMethod(typeSymbol, "GetHashCode");
+		var equalityOperatorExists =
+			typeSymbol.IsRecord || HasBinaryOperator(typeSymbol, "op_Equality", [typeSymbol, typeSymbol]);
+		var inequalityOperatorExists =
+			typeSymbol.IsRecord || HasBinaryOperator(typeSymbol, "op_Inequality", [typeSymbol, typeSymbol]);
 		var hasJsonConverterAttribute = HasAttribute(typeSymbol, JsonConverterAttributeName);
 		var strictCreateExists = HasStaticFactory(
 			typeSymbol,
@@ -514,10 +657,92 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine(
 				$@"{indent}	public static {typeName} Hydrate({hydrateParams})
 {indent}	{{
-{indent}		{CreateNewOrThrow(typeName, ctorExists, hydrateArgs)}
+{indent}		return new({hydrateArgs});
 {indent}	}}"
 			);
 			sb.AppendLine();
+		}
+
+		if (!ctorExists)
+		{
+			var ctorParams = string.Join(
+				", ",
+				propertyTypeNames.Zip(propertyNames, static (type, name) => $"{type} {ToCamelCase(name)}")
+			);
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	private {typeModel.Name}({ctorParams})
+{indent}	{{"
+			);
+			foreach (var propertyName in propertyNames)
+				sb.AppendLine($"{indent}\t\t{propertyName} = {ToCamelCase(propertyName)};");
+			sb.AppendLine($"{indent}	}}");
+		}
+
+		if (!equalsSelfExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				isReferenceType
+					? $@"{indent}	public bool Equals({typeName} other)
+{indent}	{{
+{indent}		if (other is null)
+{indent}			return false;"
+					: $@"{indent}	public bool Equals({typeName} other)
+{indent}	{{"
+			);
+			for (var i = 0; i < properties.Length; i++)
+			{
+				sb.AppendLine(
+					$"{indent}\t\tif (!global::System.Collections.Generic.EqualityComparer<{propertyTypeNames[i]}>.Default.Equals({propertyNames[i]}, other.{propertyNames[i]}))"
+				);
+				sb.AppendLine($"{indent}\t\t\treturn false;");
+			}
+
+			sb.AppendLine($"{indent}\t\treturn true;");
+			sb.AppendLine($"{indent}\t}}");
+		}
+
+		if (!equalsObjectExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	public override bool Equals(object? obj) =>
+{indent}		obj is {typeName} other && Equals(other);"
+			);
+		}
+
+		if (!getHashCodeExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine($"{indent}\tpublic override int GetHashCode()");
+			sb.AppendLine($"{indent}\t{{");
+			sb.AppendLine($"{indent}\t\tglobal::System.HashCode hash = new();");
+			for (var i = 0; i < propertyNames.Length; i++)
+				sb.AppendLine($"{indent}\t\thash.Add({propertyNames[i]});");
+			sb.AppendLine($"{indent}\t\treturn hash.ToHashCode();");
+			sb.AppendLine($"{indent}\t}}");
+		}
+
+		if (!equalityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				isReferenceType
+					? $@"{indent}	public static bool operator ==({typeName} left, {typeName} right) =>
+{indent}		left is null ? right is null : left.Equals(right);"
+					: $@"{indent}	public static bool operator ==({typeName} left, {typeName} right) =>
+{indent}		left.Equals(right);"
+			);
+		}
+
+		if (!inequalityOperatorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$@"{indent}	public static bool operator !=({typeName} left, {typeName} right) =>
+{indent}		!(left == right);"
+			);
 		}
 
 		if (options.GenerateComparable)
@@ -633,11 +858,6 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		return true;
 	}
 
-	static string CreateNewOrThrow(string typeName, bool ctorExists, string ctorArgumentExpression) =>
-		ctorExists
-			? $"return new({ctorArgumentExpression});"
-			: $@"throw new global::System.NotSupportedException(""Generated factory requires constructor for {typeName}."");";
-
 	static bool HasAttribute(INamedTypeSymbol typeSymbol, string metadataName) =>
 		typeSymbol.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == metadataName);
 
@@ -694,6 +914,33 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				&& method.Parameters.Length == 1
 				&& method.Parameters[0].Type.SpecialType == SpecialType.System_Object
 			);
+
+	static bool HasEqualsObject(INamedTypeSymbol typeSymbol) =>
+		typeSymbol
+			.GetMembers("Equals")
+			.OfType<IMethodSymbol>()
+			.Any(method =>
+				!method.IsStatic
+				&& method.Parameters.Length == 1
+				&& method.Parameters[0].Type.SpecialType == SpecialType.System_Object
+			);
+
+	static bool HasBinaryOperator(
+		INamedTypeSymbol typeSymbol,
+		string operatorMethodName,
+		IReadOnlyList<ITypeSymbol> parameterTypes
+	)
+	{
+		return typeSymbol
+			.GetMembers(operatorMethodName)
+			.OfType<IMethodSymbol>()
+			.Any(method =>
+				method.IsStatic
+				&& method.Parameters.Length == parameterTypes.Count
+				&& method.ReturnType.SpecialType == SpecialType.System_Boolean
+				&& ParametersMatch(method.Parameters, parameterTypes)
+			);
+	}
 
 	static void EmitRelationalOperators(
 		StringBuilder sb,

@@ -68,6 +68,14 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 					return value;
 				}
 
+				public static bool EqualsPrimitive() => EmailAddress.Create("test@example.com").Equals("test@example.com");
+
+				public static bool OperatorEqualsPrimitive() =>
+					EmailAddress.Create("test@example.com") == "test@example.com";
+
+				public static bool OperatorEqualsPrimitiveReverse() =>
+					"test@example.com" == EmailAddress.Create("test@example.com");
+
 				public static int CompareWithPrimitive() => EmailAddress.Create("b@example.com").CompareTo("a@example.com");
 
 				public static int CompareWithObject() => EmailAddress.Create("a@example.com").CompareTo((object)EmailAddress.Create("b@example.com"));
@@ -86,6 +94,10 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var deserialized = (string)harnessType.GetMethod("DeserializeEmail")!.Invoke(null, null)!;
 		var implicitFrom = (string)harnessType.GetMethod("ImplicitFromPrimitive")!.Invoke(null, null)!;
 		var implicitTo = (string)harnessType.GetMethod("ImplicitToPrimitive")!.Invoke(null, null)!;
+		var equalsPrimitive = (bool)harnessType.GetMethod("EqualsPrimitive")!.Invoke(null, null)!;
+		var operatorEqualsPrimitive = (bool)harnessType.GetMethod("OperatorEqualsPrimitive")!.Invoke(null, null)!;
+		var operatorEqualsPrimitiveReverse = (bool)
+			harnessType.GetMethod("OperatorEqualsPrimitiveReverse")!.Invoke(null, null)!;
 		var comparePrimitive = (int)harnessType.GetMethod("CompareWithPrimitive")!.Invoke(null, null)!;
 		var compareObject = (int)harnessType.GetMethod("CompareWithObject")!.Invoke(null, null)!;
 
@@ -97,8 +109,48 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		await Assert.That(deserialized).IsEqualTo("not-an-email");
 		await Assert.That(implicitFrom).IsEqualTo("test@example.com");
 		await Assert.That(implicitTo).IsEqualTo("test@example.com");
+		await Assert.That(equalsPrimitive).IsTrue();
+		await Assert.That(operatorEqualsPrimitive).IsTrue();
+		await Assert.That(operatorEqualsPrimitiveReverse).IsTrue();
 		await Assert.That(comparePrimitive).IsEqualTo(1);
 		await Assert.That(compareObject).IsEqualTo(-1);
+	}
+
+	[Test]
+	public async Task ScalarGeneration_GeneratesPrivateConstructorWhenMissing(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+
+			[Purview.EventSourcing.Serialization.Scalar]
+			public readonly partial record struct PhoneNumber
+			{
+				public string Value { get; }
+			}
+
+			public static class PhoneHarness
+			{
+				public static string CreatePhone() => PhoneNumber.Create("12345").Value;
+
+				public static string HydratePhone() => PhoneNumber.Hydrate("67890").Value;
+			}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("private PhoneNumber(string value) => Value = value;");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.PhoneHarness")!;
+
+		var created = (string)harnessType.GetMethod("CreatePhone")!.Invoke(null, null)!;
+		var hydrated = (string)harnessType.GetMethod("HydratePhone")!.Invoke(null, null)!;
+
+		await Assert.That(created).IsEqualTo("12345");
+		await Assert.That(hydrated).IsEqualTo("67890");
 	}
 
 	[Test]
@@ -183,6 +235,51 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task ComplexValueObjectGeneration_GeneratesPrivateConstructorAndEqualityWhenMissing(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+
+			[Purview.EventSourcing.Serialization.ValueObject]
+			public partial class Address
+			{
+				public string Line1 { get; }
+
+				public string City { get; }
+			}
+
+			public static class AddressHarness
+			{
+				public static bool AreEqual() => Address.Hydrate("1 Example Street", "London") == Address.Hydrate("1 Example Street", "London");
+
+				public static string City() => Address.Hydrate("1 Example Street", "London").City;
+			}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("private Address(string line1, string city)");
+		await Assert.That(generatedSource).Contains("public bool Equals(global::Testing.Address other)");
+		await Assert
+			.That(generatedSource)
+			.Contains("public static bool operator ==(global::Testing.Address left, global::Testing.Address right)");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.AddressHarness")!;
+
+		var areEqual = (bool)harnessType.GetMethod("AreEqual")!.Invoke(null, null)!;
+		var city = (string)harnessType.GetMethod("City")!.Invoke(null, null)!;
+
+		await Assert.That(areEqual).IsTrue();
+		await Assert.That(city).IsEqualTo("London");
+	}
+
+	[Test]
 	public async Task ScalarJsonStrictMode_UsesCreateOnDeserialization(CancellationToken cancellationToken)
 	{
 		const string source = """
@@ -239,7 +336,7 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
-	public async Task ScalarComparable_GeneratesRelationalOperatorsWithoutEqualityMembers(
+	public async Task ScalarComparable_GeneratesRelationalAndPrimitiveEqualityOperators(
 		CancellationToken cancellationToken
 	)
 	{
@@ -271,10 +368,11 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		await Assert.That(generatedSource).Contains("operator >(global::Testing.Name left, string right)");
 		await Assert.That(generatedSource).Contains("operator <=(global::Testing.Name left, string right)");
 		await Assert.That(generatedSource).Contains("operator >=(global::Testing.Name left, string right)");
-		await Assert.That(generatedSource).DoesNotContain("operator ==(");
-		await Assert.That(generatedSource).DoesNotContain("operator !=(");
-		await Assert.That(generatedSource).DoesNotContain("override bool Equals(");
-		await Assert.That(generatedSource).DoesNotContain("override int GetHashCode(");
+		await Assert.That(generatedSource).Contains("public bool Equals(string other)");
+		await Assert.That(generatedSource).Contains("operator ==(global::Testing.Name left, string right)");
+		await Assert.That(generatedSource).Contains("operator !=(global::Testing.Name left, string right)");
+		await Assert.That(generatedSource).Contains("operator ==(string left, global::Testing.Name right)");
+		await Assert.That(generatedSource).Contains("operator !=(string left, global::Testing.Name right)");
 		await Assert
 			.That(generatedSource)
 			.DoesNotContain("operator <(global::System.String left, global::Testing.Name right)");

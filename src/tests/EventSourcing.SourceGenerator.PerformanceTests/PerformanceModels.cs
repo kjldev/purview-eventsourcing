@@ -22,7 +22,7 @@ sealed class PerformanceRun
 
 		var previousScenarios =
 			previousRun?.Scenarios.ToDictionary(static scenario => scenario.Name, StringComparer.Ordinal)
-			?? new Dictionary<string, PerformanceScenarioRun>(StringComparer.Ordinal);
+			?? [with(StringComparer.Ordinal)];
 
 		foreach (var scenario in Scenarios)
 		{

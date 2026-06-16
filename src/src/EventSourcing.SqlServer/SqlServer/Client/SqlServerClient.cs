@@ -529,42 +529,32 @@ sealed partial class SqlServerClient
 		}
 	}
 
-	static bool ShouldOwnType(Type type)
-	{
-		if (type.IsPrimitive || type.IsEnum)
-			return false;
+	static bool ShouldOwnType(Type type) =>
+		!type.IsPrimitive
+		&& !type.IsEnum
+		&& type != typeof(string)
+		&& type != typeof(decimal)
+		&& type != typeof(Guid)
+		&& type != typeof(DateTime)
+		&& type != typeof(DateTimeOffset)
+		&& type != typeof(DateOnly)
+		&& type != typeof(TimeOnly)
+		&& type != typeof(TimeSpan)
+		&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal))
+		&& (type.IsClass || (type.IsValueType && !type.IsPrimitive && !type.IsEnum));
 
-		if (
-			type == typeof(string)
-			|| type == typeof(decimal)
-			|| type == typeof(Guid)
-			|| type == typeof(DateTime)
-			|| type == typeof(DateTimeOffset)
-			|| type == typeof(DateOnly)
-			|| type == typeof(TimeOnly)
-			|| type == typeof(TimeSpan)
-		)
-			return false;
-
-		return (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal))
-			&& (type.IsClass || (type.IsValueType && !type.IsPrimitive && !type.IsEnum));
-	}
-
-	static bool ShouldInspectType(Type type)
-	{
-		if (type.IsPrimitive || type.IsEnum)
-			return false;
-
-		return type != typeof(string)
-			&& type != typeof(decimal)
-			&& type != typeof(Guid)
-			&& type != typeof(DateTime)
-			&& type != typeof(DateTimeOffset)
-			&& type != typeof(DateOnly)
-			&& type != typeof(TimeOnly)
-			&& type != typeof(TimeSpan)
-			&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal));
-	}
+	static bool ShouldInspectType(Type type) =>
+		!type.IsPrimitive
+		&& !type.IsEnum
+		&& type != typeof(string)
+		&& type != typeof(decimal)
+		&& type != typeof(Guid)
+		&& type != typeof(DateTime)
+		&& type != typeof(DateTimeOffset)
+		&& type != typeof(DateOnly)
+		&& type != typeof(TimeOnly)
+		&& type != typeof(TimeSpan)
+		&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal));
 
 	static bool ShouldSkipJsonProperty(PropertyInfo property) =>
 		property.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>() is not null
@@ -642,17 +632,12 @@ sealed partial class SqlServerClient
 	{
 		readonly ConstantExpression _aggregateType = Expression.Constant(aggregateType, typeof(string));
 
-		protected override Expression VisitMember(MemberExpression node)
-		{
-			if (
-				node.Member.Name == nameof(IAggregate.AggregateType)
-				&& node.Expression is not null
-				&& typeof(IAggregate).IsAssignableFrom(node.Expression.Type)
-			)
-				return _aggregateType;
-
-			return base.VisitMember(node);
-		}
+		protected override Expression VisitMember(MemberExpression node) =>
+			node.Member.Name == nameof(IAggregate.AggregateType)
+			&& node.Expression is not null
+			&& typeof(IAggregate).IsAssignableFrom(node.Expression.Type)
+				? _aggregateType
+				: base.VisitMember(node);
 	}
 
 	sealed class UnsupportedScalarValueOrderByDetector : ExpressionVisitor
@@ -737,15 +722,12 @@ sealed partial class SqlServerClient
 				return visited;
 
 			var scalarAttribute = node.Expression.Type.GetCustomAttribute<ScalarAttribute>();
-			if (scalarAttribute is not null && node.Member.Name == scalarAttribute.PropertyName)
-			{
-				throw new InvalidOperationException(
+			return scalarAttribute is not null && node.Member.Name == scalarAttribute.PropertyName
+				? throw new InvalidOperationException(
 					$"Ordering by '{node.Expression.Type.Name}.{node.Member.Name}' is not supported for SQL snapshot JSON queries. "
 						+ "Order by the scalar value object property itself (for example: c => c.Name) instead of its inner scalar member."
-				);
-			}
-
-			return visited;
+				)
+				: visited;
 		}
 	}
 
@@ -851,7 +833,7 @@ sealed partial class SqlServerClient
 		await creator.CreateTablesAsync(cancellationToken);
 	}
 
-	static bool IsDuplicateTableCreateError(Exception exception, string tableName)
+	static bool IsDuplicateTableCreateError(Exception exception, string _)
 	{
 		for (var current = exception; current is not null; current = current.InnerException)
 		{

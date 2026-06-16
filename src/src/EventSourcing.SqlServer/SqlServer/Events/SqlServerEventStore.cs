@@ -25,7 +25,7 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 
 	readonly IAggregateEventNameMapper _eventNameMapper;
 	readonly IOptions<SqlServerEventStoreOptions> _eventStoreOptions;
-	readonly FluentValidation.IValidator<T>? _validator;
+	readonly IAggregateValidator<T>? _validator;
 	readonly IAggregateIdFactory? _aggregateIdFactory;
 	readonly IDistributedCache _distributedCache;
 	readonly ISqlServerEventStoreTelemetry _eventStoreTelemetry;
@@ -52,7 +52,7 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 	{
 		_eventNameMapper = eventNameMapper;
 		_eventStoreOptions = sqlServerOptions;
-		_validator = validator;
+		_validator = AggregateValidatorAdapter.Adapt(validator);
 		_aggregateIdFactory = aggregateIdFactory;
 		_distributedCache = distributedCache;
 		_eventStoreTelemetry = eventStoreTelemetry;

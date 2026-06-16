@@ -16,6 +16,13 @@ namespace Purview.EventSourcing;
 public readonly record struct ExistsState(ExistsStatus Status, int? Version)
 {
 	/// <summary>
+	/// If <see cref="Status"/> is <see cref="ExistsStatus.Exists"/>
+	/// or <see cref="ExistsStatus.ExistsInDeletedState"/>, then returns true.
+	/// Otherwise, returns false.
+	/// </summary>
+	public bool DoesExist => this;
+
+	/// <summary>
 	/// Converts this instance of a <see cref="ExistsState"/> to a <see cref="bool"/>.
 	/// </summary>
 	/// <param name="state">The value to convert.</param>
@@ -37,11 +44,4 @@ public readonly record struct ExistsState(ExistsStatus Status, int? Version)
 	/// Represents a value that indicates the aggregate exists, but is in a deleted state.
 	/// </summary>
 	public static ExistsState ExistsInDeletedState => new(ExistsStatus.ExistsInDeletedState, null);
-
-	/// <summary>
-	/// If <see cref="Status"/> is <see cref="ExistsStatus.Exists"/>
-	/// or <see cref="ExistsStatus.ExistsInDeletedState"/>, then returns true.
-	/// Otherwise, returns false.
-	/// </summary>
-	public bool DoesExist => this;
 }

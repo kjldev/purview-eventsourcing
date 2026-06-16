@@ -425,16 +425,15 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return new EventTypeValidationResult([]);
 
 		var displayName = GetDisplayEventName(typeSymbol.Name);
-		if (EventVerbMap.IsPastTenseEventName(displayName))
-			return new EventTypeValidationResult([]);
-
-		return new EventTypeValidationResult([
-			Diagnostic.Create(
-				GeneratorDiagnostics.EventNameShouldBePastTense,
-				typeDeclaration.GetLocation(),
-				displayName
-			),
-		]);
+		return EventVerbMap.IsPastTenseEventName(displayName)
+			? new EventTypeValidationResult([])
+			: new EventTypeValidationResult([
+				Diagnostic.Create(
+					GeneratorDiagnostics.EventNameShouldBePastTense,
+					typeDeclaration.GetLocation(),
+					displayName
+				),
+			]);
 	}
 
 	static bool TryCreateEventMethodInfo(
@@ -805,13 +804,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 	static bool IsSimpleCreateMethod(IMethodSymbol method, ITypeSymbol returnType, ITypeSymbol parameterType)
 	{
-		if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public || method.Name != "Create")
-			return false;
-
-		if (method.Parameters.Length != 1)
-			return false;
-
-		return SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
+		return method.IsStatic
+			&& method.DeclaredAccessibility == Accessibility.Public
+			&& method.Name == "Create"
+			&& method.Parameters.Length == 1
+			&& SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
 			&& SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, parameterType);
 	}
 
@@ -836,20 +833,12 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return false;
 
 		var contextParameter = method.Parameters[1];
-		if (contextParameter.RefKind != RefKind.In)
-			return false;
-
-		if (
-			contextTypeDefinition is null
-			|| contextParameter.Type is not INamedTypeSymbol contextType
-			|| !SymbolEqualityComparer.Default.Equals(contextType.OriginalDefinition, contextTypeDefinition)
-			|| contextType.TypeArguments.Length != 1
-		)
-		{
-			return false;
-		}
-
-		return SymbolEqualityComparer.Default.Equals(contextType.TypeArguments[0], aggregateType);
+		return contextParameter.RefKind == RefKind.In
+			&& contextTypeDefinition is not null
+			&& contextParameter.Type is INamedTypeSymbol contextType
+			&& SymbolEqualityComparer.Default.Equals(contextType.OriginalDefinition, contextTypeDefinition)
+			&& contextType.TypeArguments.Length == 1
+			&& SymbolEqualityComparer.Default.Equals(contextType.TypeArguments[0], aggregateType);
 	}
 
 	static AttributeStringValue GetAttributeStringNamedArgument(
