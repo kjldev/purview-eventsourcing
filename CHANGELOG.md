@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-Init20Release.1
+
+### Patch Changes
+
+- Complete re-write of the source generator
+
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
 ## [1.1.2](https://github.com/kjldev/purview-eventsourcing/compare/v1.1.1...v1.1.2) (2026-04-26)
@@ -8,26 +14,25 @@ All notable changes to this project will be documented in this file. See [commit
 
 ### Bug Fixes
 
-* make `EventSourcing.Shared` packable and include it in package output
-* align package IDs to the `Purview.EventSourcing*` prefix across packages and documentation
-* reinforce deterministic NuGet package build defaults for packable projects
+- make `EventSourcing.Shared` packable and include it in package output
+- align package IDs to the `Purview.EventSourcing*` prefix across packages and documentation
+- reinforce deterministic NuGet package build defaults for packable projects
 
 ## [0.0.1](https://github.com/kjldev/purview-eventsourcing/compare/v0.0.1-prerelease.0...v0.0.1) (2026-04-16)
 
-
 ### Bug Fixes
 
-* publish draft release after asset upload in CD workflow ([422c3d5](https://github.com/kjldev/purview-eventsourcing/commit/422c3d520fa9257bcfcaedc3df5b73ba8a53a8ca))
-* support immutable GitHub releases in CD workflow ([b1489cc](https://github.com/kjldev/purview-eventsourcing/commit/b1489cc251adf527d1f73f01eb8e18129e403c39))
+- publish draft release after asset upload in CD workflow ([422c3d5](https://github.com/kjldev/purview-eventsourcing/commit/422c3d520fa9257bcfcaedc3df5b73ba8a53a8ca))
+- support immutable GitHub releases in CD workflow ([b1489cc](https://github.com/kjldev/purview-eventsourcing/commit/b1489cc251adf527d1f73f01eb8e18129e403c39))
 
 ## 1.1.0 (2025-03-03)
 
 ### Features
 
-* added snapshot counter telemetry ([a69dc1a](https://github.com/purview-dev/purview-eventsourcing/commit/a69dc1a993ae5caa195a01d6861ad07f27eff948))
-* adding storage implementations ([efacc31](https://github.com/purview-dev/purview-eventsourcing/commit/efacc31bac4c34499917ab59d316039cffa12827))
-* initial commit ([0b7a104](https://github.com/purview-dev/purview-eventsourcing/commit/0b7a10400d7651bffb551d976e0549ae90323ae8))
+- added snapshot counter telemetry ([a69dc1a](https://github.com/purview-dev/purview-eventsourcing/commit/a69dc1a993ae5caa195a01d6861ad07f27eff948))
+- adding storage implementations ([efacc31](https://github.com/purview-dev/purview-eventsourcing/commit/efacc31bac4c34499917ab59d316039cffa12827))
+- initial commit ([0b7a104](https://github.com/purview-dev/purview-eventsourcing/commit/0b7a10400d7651bffb551d976e0549ae90323ae8))
 
 ### Bug Fixes
 
-* fixed tests ([1bf75c6](https://github.com/purview-dev/purview-eventsourcing/commit/1bf75c62e24ee00e221b760a4e9c97e5e7264260))
+- fixed tests ([1bf75c6](https://github.com/purview-dev/purview-eventsourcing/commit/1bf75c62e24ee00e221b760a4e9c97e5e7264260))

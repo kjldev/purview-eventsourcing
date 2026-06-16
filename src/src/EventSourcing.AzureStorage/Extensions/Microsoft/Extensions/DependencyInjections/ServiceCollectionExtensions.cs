@@ -1,0 +1,46 @@
+﻿using System.ComponentModel;
+using Microsoft.Extensions.Configuration;
+using Purview.EventSourcing.AzureStorage;
+using Purview.EventSourcing.Internal;
+
+namespace Microsoft.Extensions.DependencyInjection;
+
+[EditorBrowsable(EditorBrowsableState.Never)]
+public static class ServiceCollectionExtensions
+{
+	extension(IServiceCollection services)
+	{
+		public IServiceCollection AddAzureTableEventStore()
+		{
+			services.AddEventSourcing();
+
+			services
+				.AddTransient(typeof(IEventStoreCore<>), typeof(TableEventStore<>))
+				.AddTransient(typeof(INonQueryableEventStore<>), typeof(TableEventStore<>))
+				.AddTransient(typeof(ITableEventStore<>), typeof(TableEventStore<>))
+				.AddTransient<IEventStore, EventStoreFacade>()
+				.AddTableEventStoreTelemetry();
+
+			services
+				.AddOptions<AzureStorageEventStoreOptions>()
+				.Configure<IConfiguration>(
+					(options, configuration) =>
+					{
+						configuration.GetSection(AzureStorageEventStoreOptions.AzureStorageEventStore).Bind(options);
+
+						if (string.IsNullOrWhiteSpace(options.ConnectionString))
+						{
+							options.ConnectionString =
+								configuration.GetConnectionString("EventStore_AzureStorage")
+								?? configuration.GetConnectionString("AzureStorage")
+								// This will get picked up by the validation.
+								?? default!;
+						}
+					}
+				)
+				.ValidateOnStart();
+
+			return services;
+		}
+	}
+}

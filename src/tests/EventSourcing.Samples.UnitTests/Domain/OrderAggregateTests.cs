@@ -1,21 +1,39 @@
-using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.Samples.Domain.Events;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
 public class OrderAggregateTests
 {
-	static OrderAggregate CreateOrder(string? id = null, bool withItems = false)
+	static OrderAggregate CreateOrder(
+		string? id = null,
+		bool withItems = false,
+		string? shippingAddress = null,
+		OrderStatusCode statusCode = OrderStatusCode.Draft
+	)
 	{
 		var order = new OrderAggregate();
 		if (id is not null)
 			order.Details.Id = id;
-		order.CreateOrder("customer-1");
+
+		order.CreateOrder("customer-1").SetShippingAddress(shippingAddress: shippingAddress);
 
 		if (withItems)
 		{
 			order.AddLineItem("prod-1", "Widget A", 2, 10.00m);
 			order.AddLineItem("prod-2", "Widget B", 1, 25.00m);
+		}
+
+		switch (statusCode)
+		{
+			case OrderStatusCode.Confirmed:
+				order.ConfirmOrder();
+				break;
+			case OrderStatusCode.Shipped:
+				order.ConfirmOrder().ShipOrder();
+				break;
+			case OrderStatusCode.Cancelled:
+				order.CancelOrder();
+				break;
 		}
 
 		return order;
@@ -39,10 +57,14 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public void CreateOrder_GivenNullCustomerId_ThrowsArgumentException()
+	[Arguments(null)]
+	[Arguments("")]
+	[Arguments(" ")]
+	[Arguments("     ")]
+	public void CreateOrder_GivenNullEmptyOrWhitespaceCustomerId_ThrowsArgumentException(string? customerId)
 	{
 		var order = new OrderAggregate();
-		Assert.Throws<ArgumentException>(() => order.CreateOrder(null!));
+		Assert.Throws<ArgumentException>(() => order.CreateOrder(customerId!));
 	}
 
 	#endregion
@@ -60,8 +82,8 @@ public class OrderAggregateTests
 
 		// Assert
 		await Assert.That(order.LineItems).Count().IsEqualTo(1);
-		await Assert.That(order.LineItems[0].ProductId).IsEqualTo("prod-1");
-		await Assert.That(order.LineItems[0].Quantity).IsEqualTo(2);
+		await Assert.That(order.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-1");
+		await Assert.That(order.LineItems.ElementAt(0).Quantity).IsEqualTo(2);
 		await Assert.That(order.TotalAmount).IsEqualTo(59.98m);
 	}
 
@@ -77,7 +99,7 @@ public class OrderAggregateTests
 
 		// Assert — same product, quantity merged
 		await Assert.That(order.LineItems).Count().IsEqualTo(1);
-		await Assert.That(order.LineItems[0].Quantity).IsEqualTo(5);
+		await Assert.That(order.LineItems.ElementAt(0).Quantity).IsEqualTo(5);
 		await Assert.That(order.TotalAmount).IsEqualTo(50.00m);
 	}
 
@@ -254,11 +276,19 @@ public class OrderAggregateTests
 	}
 
 	[Test]
-	public void UpdateDetails_GivenWhitespaceAddress_ThrowsArgumentException()
+	[Arguments(null)]
+	[Arguments("")]
+	[Arguments(" ")]
+	[Arguments("     ")]
+	public async Task UpdateDetails_GivenNullOrWhitespaceAddress_RaisesNoEvents(string? shippingAddress)
 	{
 		var order = CreateOrder("order-1");
+		var countBefore = order.GetUnsavedEvents().Count();
 
-		Assert.Throws<ArgumentException>(() => order.UpdateDetails(shippingAddress: "  "));
+		order.UpdateDetails(shippingAddress: shippingAddress);
+
+		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(countBefore);
+		await Assert.That(order.ShippingAddress).IsNull();
 	}
 
 	#endregion
@@ -280,6 +310,100 @@ public class OrderAggregateTests
 		// Assert — CreateOrder + AddLineItem + SetShippingAddress + UpdateNotes + Confirm + Ship + Complete = 7
 		await Assert.That(order.GetUnsavedEvents().Count()).IsEqualTo(7);
 		await Assert.That(order.Details.CurrentVersion).IsEqualTo(7);
+	}
+
+	#endregion
+
+	#region OrderStatus Value Object Contextual Validation Tests
+
+	[Test]
+	public async Task ConfirmOrder_ViaContextualCreate_ValidatesTransitionAndLineItems()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+
+		order.ConfirmOrder();
+
+		await Assert.That(order.Status).IsEqualTo(OrderStatus.Confirmed);
+	}
+
+	[Test]
+	public void ConfirmOrder_GivenNoItems_ThrowsViaContextualCreate()
+	{
+		// Validation now lives in OrderStatus.Create(Confirmed, context)
+		var order = CreateOrder("order-1");
+		Assert.Throws<InvalidOperationException>(() => order.ConfirmOrder());
+	}
+
+	[Test]
+	public void ConfirmOrder_GivenAlreadyConfirmed_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.ConfirmOrder();
+		Assert.Throws<InvalidOperationException>(() => order.ConfirmOrder());
+	}
+
+	[Test]
+	public void ShipOrder_GivenNoShippingAddress_ThrowsViaContextualCreate()
+	{
+		// Shipping-address validation now lives in OrderStatus.Create(Shipped, context)
+		var order = CreateOrder("order-1", withItems: true);
+		order.ConfirmOrder();
+		Assert.Throws<InvalidOperationException>(() => order.ShipOrder());
+	}
+
+	[Test]
+	public void ShipOrder_GivenDraftOrder_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		// Draft → Shipped is not a valid transition
+		Assert.Throws<InvalidOperationException>(() => order.ShipOrder());
+	}
+
+	[Test]
+	public void CompleteOrder_GivenConfirmedOrder_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.ConfirmOrder();
+		// Confirmed → Completed is not a valid transition
+		Assert.Throws<InvalidOperationException>(() => order.CompleteOrder());
+	}
+
+	[Test]
+	public void CancelOrder_GivenCompletedOrder_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.SetShippingAddress("123 St");
+		order.ConfirmOrder();
+		order.ShipOrder();
+		order.CompleteOrder();
+		// Completed → Cancelled is not a valid transition
+		Assert.Throws<InvalidOperationException>(() => order.CancelOrder());
+	}
+
+	[Test]
+	public void CancelOrder_GivenAlreadyCancelled_ThrowsInvalidTransition()
+	{
+		var order = CreateOrder("order-1", withItems: true);
+		order.CancelOrder();
+		Assert.Throws<InvalidOperationException>(() => order.CancelOrder());
+	}
+
+	[Test]
+	public async Task OrderStatus_StaticConvenienceProperties_HaveCorrectUnderlyingCode()
+	{
+		await Assert.That(OrderStatus.Draft.Value).IsEqualTo(OrderStatusCode.Draft);
+		await Assert.That(OrderStatus.Confirmed.Value).IsEqualTo(OrderStatusCode.Confirmed);
+		await Assert.That(OrderStatus.Shipped.Value).IsEqualTo(OrderStatusCode.Shipped);
+		await Assert.That(OrderStatus.Completed.Value).IsEqualTo(OrderStatusCode.Completed);
+		await Assert.That(OrderStatus.Cancelled.Value).IsEqualTo(OrderStatusCode.Cancelled);
+	}
+
+	[Test]
+	public async Task OrderStatus_HydrateDoesNotValidateTransitions()
+	{
+		// Hydrate must not call any transition rules — this is the replay path
+		var status = OrderStatus.Hydrate(OrderStatusCode.Confirmed);
+		await Assert.That(status.Value).IsEqualTo(OrderStatusCode.Confirmed);
 	}
 
 	#endregion

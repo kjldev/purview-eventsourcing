@@ -1,8 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<DefineConstants>EventsBasedStore</DefineConstants>
-	</PropertyGroup>
-
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.CosmosDb\EventSourcing.CosmosDb.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.MongoDB\EventSourcing.MongoDB.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+	</ItemGroup>
 	<ItemGroup>
 		<None Update="Resources/**/*">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

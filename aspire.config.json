@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/src/EventSourcing.Samples.AppHost/EventSourcing.Samples.AppHost.csproj"
+  }
+}

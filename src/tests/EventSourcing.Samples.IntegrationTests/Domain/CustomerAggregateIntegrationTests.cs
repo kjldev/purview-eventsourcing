@@ -1,4 +1,4 @@
-using Purview.EventSourcing.SqlServer;
+using Purview.EventSourcing.Fixtures.SqlServer;
 
 namespace Purview.EventSourcing.Samples.Domain;
 

@@ -25,10 +25,6 @@ namespace Purview.EventSourcing;
 /// <remarks>
 /// Creates a new transaction with the given correlation ID.
 /// </remarks>
-/// <param name="correlationId">
-/// Optional correlation ID. When <see langword="null"/>, the current activity ID is used when available;
-/// otherwise a new GUID is generated.
-/// </param>
 public sealed class EventStoreTransaction : IEventStoreTransaction
 {
 	readonly List<IEnlistedAggregate> _enlisted = [];
@@ -282,6 +278,7 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 	internal interface IEnlistedAggregate
 	{
 		IAggregate Aggregate { get; }
+
 		string? TransactionBoundaryKey { get; }
 
 		Task<(bool saved, bool skipped)> SaveAsync(string correlationId, CancellationToken cancellationToken);
@@ -301,9 +298,13 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 	internal interface IProcessedSaveOperation
 	{
 		IAggregate Aggregate { get; }
+
 		bool Saved { get; }
+
 		bool Skipped { get; }
+
 		Task AfterCommitAsync(CancellationToken cancellationToken);
+
 		Task AfterRollbackAsync(CancellationToken cancellationToken);
 	}
 
@@ -349,6 +350,7 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 		}
 
 		public IAggregate Aggregate => _aggregate;
+
 		public string? TransactionBoundaryKey => _transactionalEventStore?.TransactionBoundaryKey;
 
 		public async Task<(bool saved, bool skipped)> SaveAsync(
@@ -425,7 +427,9 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 		where T : class, IAggregate, new()
 	{
 		public IAggregate Aggregate => aggregate;
+
 		public bool Saved => operation.Result.Saved;
+
 		public bool Skipped => operation.Result.Skipped;
 
 		public Task AfterCommitAsync(CancellationToken cancellationToken) =>

@@ -25,7 +25,7 @@ public static class IEventStoreCoreExtensions
 		where T : class, IAggregate, new()
 	{
 		if (string.IsNullOrWhiteSpace(aggregateId))
-			aggregateId = $"{Guid.NewGuid()}".ToLowerSafe();
+			aggregateId = $"{Guid.NewGuid()}:D";
 
 		var aggregate = new T { Details = new() { Id = aggregateId } };
 

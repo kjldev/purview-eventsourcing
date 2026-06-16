@@ -1,11 +1,11 @@
-# SQL Server Event Store
+# SQL Server Event and Snapshot Stores
 
-Purview Event Sourcing ships two SQL Server-backed stores:
+Purview Event Sourcing ships separate SQL Server-backed event and snapshot implementations in a single NuGet package:
 
 | Package | Class | Purpose |
 |---------|-------|---------|
-| `EventSourcing.SqlServer.Events` | `SqlServerEventStore<T>` | Pure event-sourced store — events are the source of truth |
-| `EventSourcing.SqlServer` | `SqlServerSnapshotEventStore<T>` | Queryable snapshot store — wraps an events store and maintains a projection |
+| `Purview.EventSourcing.SqlServer` | `SqlServerEventStore<T>` | Pure event-sourced store — events are the source of truth |
+| `Purview.EventSourcing.SqlServer` | `SqlServerSnapshotEventStore<T>` | Queryable snapshot store — optimized for query/list/count over snapshots |
 
 Both stores create their tables automatically on first use (configurable) and use a **single shared table** for all aggregate types.
 
@@ -28,10 +28,6 @@ Both stores create their tables automatically on first use (configurable) and us
 ## Installation
 
 ```xml
-<!-- Events-only store -->
-<PackageReference Include="Purview.EventSourcing.SqlServer.Events" />
-
-<!-- Queryable snapshot store (also bring in an events store) -->
 <PackageReference Include="Purview.EventSourcing.SqlServer" />
 ```
 
@@ -73,8 +69,8 @@ public class OrderService(IEventStore store)
 
 ```csharp
 // Program.cs
-builder.Services.AddSqlServerSnapshotEventStore();
-builder.Services.AddSqlServerEventStore(); // still needed as the backing events store
+builder.Services.AddSqlServerEventStore();
+builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
 // appsettings.json
 {
@@ -295,14 +291,14 @@ public partial class OrderAggregate : AggregateBase
 }
 ```
 
-The generator emits `public override int SchemaVersion => 2;` in the `CreateOrderEvent` class.
+The generator emits `public override int SchemaVersion => 2;` in the `OrderCreated` class.
 
 ### Manually
 
 Override `SchemaVersion` on any `EventBase` subclass:
 
 ```csharp
-public sealed class CreateOrderEvent : EventBase
+public sealed class OrderCreated : EventBase
 {
     public string CustomerId { get; set; } = default!;
     public string Currency   { get; set; } = default!;
@@ -320,7 +316,7 @@ public sealed class CreateOrderEvent : EventBase
 The `SchemaVersion` value is serialized as part of the event's JSON payload. When the event is replayed from the store the version is available via `@event.SchemaVersion`, enabling conditional up-casting:
 
 ```csharp
-void Apply(CreateOrderEvent e)
+void Apply(OrderCreated e)
 {
     CustomerId = e.CustomerId;
     // Up-cast: v1 events did not have Currency; default to "GBP"
@@ -332,10 +328,11 @@ void Apply(CreateOrderEvent e)
 
 ## Source Generator
 
-Add the source generator NuGet package to your domain project:
+The source generator ships with `Purview.EventSourcing` and does not require a separate package.
+Add `Purview.EventSourcing` to your domain project:
 
 ```xml
-<PackageReference Include="Purview.EventSourcing.SourceGenerator" />
+<PackageReference Include="Purview.EventSourcing" />
 ```
 
 ### Defining an aggregate
@@ -361,10 +358,10 @@ public partial class OrderAggregate : AggregateBase
 
 The generator produces (in `OrderAggregate.g.cs`):
 
-- `Testing.Events.CreateOrderEvent` — sealed class with `CustomerId` and `Total` properties, `BuildEventHash`, and `SchemaVersion`
-- `Testing.Events.UpdateTotalEvent` — sealed class with `Total` property
+- `Testing.Events.OrderCreated` — sealed class with `CustomerId` and `Total` properties, `BuildEventHash`, and `SchemaVersion`
+- `Testing.Events.TotalUpdated` — sealed class with `Total` property
 - `OrderAggregate.RegisterEvents()` — registers all events
-- `OrderAggregate.Apply(CreateOrderEvent)` and `Apply(UpdateTotalEvent)`
+- `OrderAggregate.Apply(OrderCreated)` and `Apply(TotalUpdated)`
 - Implementations of the two partial command methods
 
 ### Parameterless events
@@ -374,7 +371,7 @@ The generator produces (in `OrderAggregate.g.cs`):
 public partial void Activate();
 ```
 
-Generates `ActivateEvent` with no properties and `RecordAndApply(new ActivateEvent())`.
+Generates `OrderActivated` with no properties and `RecordAndApply(new OrderActivated())`.
 
 ### Versioned events
 
@@ -383,7 +380,7 @@ Generates `ActivateEvent` with no properties and `RecordAndApply(new ActivateEve
 public partial void CreateOrder(string customerId, decimal total, string currency);
 ```
 
-Generates `CreateOrderEvent` with `SchemaVersion => 2`.
+Generates `OrderCreated` with `SchemaVersion => 2`.
 
 ---
 

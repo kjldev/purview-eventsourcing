@@ -7,6 +7,7 @@
 		<IsPackable>true</IsPackable>
 		<Title>Purview Event Store for Azure Table and Blob Storage</Title>
 		<Description>Azure Table Storage and Blob Storage event store provider for Purview EventSourcing, including snapshot and large-payload support.</Description>
+		<PackageId>Purview.EventSourcing.AzureStorage</PackageId>
 		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;event-store;azure-storage;azure-table-storage;azure-blob-storage;tables;blobs;</PackageTags>
 	</PropertyGroup>
 
@@ -15,12 +16,8 @@
 			<_Parameter1>EventSourcing.IntegrationTests</_Parameter1>
 		</AssemblyAttribute>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>SharedTestingFramework</_Parameter1>
+			<_Parameter1>EventSourcing.UnitTests</_Parameter1>
 		</AssemblyAttribute>
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\EventSourcing.Shared\EventSourcing.Shared.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -29,5 +26,9 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
 		<PackageReference Include="Microsoft.Extensions.Options" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing\EventSourcing.csproj" />
 	</ItemGroup>
 </Project>

@@ -17,9 +17,9 @@ public readonly record struct ExistsState(ExistsStatus Status, int? Version)
 {
 	/// <summary>
 	/// Converts this instance of a <see cref="ExistsState"/> to a <see cref="bool"/>.
-	/// <param name="state">The value to convert.</param>
-	/// <returns>Returns true if the <see cref="Status"/> equals <see cref="ExistsStatus.Exists"/>
 	/// </summary>
+	/// <param name="state">The value to convert.</param>
+	/// <returns>Returns true if the <see cref="Status"/> equals <see cref="ExistsStatus.Exists"/></returns>
 	public static implicit operator bool([NotNull] ExistsState state) =>
 		state.Status is ExistsStatus.Exists or ExistsStatus.ExistsInDeletedState;
 

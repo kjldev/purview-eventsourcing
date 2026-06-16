@@ -29,6 +29,11 @@ public class ContinuationResponse<T>
 	public T[] Results { get; set; } = [];
 
 	/// <summary>
+	/// Gets the total count of the query, if available. Set when <see cref="ContinuationRequest.IncludeTotalCount"/> is <see langword="true"/>.
+	/// </summary>
+	public long? TotalCount { get; set; }
+
+	/// <summary>
 	/// The requested record count, in this page of data.
 	/// </summary>
 	/// <remarks>Usually from <see cref="ContinuationRequest.MaxRecords"/>.</remarks>

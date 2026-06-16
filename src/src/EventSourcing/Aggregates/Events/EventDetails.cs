@@ -51,5 +51,6 @@ public sealed class EventDetails
 	/// Generates a hash-code based on the properties of the <see cref="EventDetails"/>.
 	/// </summary>
 	/// <returns></returns>
-	public override int GetHashCode() => HashCode.Combine(IdempotencyId, AggregateVersion, When, UserId);
+	public override int GetHashCode() =>
+		HashCode.Combine(IdempotencyId, AggregateVersion, When, UserId, CausationId, CorrelationId);
 }

@@ -3,23 +3,44 @@
 		<IsPackable>true</IsPackable>
 		<Title>Purview Event Sourcing</Title>
 		<Description>Core abstractions, aggregate types, facades, transactions, and dependency injection extensions for building event-sourced .NET applications.</Description>
+		<PackageId>Purview.EventSourcing</PackageId>
 		<PackageTags>$(PackageTags);purview;kjldev;dotnet;event-sourcing;eventstore;event-store;aggregate;domain-driven-design;</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>SharedTestingFramework</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>EventSourcing.UnitTests</_Parameter1>
-		</AssemblyAttribute>
-		<!--<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>EventSourcing.SqlServer.Events</_Parameter1>
-		</AssemblyAttribute>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>EventSourcing.SqlServer</_Parameter1>
-		</AssemblyAttribute>-->
+		<ProjectReference
+			Include="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj"
+			OutputItemType="Analyzer"
+			ReferenceOutputAssembly="false"
+			PrivateAssets="all"
+		/>
 	</ItemGroup>
+
+	<!-- Ship the generator DLL and build props file inside the NuGet package. -->
+	<Target Name="IncludeAnalyzerInPackage" BeforeTargets="_GetPackageFiles">
+		<MSBuild
+			Projects="..\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj"
+			Targets="GetTargetPath"
+			Properties="Configuration=$(Configuration)"
+			RebaseOutputs="true"
+		>
+			<Output TaskParameter="TargetOutputs" ItemName="_AnalyzerDll" />
+		</MSBuild>
+		<ItemGroup>
+			<None
+				Include="@(_AnalyzerDll)"
+				Pack="true"
+				PackagePath="analyzers/dotnet/cs"
+				Visible="false"
+			/>
+			<None
+				Include="$(MSBuildThisFileDirectory)build\Purview.EventSourcing.props"
+				Pack="true"
+				PackagePath="build"
+				Visible="false"
+			/>
+		</ItemGroup>
+	</Target>
 
 	<ItemGroup>
 		<PackageReference Include="FluentValidation" />

@@ -72,7 +72,7 @@ partial class TableEventStore<T>
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 
-		static UnknownEvent ReturnUnknownEvent(EventEntity eventEntity, int aggregateVersion)
+		static EventUnknown ReturnUnknownEvent(EventEntity eventEntity, int aggregateVersion)
 		{
 			return new()
 			{

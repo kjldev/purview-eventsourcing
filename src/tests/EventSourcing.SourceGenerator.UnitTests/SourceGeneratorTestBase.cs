@@ -1,20 +1,40 @@
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Purview.EventSourcing.SourceGenerator.Helpers;
 
 namespace Purview.EventSourcing.SourceGenerator;
 
-public abstract class SourceGeneratorTestBase<TGenerator>
+public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError = true)
 	where TGenerator : class, IIncrementalGenerator, new()
 {
-	protected static async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
+	public static readonly string[] GeneratedAttributes =
+	[
+		"EmbeddedAttribute.cs",
+		"AggregatePropertyAttribute.g.cs",
+		"GenerateAggregateAttribute.g.cs",
+		"GenerateAggregateDefaultsAttribute.g.cs",
+		"GenerateAggregateEventAttribute.g.cs",
+		"MetadataAttribute.g.cs",
+	];
+
+	public static readonly int ExpectedFileCount = GeneratedAttributes.Length;
+	public static readonly int ExpectedFileCountPlusGen = ExpectedFileCount + 1;
+
+	public const int HintNameHashHexLength = 16;
+	public const string GeneratedSourceFileSuffix = ".g.cs";
+
+	protected async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
 		string source,
-		CancellationToken cancellationToken = default
+		CancellationToken cancellationToken
 	)
 	{
 		var syntaxTree = CSharpSyntaxTree.ParseText(source, cancellationToken: cancellationToken);
 
 		var references = new List<MetadataReference>
 		{
+			// Without this, all of the references to event sourcing types will fail.
+			MetadataReference.CreateFromFile(typeof(Aggregates.IAggregate).Assembly.Location),
 			MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
 			MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
 			MetadataReference.CreateFromFile(System.Reflection.Assembly.Load("System.Runtime").Location),
@@ -34,15 +54,39 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
 		);
 
-		var generator = new TGenerator();
+		TGenerator generator = new();
 
-		GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-		driver = driver.RunGeneratorsAndUpdateCompilation(
-			compilation,
-			out var outputCompilation,
-			out _,
-			cancellationToken
-		);
+		if (generator is ILogSupport logging && TestContext.Current is not null)
+		{
+			logging.SetLogOutput(
+				(message, outputType) =>
+				{
+					var prefix = outputType switch
+					{
+						OutputType.Diagnostic => "DIA",
+						OutputType.Debug => "DBG",
+						OutputType.Info => "INF",
+						OutputType.Warning => "WRN",
+						OutputType.Error => "ERR",
+						_ => "???",
+					};
+
+					TestContext.Current.OutputWriter.WriteLine($"{prefix}: {message}");
+
+					if (throwOnLogError && outputType == OutputType.Error)
+						throw new InvalidOperationException($"Generator logged error: {message}");
+				}
+			);
+		}
+
+		var driver = CSharpGeneratorDriver
+			.Create(generator)
+			.RunGeneratorsAndUpdateCompilation(
+				compilation,
+				out var outputCompilation,
+				out var diagnostics,
+				cancellationToken
+			);
 
 		var result = driver.GetRunResult();
 
@@ -56,13 +100,10 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 		return (result, outputCompilation);
 	}
 
-	protected static async Task<global::System.Reflection.Assembly> CompileToAssemblyAsync(
-		string source,
-		CancellationToken cancellationToken = default
-	)
+	protected async Task<Assembly> CompileToAssemblyAsync(string source, CancellationToken cancellationToken)
 	{
 		var (_, compilation) = await GenerateAsync(source, cancellationToken);
-		await using var assemblyStream = new MemoryStream();
+		await using MemoryStream assemblyStream = new();
 		var emitResult = compilation.Emit(assemblyStream, cancellationToken: cancellationToken);
 		if (!emitResult.Success)
 		{
@@ -75,6 +116,13 @@ public abstract class SourceGeneratorTestBase<TGenerator>
 		}
 
 		assemblyStream.Position = 0;
-		return global::System.Reflection.Assembly.Load(assemblyStream.ToArray());
+		return System.Reflection.Assembly.Load(assemblyStream.ToArray());
+	}
+
+	protected static IEnumerable<SyntaxTree> ExcludeGenAttribs(GeneratorDriverRunResult result)
+	{
+		return result.GeneratedTrees.Where(tree =>
+			!GeneratedAttributes.Any(attr => tree.FilePath.EndsWith(attr, StringComparison.Ordinal))
+		);
 	}
 }

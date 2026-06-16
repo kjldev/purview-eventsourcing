@@ -6,7 +6,7 @@
 public abstract class EventBase : IEvent
 {
 	///<inheritdoc cref="IEvent.Details"/>
-	public EventDetails Details { get; init; } = new EventDetails();
+	public EventDetails Details { get; init; } = new();
 
 	/// <summary>
 	/// Gets the schema version of this event type. Increment this when the event's
@@ -26,7 +26,7 @@ public abstract class EventBase : IEvent
 	/// <returns>A hash based on the name of the type, and the data.</returns>
 	public override int GetHashCode()
 	{
-		var hashCode = new HashCode();
+		HashCode hashCode = new();
 
 		hashCode.Add(GetType().FullName);
 		hashCode.Add(Details);

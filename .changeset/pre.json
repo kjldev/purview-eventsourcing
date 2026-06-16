@@ -1,0 +1,10 @@
+{
+  "mode": "pre",
+  "tag": "prerelease",
+  "initialVersions": {
+    "purview-eventsourcing": "2.0.0-prerelease.0"
+  },
+  "changesets": [
+    "early-dryers-slide"
+  ]
+}

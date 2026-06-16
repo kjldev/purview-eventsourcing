@@ -1,16 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<RootNamespace>Purview.EventSourcing</RootNamespace>
-		<NoWarn>$(NoWarn);CA1515;</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-			<_Parameter1>EventSourcing.IntegrationTests</_Parameter1>
-		</AssemblyAttribute>
-	</ItemGroup>
-
-	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting" />
 		<PackageReference Include="TUnit.Core" />
 		<PackageReference Include="Testcontainers.Azurite" />
 		<PackageReference Include="Testcontainers.CosmosDb" />
@@ -20,12 +14,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.MongoDb.Events\EventSourcing.MongoDB.Events.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.MongoDb.Snapshot\EventSourcing.MongoDB.Snapshot.csproj">
-			<Aliases>MongoDBSnapshots</Aliases>
-		</ProjectReference>
-		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Snapshot\EventSourcing.SqlServer.Snapshot.csproj" />
-		<ProjectReference Include="..\..\src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.CosmosDb\EventSourcing.CosmosDb.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.MongoDB\EventSourcing.MongoDB.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
 	</ItemGroup>
 </Project>

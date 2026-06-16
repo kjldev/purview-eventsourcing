@@ -1,6 +1,1 @@
-<Project Sdk="Microsoft.NET.Sdk">
-	<ItemGroup>
-		<!-- The sample project lives in samples/, not in the standard auto-discovery path -->
-		<ProjectReference Include="..\..\samples\EventSourcing.Samples\EventSourcing.Samples.csproj" />
-	</ItemGroup>
-</Project>
+<Project Sdk="Microsoft.NET.Sdk"></Project>

@@ -559,6 +559,35 @@ sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/openframeworks+visualstudio,nextjs,react,web,visualstudiocode,node,aspnetcore,ncrunch
 
-src/EventSourcing.MongoDB.Events
-src/EventSourcing.MongoDB.Snapshot
+*.binlog
+
+# BEGIN KL-PROFILE-AGENT-CONFIG
+# Agent/local AI outputs
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.cer
+secrets.*
+.azure/
+.aws/
+.ssh/
+bin/
+obj/
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+.cache/
+coverage/
+.agents/cache/
+.agents/backups/
+.agents/tmp/
+.claude/settings.local.json
+.opencode/*.local.json
+# END KL-PROFILE-AGENT-CONFIG
+
 !scripts/*
+!src/src/EventSourcing/build

@@ -38,9 +38,9 @@ public abstract class AggregateBase : IAggregate
 
 	void RegisterSystemEvents()
 	{
-		Register<DeleteEvent>(_ => Details.IsDeleted = true);
-		Register<RestoreEvent>(_ => Details.IsDeleted = false);
-		Register<ForceSaveEvent>(_ => { });
+		Register<Deleted>(_ => Details.IsDeleted = true);
+		Register<Restored>(_ => Details.IsDeleted = false);
+		Register<ForceSaved>(_ => { });
 	}
 
 	/// <summary>
@@ -108,7 +108,7 @@ public abstract class AggregateBase : IAggregate
 	}
 
 	/// <summary>
-	/// Applies the <see cref="ForceSaveEvent"/> to the aggregate,
+	/// Applies the <see cref="ForceSaved"/> to the aggregate,
 	/// allowing the aggregate to be saved, regardless of other operations.
 	/// </summary>
 	/// <remarks>This is only applied if <see cref="HasUnsavedEvents"/> returns false. This can be useful for situations where
@@ -116,7 +116,7 @@ public abstract class AggregateBase : IAggregate
 	public void ForceSave()
 	{
 		if (!HasUnsavedEvents())
-			RecordAndApply(new ForceSaveEvent());
+			RecordAndApply(new ForceSaved());
 	}
 
 	/// <summary>
@@ -131,11 +131,6 @@ public abstract class AggregateBase : IAggregate
 		where TEvent : IEvent
 	{
 		ArgumentNullException.ThrowIfNull(applier);
-
-		if (!typeof(TEvent).Name.EndsWith("Event", StringComparison.InvariantCulture))
-			throw new InvalidOperationException(
-				$"Registering events failed, events must end with name 'Event'.\n\nFailed even type: {typeof(TEvent).FullName}"
-			);
 
 		_appliersByEventType.Add(typeof(TEvent), ev => applier((TEvent)ev));
 	}

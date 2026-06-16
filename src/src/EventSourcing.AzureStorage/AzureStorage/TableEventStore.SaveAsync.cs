@@ -10,6 +10,7 @@ using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.AzureStorage.Entities;
 using Purview.EventSourcing.AzureStorage.Events;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
+using Purview.EventSourcing.Serialization;
 using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.AzureStorage;
@@ -94,7 +95,7 @@ partial class TableEventStore<T>
 
 		if (
 			operationContext.NotificationMode.HasFlag(NotificationModes.BeforeDelete)
-			&& changeEvents.OfType<DeleteEvent>().Any()
+			&& changeEvents.OfType<Deleted>().Any()
 		)
 			await _aggregateChangeNotifier.BeforeDeleteAsync(aggregate, cancellationToken);
 		else if (operationContext.NotificationMode.HasFlag(NotificationModes.BeforeSave))
@@ -104,7 +105,7 @@ partial class TableEventStore<T>
 		var hasStreamEntity = streamEntity != null;
 		if (streamEntity?.IsDeleted == true)
 		{
-			var throwIfDeleted = !changeEvents.OfType<RestoreEvent>().Any();
+			var throwIfDeleted = !changeEvents.OfType<Restored>().Any();
 			if (throwIfDeleted)
 				throw new Exceptions.AggregateDeletedException(aggregate.Id(), idempotencyId);
 		}
@@ -203,9 +204,9 @@ partial class TableEventStore<T>
 			if (shouldSnapshot)
 				await CreateSnapshotAsync(aggregate, cancellationToken);
 
-			if (changeEvents.OfType<DeleteEvent>().Any())
+			if (changeEvents.OfType<Deleted>().Any())
 				_eventStoreTelemetry.AggregateDeleted(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
-			else if (changeEvents.OfType<RestoreEvent>().Any())
+			else if (changeEvents.OfType<Restored>().Any())
 				_eventStoreTelemetry.AggregateRestored(aggregate.Id(), _aggregateTypeFullName, aggregate.AggregateType);
 
 			_eventStoreTelemetry.SavedAggregate(
@@ -230,7 +231,7 @@ partial class TableEventStore<T>
 
 			if (operationContext.NotificationMode.HasFlag(NotificationModes.OnFailure))
 			{
-				var deleteRequested = changeEvents.OfType<DeleteEvent>().Any();
+				var deleteRequested = changeEvents.OfType<Deleted>().Any();
 				await _aggregateChangeNotifier.FailureAsync(aggregate, deleteRequested, ex);
 			}
 
@@ -239,19 +240,6 @@ partial class TableEventStore<T>
 
 		return ReturnSaveResult(aggregate, true, false);
 	}
-
-	//static T CloneForNotification(T aggregate)
-	//{
-	//	T clonedAggregate;
-	//	if (aggregate is ICloneable cloneable)
-	//		clonedAggregate = (T)cloneable.Clone();
-	//	else
-	//		clonedAggregate = DeserializeSnapshot(SerializeSnapshot(aggregate));
-
-	//	clonedAggregate.Details.Locked = true;
-
-	//	return clonedAggregate;
-	//}
 
 	async Task<ValidationResult> GuardAsync(T aggregate, CancellationToken cancellationToken = default)
 	{
@@ -268,7 +256,7 @@ partial class TableEventStore<T>
 	bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
 		return aggregate.Details.IsDeleted
-			|| events.OfType<RestoreEvent>().Any()
+			|| events.OfType<Restored>().Any()
 			|| (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
 				>= _eventStoreOptions.Value.SnapshotInterval;
 	}
@@ -330,7 +318,7 @@ partial class TableEventStore<T>
 			EventIds = [.. changeEvents.Select(m => m.Details.AggregateVersion).OrderBy(m => m)],
 		};
 
-		marker.Events = JsonHelpers.Serialize(eventObject);
+		marker.Events = EventStoreSerializationHelpers.Serialize(eventObject);
 
 		return marker;
 	}

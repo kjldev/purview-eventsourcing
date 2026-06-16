@@ -18,7 +18,7 @@ partial class TableEventStore<T>
 
 		operationContext ??= EventStoreOperationContext.DefaultContext;
 
-		var restoreAggregateEvent = new RestoreEvent
+		var restoreAggregateEvent = new Restored
 		{
 			Details = { AggregateVersion = aggregate.Details.CurrentVersion + 1, When = DateTimeOffset.UtcNow },
 		};

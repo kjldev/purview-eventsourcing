@@ -1,0 +1,14 @@
+{
+  "id": "local:skill:git-conventional-commits",
+  "name": "Git Conventional Commits",
+  "description": "Git workflow with conventional commits and small reviewable changes.",
+  "category": "git",
+  "roles": [
+    "git",
+    "git-conventional-commits"
+  ],
+  "tags": [
+    "git",
+    "conventional-commits"
+  ]
+}

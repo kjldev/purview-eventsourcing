@@ -1,5 +1,5 @@
-using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.SqlServer;
+using Purview.EventSourcing.Fixtures.SqlServer;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -10,9 +10,11 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 	{
 		var order = new OrderAggregate();
 		order.Details.Id = id;
-		order.CreateOrder("customer-1");
-		order.AddLineItem("prod-1", "Widget A", 2, 29.99m);
-		order.AddLineItem("prod-2", "Widget B", 1, 49.99m);
+		order
+			.CreateOrder("customer-1")
+			.AddLineItem("prod-1", "Widget A", 2, 29.99m)
+			.AddLineItem("prod-2", "Widget B", 1, 49.99m);
+
 		return order;
 	}
 
@@ -31,13 +33,13 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.CustomerId).IsEqualTo("customer-1");
-		await Assert.That(loaded.Status).IsEqualTo(OrderStatus.Draft);
+		await Assert.That(loaded.Status).IsEqualTo(OrderStatusCode.Draft);
 		await Assert.That(loaded.LineItems).Count().IsEqualTo(2);
 		await Assert.That(loaded.TotalAmount).IsEqualTo(109.97m);
-		await Assert.That(loaded.LineItems[0].ProductId).IsEqualTo("prod-1");
-		await Assert.That(loaded.LineItems[0].Quantity).IsEqualTo(2);
-		await Assert.That(loaded.LineItems[1].ProductId).IsEqualTo("prod-2");
-		await Assert.That(loaded.LineItems[1].UnitPrice).IsEqualTo(49.99m);
+		await Assert.That(loaded.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-1");
+		await Assert.That(loaded.LineItems.ElementAt(0).Quantity).IsEqualTo(2);
+		await Assert.That(loaded.LineItems.ElementAt(1).ProductId).IsEqualTo("prod-2");
+		await Assert.That(loaded.LineItems.ElementAt(1).UnitPrice).IsEqualTo(49.99m);
 	}
 
 	[Test]
@@ -150,7 +152,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 
 		await Assert.That(loaded).IsNotNull();
 		await Assert.That(loaded!.LineItems).Count().IsEqualTo(1);
-		await Assert.That(loaded.LineItems[0].ProductId).IsEqualTo("prod-2");
+		await Assert.That(loaded.LineItems.ElementAt(0).ProductId).IsEqualTo("prod-2");
 		await Assert.That(loaded.TotalAmount).IsEqualTo(49.99m);
 	}
 

@@ -7,7 +7,8 @@ namespace Purview.EventSourcing;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Use <see cref="Enlist{T}"/> to register aggregates that should be saved together.
+/// Use <see cref="Enlist{T}(T, IEventStore, EventStoreOperationContext?)"/> or
+/// <see cref="Enlist{T}(T, IEventStoreCore{T}, EventStoreOperationContext?)"/> to register aggregates that should be saved together.
 /// Call <see cref="CommitAsync"/> to persist all enlisted aggregates in a single logical operation.
 /// </para>
 /// <para>

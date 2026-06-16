@@ -1,0 +1,17 @@
+{
+  "id": "local:skill:dotnet-tunit",
+  "name": "Dotnet TUnit",
+  "description": "Use .NET with TUnit-specific test conventions, awaited assertions, and project-safe validation.",
+  "category": "dotnet",
+  "roles": [
+    "dotnet",
+    "dotnet-tunit",
+    "coding"
+  ],
+  "tags": [
+    "dotnet",
+    "csharp",
+    "tunit",
+    "tests"
+  ]
+}

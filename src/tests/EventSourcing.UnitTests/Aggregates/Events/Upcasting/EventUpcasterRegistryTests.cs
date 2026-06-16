@@ -1,5 +1,3 @@
-using Purview.EventSourcing.Aggregates.Events;
-
 namespace Purview.EventSourcing.Aggregates.Events.Upcasting;
 
 public sealed class EventUpcasterRegistryTests

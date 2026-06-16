@@ -25,7 +25,7 @@ public static class IEventStoreExtensions
 		where T : class, IAggregate, new()
 	{
 		if (string.IsNullOrWhiteSpace(aggregateId))
-			aggregateId = $"{Guid.NewGuid()}".ToLowerSafe();
+			aggregateId = $"{Guid.NewGuid()}:D";
 
 		var aggregate = new T { Details = new() { Id = aggregateId } };
 
@@ -536,7 +536,7 @@ public static class IEventStoreExtensions
 		ArgumentNullException.ThrowIfNull(eventStore);
 		ArgumentNullException.ThrowIfNull(aggregates);
 
-		var transaction = new EventStoreTransaction(correlationId);
+		EventStoreTransaction transaction = new(correlationId);
 		foreach (var aggregate in aggregates)
 			transaction.Enlist(aggregate, eventStore);
 

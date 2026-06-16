@@ -1,4 +1,4 @@
-using Purview.EventSourcing.Samples.Domain;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -17,7 +17,7 @@ public class MultiAggregateWorkflowTests
 
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = "inv-widget";
-		inventory.Initialize("widget-1", "Premium Widget", "warehouse-1", "Main Warehouse", initialQuantity: 100);
+		inventory.Create("widget-1", "Premium Widget", "warehouse-1", "Main Warehouse", initialQuantity: 100);
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-1";
@@ -52,12 +52,11 @@ public class MultiAggregateWorkflowTests
 		// Arrange
 		var inventory = new InventoryAggregate();
 		inventory.Details.Id = "inv-gadget";
-		inventory.Initialize("gadget-1", "Gadget", "warehouse-1", "Main Warehouse", initialQuantity: 50);
+		inventory.Create("gadget-1", "Gadget", "warehouse-1", "Main Warehouse", initialQuantity: 50);
 
 		var order = new OrderAggregate();
 		order.Details.Id = "order-cancel";
-		order.CreateOrder("cust-1");
-		order.AddLineItem("gadget-1", "Gadget", 10, 15.00m);
+		order.CreateOrder("cust-1").AddLineItem("gadget-1", "Gadget", 10, 15.00m);
 
 		inventory.ReserveStock(10, order.Id());
 		order.ConfirmOrder();

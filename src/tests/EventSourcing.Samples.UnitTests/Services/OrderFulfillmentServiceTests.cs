@@ -1,6 +1,6 @@
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.Samples.Services;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Services;
 
@@ -18,7 +18,7 @@ public sealed class OrderFulfillmentServiceTests
 	{
 		var i = new InventoryAggregate();
 		i.Details.Id = id;
-		i.Initialize("widget-sku", "Widget", "warehouse-1", "Main Warehouse", initialQuantity: quantity);
+		i.Create("widget-sku", "Widget", "warehouse-1", "Main Warehouse", initialQuantity: quantity);
 		return i;
 	}
 

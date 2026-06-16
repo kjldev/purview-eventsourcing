@@ -1,35 +1,46 @@
 <Solution>
 	<Folder Name="/Solution Items/">
+		<File Path="../global.json" />
+		<File Path="../Directory.Packages.props" />
 		<File Path="Directory.Build.props" />
 		<File Path="Directory.Build.targets" />
-		<File Path="Directory.Packages.props" />
-		<File Path="global.json" />
 	</Folder>
 	<Folder Name="/src/">
-		<Project Path="src\EventSourcing\EventSourcing.csproj" />
-		<Project Path="src/EventSourcing.SqlServer.Snapshot/EventSourcing.SqlServer.Snapshot.csproj" />
-		<Project Path="src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
-		<Project Path="src\EventSourcing.CosmosDb.Snapshot\EventSourcing.CosmosDb.Snapshot.csproj" />
-		<Project Path="src\EventSourcing.MongoDb.Events\EventSourcing.MongoDB.Events.csproj" />
-		<Project Path="src\EventSourcing.MongoDb.Snapshot\EventSourcing.MongoDB.Snapshot.csproj" />
-		<Project Path="src\EventSourcing.Shared\EventSourcing.Shared.csproj" />
-		<Project Path="src\EventSourcing.SqlServer.Events\EventSourcing.SqlServer.Events.csproj" />
 		<Project Path="src\EventSourcing.SourceGenerator\EventSourcing.SourceGenerator.csproj" />
+		<Project Path="src\EventSourcing\EventSourcing.csproj" />
 	</Folder>
-	<Folder Name="/samples/">
-		<Project Path="samples\EventSourcing.Samples\EventSourcing.Samples.csproj" />
-		<Project Path="samples\EventSourcing.Samples.QuickStart\EventSourcing.Samples.QuickStart.csproj" />
-		<Project Path="samples\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
-		<Project Path="samples\EventSourcing.Samples.Web\EventSourcing.Samples.Web.csproj" />
-		<Project Path="samples\EventSourcing.Samples.AppHost\EventSourcing.Samples.AppHost.csproj" />
+	<Folder Name="/src/implementations/">
+		<Project
+			Path="src/EventSourcing.CosmosDb/EventSourcing.CosmosDb.csproj"
+			Id="49d7274a-a63e-4975-9841-96ffd78071c2"
+		/>
+		<Project
+			Path="src/EventSourcing.MongoDB/EventSourcing.MongoDB.csproj"
+			Id="8a60d312-155e-44e4-8d0a-014bb0ab7c50"
+		/>
+		<Project
+			Path="src/EventSourcing.SqlServer/EventSourcing.SqlServer.csproj"
+			Id="e771c706-e382-4d6d-8564-15f5172513db"
+		/>
+		<Project Path="src\EventSourcing.AzureStorage\EventSourcing.AzureStorage.csproj" />
+	</Folder>
+	<Folder Name="/src/samples/">
+		<Project Path="src\EventSourcing.Samples.AppHost\EventSourcing.Samples.AppHost.csproj" />
+		<Project Path="src\EventSourcing.Samples.QuickStart\EventSourcing.Samples.QuickStart.csproj" />
+		<Project Path="src\EventSourcing.Samples.ServiceDefaults\EventSourcing.Samples.ServiceDefaults.csproj" />
+		<Project Path="src\EventSourcing.Samples.Web\EventSourcing.Samples.Web.csproj" />
+		<Project Path="src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
-		<Project Path="tests\EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
 		<Project Path="tests\EventSourcing.IntegrationTests\EventSourcing.IntegrationTests.csproj" />
-		<Project Path="tests\SharedTestingFramework\SharedTestingFramework.csproj" />
+		<Project Path="tests\EventSourcing.SourceGenerator.PerformanceTests\EventSourcing.SourceGenerator.PerformanceTests.csproj" />
 		<Project Path="tests\EventSourcing.SourceGenerator.UnitTests\EventSourcing.SourceGenerator.UnitTests.csproj" />
-		<Project Path="tests\EventSourcing.Samples.UnitTests\EventSourcing.Samples.UnitTests.csproj" />
+		<Project Path="tests\EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
+		<Project Path="tests\SharedTestingFramework\SharedTestingFramework.csproj" />
+	</Folder>
+	<Folder Name="/tests/samples/">
+		<Project Path="tests/EventSourcing.Samples.AppHost.IntegrationTests/EventSourcing.Samples.AppHost.IntegrationTests.csproj" />
 		<Project Path="tests\EventSourcing.Samples.IntegrationTests\EventSourcing.Samples.IntegrationTests.csproj" />
-		<Project Path="tests\EventSourcing.Samples.Web.IntegrationTests\EventSourcing.Samples.Web.IntegrationTests.csproj" />
+		<Project Path="tests\EventSourcing.Samples.UnitTests\EventSourcing.Samples.UnitTests.csproj" />
 	</Folder>
 </Solution>
