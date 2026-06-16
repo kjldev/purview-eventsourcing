@@ -6,58 +6,6 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public sealed class AggregateSourceGeneratorTests : SourceGeneratorTestBase<AggregateSourceGenerator>
 {
-	// Stub for AggregateBase so the source generator can find the base class
-	const string AggregateBaseStub =
-		@"#nullable enable
-
-namespace Purview.EventSourcing.Aggregates
-{
-	public interface IAggregate
-	{
-	}
-
-	public sealed class AggregateDetails
-	{
-		public string? Id { get; set; }
-	}
-
-	public abstract class AggregateBase : IAggregate
-	{
-		readonly System.Collections.Generic.Dictionary<System.Type, System.Delegate> _appliers = new();
-
-		protected AggregateBase()
-		{
-			RegisterEvents();
-		}
-
-		public AggregateDetails Details { get; init; } = new();
-		protected abstract void RegisterEvents();
-		protected void Register<TEvent>(System.Action<TEvent> applier) where TEvent : class => _appliers[typeof(TEvent)] = applier;
-		protected AggregateBase RecordAndApply<TEvent>(TEvent @event) where TEvent : class
-		{
-			((System.Action<TEvent>)_appliers[typeof(TEvent)])(@event);
-			return this;
-		}
-	}
-}
-
-namespace Purview.EventSourcing.Aggregates.Events
-{
-	public sealed class EventDetails
-	{
-		public string? CorrelationId { get; set; }
-	}
-
-	public abstract class EventBase
-	{
-		public EventDetails Details { get; init; } = new();
-		public virtual int SchemaVersion => 1;
-		protected abstract void BuildEventHash(ref System.HashCode hash);
-	}
-}
-
-";
-
 	/// <summary>
 	/// Helper to get the generated source text for the aggregate file (excludes attribute files).
 	/// </summary>
@@ -94,9 +42,8 @@ namespace Testing
 	public async Task Generate_GivenSimpleAggregate_GeneratesExpectedCode(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -127,9 +74,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -152,9 +98,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -179,9 +124,8 @@ namespace Testing
 	public async Task Generate_GivenNonPartialClass_DoesNotGenerate(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -206,9 +150,8 @@ namespace Testing
 	public async Task Generate_GivenMultipleParameters_GeneratesAllProperties(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -235,9 +178,8 @@ namespace Testing
 	public async Task Generate_ProducesNoDiagnosticErrors(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -275,9 +217,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -306,9 +247,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -339,9 +279,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -371,9 +310,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -406,9 +344,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -441,9 +378,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -472,9 +408,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -508,9 +443,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -538,9 +472,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -571,9 +504,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -602,9 +534,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -635,9 +566,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -677,9 +607,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	public readonly record struct Name
@@ -722,9 +651,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -756,9 +684,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -784,9 +711,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -817,9 +743,8 @@ namespace Testing
 	public async Task Generate_GivenClassNotInheritingAggregateBase_DoesNotGenerate(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -845,9 +770,8 @@ namespace Testing
 	public async Task Generate_GivenNonPartialMethod_MethodIsSkipped(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -883,9 +807,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -942,9 +865,8 @@ namespace Testing
 	public async Task Generate_GivenSimpleAggregate_OutputCompilationHasNoErrors(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -984,9 +906,8 @@ namespace Testing
 	public async Task Generate_GivenGeneratedFile_HasAutoGeneratedHeader(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1013,9 +934,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1043,9 +963,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1073,9 +992,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1153,9 +1071,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenInferredEventName_AppliesSuffixByDefault(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1184,9 +1101,7 @@ namespace Testing
 	{
 		var source =
 			@"[assembly: Purview.EventSourcing.Aggregates.GenerateAggregateDefaults(EventSuffix = ""DomainEvent"")]
-"
-			+ AggregateBaseStub
-			+ @"
+
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1219,9 +1134,7 @@ namespace Testing
 	{
 		var source =
 			@"[assembly: Purview.EventSourcing.Aggregates.GenerateAggregateDefaults(EventSuffix = ""DomainEvent"")]
-"
-			+ AggregateBaseStub
-			+ @"
+
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate(EventSuffix = ""CustomEvent"")]
@@ -1252,9 +1165,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate(EventNamespace = ""Testing.Custom.Events"")]
@@ -1282,9 +1194,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate(EventNamespace = ""Testing.Custom.Events"")]
@@ -1337,9 +1248,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenNestedAggregate_ReportsDiagnostic(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	public static class AggregateContainer
@@ -1366,9 +1276,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenGenericAggregate_ReportsDiagnostic(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1392,9 +1301,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenManualRegisterEvents_ReportsDiagnostic(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1422,9 +1330,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1482,9 +1389,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1520,9 +1426,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1563,9 +1468,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1605,9 +1509,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenMissingPropertyMapping_ReportsDiagnostic(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1633,9 +1536,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1675,9 +1577,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1734,9 +1635,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1771,9 +1671,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1797,9 +1696,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenInitOnlyMappedProperty_ReportsDiagnostic(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1825,9 +1723,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace First
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1882,9 +1779,8 @@ namespace Second
 	)
 	{
 		// Arrange — aggregate with 5 events covering full lifecycle
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -1960,9 +1856,8 @@ namespace Testing
 	)
 	{
 		// Arrange — event with int, decimal, string, bool parameters
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2008,9 +1903,8 @@ namespace Testing
 	)
 	{
 		// Arrange — aggregate inherits through an intermediate base class
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	public abstract class DomainAggregateBase : Purview.EventSourcing.Aggregates.AggregateBase
@@ -2045,9 +1939,8 @@ namespace Testing
 	public async Task Generate_GivenNestedNamespace_GeneratesCorrectEventsNamespace(CancellationToken cancellationToken)
 	{
 		// Arrange — deeply nested namespace
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Company.Domain.Orders
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2079,9 +1972,8 @@ namespace Company.Domain.Orders
 	)
 	{
 		// Arrange — mix of parameterless and parameterized events
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2138,9 +2030,8 @@ namespace Testing
 	public async Task Generate_GivenNullableParameter_GeneratesNullableProperty(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2170,9 +2061,8 @@ namespace Testing
 	public async Task Generate_GivenPublicAccessibility_GeneratesPublicPartialClass(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2198,9 +2088,8 @@ namespace Testing
 	)
 	{
 		// Arrange
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2229,9 +2118,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2279,9 +2167,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2327,9 +2214,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2390,9 +2276,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2432,9 +2317,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2472,9 +2356,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2514,9 +2397,8 @@ namespace Testing
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2548,9 +2430,8 @@ namespace Testing
 	[Test]
 	public async Task Generate_GivenManualEventTypes_ReportsPastTenseDiagnostics(CancellationToken cancellationToken)
 	{
-		var source =
-			AggregateBaseStub
-			+ @"
+		const string source =
+			@"
 namespace Testing
 {
 	public sealed record NameChanged : Purview.EventSourcing.Aggregates.Events.EventBase

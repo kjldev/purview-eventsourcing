@@ -5,55 +5,6 @@ namespace Purview.EventSourcing.SourceGenerator;
 
 public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<ValueObjectSourceGenerator>
 {
-	const string ValueObjectStubs = """
-		#nullable enable
-		namespace Purview.EventSourcing.Serialization
-		{
-			public enum ValueObjectDeserializationMode
-			{
-				Hydrate,
-				Strict
-			}
-
-			[System.AttributeUsage(System.AttributeTargets.Struct | System.AttributeTargets.Class)]
-			public sealed class ScalarAttribute : System.Attribute
-			{
-				public ScalarAttribute(string propertyName = "Value") => PropertyName = propertyName;
-				public string PropertyName { get; }
-				public bool GenerateJsonConverter { get; init; } = true;
-				public bool GenerateComparable { get; init; } = true;
-				public bool GenerateComparisonOperators { get; init; } = true;
-				public bool GenerateImplicitFromPrimitive { get; init; } = true;
-				public bool GenerateImplicitToPrimitive { get; init; } = true;
-				public ValueObjectDeserializationMode DeserializationMode { get; init; } = ValueObjectDeserializationMode.Hydrate;
-			}
-
-			[System.AttributeUsage(System.AttributeTargets.Struct | System.AttributeTargets.Class)]
-			public sealed class ValueObjectAttribute : System.Attribute
-			{
-				public bool GenerateJsonConverter { get; init; } = true;
-				public bool GenerateComparable { get; init; } = true;
-				public bool GenerateComparisonOperators { get; init; } = true;
-				public ValueObjectDeserializationMode DeserializationMode { get; init; } = ValueObjectDeserializationMode.Hydrate;
-			}
-		}
-
-		namespace Purview.EventSourcing.ValueObjects
-		{
-			public interface IValueObject {}
-			public interface IValueObject<TSelf> : IValueObject, System.IComparable<TSelf>, System.IComparable where TSelf : IValueObject<TSelf> {}
-			public interface IScalarValueObject<TSelf, TValue> : IValueObject, System.IComparable<TSelf>, System.IComparable where TSelf : IScalarValueObject<TSelf, TValue>
-			{
-				TValue Value { get; }
-				int CompareTo(TValue other);
-				static abstract TSelf Create(TValue value);
-				static abstract TSelf Hydrate(TValue value);
-			}
-
-			public readonly record struct ValueObjectContext<TAggregate>(TAggregate Aggregate, string MemberName, string? EventName = null, string? CommandName = null);
-		}
-		""";
-
 	static string GetGeneratedSource(GeneratorDriverRunResult result) =>
 		string.Join(
 			Environment.NewLine,
@@ -65,66 +16,64 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	[Test]
 	public async Task ScalarGeneration_UsesStrictCreateAndHydrateCorrectly(CancellationToken cancellationToken)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+
+			[Purview.EventSourcing.Serialization.Scalar]
+			public readonly partial record struct EmailAddress
+			{
+				public string Value { get; }
+
+				private EmailAddress(string value) => Value = value;
+
+				static partial void OnNormalize(ref string value)
 				{
-
-				[Purview.EventSourcing.Serialization.Scalar]
-				public readonly partial record struct EmailAddress
-				{
-					public string Value { get; }
-
-					private EmailAddress(string value) => Value = value;
-
-					static partial void OnNormalize(ref string value)
-					{
-						value = value?.Trim().ToLowerInvariant()!;
-					}
-
-					static partial void OnValidate(string value)
-					{
-						if (string.IsNullOrWhiteSpace(value))
-							throw new System.ArgumentException("Email address cannot be empty.", nameof(value));
-
-						if (!value.Contains("@", System.StringComparison.Ordinal))
-							throw new System.ArgumentException("Invalid email address format.", nameof(value));
-					}
+					value = value?.Trim().ToLowerInvariant()!;
 				}
 
-				public static class ValueObjectHarness
+				static partial void OnValidate(string value)
 				{
-					public static string StrictCreate() => EmailAddress.Create(" TEST@Example.COM ").Value;
+					if (string.IsNullOrWhiteSpace(value))
+						throw new System.ArgumentException("Email address cannot be empty.", nameof(value));
 
-					public static string HydratePreserves() => EmailAddress.Hydrate(" TEST@Example.COM ").Value;
-
-					public static string HydrateInvalid() => EmailAddress.Hydrate("not-an-email").Value;
-
-					public static bool TryCreateInvalid() => EmailAddress.TryCreate("not-an-email", out _);
-
-					public static string SerializeEmail() => System.Text.Json.JsonSerializer.Serialize(EmailAddress.Create("test@example.com"));
-
-					public static string DeserializeEmail() => System.Text.Json.JsonSerializer.Deserialize<EmailAddress>("\"not-an-email\"").Value;
-
-					public static string ImplicitFromPrimitive()
-					{
-						EmailAddress email = " TEST@Example.COM ";
-						return email.Value;
-					}
-
-					public static string ImplicitToPrimitive()
-					{
-						string value = EmailAddress.Create("test@example.com");
-						return value;
-					}
-
-					public static int CompareWithPrimitive() => EmailAddress.Create("b@example.com").CompareTo("a@example.com");
-
-					public static int CompareWithObject() => EmailAddress.Create("a@example.com").CompareTo((object)EmailAddress.Create("b@example.com"));
+					if (!value.Contains("@", System.StringComparison.Ordinal))
+						throw new System.ArgumentException("Invalid email address format.", nameof(value));
 				}
+			}
+
+			public static class ValueObjectHarness
+			{
+				public static string StrictCreate() => EmailAddress.Create(" TEST@Example.COM ").Value;
+
+				public static string HydratePreserves() => EmailAddress.Hydrate(" TEST@Example.COM ").Value;
+
+				public static string HydrateInvalid() => EmailAddress.Hydrate("not-an-email").Value;
+
+				public static bool TryCreateInvalid() => EmailAddress.TryCreate("not-an-email", out _);
+
+				public static string SerializeEmail() => System.Text.Json.JsonSerializer.Serialize(EmailAddress.Create("test@example.com"));
+
+				public static string DeserializeEmail() => System.Text.Json.JsonSerializer.Deserialize<EmailAddress>("\"not-an-email\"").Value;
+
+				public static string ImplicitFromPrimitive()
+				{
+					EmailAddress email = " TEST@Example.COM ";
+					return email.Value;
 				}
-				""";
+
+				public static string ImplicitToPrimitive()
+				{
+					string value = EmailAddress.Create("test@example.com");
+					return value;
+				}
+
+				public static int CompareWithPrimitive() => EmailAddress.Create("b@example.com").CompareTo("a@example.com");
+
+				public static int CompareWithObject() => EmailAddress.Create("a@example.com").CompareTo((object)EmailAddress.Create("b@example.com"));
+			}
+			}
+			""";
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.ValueObjectHarness")!;
@@ -155,72 +104,70 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	[Test]
 	public async Task ComplexValueObjectGeneration_UsesObjectShapedJson(CancellationToken cancellationToken)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+
+			[Purview.EventSourcing.Serialization.Scalar]
+			public readonly partial record struct CurrencyCode
+			{
+				public string Value { get; }
+
+				private CurrencyCode(string value) => Value = value;
+
+				static partial void OnNormalize(ref string value)
 				{
-
-				[Purview.EventSourcing.Serialization.Scalar]
-				public readonly partial record struct CurrencyCode
-				{
-					public string Value { get; }
-
-					private CurrencyCode(string value) => Value = value;
-
-					static partial void OnNormalize(ref string value)
-					{
-						value = value?.Trim().ToUpperInvariant()!;
-					}
-
-					static partial void OnValidate(string value)
-					{
-						if (string.IsNullOrWhiteSpace(value) || value.Length != 3)
-							throw new System.ArgumentException("Invalid currency code.", nameof(value));
-					}
+					value = value?.Trim().ToUpperInvariant()!;
 				}
 
-				[Purview.EventSourcing.Serialization.ValueObject]
-				public readonly partial record struct Money
+				static partial void OnValidate(string value)
 				{
-					public decimal Amount { get; }
-
-					public CurrencyCode Currency { get; }
-
-					private Money(decimal amount, CurrencyCode currency)
-					{
-						Amount = amount;
-						Currency = currency;
-					}
-
-					public static Money Create(decimal amount, CurrencyCode currency)
-					{
-						if (amount < 0)
-							throw new System.ArgumentOutOfRangeException(nameof(amount));
-
-						return new(amount, currency);
-					}
+					if (string.IsNullOrWhiteSpace(value) || value.Length != 3)
+						throw new System.ArgumentException("Invalid currency code.", nameof(value));
 				}
+			}
 
-				public static class ComplexHarness
+			[Purview.EventSourcing.Serialization.ValueObject]
+			public readonly partial record struct Money
+			{
+				public decimal Amount { get; }
+
+				public CurrencyCode Currency { get; }
+
+				private Money(decimal amount, CurrencyCode currency)
 				{
-					public static string SerializeMoney()
-					{
-						var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
-						return System.Text.Json.JsonSerializer.Serialize(Money.Create(10.50m, CurrencyCode.Create("GBP")), options);
-					}
-
-					public static decimal DeserializeAmount()
-					{
-						var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
-						var money = System.Text.Json.JsonSerializer.Deserialize<Money>("{\"amount\":10.5,\"currency\":\"GBP\"}", options);
-						return money.Amount;
-					}
-
-					public static int CompareMoney() => Money.Create(10.5m, CurrencyCode.Create("GBP")).CompareTo(Money.Create(11m, CurrencyCode.Create("GBP")));
+					Amount = amount;
+					Currency = currency;
 				}
+
+				public static Money Create(decimal amount, CurrencyCode currency)
+				{
+					if (amount < 0)
+						throw new System.ArgumentOutOfRangeException(nameof(amount));
+
+					return new(amount, currency);
 				}
-				""";
+			}
+
+			public static class ComplexHarness
+			{
+				public static string SerializeMoney()
+				{
+					var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+					return System.Text.Json.JsonSerializer.Serialize(Money.Create(10.50m, CurrencyCode.Create("GBP")), options);
+				}
+
+				public static decimal DeserializeAmount()
+				{
+					var options = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
+					var money = System.Text.Json.JsonSerializer.Deserialize<Money>("{\"amount\":10.5,\"currency\":\"GBP\"}", options);
+					return money.Amount;
+				}
+
+				public static int CompareMoney() => Money.Create(10.5m, CurrencyCode.Create("GBP")).CompareTo(Money.Create(11m, CurrencyCode.Create("GBP")));
+			}
+			}
+			""";
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.ComplexHarness")!;
@@ -238,34 +185,32 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	[Test]
 	public async Task ScalarJsonStrictMode_UsesCreateOnDeserialization(CancellationToken cancellationToken)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+
+			[Purview.EventSourcing.Serialization.Scalar(DeserializationMode = Purview.EventSourcing.Serialization.ValueObjectDeserializationMode.Strict)]
+			public readonly partial record struct StrictEmailAddress
+			{
+				public string Value { get; }
+
+				private StrictEmailAddress(string value) => Value = value;
+
+				static partial void OnValidate(string value)
 				{
-
-				[Purview.EventSourcing.Serialization.Scalar(DeserializationMode = Purview.EventSourcing.Serialization.ValueObjectDeserializationMode.Strict)]
-				public readonly partial record struct StrictEmailAddress
-				{
-					public string Value { get; }
-
-					private StrictEmailAddress(string value) => Value = value;
-
-					static partial void OnValidate(string value)
-					{
-						if (!value.Contains("@", System.StringComparison.Ordinal))
-							throw new System.ArgumentException("Invalid email address.", nameof(value));
-					}
+					if (!value.Contains("@", System.StringComparison.Ordinal))
+						throw new System.ArgumentException("Invalid email address.", nameof(value));
 				}
+			}
 
-				public static class StrictHarness
-				{
-					public static string DeserializeValid() => System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"test@example.com\"").Value;
+			public static class StrictHarness
+			{
+				public static string DeserializeValid() => System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"test@example.com\"").Value;
 
-					public static void DeserializeInvalid() => _ = System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"not-an-email\"");
-				}
-				}
-				""";
+				public static void DeserializeInvalid() => _ = System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"not-an-email\"");
+			}
+			}
+			""";
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.StrictHarness")!;
@@ -298,20 +243,18 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial record struct Name
 				{
-					[Purview.EventSourcing.Serialization.Scalar]
-					public readonly partial record struct Name
-					{
-						public string Value { get; }
+					public string Value { get; }
 
-						private Name(string value) => Value = value;
-					}
+					private Name(string value) => Value = value;
 				}
-				""";
+			}
+			""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
@@ -351,20 +294,18 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar(GenerateComparisonOperators = false)]
+				public readonly partial record struct Name
 				{
-					[Purview.EventSourcing.Serialization.Scalar(GenerateComparisonOperators = false)]
-					public readonly partial record struct Name
-					{
-						public string Value { get; }
+					public string Value { get; }
 
-						private Name(string value) => Value = value;
-					}
+					private Name(string value) => Value = value;
 				}
-				""";
+			}
+			""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
@@ -382,20 +323,18 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		CancellationToken cancellationToken
 	)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar(GenerateComparable = false, GenerateComparisonOperators = true)]
+				public readonly partial record struct Name
 				{
-					[Purview.EventSourcing.Serialization.Scalar(GenerateComparable = false, GenerateComparisonOperators = true)]
-					public readonly partial record struct Name
-					{
-						public string Value { get; }
+					public string Value { get; }
 
-						private Name(string value) => Value = value;
-					}
+					private Name(string value) => Value = value;
 				}
-				""";
+			}
+			""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
@@ -410,23 +349,21 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	[Test]
 	public async Task ValueObjectComparable_GeneratesSelfRelationalOperators(CancellationToken cancellationToken)
 	{
-		var source =
-			ValueObjectStubs
-			+ """
-				namespace Testing
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public readonly partial record struct Money
 				{
-					[Purview.EventSourcing.Serialization.ValueObject]
-					public readonly partial record struct Money
-					{
-						public decimal Amount { get; }
+					public decimal Amount { get; }
 
-						private Money(decimal amount)
-						{
-							Amount = amount;
-						}
+					private Money(decimal amount)
+					{
+						Amount = amount;
 					}
 				}
-				""";
+			}
+			""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);

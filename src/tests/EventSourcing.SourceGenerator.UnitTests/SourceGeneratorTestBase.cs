@@ -33,6 +33,8 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 
 		var references = new List<MetadataReference>
 		{
+			// Without this, all of the references to event sourcing types will fail.
+			MetadataReference.CreateFromFile(typeof(Aggregates.IAggregate).Assembly.Location),
 			MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
 			MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
 			MetadataReference.CreateFromFile(System.Reflection.Assembly.Load("System.Runtime").Location),
