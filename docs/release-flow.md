@@ -61,27 +61,28 @@ High-level stages:
    - compute `v<version>` tag
    - fail if tag exists on `origin`
    - fail if GitHub Release already exists for the tag
-   - resolve package ID (input override or project metadata)
-   - check NuGet flat container for duplicate package version
    - extract release notes for the version from `CHANGELOG.md` (fallback note if missing)
 2. **validate**
    - restore/build/test through reusable `.NET validate` workflow
 3. **pack**
-   - pack through reusable `.NET pack` workflow to `artifacts/package`
-4. **create-release**
+   - pack through reusable `.NET pack` workflow to `artifacts/package` from a configurable solution/project target
+4. **guard-nuget-duplicates**
+   - inspect every generated `.nupkg` in `artifacts/package`
+   - fail if any package ID + version already exists on NuGet
+5. **create-release**
    - create and push Git tag (after validate + pack succeed)
    - create GitHub Release and attach `.nupkg`/`.snupkg` artifacts
-5. **publish-nuget**
+6. **publish-nuget**
    - OIDC login to NuGet
-   - publish `.nupkg` artifacts to nuget.org
+   - publish all `.nupkg` artifacts from `artifacts/package` to nuget.org
 
 ## Duplicate release protection
 
-Before any packaging or publishing, release guard checks:
+Before release/publish, duplicate guard checks:
 
 - remote Git tag existence (`git ls-remote --tags origin refs/tags/v<version>`)
 - GitHub Release existence (`gh release view v<version>`)
-- NuGet package/version existence via:
+- NuGet package/version existence for each generated package via:
   - `https://api.nuget.org/v3-flatcontainer/<package-id-lower>/index.json`
 
 If any duplicate state is detected, the workflow fails early.

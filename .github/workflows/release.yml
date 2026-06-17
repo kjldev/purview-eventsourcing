@@ -3,16 +3,11 @@ name: Manual Release
 on:
   workflow_dispatch:
     inputs:
-      package_project:
-        description: Path to the .csproj to pack and publish
+      pack_target_path:
+        description: Path to the solution or project to pack (can produce one or many packages)
         required: false
         type: string
-        default: src/src/EventSourcing/EventSourcing.csproj
-      package_id:
-        description: Optional explicit NuGet package ID (overrides auto-detection from the project file)
-        required: false
-        type: string
-        default: ""
+        default: src/Purview.EventSourcing.slnx
 
 # Keep this file name stable for NuGet Trusted Publishing policy mapping:
 # owner/repository/.github/workflows/release.yml
@@ -33,8 +28,7 @@ jobs:
       version: ${{ steps.version.outputs.value }}
       tag: ${{ steps.version.outputs.tag }}
       prerelease: ${{ steps.version.outputs.prerelease }}
-      package_id: ${{ steps.package.outputs.id }}
-      package_project: ${{ steps.package.outputs.project }}
+      pack_target_path: ${{ steps.pack_target.outputs.path }}
 
     steps:
       - name: Ensure release runs from main
@@ -97,66 +91,20 @@ jobs:
             exit 1
           fi
 
-      - id: package
-        name: Resolve package metadata
+      - id: pack_target
+        name: Resolve pack target path
         shell: bash
         env:
-          INPUT_PACKAGE_PROJECT: ${{ inputs.package_project }}
-          INPUT_PACKAGE_ID: ${{ inputs.package_id }}
+          INPUT_PACK_TARGET_PATH: ${{ inputs.pack_target_path }}
         run: |
           set -euo pipefail
-          package_project="${INPUT_PACKAGE_PROJECT}"
-          if [[ ! -f "${package_project}" ]]; then
-            echo "::error::Package project not found: ${package_project}"
+          pack_target="${INPUT_PACK_TARGET_PATH}"
+          if [[ ! -f "${pack_target}" ]]; then
+            echo "::error::Pack target not found: ${pack_target}"
             exit 1
           fi
 
-          package_id="${INPUT_PACKAGE_ID}"
-          if [[ -z "${package_id}" ]]; then
-            package_id="$(dotnet msbuild "${package_project}" -nologo -getproperty:PackageId | tr -d '\r' | tail -n 1 | xargs)"
-          fi
-
-          if [[ -z "${package_id}" ]]; then
-            echo "::error::Unable to determine package ID. Provide workflow_dispatch input 'package_id'."
-            exit 1
-          fi
-
-          echo "project=${package_project}" >> "${GITHUB_OUTPUT}"
-          echo "id=${package_id}" >> "${GITHUB_OUTPUT}"
-
-      - name: "Guard: NuGet package version must not already exist"
-        shell: bash
-        env:
-          PACKAGE_ID: ${{ steps.package.outputs.id }}
-          VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          set -euo pipefail
-          package_id_lower="$(echo "${PACKAGE_ID}" | tr '[:upper:]' '[:lower:]')"
-          url="https://api.nuget.org/v3-flatcontainer/${package_id_lower}/index.json"
-          status_code="$(curl -sS -o nuget-index.json -w "%{http_code}" "${url}")"
-
-          if [[ "${status_code}" == "404" ]]; then
-            rm -f nuget-index.json
-            exit 0
-          fi
-
-          if [[ "${status_code}" != "200" ]]; then
-            echo "::error::Failed to query NuGet flat container (${status_code}) for ${PACKAGE_ID}."
-            cat nuget-index.json
-            exit 1
-          fi
-
-          code=0
-          VERSION="${VERSION}" node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('nuget-index.json','utf8'));const v=(process.env.VERSION||'').toLowerCase();if(Array.isArray(data.versions)&&data.versions.includes(v)){process.exit(2);}" || code=$?
-          rm -f nuget-index.json
-          if [[ "${code}" -eq 2 ]]; then
-            echo "::error::NuGet package ${PACKAGE_ID} version ${VERSION} already exists."
-            exit 1
-          fi
-          if [[ "${code}" -ne 0 ]]; then
-            echo "::error::NuGet version check failed unexpectedly with exit code ${code}."
-            exit "${code}"
-          fi
+          echo "path=${pack_target}" >> "${GITHUB_OUTPUT}"
 
       - name: Build release notes from CHANGELOG.md
         shell: bash
@@ -218,16 +166,92 @@ jobs:
       contents: read
     uses: ./.github/workflows/reusable-dotnet-pack.yml
     with:
-      project-path: ${{ needs.prepare.outputs.package_project }}
+      pack-target-path: ${{ needs.prepare.outputs.pack_target_path }}
       version: ${{ needs.prepare.outputs.version }}
       configuration: Release
       output-path: ./artifacts/package
+
+  guard-nuget-duplicates:
+    name: Guard NuGet duplicates from artifacts
+    needs:
+      - prepare
+      - pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: package-artifacts
+          path: artifacts/package
+
+      - name: "Guard: each artifact version must not already exist on NuGet"
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          nupkgs=(artifacts/package/*.nupkg)
+          if (( ${#nupkgs[@]} == 0 )); then
+            echo "::error::No .nupkg files were produced in artifacts/package."
+            exit 1
+          fi
+
+          suffix=".${VERSION}.nupkg"
+          duplicate_count=0
+
+          for pkg in "${nupkgs[@]}"; do
+            file="$(basename "${pkg}")"
+
+            if [[ "${file}" != *"${suffix}" ]]; then
+              echo "::error::Package filename '${file}' does not end with expected version suffix '${suffix}'."
+              exit 1
+            fi
+
+            package_id="${file%${suffix}}"
+            package_id_lower="$(echo "${package_id}" | tr '[:upper:]' '[:lower:]')"
+            url="https://api.nuget.org/v3-flatcontainer/${package_id_lower}/index.json"
+            status_code="$(curl -sS -o nuget-index.json -w "%{http_code}" "${url}")"
+
+            if [[ "${status_code}" == "404" ]]; then
+              rm -f nuget-index.json
+              continue
+            fi
+
+            if [[ "${status_code}" != "200" ]]; then
+              echo "::error::Failed to query NuGet flat container (${status_code}) for ${package_id}."
+              cat nuget-index.json
+              exit 1
+            fi
+
+            code=0
+            VERSION="${VERSION}" node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('nuget-index.json','utf8'));const v=(process.env.VERSION||'').toLowerCase();if(Array.isArray(data.versions)&&data.versions.includes(v)){process.exit(2);}" || code=$?
+            rm -f nuget-index.json
+
+            if [[ "${code}" -eq 2 ]]; then
+              echo "::error::NuGet package ${package_id} version ${VERSION} already exists."
+              duplicate_count=$((duplicate_count + 1))
+              continue
+            fi
+            if [[ "${code}" -ne 0 ]]; then
+              echo "::error::NuGet version check failed unexpectedly for ${package_id} with exit code ${code}."
+              exit "${code}"
+            fi
+          done
+
+          if (( duplicate_count > 0 )); then
+            exit 1
+          fi
 
   create-release:
     name: Create Git tag and GitHub Release
     needs:
       - prepare
       - pack
+      - guard-nuget-duplicates
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -307,8 +331,6 @@ jobs:
       - name: NuGet login
         id: nuget-login
         uses: NuGet/login@v1
-        with:
-          user: "KLJ.dev"
 
       - name: Download package artifacts
         uses: actions/download-artifact@v8
