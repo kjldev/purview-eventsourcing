@@ -114,6 +114,15 @@ static class GeneratorDiagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor EventParameterNullabilityMismatch = new(
+		id: "EVENTSTORE016",
+		title: "Event parameter nullability differs from aggregate property",
+		messageFormat: "Parameter '{0}' on '{1}' is non-nullable but maps to nullable aggregate property '{2}'. Consider declaring the parameter as '{3}' to match the property and avoid generated CS8600 warnings.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Info,
+		isEnabledByDefault: true
+	);
+
 	public static readonly DiagnosticDescriptor EventNameShouldBePastTense = new(
 		id: "EVENTSTORE013",
 		title: "Event names should be past tense",

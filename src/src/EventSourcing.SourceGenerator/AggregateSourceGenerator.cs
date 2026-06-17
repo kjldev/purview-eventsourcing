@@ -629,6 +629,28 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				continue;
 			}
 
+			// Warn when a non-nullable parameter maps to a nullable property via nullability widening.
+			// The generator works around this automatically (see ResolveParameterConversionKind), but
+			// the right long-term fix is to align the parameter's nullability with the property.
+			if (
+				conversionKind == EventParameterConversionKind.Implicit
+				&& SymbolEqualityComparer.Default.Equals(parameter.Type, propertySymbol.Type)
+				&& propertySymbol.Type.NullableAnnotation == NullableAnnotation.Annotated
+				&& parameter.Type.NullableAnnotation != NullableAnnotation.Annotated
+			)
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.EventParameterNullabilityMismatch,
+						parameterLocation,
+						parameter.Name,
+						methodSymbol.Name,
+						aggregatePropertyName,
+						propertyTypeName
+					)
+				);
+			}
+
 			parameters.Add(
 				new EventPropertyInfo(
 					parameter.Name,
@@ -746,7 +768,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	)
 	{
 		if (SymbolEqualityComparer.Default.Equals(parameterType, propertyType))
+		{
+			// Same underlying type. If nullability differs (non-nullable param → nullable property),
+			// return Implicit so a typed local variable is generated and ref-hook calls don't produce
+			// CS8600 ("Converting null literal or possible null value to non-nullable type").
+			if (
+				parameterType.NullableAnnotation != propertyType.NullableAnnotation
+				&& propertyType.NullableAnnotation == NullableAnnotation.Annotated
+			)
+				return EventParameterConversionKind.Implicit;
+
 			return EventParameterConversionKind.None;
+		}
 
 		if (
 			propertyType is INamedTypeSymbol namedPropertyType
