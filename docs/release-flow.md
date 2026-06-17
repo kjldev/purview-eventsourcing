@@ -19,8 +19,7 @@ It runs:
 4. `dotnet test --no-build --configuration Release` (with TUnit treenode unit-test filter)
 5. publish TRX test results into PR checks and upload raw test artifacts
 
-The PR workflow uses read-only permissions and does not tag, release, or publish anything.
-It has only the extra write scopes needed to publish test results (`checks: write`, `pull-requests: write`).
+The PR workflow does not tag, release, or publish packages. It uses read-only permissions by default, with a dedicated test-results publishing job that requests only `checks: write` and `pull-requests: write`.
 
 `reusable-dotnet-validate.yml` always runs tests with a treenode filter. If `test-treenode-filter` is unset or empty, it falls back to:
 

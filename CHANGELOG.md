@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.4
+
+### Patch Changes
+
+- added support for multi-value value objects
+
 ## 2.0.0-prerelease.3
 
 ### Patch Changes

@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 concurrency:
   group: pr-${{ github.workflow }}-${{ github.ref }}
@@ -19,8 +17,6 @@ jobs:
     name: Restore, build, and test
     permissions:
       contents: read
-      checks: write
-      pull-requests: write
     uses: ./.github/workflows/reusable-dotnet-validate.yml
     with:
       solution-path: src/Purview.EventSourcing.slnx
@@ -28,5 +24,42 @@ jobs:
       install-node-deps: true
       node-version: "24"
       test-treenode-filter: "/*UnitTest*/*/*/*"
-      publish-test-results: true
       test-results-artifact-name: pr-test-results
+
+  publish-test-results:
+    name: Publish test results
+    needs: validate
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - name: Download test result artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: pr-test-results
+          path: artifacts/test-runs
+
+      - name: Detect TRX files
+        id: trx
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          files=(artifacts/test-runs/**/*.trx)
+          if (( ${#files[@]} > 0 )); then
+            echo "found=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "found=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Publish test results to PR checks
+        if: ${{ always() && steps.trx.outputs.found == 'true' }}
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ./artifacts/test-runs/**/*.trx
+          check_name: Unit Test Results
+          comment_mode: off

@@ -27,10 +27,6 @@ on:
         required: false
         type: string
         default: "/*UnitTest*/*/*/*"
-      publish-test-results:
-        required: false
-        type: boolean
-        default: false
       test-results-artifact-name:
         required: false
         type: string
@@ -90,17 +86,9 @@ jobs:
           filter="${filter:-/*/*/*/*}"
           dotnet test "${{ inputs.solution-path }}" --no-build --configuration "${{ inputs.configuration }}" --results-directory ./artifacts/test-runs --ignore-exit-code 8 -- --treenode-filter "${filter}" --report-trx
 
-      - name: Publish test results to PR checks
-        if: ${{ always() && inputs.publish-test-results }}
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: ./artifacts/test-runs/**/*.trx
-          check_name: Unit Test Results
-          comment_mode: off
-
       - name: Upload test result artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.test-results-artifact-name }}
           path: ./artifacts/test-runs/**/*
