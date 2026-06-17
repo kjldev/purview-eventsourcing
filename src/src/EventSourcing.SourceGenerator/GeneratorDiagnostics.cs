@@ -186,6 +186,15 @@ static class GeneratorDiagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor ScalarShouldBeRecordStruct = new(
+		id: "EVENTSTORE109",
+		title: "Scalar value objects should be record structs",
+		messageFormat: "Scalar value object '{0}' should be declared as a readonly record struct so the compiler can synthesize equality members and avoid CA1815",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
 	public static readonly DiagnosticDescriptor ComplexHydrateConstructorMissing = new(
 		id: "EVENTSTORE106",
 		title: "Value object hydration constructor is missing",

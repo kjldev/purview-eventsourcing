@@ -11,6 +11,8 @@ public sealed class ScalarAttribute(string propertyName = "Value") : Attribute
 
 	public bool GenerateComparisonOperators { get; init; } = true;
 
+	public bool GenerateEnumProperties { get; init; } = true;
+
 	public bool GenerateImplicitFromPrimitive { get; init; } = true;
 
 	public bool GenerateImplicitToPrimitive { get; init; } = true;

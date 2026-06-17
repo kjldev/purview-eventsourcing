@@ -110,6 +110,17 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		if (typeModel is null)
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
 
+		if (typeSymbol.TypeKind == TypeKind.Struct && !typeSymbol.IsRecord)
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.ScalarShouldBeRecordStruct,
+					context.TargetNode.GetLocation(),
+					typeSymbol.Name
+				)
+			);
+		}
+
 		var source = GenerateScalarSource(
 			typeSymbol,
 			typeModel.Value,
@@ -297,6 +308,8 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			"op_Inequality",
 			[scalarProperty.Type, typeSymbol]
 		);
+		var enumPropertiesEnabled =
+			options.GenerateEnumProperties && scalarProperty.Type.TypeKind == TypeKind.Enum;
 		var toStringExists = HasParameterlessMethod(typeSymbol, "ToString");
 		var hasJsonConverterAttribute = HasAttribute(typeSymbol, JsonConverterAttributeName);
 		var declareOnNormalize = ShouldEmitScalarHookDeclaration(typeSymbol, "OnNormalize", 1, includeRef: true);
@@ -442,6 +455,20 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine(
 				$"{indent}\tprivate {typeModel.Name}({scalarTypeName} value) => {scalarPropertyName} = value;"
 			);
+		}
+
+		if (enumPropertiesEnabled)
+		{
+			foreach (var enumField in GetEnumFields(scalarProperty.Type))
+			{
+				if (HasMemberWithName(typeSymbol, enumField.Name))
+					continue;
+
+				sb.AppendLine();
+				sb.AppendLine(
+					$"{indent}\tpublic static {typeName} {enumField.Name} => Hydrate({scalarTypeName}.{enumField.Name});"
+				);
+			}
 		}
 
 		if (!equalsSelfExists)
@@ -1210,6 +1237,17 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 	static string ToCamelCase(string value) =>
 		string.IsNullOrEmpty(value) ? value : char.ToLowerInvariant(value[0]) + value.Substring(1);
 
+	static IFieldSymbol[] GetEnumFields(ITypeSymbol enumTypeSymbol) =>
+		enumTypeSymbol
+			.GetMembers()
+			.OfType<IFieldSymbol>()
+			.Where(field => field.HasConstantValue && field.DeclaredAccessibility == Accessibility.Public)
+			.OrderBy(field => field.Locations.FirstOrDefault()?.SourceSpan.Start ?? int.MaxValue)
+			.ToArray();
+
+	static bool HasMemberWithName(INamedTypeSymbol typeSymbol, string name) =>
+		typeSymbol.GetMembers(name).Any(member => !member.IsImplicitlyDeclared);
+
 	readonly struct ValueObjectGenerationResult(
 		string? hintName,
 		string? source,
@@ -1246,6 +1284,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		bool generateJsonConverter,
 		bool generateComparable,
 		bool generateComparisonOperators,
+		bool generateEnumProperties,
 		bool generateImplicitFromPrimitive,
 		bool generateImplicitToPrimitive,
 		string deserializationMode
@@ -1258,6 +1297,8 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		public bool GenerateComparable { get; } = generateComparable;
 
 		public bool GenerateComparisonOperators { get; } = generateComparisonOperators;
+
+		public bool GenerateEnumProperties { get; } = generateEnumProperties;
 
 		public bool GenerateImplicitFromPrimitive { get; } = generateImplicitFromPrimitive;
 
@@ -1282,6 +1323,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				GetNamedBool(attribute.NamedArguments, "GenerateJsonConverter", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateComparable", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateComparisonOperators", true),
+				GetNamedBool(attribute.NamedArguments, "GenerateEnumProperties", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateImplicitFromPrimitive", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateImplicitToPrimitive", true),
 				GetDeserializationMode(attribute.NamedArguments, "DeserializationMode")

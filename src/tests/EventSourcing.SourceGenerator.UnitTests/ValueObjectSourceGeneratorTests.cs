@@ -13,6 +13,9 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 				.Select(static generatedSource => generatedSource.SourceText.ToString())
 		);
 
+	static Diagnostic[] GetGeneratorDiagnostics(GeneratorDriverRunResult result) =>
+		[.. result.Results.SelectMany(static generatorResult => generatorResult.Diagnostics).OrderBy(static d => d.Id)];
+
 	[Test]
 	public async Task ScalarGeneration_UsesStrictCreateAndHydrateCorrectly(CancellationToken cancellationToken)
 	{
@@ -151,6 +154,106 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 
 		await Assert.That(created).IsEqualTo("12345");
 		await Assert.That(hydrated).IsEqualTo("67890");
+	}
+
+	[Test]
+	public async Task ScalarGeneration_WarnsWhenScalarStructIsNotRecordStruct(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial struct LegacyStatus
+				{
+					public string Value { get; }
+
+					private LegacyStatus(string value) => Value = value;
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var warnings = GetGeneratorDiagnostics(result).Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning).ToArray();
+
+		await Assert.That(warnings.Select(static diagnostic => diagnostic.Id)).Contains(GeneratorDiagnostics.ScalarShouldBeRecordStruct.Id);
+	}
+
+	[Test]
+	public async Task ScalarGeneration_GeneratesEnumConvenienceProperties(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial record struct ReportProcessingStatus
+				{
+					public ReportProcessingStatusCode Value { get; }
+
+					private ReportProcessingStatus(ReportProcessingStatusCode value) => Value = value;
+				}
+
+				public enum ReportProcessingStatusCode
+				{
+					Uploaded,
+					Processing,
+					Completed,
+					Failed
+				}
+
+				public static class StatusHarness
+				{
+					public static bool AreEqual() =>
+						ReportProcessingStatus.Failed == ReportProcessingStatus.Hydrate(ReportProcessingStatusCode.Failed);
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Uploaded => Hydrate(global::Testing.ReportProcessingStatusCode.Uploaded);");
+		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Processing => Hydrate(global::Testing.ReportProcessingStatusCode.Processing);");
+		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Completed => Hydrate(global::Testing.ReportProcessingStatusCode.Completed);");
+		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Failed => Hydrate(global::Testing.ReportProcessingStatusCode.Failed);");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.StatusHarness")!;
+		var areEqual = (bool)harnessType.GetMethod("AreEqual")!.Invoke(null, null)!;
+
+		await Assert.That(areEqual).IsTrue();
+	}
+
+	[Test]
+	public async Task ScalarGeneration_CanDisableEnumConvenienceProperties(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar(GenerateEnumProperties = false)]
+				public readonly partial record struct ReportProcessingStatus
+				{
+					public ReportProcessingStatusCode Value { get; }
+
+					private ReportProcessingStatus(ReportProcessingStatusCode value) => Value = value;
+				}
+
+				public enum ReportProcessingStatusCode
+				{
+					Uploaded,
+					Processing,
+					Completed,
+					Failed
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Uploaded => Hydrate(global::Testing.ReportProcessingStatusCode.Uploaded);");
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Processing => Hydrate(global::Testing.ReportProcessingStatusCode.Processing);");
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Completed => Hydrate(global::Testing.ReportProcessingStatusCode.Completed);");
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Failed => Hydrate(global::Testing.ReportProcessingStatusCode.Failed);");
 	}
 
 	[Test]
@@ -385,6 +488,54 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		await Assert
 			.That(generatedSource)
 			.DoesNotContain("operator >=(global::System.String left, global::Testing.Name right)");
+	}
+
+	[Test]
+	public async Task ScalarGeneration_GeneratesSelfEqualityOperatorsForPlainStruct(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial struct ReportProcessingStatus
+				{
+					public ReportProcessingStatusCode Value { get; }
+
+					private ReportProcessingStatus(ReportProcessingStatusCode value) => Value = value;
+				}
+
+				public enum ReportProcessingStatusCode
+				{
+					Uploaded,
+					Processing,
+					Completed,
+					Failed
+				}
+
+				public static class StatusHarness
+				{
+					public static bool AreEqual()
+					{
+						ReportProcessingStatus status = ReportProcessingStatus.Hydrate(ReportProcessingStatusCode.Failed);
+						var other = ReportProcessingStatus.Hydrate(ReportProcessingStatusCode.Failed);
+						return status == other;
+					}
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public static bool operator ==(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)");
+		await Assert.That(generatedSource).Contains("public static bool operator !=(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.StatusHarness")!;
+
+		var areEqual = (bool)harnessType.GetMethod("AreEqual")!.Invoke(null, null)!;
+
+		await Assert.That(areEqual).IsTrue();
 	}
 
 	[Test]

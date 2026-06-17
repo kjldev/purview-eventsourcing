@@ -672,6 +672,22 @@ sealed partial class SqlServerClient
 
 	sealed class ScalarValueMemberAccessPredicateVisitor : ExpressionVisitor
 	{
+		protected override Expression VisitBinary(BinaryExpression node)
+		{
+			var visitedLeft = Visit(node.Left);
+			var visitedRight = Visit(node.Right);
+
+			if (
+				(node.NodeType == ExpressionType.Equal || node.NodeType == ExpressionType.NotEqual)
+				&& TryRewriteScalarPrimitiveComparison(visitedLeft, visitedRight, out var rewrittenLeft, out var rewrittenRight)
+			)
+			{
+				return Expression.MakeBinary(node.NodeType, rewrittenLeft, rewrittenRight);
+			}
+
+			return node.Update(visitedLeft, node.Conversion, visitedRight);
+		}
+
 		protected override Expression VisitMember(MemberExpression node)
 		{
 			var visitedExpression = base.VisitMember(node);
@@ -690,6 +706,55 @@ sealed partial class SqlServerClient
 			{
 				return visited;
 			}
+		}
+
+		static bool TryRewriteScalarPrimitiveComparison(
+			Expression left,
+			Expression right,
+			out Expression rewrittenLeft,
+			out Expression rewrittenRight
+		)
+		{
+			rewrittenLeft = left;
+			rewrittenRight = right;
+
+			if (TryGetScalarPropertyType(left.Type, out var leftScalarType) && IsSameOrNullable(right.Type, leftScalarType))
+			{
+				rewrittenLeft = Expression.Convert(left, right.Type);
+				return true;
+			}
+
+			if (TryGetScalarPropertyType(right.Type, out var rightScalarType) && IsSameOrNullable(left.Type, rightScalarType))
+			{
+				rewrittenRight = Expression.Convert(right, left.Type);
+				return true;
+			}
+
+			return false;
+		}
+
+		static bool TryGetScalarPropertyType(Type candidateType, out Type scalarPropertyType)
+		{
+			scalarPropertyType = null!;
+			var scalarAttribute = candidateType.GetCustomAttribute<ScalarAttribute>();
+			if (scalarAttribute is null)
+				return false;
+
+			var scalarProperty = candidateType.GetProperty(
+				scalarAttribute.PropertyName,
+				BindingFlags.Instance | BindingFlags.Public
+			);
+			if (scalarProperty is null)
+				return false;
+
+			scalarPropertyType = scalarProperty.PropertyType;
+			return true;
+		}
+
+		static bool IsSameOrNullable(Type candidate, Type expected)
+		{
+			var underlyingType = Nullable.GetUnderlyingType(candidate);
+			return candidate == expected || underlyingType == expected;
 		}
 	}
 
