@@ -615,6 +615,12 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			"Create",
 			[.. properties.Select(property => property.Type)]
 		);
+		var declareOnNormalize = ShouldEmitComplexHookDeclaration(
+			typeSymbol,
+			"OnNormalize",
+			propertyNames.Length,
+			includeRef: true
+		);
 
 		var hydrateFactoryName =
 			options.DeserializationMode == StrictModeName ? "Create" : "Hydrate";
@@ -641,6 +647,19 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		);
 		sb.AppendLine($"{indent}{{");
 
+		if (declareOnNormalize)
+		{
+			var normalizeParams = string.Join(
+				", ",
+				propertyTypeNames.Zip(
+					propertyNames,
+					static (type, name) => $"ref {type} {ToCamelCase(name)}"
+				)
+			);
+			sb.AppendLine($"{indent}\tstatic partial void OnNormalize({normalizeParams});");
+			sb.AppendLine();
+		}
+
 		if (!createExists)
 		{
 			var createParams = string.Join(
@@ -651,6 +670,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine(
 				$@"{indent}	public static {typeName} Create({createParams})
 {indent}	{{
+{indent}		OnNormalize(ref {string.Join(", ref ", propertyNames.Select(ToCamelCase))});
 {indent}		var result = new {typeName}({createArgs});
 {indent}		result.OnValidate({createArgs});
 {indent}		return result;
@@ -1178,7 +1198,8 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 	static bool ShouldEmitComplexHookDeclaration(
 		INamedTypeSymbol typeSymbol,
 		string methodName,
-		int parameterCount
+		int parameterCount,
+		bool includeRef = false
 	)
 	{
 		var declarations = typeSymbol
@@ -1190,8 +1211,25 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			)
 			.ToArray();
 
-		var hasDefinition = declarations.Any(method => method.Body is null && method.ExpressionBody is null);
-		return !hasDefinition;
+		var hasDefinition = declarations.Any(method =>
+			(!includeRef || method.ParameterList.Parameters.All(static parameter =>
+				parameter.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.RefKeyword))
+			))
+			&& method.Body is null
+			&& method.ExpressionBody is null
+		);
+		if (hasDefinition)
+			return false;
+
+		if (!includeRef)
+			return true;
+
+		var hasRefImplementation = declarations.Any(method =>
+			method.ParameterList.Parameters.All(static parameter =>
+				parameter.Modifiers.Any(static modifier => modifier.IsKind(SyntaxKind.RefKeyword))
+			)
+		);
+		return hasRefImplementation || declarations.Length == 0;
 	}
 
 	static GeneratedTypeModel? BuildTypeModel(INamedTypeSymbol typeSymbol)

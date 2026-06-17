@@ -857,4 +857,75 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		await Assert.That(compareUserDetails).IsEqualTo(-1);
 		await Assert.That(compareUserDetails2).IsEqualTo(-1);
 	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_SupportsNormalizeHook(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public sealed partial record UserDetails(System.Guid Id, string? DisplayName, bool IsActive = true)
+				{
+					static partial void OnNormalize(ref System.Guid id, ref string? displayName, ref bool isActive)
+					{
+						displayName = displayName?.Trim();
+
+						if (!isActive)
+							displayName = null;
+					}
+
+					partial void OnValidate(System.Guid id, string? displayName, bool isActive)
+					{
+						if (id == System.Guid.Empty)
+							throw new System.ArgumentException("Id must be a valid GUID.", nameof(id));
+
+						if (isActive && string.IsNullOrWhiteSpace(displayName))
+							throw new System.ArgumentException("DisplayName cannot be null or empty.", nameof(displayName));
+					}
+				}
+
+				public static class UserDetailsNormalizeHarness
+				{
+					public static string ActiveDisplayName()
+					{
+						var value = UserDetails.Create(System.Guid.Parse("11111111-1111-1111-1111-111111111111"), " Alice ", true);
+						return value.DisplayName!;
+					}
+
+					public static bool InactiveDisplayNameIsNull()
+					{
+						var value = UserDetails.Create(System.Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alice", false);
+						return value.DisplayName is null;
+					}
+
+					public static bool ActiveBlankDisplayNameThrows()
+					{
+						try
+						{
+							_ = UserDetails.Create(System.Guid.Parse("11111111-1111-1111-1111-111111111111"), "  ", true);
+							return false;
+						}
+						catch (System.ArgumentException)
+						{
+							return true;
+						}
+					}
+				}
+			}
+			""";
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.UserDetailsNormalizeHarness")!;
+
+		var activeDisplayName = (string)harnessType.GetMethod("ActiveDisplayName")!.Invoke(null, null)!;
+		var inactiveDisplayNameIsNull = (bool)
+			harnessType.GetMethod("InactiveDisplayNameIsNull")!.Invoke(null, null)!;
+		var activeBlankDisplayNameThrows = (bool)
+			harnessType.GetMethod("ActiveBlankDisplayNameThrows")!.Invoke(null, null)!;
+
+		await Assert.That(activeDisplayName).IsEqualTo("Alice");
+		await Assert.That(inactiveDisplayNameIsNull).IsTrue();
+		await Assert.That(activeBlankDisplayNameThrows).IsTrue();
+	}
 }

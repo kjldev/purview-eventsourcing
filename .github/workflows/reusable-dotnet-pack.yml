@@ -3,7 +3,7 @@ name: Reusable .NET Pack
 on:
   workflow_call:
     inputs:
-      project-path:
+      pack-target-path:
         required: true
         type: string
       version:
@@ -39,13 +39,13 @@ jobs:
           global-json-file: ${{ inputs.dotnet-global-json }}
 
       - name: Restore project
-        run: dotnet restore "${{ inputs.project-path }}"
+        run: dotnet restore "${{ inputs.pack-target-path }}"
 
       - name: Build project
-        run: dotnet build "${{ inputs.project-path }}" --no-restore --configuration "${{ inputs.configuration }}"
+        run: dotnet build "${{ inputs.pack-target-path }}" --no-restore --configuration "${{ inputs.configuration }}"
 
       - name: Pack
-        run: dotnet pack "${{ inputs.project-path }}" --no-build --configuration "${{ inputs.configuration }}" -p:PackageVersion="${{ inputs.version }}" --output "${{ inputs.output-path }}"
+        run: dotnet pack "${{ inputs.pack-target-path }}" --no-build --configuration "${{ inputs.configuration }}" -p:PackageVersion="${{ inputs.version }}" --output "${{ inputs.output-path }}"
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7
