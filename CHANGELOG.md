@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.6
+
+### Patch Changes
+
+- Prepare prerelease.6 release
+
 ## 2.0.0-prerelease.5
 
 ### Patch Changes
