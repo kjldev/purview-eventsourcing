@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.2
+
+### Patch Changes
+
+- source generator has enum field gen and scalar gen fix for equality
+
 ## 2.0.0-Init20Release.1
 
 ### Patch Changes
