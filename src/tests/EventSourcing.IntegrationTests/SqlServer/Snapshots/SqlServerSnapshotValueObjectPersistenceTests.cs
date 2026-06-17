@@ -86,10 +86,18 @@ public sealed class SqlServerSnapshotValueObjectPersistenceTests(SqlServerSnapsh
 		}
 
 		var eventPayload = events.Single().@event;
-		var eventUserDetails = eventPayload.GetType().GetProperty(nameof(SnapshotValueObjectsAggregate.UserDetails))!.GetValue(eventPayload)!;
-		var eventUserDetails2 = eventPayload.GetType().GetProperty(nameof(SnapshotValueObjectsAggregate.UserDetails2))!.GetValue(eventPayload)!;
-		var eventDisplayName = (string)eventUserDetails.GetType().GetProperty(nameof(UserDetails.DisplayName))!.GetValue(eventUserDetails)!;
-		var eventDisplayName2 = (string)eventUserDetails2.GetType().GetProperty(nameof(UserDetails2.DisplayName))!.GetValue(eventUserDetails2)!;
+		var eventUserDetails = eventPayload
+			.GetType()
+			.GetProperty(nameof(SnapshotValueObjectsAggregate.UserDetails))!
+			.GetValue(eventPayload)!;
+		var eventUserDetails2 = eventPayload
+			.GetType()
+			.GetProperty(nameof(SnapshotValueObjectsAggregate.UserDetails2))!
+			.GetValue(eventPayload)!;
+		var eventDisplayName = (string)
+			eventUserDetails.GetType().GetProperty(nameof(UserDetails.DisplayName))!.GetValue(eventUserDetails)!;
+		var eventDisplayName2 = (string)
+			eventUserDetails2.GetType().GetProperty(nameof(UserDetails2.DisplayName))!.GetValue(eventUserDetails2)!;
 
 		await Assert.That(saveResult.Saved).IsTrue();
 		await Assert.That(events).Count().IsEqualTo(1);

@@ -609,7 +609,9 @@ sealed partial class SqlServerClient
 
 	static bool HasBindableConstructorParameter(Type containingType, PropertyInfo property)
 	{
-		var constructors = containingType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+		var constructors = containingType.GetConstructors(
+			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+		);
 		foreach (var constructor in constructors)
 		{
 			foreach (var parameter in constructor.GetParameters())
@@ -743,7 +745,12 @@ sealed partial class SqlServerClient
 
 			if (
 				(node.NodeType == ExpressionType.Equal || node.NodeType == ExpressionType.NotEqual)
-				&& TryRewriteScalarPrimitiveComparison(visitedLeft, visitedRight, out var rewrittenLeft, out var rewrittenRight)
+				&& TryRewriteScalarPrimitiveComparison(
+					visitedLeft,
+					visitedRight,
+					out var rewrittenLeft,
+					out var rewrittenRight
+				)
 			)
 			{
 				return Expression.MakeBinary(node.NodeType, rewrittenLeft, rewrittenRight);
@@ -782,13 +789,19 @@ sealed partial class SqlServerClient
 			rewrittenLeft = left;
 			rewrittenRight = right;
 
-			if (TryGetScalarPropertyType(left.Type, out var leftScalarType) && IsSameOrNullable(right.Type, leftScalarType))
+			if (
+				TryGetScalarPropertyType(left.Type, out var leftScalarType)
+				&& IsSameOrNullable(right.Type, leftScalarType)
+			)
 			{
 				rewrittenLeft = Expression.Convert(left, right.Type);
 				return true;
 			}
 
-			if (TryGetScalarPropertyType(right.Type, out var rightScalarType) && IsSameOrNullable(left.Type, rightScalarType))
+			if (
+				TryGetScalarPropertyType(right.Type, out var rightScalarType)
+				&& IsSameOrNullable(left.Type, rightScalarType)
+			)
 			{
 				rewrittenRight = Expression.Convert(right, left.Type);
 				return true;

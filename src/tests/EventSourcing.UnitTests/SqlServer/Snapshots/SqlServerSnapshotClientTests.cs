@@ -1,5 +1,5 @@
-using System.Reflection;
 using System.Linq.Expressions;
+using System.Reflection;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Serialization;
@@ -62,10 +62,8 @@ public sealed class SqlServerSnapshotClientTests
 		await Assert.That(method).IsNotNull();
 
 		var genericMethod = method!.MakeGenericMethod(typeof(ScalarHolder));
-		var rewritten = (Expression<Func<ScalarHolder, bool>>)genericMethod.Invoke(
-			null,
-			[whereClause, nameof(ScalarHolder)]
-		)!;
+		var rewritten =
+			(Expression<Func<ScalarHolder, bool>>)genericMethod.Invoke(null, [whereClause, nameof(ScalarHolder)])!;
 
 		var binaryExpression = rewritten.Body as BinaryExpression;
 		await Assert.That(binaryExpression).IsNotNull();

@@ -146,9 +146,9 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var diagnostics = GetGeneratorDiagnostics(result);
 
 		await Assert.That(generatedSource).Contains("private PhoneNumber(string value) => Value = value;");
-		await Assert.That(diagnostics.Select(static diagnostic => diagnostic.Id)).DoesNotContain(
-			GeneratorDiagnostics.ScalarConstructorMissing.Id
-		);
+		await Assert
+			.That(diagnostics.Select(static diagnostic => diagnostic.Id))
+			.DoesNotContain(GeneratorDiagnostics.ScalarConstructorMissing.Id);
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.PhoneHarness")!;
@@ -919,8 +919,7 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var harnessType = assembly.GetType("Testing.UserDetailsNormalizeHarness")!;
 
 		var activeDisplayName = (string)harnessType.GetMethod("ActiveDisplayName")!.Invoke(null, null)!;
-		var inactiveDisplayNameIsNull = (bool)
-			harnessType.GetMethod("InactiveDisplayNameIsNull")!.Invoke(null, null)!;
+		var inactiveDisplayNameIsNull = (bool)harnessType.GetMethod("InactiveDisplayNameIsNull")!.Invoke(null, null)!;
 		var activeBlankDisplayNameThrows = (bool)
 			harnessType.GetMethod("ActiveBlankDisplayNameThrows")!.Invoke(null, null)!;
 
