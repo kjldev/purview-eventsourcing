@@ -105,16 +105,33 @@ High-level stages:
    - fail if any package ID + version already exists on NuGet
 5. **create-release**
    - create and push Git tag (after validate + pack succeed)
+   - if tag already exists, only continue when it points at the same commit (safe rerun)
    - create GitHub Release and attach `.nupkg`/`.snupkg` artifacts
 6. **publish-nuget**
    - OIDC login to NuGet
    - publish all `.nupkg` artifacts from `artifacts/package` to nuget.org
 
+## Release identity for tags and GitHub releases
+
+To support protected tag rules, `release.yml` supports using a GitHub App token for tag/release operations.
+
+Configure repository secrets:
+
+- `RELEASE_BOT_APP_ID`
+- `RELEASE_BOT_PRIVATE_KEY`
+
+When these secrets are present, the workflow uses `actions/create-github-app-token` and uses that token for:
+
+- pushing `refs/tags/v<version>`
+- creating the GitHub release
+
+If the secrets are not configured, workflow falls back to `GITHUB_TOKEN`.
+
 ## Duplicate release protection
 
 Before release/publish, duplicate guard checks:
 
-- remote Git tag existence (`git ls-remote --tags origin refs/tags/v<version>`)
+- remote Git tag state (`git ls-remote --tags origin refs/tags/v<version>`) and commit alignment
 - GitHub Release existence (`gh release view v<version>`)
 - NuGet package/version existence for each generated package via:
   - `https://api.nuget.org/v3-flatcontainer/<package-id-lower>/index.json`
