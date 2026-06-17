@@ -334,6 +334,8 @@ jobs:
       - name: NuGet login
         id: nuget-login
         uses: NuGet/login@v1
+        with:
+          user: ${{ github.repository_owner }}
 
       - name: Download package artifacts
         uses: actions/download-artifact@v8
