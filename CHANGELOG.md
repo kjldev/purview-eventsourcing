@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.3
+
+### Patch Changes
+
+- fix for nullable vs. non-nullable properties
+
 ## 2.0.0-prerelease.2
 
 ### Patch Changes
