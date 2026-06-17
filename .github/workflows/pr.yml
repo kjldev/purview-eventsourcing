@@ -1,0 +1,32 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Restore, build, and test
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/reusable-dotnet-validate.yml
+    with:
+      solution-path: src/Purview.EventSourcing.slnx
+      configuration: Release
+      install-node-deps: true
+      node-version: "24"
+      test-treenode-filter: "/*UnitTest*/*/*/*"
+      publish-test-results: true
+      test-results-artifact-name: pr-test-results

@@ -1,0 +1,57 @@
+name: Reusable .NET Pack
+
+on:
+  workflow_call:
+    inputs:
+      project-path:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      configuration:
+        required: false
+        type: string
+        default: Release
+      dotnet-global-json:
+        required: false
+        type: string
+        default: global.json
+      output-path:
+        required: false
+        type: string
+        default: ./artifacts/package
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: ${{ inputs.dotnet-global-json }}
+
+      - name: Restore project
+        run: dotnet restore "${{ inputs.project-path }}"
+
+      - name: Build project
+        run: dotnet build "${{ inputs.project-path }}" --no-restore --configuration "${{ inputs.configuration }}"
+
+      - name: Pack
+        run: dotnet pack "${{ inputs.project-path }}" --no-build --configuration "${{ inputs.configuration }}" -p:PackageVersion="${{ inputs.version }}" --output "${{ inputs.output-path }}"
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-artifacts
+          path: |
+            ${{ inputs.output-path }}/*.nupkg
+            ${{ inputs.output-path }}/*.snupkg
+          if-no-files-found: error
