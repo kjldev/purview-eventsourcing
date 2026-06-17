@@ -5,6 +5,9 @@
     "purview-eventsourcing": "2.0.0-prerelease.0"
   },
   "changesets": [
-    "early-dryers-slide"
+    "early-dryers-slide",
+    "famous-rice-enter",
+    "pink-parks-brush",
+    "tasty-moose-tickle"
   ]
 }

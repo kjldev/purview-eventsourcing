@@ -564,7 +564,7 @@ sealed partial class SqlServerEventStoreClient
 		await creator.CreateTablesAsync(cancellationToken);
 	}
 
-	static bool IsDuplicateTableCreateError(Exception exception, string tableName)
+	static bool IsDuplicateTableCreateError(Exception exception, string _)
 	{
 		for (var current = exception; current is not null; current = current.InnerException)
 		{

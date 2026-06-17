@@ -20,7 +20,7 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 
 	readonly IAggregateEventNameMapper _eventNameMapper;
 	readonly IOptions<AzureStorageEventStoreOptions> _eventStoreOptions;
-	readonly FluentValidation.IValidator<T>? _validator;
+	readonly IAggregateValidator<T>? _validator;
 	readonly IAggregateIdFactory? _aggregateIdFactory;
 	readonly IDistributedCache _distributedCache;
 	readonly ITableEventStoreTelemetry _eventStoreTelemetry;
@@ -44,7 +44,7 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 	{
 		_eventNameMapper = eventNameMapper;
 		_eventStoreOptions = azureStorageOptions;
-		_validator = validator;
+		_validator = AggregateValidatorAdapter.Adapt(validator);
 		_aggregateIdFactory = aggregateIdFactory;
 		_distributedCache = distributedCache;
 		_eventStoreTelemetry = eventStoreTelemetry;

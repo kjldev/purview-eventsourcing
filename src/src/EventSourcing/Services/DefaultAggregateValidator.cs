@@ -7,14 +7,16 @@ namespace Purview.EventSourcing.Services;
 /// A default validator for <see cref="IAggregate"/>'s based on
 /// standard data annotations.
 /// </summary>
-public sealed class DefaultAggregateValidator<TAggregate> : AbstractValidator<TAggregate>
+public sealed class DefaultAggregateValidator<TAggregate>
+	: AbstractValidator<TAggregate>,
+		IAggregateValidator<TAggregate>
 	where TAggregate : IAggregate
 {
 	/// <summary>
 	/// A statically cached instance based on the use of standard data annotations.
 	/// </summary>
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1000:Do not declare static members on generic types")]
-	public static IValidator<TAggregate> Instance { get; } = new DefaultAggregateValidator<TAggregate>();
+	public static IAggregateValidator<TAggregate> Instance { get; } = new DefaultAggregateValidator<TAggregate>();
 
 	DefaultAggregateValidator()
 	{

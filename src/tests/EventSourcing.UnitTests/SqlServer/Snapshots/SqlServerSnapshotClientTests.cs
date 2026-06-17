@@ -1,6 +1,8 @@
 using System.Reflection;
+using System.Linq.Expressions;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Serialization;
 using Purview.EventSourcing.SqlServer.Client;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
@@ -47,6 +49,48 @@ public sealed class SqlServerSnapshotClientTests
 		var ex = await Assert.That(Act).Throws<InvalidOperationException>();
 		await Assert.That(ex).IsNotNull();
 		await Assert.That(ex.Message).Contains(nameof(UnsupportedPayloadAggregate.UnsupportedMap));
+	}
+
+	[Test]
+	public async Task RewriteAggregateTypePredicate_GivenScalarEqualsPrimitive_RewritesToPrimitiveComparison()
+	{
+		Expression<Func<ScalarHolder, bool>> whereClause = model => model.Email == "updated@test.com";
+		var method = typeof(SqlServerClient).GetMethod(
+			"RewriteAggregateTypePredicate",
+			BindingFlags.Static | BindingFlags.NonPublic
+		);
+		await Assert.That(method).IsNotNull();
+
+		var genericMethod = method!.MakeGenericMethod(typeof(ScalarHolder));
+		var rewritten = (Expression<Func<ScalarHolder, bool>>)genericMethod.Invoke(
+			null,
+			[whereClause, nameof(ScalarHolder)]
+		)!;
+
+		var binaryExpression = rewritten.Body as BinaryExpression;
+		await Assert.That(binaryExpression).IsNotNull();
+		await Assert.That(binaryExpression!.NodeType).IsEqualTo(ExpressionType.Equal);
+		await Assert.That(binaryExpression.Left.Type).IsEqualTo(typeof(string));
+		await Assert.That(binaryExpression.Right.Type).IsEqualTo(typeof(string));
+	}
+
+	[Scalar]
+	readonly record struct ScalarEmail
+	{
+		public string Value { get; }
+
+		public ScalarEmail(string value) => Value = value;
+
+		public static bool operator ==(ScalarEmail left, string right) => left.Value == right;
+
+		public static bool operator !=(ScalarEmail left, string right) => !(left == right);
+
+		public static implicit operator string(ScalarEmail value) => value.Value;
+	}
+
+	sealed class ScalarHolder
+	{
+		public ScalarEmail Email { get; init; } = new("default@test.com");
 	}
 
 	sealed class UnsupportedPayloadAggregate : IAggregate

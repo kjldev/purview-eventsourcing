@@ -1,0 +1,340 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_project:
+        description: Path to the .csproj to pack and publish
+        required: false
+        type: string
+        default: src/src/EventSourcing/EventSourcing.csproj
+      package_id:
+        description: Optional explicit NuGet package ID (overrides auto-detection from the project file)
+        required: false
+        type: string
+        default: ""
+
+# Keep this file name stable for NuGet Trusted Publishing policy mapping:
+# owner/repository/.github/workflows/release.yml
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare release metadata and guards
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      package_id: ${{ steps.package.outputs.id }}
+      package_project: ${{ steps.package.outputs.project }}
+
+    steps:
+      - name: Ensure release runs from main
+        if: ${{ github.ref != 'refs/heads/main' }}
+        run: |
+          echo "::error::Releases can only be run from main. Current ref: ${GITHUB_REF}"
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - id: version
+        name: Read version from package.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          tag="v${version}"
+          prerelease=false
+          if [[ "${version}" == *-* ]]; then
+            prerelease=true
+          fi
+
+          echo "value=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+
+      - name: "Guard: tag must not exist on origin"
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
+            echo "::error::Tag ${TAG} already exists on origin."
+            exit 1
+          fi
+
+      - name: "Guard: GitHub release must not already exist"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" > /dev/null 2>&1; then
+            echo "::error::GitHub release ${TAG} already exists."
+            exit 1
+          fi
+
+      - id: package
+        name: Resolve package metadata
+        shell: bash
+        env:
+          INPUT_PACKAGE_PROJECT: ${{ inputs.package_project }}
+          INPUT_PACKAGE_ID: ${{ inputs.package_id }}
+        run: |
+          set -euo pipefail
+          package_project="${INPUT_PACKAGE_PROJECT}"
+          if [[ ! -f "${package_project}" ]]; then
+            echo "::error::Package project not found: ${package_project}"
+            exit 1
+          fi
+
+          package_id="${INPUT_PACKAGE_ID}"
+          if [[ -z "${package_id}" ]]; then
+            package_id="$(dotnet msbuild "${package_project}" -nologo -getproperty:PackageId | tr -d '\r' | tail -n 1 | xargs)"
+          fi
+
+          if [[ -z "${package_id}" ]]; then
+            echo "::error::Unable to determine package ID. Provide workflow_dispatch input 'package_id'."
+            exit 1
+          fi
+
+          echo "project=${package_project}" >> "${GITHUB_OUTPUT}"
+          echo "id=${package_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: "Guard: NuGet package version must not already exist"
+        shell: bash
+        env:
+          PACKAGE_ID: ${{ steps.package.outputs.id }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          package_id_lower="$(echo "${PACKAGE_ID}" | tr '[:upper:]' '[:lower:]')"
+          url="https://api.nuget.org/v3-flatcontainer/${package_id_lower}/index.json"
+          status_code="$(curl -sS -o nuget-index.json -w "%{http_code}" "${url}")"
+
+          if [[ "${status_code}" == "404" ]]; then
+            rm -f nuget-index.json
+            exit 0
+          fi
+
+          if [[ "${status_code}" != "200" ]]; then
+            echo "::error::Failed to query NuGet flat container (${status_code}) for ${PACKAGE_ID}."
+            cat nuget-index.json
+            exit 1
+          fi
+
+          code=0
+          VERSION="${VERSION}" node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('nuget-index.json','utf8'));const v=(process.env.VERSION||'').toLowerCase();if(Array.isArray(data.versions)&&data.versions.includes(v)){process.exit(2);}" || code=$?
+          rm -f nuget-index.json
+          if [[ "${code}" -eq 2 ]]; then
+            echo "::error::NuGet package ${PACKAGE_ID} version ${VERSION} already exists."
+            exit 1
+          fi
+          if [[ "${code}" -ne 0 ]]; then
+            echo "::error::NuGet version check failed unexpectedly with exit code ${code}."
+            exit "${code}"
+          fi
+
+      - name: Build release notes from CHANGELOG.md
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          awk -v version="${VERSION}" '
+            BEGIN { capture=0 }
+            /^##[[:space:]]+/ {
+              if (capture == 1) exit
+              line=$0
+              gsub(/^##[[:space:]]+/, "", line)
+              if (line == version || line ~ "^\\[" version "\\]") {
+                capture=1
+                print $0
+                next
+              }
+            }
+            capture == 1 { print $0 }
+          ' CHANGELOG.md > release-notes.md
+
+          if [[ ! -s release-notes.md ]]; then
+            cat > release-notes.md <<EOF
+          # ${TAG}
+
+          No matching section was found in CHANGELOG.md for version ${VERSION}.
+          This release was created from the current main branch state.
+          EOF
+          fi
+
+      - name: Upload release notes artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  validate:
+    name: Validate (restore/build/test)
+    needs: prepare
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-dotnet-validate.yml
+    with:
+      solution-path: src/Purview.EventSourcing.slnx
+      configuration: Release
+      install-node-deps: false
+      test-treenode-filter: "/*UnitTest*/*/*/*"
+
+  pack:
+    name: Pack NuGet artifact
+    needs:
+      - prepare
+      - validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-dotnet-pack.yml
+    with:
+      project-path: ${{ needs.prepare.outputs.package_project }}
+      version: ${{ needs.prepare.outputs.version }}
+      configuration: Release
+      output-path: ./artifacts/package
+
+  create-release:
+    name: Create Git tag and GitHub Release
+    needs:
+      - prepare
+      - pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: package-artifacts
+          path: artifacts/package
+
+      - name: Download release notes
+        uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: .
+
+      - name: Create and push Git tag
+        shell: bash
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}" "${GITHUB_SHA}"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Create GitHub Release and attach artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(artifacts/package/*.nupkg artifacts/package/*.snupkg)
+          if (( ${#assets[@]} == 0 )); then
+            echo "::error::No package assets found in artifacts/package."
+            exit 1
+          fi
+
+          cmd=(release create "${TAG}" "${assets[@]}" --repo "${GITHUB_REPOSITORY}" --title "${TAG}" --notes-file release-notes.md)
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            cmd+=(--prerelease)
+          fi
+
+          gh "${cmd[@]}"
+
+  publish-nuget:
+    name: Publish NuGet package (Trusted Publishing)
+    needs:
+      - prepare
+      - create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      # NuGet Trusted Publishing uses GitHub OIDC and this workflow file identity.
+      # Configure a matching trusted publisher policy on nuget.org for:
+      #   owner: kjldev
+      #   repository: purview-eventsourcing
+      #   workflow: .github/workflows/release.yml
+      - name: NuGet login
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: "KLJ.dev"
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: package-artifacts
+          path: artifacts/package
+
+      - name: Publish .nupkg to nuget.org
+        shell: bash
+        env:
+          TEMP_NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages=(artifacts/package/*.nupkg)
+          if (( ${#packages[@]} == 0 )); then
+            echo "::error::No .nupkg files found to publish."
+            exit 1
+          fi
+
+          dotnet nuget push "${packages[@]}" \
+            --api-key "${TEMP_NUGET_API_KEY}" \
+            --source "https://api.nuget.org/v3/index.json"
+
+  # Future project-type adapters can plug into the same release architecture:
+  # - npm package publish
+  # - React/static site build + deploy
+  # - container image build + push
+  # - service deployment workflows

@@ -209,12 +209,9 @@ partial class MongoDBEventStore<T>
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
 
-		var validationResult =
-			_validator == null
-				? await DefaultAggregateValidator<T>.Instance.ValidateAsync(aggregate, cancellationToken)
-				: await _validator.ValidateAsync(aggregate, cancellationToken);
-
-		return validationResult;
+		return _validator == null
+			? await DefaultAggregateValidator<T>.Instance.ValidateAsync(aggregate, cancellationToken)
+			: await _validator.ValidateAsync(aggregate, cancellationToken);
 		;
 	}
 

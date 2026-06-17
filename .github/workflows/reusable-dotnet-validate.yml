@@ -1,0 +1,95 @@
+name: Reusable .NET Validate
+
+on:
+  workflow_call:
+    inputs:
+      solution-path:
+        required: false
+        type: string
+        default: src/Purview.EventSourcing.slnx
+      configuration:
+        required: false
+        type: string
+        default: Release
+      dotnet-global-json:
+        required: false
+        type: string
+        default: global.json
+      install-node-deps:
+        required: false
+        type: boolean
+        default: false
+      node-version:
+        required: false
+        type: string
+        default: "24"
+      test-treenode-filter:
+        required: false
+        type: string
+        default: "/*UnitTest*/*/*/*"
+      test-results-artifact-name:
+        required: false
+        type: string
+        default: test-results
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        if: ${{ inputs.install-node-deps }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install Node dependencies
+        if: ${{ inputs.install-node-deps }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          elif [[ -f pnpm-lock.yaml ]]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [[ -f yarn.lock ]]; then
+            corepack enable
+            yarn install --frozen-lockfile
+          else
+            npm install
+          fi
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: ${{ inputs.dotnet-global-json }}
+
+      - name: Restore
+        run: dotnet restore "${{ inputs.solution-path }}"
+
+      - name: Build
+        run: dotnet build "${{ inputs.solution-path }}" --no-restore --configuration "${{ inputs.configuration }}"
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          filter="${{ inputs.test-treenode-filter }}"
+          filter="${filter:-/*/*/*/*}"
+          dotnet test "${{ inputs.solution-path }}" --no-build --configuration "${{ inputs.configuration }}" --results-directory ./artifacts/test-runs --ignore-exit-code 8 -- --treenode-filter "${filter}" --report-trx
+
+      - name: Upload test result artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.test-results-artifact-name }}
+          path: ./artifacts/test-runs/**/*
+          if-no-files-found: warn

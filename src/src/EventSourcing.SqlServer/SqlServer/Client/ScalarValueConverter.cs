@@ -64,11 +64,11 @@ sealed class ScalarValueConverter<TScalarObject, TScalar> : ValueConverter<TScal
 			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 			[scalarPropertyType]
 		);
-		if (ctor is not null)
-			return Expression.New(ctor, source);
 
-		throw new InvalidOperationException(
-			$"{scalarType.Name} must expose static {preferredFactoryName}({scalarPropertyType.Name}), static {secondaryFactoryName}({scalarPropertyType.Name}), or ctor({scalarPropertyType.Name})."
-		);
+		return ctor is null
+			? throw new InvalidOperationException(
+				$"{scalarType.Name} must expose static {preferredFactoryName}({scalarPropertyType.Name}), static {secondaryFactoryName}({scalarPropertyType.Name}), or ctor({scalarPropertyType.Name})."
+			)
+			: (Expression)Expression.New(ctor, source);
 	}
 }

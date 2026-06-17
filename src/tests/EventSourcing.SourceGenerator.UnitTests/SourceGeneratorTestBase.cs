@@ -26,9 +26,25 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 
 	protected async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
 		string source,
+		bool includeNamespaces,
 		CancellationToken cancellationToken
 	)
 	{
+		if (includeNamespaces)
+		{
+			source =
+				@"
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Serialization;
+using Purview.EventSourcing.ValueObjects;
+
+" + source;
+		}
+
 		var syntaxTree = CSharpSyntaxTree.ParseText(source, cancellationToken: cancellationToken);
 
 		var references = new List<MetadataReference>
@@ -99,6 +115,11 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 
 		return (result, outputCompilation);
 	}
+
+	protected async Task<(GeneratorDriverRunResult Result, Compilation OutputCompilation)> GenerateAsync(
+		string source,
+		CancellationToken cancellationToken
+	) => await GenerateAsync(source, includeNamespaces: true, cancellationToken);
 
 	protected async Task<Assembly> CompileToAssemblyAsync(string source, CancellationToken cancellationToken)
 	{

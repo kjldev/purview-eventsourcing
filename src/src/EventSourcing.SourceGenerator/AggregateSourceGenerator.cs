@@ -425,16 +425,15 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return new EventTypeValidationResult([]);
 
 		var displayName = GetDisplayEventName(typeSymbol.Name);
-		if (EventVerbMap.IsPastTenseEventName(displayName))
-			return new EventTypeValidationResult([]);
-
-		return new EventTypeValidationResult([
-			Diagnostic.Create(
-				GeneratorDiagnostics.EventNameShouldBePastTense,
-				typeDeclaration.GetLocation(),
-				displayName
-			),
-		]);
+		return EventVerbMap.IsPastTenseEventName(displayName)
+			? new EventTypeValidationResult([])
+			: new EventTypeValidationResult([
+				Diagnostic.Create(
+					GeneratorDiagnostics.EventNameShouldBePastTense,
+					typeDeclaration.GetLocation(),
+					displayName
+				),
+			]);
 	}
 
 	static bool TryCreateEventMethodInfo(
@@ -630,6 +629,28 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				continue;
 			}
 
+			// Warn when a non-nullable parameter maps to a nullable property via nullability widening.
+			// The generator works around this automatically (see ResolveParameterConversionKind), but
+			// the right long-term fix is to align the parameter's nullability with the property.
+			if (
+				conversionKind == EventParameterConversionKind.Implicit
+				&& SymbolEqualityComparer.Default.Equals(parameter.Type, propertySymbol.Type)
+				&& propertySymbol.Type.NullableAnnotation == NullableAnnotation.Annotated
+				&& parameter.Type.NullableAnnotation != NullableAnnotation.Annotated
+			)
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.EventParameterNullabilityMismatch,
+						parameterLocation,
+						parameter.Name,
+						methodSymbol.Name,
+						aggregatePropertyName,
+						propertyTypeName
+					)
+				);
+			}
+
 			parameters.Add(
 				new EventPropertyInfo(
 					parameter.Name,
@@ -747,7 +768,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 	)
 	{
 		if (SymbolEqualityComparer.Default.Equals(parameterType, propertyType))
+		{
+			// Same underlying type. If nullability differs (non-nullable param → nullable property),
+			// return Implicit so a typed local variable is generated and ref-hook calls don't produce
+			// CS8600 ("Converting null literal or possible null value to non-nullable type").
+			if (
+				parameterType.NullableAnnotation != propertyType.NullableAnnotation
+				&& propertyType.NullableAnnotation == NullableAnnotation.Annotated
+			)
+				return EventParameterConversionKind.Implicit;
+
 			return EventParameterConversionKind.None;
+		}
 
 		if (
 			propertyType is INamedTypeSymbol namedPropertyType
@@ -805,13 +837,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 	static bool IsSimpleCreateMethod(IMethodSymbol method, ITypeSymbol returnType, ITypeSymbol parameterType)
 	{
-		if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public || method.Name != "Create")
-			return false;
-
-		if (method.Parameters.Length != 1)
-			return false;
-
-		return SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
+		return method.IsStatic
+			&& method.DeclaredAccessibility == Accessibility.Public
+			&& method.Name == "Create"
+			&& method.Parameters.Length == 1
+			&& SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
 			&& SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, parameterType);
 	}
 
@@ -836,20 +866,12 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return false;
 
 		var contextParameter = method.Parameters[1];
-		if (contextParameter.RefKind != RefKind.In)
-			return false;
-
-		if (
-			contextTypeDefinition is null
-			|| contextParameter.Type is not INamedTypeSymbol contextType
-			|| !SymbolEqualityComparer.Default.Equals(contextType.OriginalDefinition, contextTypeDefinition)
-			|| contextType.TypeArguments.Length != 1
-		)
-		{
-			return false;
-		}
-
-		return SymbolEqualityComparer.Default.Equals(contextType.TypeArguments[0], aggregateType);
+		return contextParameter.RefKind == RefKind.In
+			&& contextTypeDefinition is not null
+			&& contextParameter.Type is INamedTypeSymbol contextType
+			&& SymbolEqualityComparer.Default.Equals(contextType.OriginalDefinition, contextTypeDefinition)
+			&& contextType.TypeArguments.Length == 1
+			&& SymbolEqualityComparer.Default.Equals(contextType.TypeArguments[0], aggregateType);
 	}
 
 	static AttributeStringValue GetAttributeStringNamedArgument(

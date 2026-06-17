@@ -31,16 +31,12 @@ public readonly partial record struct OrderStatus : IContextualValueObject<Order
 	{
 		var current = context.Aggregate.Status.Value;
 
-		if (!IsValidTransition(current, value))
-		{
-			throw new InvalidOperationException($"Cannot transition order status from {current} to {value}.");
-		}
-
-		if (value == OrderStatusCode.Confirmed && context.Aggregate.LineItems.Count == 0)
-			throw new InvalidOperationException("Cannot confirm an order with no line items.");
-
-		return value == OrderStatusCode.Shipped && string.IsNullOrWhiteSpace(context.Aggregate.ShippingAddress)
-			? throw new InvalidOperationException("Cannot ship an order without a shipping address.")
+		return !IsValidTransition(current, value)
+				? throw new InvalidOperationException($"Cannot transition order status from {current} to {value}.")
+			: value == OrderStatusCode.Confirmed && context.Aggregate.LineItems.Count == 0
+				? throw new InvalidOperationException("Cannot confirm an order with no line items.")
+			: value == OrderStatusCode.Shipped && string.IsNullOrWhiteSpace(context.Aggregate.ShippingAddress)
+				? throw new InvalidOperationException("Cannot ship an order without a shipping address.")
 			: new(value);
 	}
 

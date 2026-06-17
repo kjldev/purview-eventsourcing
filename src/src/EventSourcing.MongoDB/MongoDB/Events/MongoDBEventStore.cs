@@ -19,7 +19,7 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 
 	readonly IAggregateEventNameMapper _eventNameMapper;
 	readonly IOptions<MongoDBEventStoreOptions> _eventStoreOptions;
-	readonly FluentValidation.IValidator<T>? _validator;
+	readonly IAggregateValidator<T>? _validator;
 	readonly IAggregateIdFactory? _aggregateIdFactory;
 	readonly IDistributedCache _distributedCache;
 	readonly IMongoDBEventStoreTelemetry _eventStoreTelemetry;
@@ -44,7 +44,7 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 	{
 		_eventNameMapper = eventNameMapper;
 		_eventStoreOptions = mongoDbOptions;
-		_validator = validator;
+		_validator = AggregateValidatorAdapter.Adapt(validator);
 		_aggregateIdFactory = aggregateIdFactory;
 		_distributedCache = distributedCache;
 		_eventStoreTelemetry = eventStoreTelemetry;

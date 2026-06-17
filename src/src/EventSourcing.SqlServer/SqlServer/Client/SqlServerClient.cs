@@ -388,16 +388,22 @@ sealed partial class SqlServerClient
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
-			if (ShouldSkipJsonProperty(property))
+			if (ShouldSkipJsonProperty(type, property))
 				continue;
 
 			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
 			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
@@ -422,6 +428,12 @@ sealed partial class SqlServerClient
 					property.Name,
 					nested => ConfigureComplexGraphRecursive(nested, propertyType, visited)
 				);
+				continue;
+			}
+
+			if (IsPrimitiveLike(propertyType))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
 			}
 
@@ -438,16 +450,22 @@ sealed partial class SqlServerClient
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
-			if (ShouldSkipJsonProperty(property))
+			if (ShouldSkipJsonProperty(type, property))
 				continue;
 
 			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
 			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
@@ -475,9 +493,37 @@ sealed partial class SqlServerClient
 				continue;
 			}
 
+			if (IsPrimitiveLike(propertyType))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
+				continue;
+			}
+
 			if (!IsPrimitiveLike(propertyType))
 				throw CreateUnsupportedShapeException(type, property);
 		}
+	}
+
+	static void MapReadOnlyConstructorBoundProperty(
+		ComplexPropertyBuilder builder,
+		Type containingType,
+		PropertyInfo property,
+		Type propertyType
+	)
+	{
+		if (property.GetSetMethod(true) is null && HasBindableConstructorParameter(containingType, property))
+			builder.Property(propertyType, property.Name);
+	}
+
+	static void MapReadOnlyConstructorBoundProperty(
+		ComplexCollectionBuilder builder,
+		Type containingType,
+		PropertyInfo property,
+		Type propertyType
+	)
+	{
+		if (property.GetSetMethod(true) is null && HasBindableConstructorParameter(containingType, property))
+			builder.Property(propertyType, property.Name);
 	}
 
 	static void ValidateAggregatePayloadShape(Type type)
@@ -494,7 +540,7 @@ sealed partial class SqlServerClient
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
-			if (ShouldSkipJsonProperty(property))
+			if (ShouldSkipJsonProperty(type, property))
 				continue;
 
 			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
@@ -529,47 +575,55 @@ sealed partial class SqlServerClient
 		}
 	}
 
-	static bool ShouldOwnType(Type type)
-	{
-		if (type.IsPrimitive || type.IsEnum)
-			return false;
+	static bool ShouldOwnType(Type type) =>
+		!type.IsPrimitive
+		&& !type.IsEnum
+		&& type != typeof(string)
+		&& type != typeof(decimal)
+		&& type != typeof(Guid)
+		&& type != typeof(DateTime)
+		&& type != typeof(DateTimeOffset)
+		&& type != typeof(DateOnly)
+		&& type != typeof(TimeOnly)
+		&& type != typeof(TimeSpan)
+		&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal))
+		&& (type.IsClass || (type.IsValueType && !type.IsPrimitive && !type.IsEnum));
 
-		if (
-			type == typeof(string)
-			|| type == typeof(decimal)
-			|| type == typeof(Guid)
-			|| type == typeof(DateTime)
-			|| type == typeof(DateTimeOffset)
-			|| type == typeof(DateOnly)
-			|| type == typeof(TimeOnly)
-			|| type == typeof(TimeSpan)
-		)
-			return false;
+	static bool ShouldInspectType(Type type) =>
+		!type.IsPrimitive
+		&& !type.IsEnum
+		&& type != typeof(string)
+		&& type != typeof(decimal)
+		&& type != typeof(Guid)
+		&& type != typeof(DateTime)
+		&& type != typeof(DateTimeOffset)
+		&& type != typeof(DateOnly)
+		&& type != typeof(TimeOnly)
+		&& type != typeof(TimeSpan)
+		&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal));
 
-		return (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal))
-			&& (type.IsClass || (type.IsValueType && !type.IsPrimitive && !type.IsEnum));
-	}
-
-	static bool ShouldInspectType(Type type)
-	{
-		if (type.IsPrimitive || type.IsEnum)
-			return false;
-
-		return type != typeof(string)
-			&& type != typeof(decimal)
-			&& type != typeof(Guid)
-			&& type != typeof(DateTime)
-			&& type != typeof(DateTimeOffset)
-			&& type != typeof(DateOnly)
-			&& type != typeof(TimeOnly)
-			&& type != typeof(TimeSpan)
-			&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal));
-	}
-
-	static bool ShouldSkipJsonProperty(PropertyInfo property) =>
+	static bool ShouldSkipJsonProperty(Type containingType, PropertyInfo property) =>
 		property.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>() is not null
 		|| property.GetGetMethod(true) is null
-		|| property.GetSetMethod(true) is null;
+		|| (property.GetSetMethod(true) is null && !HasBindableConstructorParameter(containingType, property));
+
+	static bool HasBindableConstructorParameter(Type containingType, PropertyInfo property)
+	{
+		var constructors = containingType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+		foreach (var constructor in constructors)
+		{
+			foreach (var parameter in constructor.GetParameters())
+			{
+				if (
+					string.Equals(parameter.Name, property.Name, StringComparison.OrdinalIgnoreCase)
+					&& parameter.ParameterType == property.PropertyType
+				)
+					return true;
+			}
+		}
+
+		return false;
+	}
 
 	static bool IsPrimitiveLike(Type type) =>
 		type.IsPrimitive
@@ -642,17 +696,12 @@ sealed partial class SqlServerClient
 	{
 		readonly ConstantExpression _aggregateType = Expression.Constant(aggregateType, typeof(string));
 
-		protected override Expression VisitMember(MemberExpression node)
-		{
-			if (
-				node.Member.Name == nameof(IAggregate.AggregateType)
-				&& node.Expression is not null
-				&& typeof(IAggregate).IsAssignableFrom(node.Expression.Type)
-			)
-				return _aggregateType;
-
-			return base.VisitMember(node);
-		}
+		protected override Expression VisitMember(MemberExpression node) =>
+			node.Member.Name == nameof(IAggregate.AggregateType)
+			&& node.Expression is not null
+			&& typeof(IAggregate).IsAssignableFrom(node.Expression.Type)
+				? _aggregateType
+				: base.VisitMember(node);
 	}
 
 	sealed class UnsupportedScalarValueOrderByDetector : ExpressionVisitor
@@ -687,6 +736,22 @@ sealed partial class SqlServerClient
 
 	sealed class ScalarValueMemberAccessPredicateVisitor : ExpressionVisitor
 	{
+		protected override Expression VisitBinary(BinaryExpression node)
+		{
+			var visitedLeft = Visit(node.Left);
+			var visitedRight = Visit(node.Right);
+
+			if (
+				(node.NodeType == ExpressionType.Equal || node.NodeType == ExpressionType.NotEqual)
+				&& TryRewriteScalarPrimitiveComparison(visitedLeft, visitedRight, out var rewrittenLeft, out var rewrittenRight)
+			)
+			{
+				return Expression.MakeBinary(node.NodeType, rewrittenLeft, rewrittenRight);
+			}
+
+			return node.Update(visitedLeft, node.Conversion, visitedRight);
+		}
+
 		protected override Expression VisitMember(MemberExpression node)
 		{
 			var visitedExpression = base.VisitMember(node);
@@ -705,6 +770,55 @@ sealed partial class SqlServerClient
 			{
 				return visited;
 			}
+		}
+
+		static bool TryRewriteScalarPrimitiveComparison(
+			Expression left,
+			Expression right,
+			out Expression rewrittenLeft,
+			out Expression rewrittenRight
+		)
+		{
+			rewrittenLeft = left;
+			rewrittenRight = right;
+
+			if (TryGetScalarPropertyType(left.Type, out var leftScalarType) && IsSameOrNullable(right.Type, leftScalarType))
+			{
+				rewrittenLeft = Expression.Convert(left, right.Type);
+				return true;
+			}
+
+			if (TryGetScalarPropertyType(right.Type, out var rightScalarType) && IsSameOrNullable(left.Type, rightScalarType))
+			{
+				rewrittenRight = Expression.Convert(right, left.Type);
+				return true;
+			}
+
+			return false;
+		}
+
+		static bool TryGetScalarPropertyType(Type candidateType, out Type scalarPropertyType)
+		{
+			scalarPropertyType = null!;
+			var scalarAttribute = candidateType.GetCustomAttribute<ScalarAttribute>();
+			if (scalarAttribute is null)
+				return false;
+
+			var scalarProperty = candidateType.GetProperty(
+				scalarAttribute.PropertyName,
+				BindingFlags.Instance | BindingFlags.Public
+			);
+			if (scalarProperty is null)
+				return false;
+
+			scalarPropertyType = scalarProperty.PropertyType;
+			return true;
+		}
+
+		static bool IsSameOrNullable(Type candidate, Type expected)
+		{
+			var underlyingType = Nullable.GetUnderlyingType(candidate);
+			return candidate == expected || underlyingType == expected;
 		}
 	}
 
@@ -737,15 +851,12 @@ sealed partial class SqlServerClient
 				return visited;
 
 			var scalarAttribute = node.Expression.Type.GetCustomAttribute<ScalarAttribute>();
-			if (scalarAttribute is not null && node.Member.Name == scalarAttribute.PropertyName)
-			{
-				throw new InvalidOperationException(
+			return scalarAttribute is not null && node.Member.Name == scalarAttribute.PropertyName
+				? throw new InvalidOperationException(
 					$"Ordering by '{node.Expression.Type.Name}.{node.Member.Name}' is not supported for SQL snapshot JSON queries. "
 						+ "Order by the scalar value object property itself (for example: c => c.Name) instead of its inner scalar member."
-				);
-			}
-
-			return visited;
+				)
+				: visited;
 		}
 	}
 
@@ -851,7 +962,7 @@ sealed partial class SqlServerClient
 		await creator.CreateTablesAsync(cancellationToken);
 	}
 
-	static bool IsDuplicateTableCreateError(Exception exception, string tableName)
+	static bool IsDuplicateTableCreateError(Exception exception, string _)
 	{
 		for (var current = exception; current is not null; current = current.InnerException)
 		{

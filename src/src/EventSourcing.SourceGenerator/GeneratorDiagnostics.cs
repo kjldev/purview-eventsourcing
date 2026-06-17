@@ -114,6 +114,15 @@ static class GeneratorDiagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor EventParameterNullabilityMismatch = new(
+		id: "EVENTSTORE016",
+		title: "Event parameter nullability differs from aggregate property",
+		messageFormat: "Parameter '{0}' on '{1}' is non-nullable but maps to nullable aggregate property '{2}'. Consider declaring the parameter as '{3}' to match the property and avoid generated CS8600 warnings.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Info,
+		isEnabledByDefault: true
+	);
+
 	public static readonly DiagnosticDescriptor EventNameShouldBePastTense = new(
 		id: "EVENTSTORE013",
 		title: "Event names should be past tense",
@@ -183,6 +192,15 @@ static class GeneratorDiagnostics
 		messageFormat: "Scalar value object '{0}' must declare a constructor '{0}({1})' to support generated Create/Hydrate",
 		category: Category,
 		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ScalarShouldBeRecordStruct = new(
+		id: "EVENTSTORE109",
+		title: "Scalar value objects should be record structs",
+		messageFormat: "Scalar value object '{0}' should be declared as a readonly record struct so the compiler can synthesize equality members and avoid CA1815",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
 		isEnabledByDefault: true
 	);
 

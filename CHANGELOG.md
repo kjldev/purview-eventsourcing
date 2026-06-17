@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0-prerelease.4
+
+### Patch Changes
+
+- added support for multi-value value objects
+
+## 2.0.0-prerelease.3
+
+### Patch Changes
+
+- fix for nullable vs. non-nullable properties
+
+## 2.0.0-prerelease.2
+
+### Patch Changes
+
+- source generator has enum field gen and scalar gen fix for equality
+
 ## 2.0.0-Init20Release.1
 
 ### Patch Changes
