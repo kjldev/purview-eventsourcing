@@ -1,0 +1,15 @@
+{
+  "id": "local:skill:changesets-prerelease",
+  "name": "Changesets Prerelease",
+  "description": "Create a changeset and bump prerelease version with Changesets CLI.",
+  "category": "release",
+  "roles": [
+    "release",
+    "changesets-prerelease"
+  ],
+  "tags": [
+    "changesets",
+    "versioning",
+    "release"
+  ]
+}

@@ -49,6 +49,40 @@ Any SemVer containing a hyphen (`-`) is treated as a prerelease, for example:
 
 Prerelease versions create GitHub prereleases. Stable versions create standard GitHub releases.
 
+## Simplified deployment process
+
+Use this end-to-end flow for prerelease and stable deployments:
+
+1. Create a changeset:
+   - `npx @changesets/cli add --empty --message "<change summary>"`
+   - update generated `.changeset/*.md` frontmatter with package bump (for this repo: `"purview-eventsourcing": patch`)
+2. Apply version bump/changelog updates:
+   - `npx @changesets/cli version`
+3. Push to a branch and open a PR:
+   - `git push -u origin <branch>`
+   - `gh pr create --base main --head <branch> --title "<title>" --body "<body>"`
+4. Merge PR to `main` after checks pass:
+   - `gh pr merge --squash --delete-branch`
+5. Trigger release workflow from `main`:
+   - `gh workflow run release.yml --ref main`
+6. Workflow handles:
+   - tag creation (`v<version>`)
+   - GitHub release/prerelease creation
+   - package publish to NuGet via OIDC trusted publishing
+
+```mermaid
+flowchart TD
+  A[Create changeset<br/>npx changeset add] --> B[Apply version bump<br/>npx changeset version]
+  B --> C[Commit and push branch]
+  C --> D[Create PR to main]
+  D --> E[PR validation workflow]
+  E --> F[Merge PR]
+  F --> G[Run release.yml]
+  G --> H[Create Git tag vX.Y.Z]
+  G --> I[Create GitHub Release]
+  G --> J[Publish NuGet packages via OIDC]
+```
+
 ## Manual release workflow
 
 `release.yml` is `workflow_dispatch` only and enforces release from `main`.
