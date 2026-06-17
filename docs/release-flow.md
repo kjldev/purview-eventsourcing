@@ -125,6 +125,8 @@ When these secrets are present, the workflow uses `actions/create-github-app-tok
 - pushing `refs/tags/v<version>`
 - creating the GitHub release
 
+The installation token is scoped to the current repository via the action's `repositories:` input instead of inheriting access to every repository covered by the org installation.
+
 If the secrets are not configured, workflow falls back to `GITHUB_TOKEN`.
 
 ## Duplicate release protection
