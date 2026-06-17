@@ -28,6 +28,7 @@ jobs:
       version: ${{ steps.version.outputs.value }}
       tag: ${{ steps.version.outputs.tag }}
       prerelease: ${{ steps.version.outputs.prerelease }}
+      tag_exists: ${{ steps.tag_state.outputs.exists }}
       pack_target_path: ${{ steps.pack_target.outputs.path }}
 
     steps:
@@ -68,14 +69,32 @@ jobs:
           echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
           echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
 
-      - name: "Guard: tag must not exist on origin"
+      - id: tag_state
+        name: Detect remote tag state
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
-          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
-            echo "::error::Tag ${TAG} already exists on origin."
+          tag_sha="$(git ls-remote --tags origin "refs/tags/${TAG}" | awk '{print $1}')"
+          if [[ -n "${tag_sha}" ]]; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+            echo "sha=${tag_sha}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+            echo "sha=" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: "Guard: existing tag must target current commit"
+        if: ${{ steps.tag_state.outputs.exists == 'true' }}
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          TAG_SHA: ${{ steps.tag_state.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${TAG_SHA}" != "${GITHUB_SHA}" ]]; then
+            echo "::error::Tag ${TAG} already exists and points to ${TAG_SHA}, expected ${GITHUB_SHA}."
             exit 1
           fi
 
@@ -275,6 +294,7 @@ jobs:
           path: .
 
       - name: Create and push Git tag
+        if: ${{ needs.prepare.outputs.tag_exists != 'true' }}
         shell: bash
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
