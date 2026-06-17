@@ -388,16 +388,22 @@ sealed partial class SqlServerClient
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
-			if (ShouldSkipJsonProperty(property))
+			if (ShouldSkipJsonProperty(type, property))
 				continue;
 
 			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
 			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
@@ -422,6 +428,12 @@ sealed partial class SqlServerClient
 					property.Name,
 					nested => ConfigureComplexGraphRecursive(nested, propertyType, visited)
 				);
+				continue;
+			}
+
+			if (IsPrimitiveLike(propertyType))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
 			}
 
@@ -438,16 +450,22 @@ sealed partial class SqlServerClient
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
-			if (ShouldSkipJsonProperty(property))
+			if (ShouldSkipJsonProperty(type, property))
 				continue;
 
 			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
 			if (propertyType == typeof(string) || propertyType == typeof(byte[]))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (propertyType.GetCustomAttribute<ScalarAttribute>() is not null)
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
 				continue;
+			}
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
@@ -475,9 +493,37 @@ sealed partial class SqlServerClient
 				continue;
 			}
 
+			if (IsPrimitiveLike(propertyType))
+			{
+				MapReadOnlyConstructorBoundProperty(builder, type, property, propertyType);
+				continue;
+			}
+
 			if (!IsPrimitiveLike(propertyType))
 				throw CreateUnsupportedShapeException(type, property);
 		}
+	}
+
+	static void MapReadOnlyConstructorBoundProperty(
+		ComplexPropertyBuilder builder,
+		Type containingType,
+		PropertyInfo property,
+		Type propertyType
+	)
+	{
+		if (property.GetSetMethod(true) is null && HasBindableConstructorParameter(containingType, property))
+			builder.Property(propertyType, property.Name);
+	}
+
+	static void MapReadOnlyConstructorBoundProperty(
+		ComplexCollectionBuilder builder,
+		Type containingType,
+		PropertyInfo property,
+		Type propertyType
+	)
+	{
+		if (property.GetSetMethod(true) is null && HasBindableConstructorParameter(containingType, property))
+			builder.Property(propertyType, property.Name);
 	}
 
 	static void ValidateAggregatePayloadShape(Type type)
@@ -494,7 +540,7 @@ sealed partial class SqlServerClient
 
 		foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
 		{
-			if (ShouldSkipJsonProperty(property))
+			if (ShouldSkipJsonProperty(type, property))
 				continue;
 
 			var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
@@ -556,10 +602,28 @@ sealed partial class SqlServerClient
 		&& type != typeof(TimeSpan)
 		&& (type.Namespace is null || !type.Namespace.StartsWith("System", StringComparison.Ordinal));
 
-	static bool ShouldSkipJsonProperty(PropertyInfo property) =>
+	static bool ShouldSkipJsonProperty(Type containingType, PropertyInfo property) =>
 		property.GetCustomAttribute<System.Text.Json.Serialization.JsonIgnoreAttribute>() is not null
 		|| property.GetGetMethod(true) is null
-		|| property.GetSetMethod(true) is null;
+		|| (property.GetSetMethod(true) is null && !HasBindableConstructorParameter(containingType, property));
+
+	static bool HasBindableConstructorParameter(Type containingType, PropertyInfo property)
+	{
+		var constructors = containingType.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+		foreach (var constructor in constructors)
+		{
+			foreach (var parameter in constructor.GetParameters())
+			{
+				if (
+					string.Equals(parameter.Name, property.Name, StringComparison.OrdinalIgnoreCase)
+					&& parameter.ParameterType == property.PropertyType
+				)
+					return true;
+			}
+		}
+
+		return false;
+	}
 
 	static bool IsPrimitiveLike(Type type) =>
 		type.IsPrimitive

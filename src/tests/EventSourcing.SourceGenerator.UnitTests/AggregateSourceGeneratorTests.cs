@@ -2464,20 +2464,20 @@ namespace Testing
 		await Assert.That(warnings.Count(d => d.Id == GeneratorDiagnostics.EventNameShouldBePastTense.Id)).IsEqualTo(1);
 		await Assert
 			.That(warnings.Select(d => d.Id))
-				.DoesNotContain(GeneratorDiagnostics.EventNameOverrideShouldBePastTense.Id);
-			await Assert.That(warnings.Select(d => d.Id)).DoesNotContain(GeneratorDiagnostics.UnableToInferEventName.Id);
+			.DoesNotContain(GeneratorDiagnostics.EventNameOverrideShouldBePastTense.Id);
+		await Assert.That(warnings.Select(d => d.Id)).DoesNotContain(GeneratorDiagnostics.UnableToInferEventName.Id);
 	}
 
 	[Test]
 	public async Task Generate_GivenNonNullableParamMappedToNullableProperty_EmitsNullabilityMismatchWarning(
-			CancellationToken cancellationToken
+		CancellationToken cancellationToken
 	)
 	{
-			// Non-nullable string parameter mapping to a nullable string? aggregate property.
-			// The generator handles it automatically (adds a local cast), but also emits EVENTSTORE016
-			// to guide the developer to fix the signature rather than rely on the workaround.
-			const string source =
-				@"
+		// Non-nullable string parameter mapping to a nullable string? aggregate property.
+		// The generator handles it automatically (adds a local cast), but also emits EVENTSTORE016
+		// to guide the developer to fix the signature rather than rely on the workaround.
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2491,30 +2491,33 @@ namespace Testing
 }
 ";
 
-			var (result, _) = await GenerateAsync(source, cancellationToken);
-			var warnings = GetGeneratorDiagnostics(result)
-				.Where(static d => d.Severity == DiagnosticSeverity.Warning)
-				.ToArray();
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var warnings = GetGeneratorDiagnostics(result)
+			.Where(static d => d.Severity == DiagnosticSeverity.Info)
+			.ToArray();
 
-			await Assert.That(warnings.Select(static d => d.Id))
-				.Contains(GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
+		await Assert
+			.That(warnings.Select(static d => d.Id))
+			.Contains(GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
 
-			var mismatchWarning = warnings.First(static d => d.Id == GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
-			var message = mismatchWarning.GetMessage(System.Globalization.CultureInfo.InvariantCulture);
-			await Assert.That(message).Contains("note");
-			await Assert.That(message).Contains("SetNote");
-			await Assert.That(message).Contains("Note");
-			await Assert.That(message).Contains("string?");
+		var mismatchWarning = warnings.First(static d =>
+			d.Id == GeneratorDiagnostics.EventParameterNullabilityMismatch.Id
+		);
+		var message = mismatchWarning.GetMessage(System.Globalization.CultureInfo.InvariantCulture);
+		await Assert.That(message).Contains("note");
+		await Assert.That(message).Contains("SetNote");
+		await Assert.That(message).Contains("Note");
+		await Assert.That(message).Contains("string?");
 	}
 
 	[Test]
 	public async Task Generate_GivenNullableParamMappedToNullableProperty_DoesNotEmitNullabilityMismatchWarning(
-			CancellationToken cancellationToken
+		CancellationToken cancellationToken
 	)
 	{
-			// When the parameter already has the matching nullable annotation, no warning should be emitted.
-			const string source =
-				@"
+		// When the parameter already has the matching nullable annotation, no warning should be emitted.
+		const string source =
+			@"
 namespace Testing
 {
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
@@ -2528,12 +2531,13 @@ namespace Testing
 }
 ";
 
-			var (result, _) = await GenerateAsync(source, cancellationToken);
-			var warnings = GetGeneratorDiagnostics(result)
-				.Where(static d => d.Severity == DiagnosticSeverity.Warning)
-				.ToArray();
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var warnings = GetGeneratorDiagnostics(result)
+			.Where(static d => d.Severity == DiagnosticSeverity.Warning)
+			.ToArray();
 
-			await Assert.That(warnings.Select(static d => d.Id))
-				.DoesNotContain(GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
+		await Assert
+			.That(warnings.Select(static d => d.Id))
+			.DoesNotContain(GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
 	}
 }

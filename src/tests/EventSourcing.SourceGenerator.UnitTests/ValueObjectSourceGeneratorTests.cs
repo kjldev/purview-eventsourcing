@@ -126,25 +126,29 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 			namespace Testing
 			{
 
-			[Purview.EventSourcing.Serialization.Scalar]
-			public readonly partial record struct PhoneNumber
-			{
-				public string Value { get; }
-			}
+				[Purview.EventSourcing.Serialization.Scalar]
+				public readonly partial record struct PhoneNumber
+				{
+					public string Value { get; }
+				}
 
-			public static class PhoneHarness
-			{
-				public static string CreatePhone() => PhoneNumber.Create("12345").Value;
+				public static class PhoneHarness
+				{
+					public static string CreatePhone() => PhoneNumber.Create("12345").Value;
 
-				public static string HydratePhone() => PhoneNumber.Hydrate("67890").Value;
-			}
+					public static string HydratePhone() => PhoneNumber.Hydrate("67890").Value;
+				}
 			}
 			""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
+		var diagnostics = GetGeneratorDiagnostics(result);
 
 		await Assert.That(generatedSource).Contains("private PhoneNumber(string value) => Value = value;");
+		await Assert.That(diagnostics.Select(static diagnostic => diagnostic.Id)).DoesNotContain(
+			GeneratorDiagnostics.ScalarConstructorMissing.Id
+		);
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.PhoneHarness")!;
@@ -154,6 +158,64 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 
 		await Assert.That(created).IsEqualTo("12345");
 		await Assert.That(hydrated).IsEqualTo("67890");
+	}
+
+	[Test]
+	public async Task ScalarGeneration_GeneratesPrivateConstructorOnIContextualValueObjectWhenMissing(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				public class ProjectAggregate : AggregateBase
+				{
+					public ProjectId Id { get; }
+
+					protected override void RegisterEvents()
+					{
+					}
+				}
+
+				[Scalar]
+				public readonly partial record struct ProjectId : IContextualValueObject<ProjectId, string, ProjectAggregate>
+				{
+					public string Value { get; }
+
+					static partial void OnValidate(string value)
+					{
+						if (!Guid.TryParse(value, out var parsedValue))
+							throw new ArgumentException("ProjectId must be a valid GUID.", nameof(value));
+
+						if (parsedValue == Guid.Empty)
+							throw new ArgumentException("ProjectId cannot be empty.", nameof(value));
+					}
+
+					public static ProjectId Create(string value, in ValueObjectContext<ProjectAggregate> context) => new(value);
+				}
+
+				public static class ProjectHarness
+				{
+					public static string CreateProjectId() => ProjectId.Create("5801da4a-ed0f-46de-ba9d-5b6adda6e917").Value;
+
+					public static string HydrateProjectId() => ProjectId.Hydrate("6801da4a-ed0f-46de-ba9d-5b6adda6e917").Value;
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("private ProjectId(string value) => Value = value;");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.ProjectHarness")!;
+
+		var created = (string)harnessType.GetMethod("CreateProjectId")!.Invoke(null, null)!;
+		var hydrated = (string)harnessType.GetMethod("HydrateProjectId")!.Invoke(null, null)!;
+
+		await Assert.That(created).IsEqualTo("5801da4a-ed0f-46de-ba9d-5b6adda6e917");
+		await Assert.That(hydrated).IsEqualTo("6801da4a-ed0f-46de-ba9d-5b6adda6e917");
 	}
 
 	[Test]
@@ -173,9 +235,13 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 			""";
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
-		var warnings = GetGeneratorDiagnostics(result).Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning).ToArray();
+		var warnings = GetGeneratorDiagnostics(result)
+			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning)
+			.ToArray();
 
-		await Assert.That(warnings.Select(static diagnostic => diagnostic.Id)).Contains(GeneratorDiagnostics.ScalarShouldBeRecordStruct.Id);
+		await Assert
+			.That(warnings.Select(static diagnostic => diagnostic.Id))
+			.Contains(GeneratorDiagnostics.ScalarShouldBeRecordStruct.Id);
 	}
 
 	[Test]
@@ -211,10 +277,26 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
 
-		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Uploaded => Hydrate(global::Testing.ReportProcessingStatusCode.Uploaded);");
-		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Processing => Hydrate(global::Testing.ReportProcessingStatusCode.Processing);");
-		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Completed => Hydrate(global::Testing.ReportProcessingStatusCode.Completed);");
-		await Assert.That(generatedSource).Contains("public static global::Testing.ReportProcessingStatus Failed => Hydrate(global::Testing.ReportProcessingStatusCode.Failed);");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static global::Testing.ReportProcessingStatus Uploaded => Hydrate(global::Testing.ReportProcessingStatusCode.Uploaded);"
+			);
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static global::Testing.ReportProcessingStatus Processing => Hydrate(global::Testing.ReportProcessingStatusCode.Processing);"
+			);
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static global::Testing.ReportProcessingStatus Completed => Hydrate(global::Testing.ReportProcessingStatusCode.Completed);"
+			);
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static global::Testing.ReportProcessingStatus Failed => Hydrate(global::Testing.ReportProcessingStatusCode.Failed);"
+			);
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.StatusHarness")!;
@@ -250,10 +332,26 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
 
-		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Uploaded => Hydrate(global::Testing.ReportProcessingStatusCode.Uploaded);");
-		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Processing => Hydrate(global::Testing.ReportProcessingStatusCode.Processing);");
-		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Completed => Hydrate(global::Testing.ReportProcessingStatusCode.Completed);");
-		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.ReportProcessingStatus Failed => Hydrate(global::Testing.ReportProcessingStatusCode.Failed);");
+		await Assert
+			.That(generatedSource)
+			.DoesNotContain(
+				"public static global::Testing.ReportProcessingStatus Uploaded => Hydrate(global::Testing.ReportProcessingStatusCode.Uploaded);"
+			);
+		await Assert
+			.That(generatedSource)
+			.DoesNotContain(
+				"public static global::Testing.ReportProcessingStatus Processing => Hydrate(global::Testing.ReportProcessingStatusCode.Processing);"
+			);
+		await Assert
+			.That(generatedSource)
+			.DoesNotContain(
+				"public static global::Testing.ReportProcessingStatus Completed => Hydrate(global::Testing.ReportProcessingStatusCode.Completed);"
+			);
+		await Assert
+			.That(generatedSource)
+			.DoesNotContain(
+				"public static global::Testing.ReportProcessingStatus Failed => Hydrate(global::Testing.ReportProcessingStatusCode.Failed);"
+			);
 	}
 
 	[Test]
@@ -389,26 +487,26 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 			namespace Testing
 			{
 
-			[Purview.EventSourcing.Serialization.Scalar(DeserializationMode = Purview.EventSourcing.Serialization.ValueObjectDeserializationMode.Strict)]
-			public readonly partial record struct StrictEmailAddress
-			{
-				public string Value { get; }
-
-				private StrictEmailAddress(string value) => Value = value;
-
-				static partial void OnValidate(string value)
+				[Scalar(DeserializationMode = ValueObjectDeserializationMode.Strict)]
+				public readonly partial record struct StrictEmailAddress
 				{
-					if (!value.Contains("@", System.StringComparison.Ordinal))
-						throw new System.ArgumentException("Invalid email address.", nameof(value));
+					public string Value { get; }
+
+					private StrictEmailAddress(string value) => Value = value;
+
+					static partial void OnValidate(string value)
+					{
+						if (!value.Contains("@", System.StringComparison.Ordinal))
+							throw new System.ArgumentException("Invalid email address.", nameof(value));
+					}
 				}
-			}
 
-			public static class StrictHarness
-			{
-				public static string DeserializeValid() => System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"test@example.com\"").Value;
+				public static class StrictHarness
+				{
+					public static string DeserializeValid() => System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"test@example.com\"").Value;
 
-				public static void DeserializeInvalid() => _ = System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"not-an-email\"");
-			}
+					public static void DeserializeInvalid() => _ = System.Text.Json.JsonSerializer.Deserialize<StrictEmailAddress>("\"not-an-email\"");
+				}
 			}
 			""";
 
@@ -527,8 +625,16 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
 
-		await Assert.That(generatedSource).Contains("public static bool operator ==(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)");
-		await Assert.That(generatedSource).Contains("public static bool operator !=(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static bool operator ==(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)"
+			);
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static bool operator !=(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)"
+			);
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.StatusHarness")!;
@@ -629,5 +735,126 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		await Assert
 			.That(generatedSource)
 			.Contains("operator >=(global::Testing.Money left, global::Testing.Money right)");
+	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_SupportsRecordClassesWithMultipleProperties(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public sealed partial record UserDetails
+				{
+					public System.Guid Id { get; }
+
+					public string DisplayName { get; }
+
+					partial void OnValidate(System.Guid id, string displayName)
+					{
+						if (id == System.Guid.Empty)
+							throw new System.ArgumentException("Id must be a valid GUID.", nameof(id));
+
+						if (string.IsNullOrWhiteSpace(displayName))
+							throw new System.ArgumentException("DisplayName cannot be null or empty.", nameof(displayName));
+					}
+				}
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public sealed partial record UserDetails2(System.Guid Id, string DisplayName)
+				{
+					partial void OnValidate(System.Guid id, string displayName)
+					{
+						if (id == System.Guid.Empty)
+							throw new System.ArgumentException("Id must be a valid GUID.", nameof(id));
+
+						if (string.IsNullOrWhiteSpace(displayName))
+							throw new System.ArgumentException("DisplayName cannot be null or empty.", nameof(displayName));
+					}
+				}
+
+				public static class UserDetailsHarness
+				{
+					public static bool UserDetailsValidationThrows()
+					{
+						try
+						{
+							_ = UserDetails.Create(System.Guid.Empty, "Display");
+							return false;
+						}
+						catch (System.ArgumentException)
+						{
+							return true;
+						}
+					}
+
+					public static bool UserDetails2ValidationThrows()
+					{
+						try
+						{
+							_ = UserDetails2.Create(System.Guid.Empty, "Display");
+							return false;
+						}
+						catch (System.ArgumentException)
+						{
+							return true;
+						}
+					}
+
+					public static int UserDetailsHashSetCount()
+					{
+						var id = System.Guid.Parse("11111111-1111-1111-1111-111111111111");
+						var values = new System.Collections.Generic.HashSet<UserDetails>
+						{
+							UserDetails.Create(id, "Alice"),
+							UserDetails.Create(id, "Alice"),
+							UserDetails.Create(System.Guid.Parse("22222222-2222-2222-2222-222222222222"), "Alice")
+						};
+						return values.Count;
+					}
+
+					public static int UserDetails2HashSetCount()
+					{
+						var id = System.Guid.Parse("11111111-1111-1111-1111-111111111111");
+						var values = new System.Collections.Generic.HashSet<UserDetails2>
+						{
+							UserDetails2.Create(id, "Alice"),
+							UserDetails2.Create(id, "Alice"),
+							UserDetails2.Create(System.Guid.Parse("22222222-2222-2222-2222-222222222222"), "Alice")
+						};
+						return values.Count;
+					}
+
+					public static int CompareUserDetails() =>
+						UserDetails.Create(System.Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alice")
+							.CompareTo(UserDetails.Create(System.Guid.Parse("22222222-2222-2222-2222-222222222222"), "Alice"));
+
+					public static int CompareUserDetails2() =>
+						UserDetails2.Create(System.Guid.Parse("11111111-1111-1111-1111-111111111111"), "Alice")
+							.CompareTo(UserDetails2.Create(System.Guid.Parse("22222222-2222-2222-2222-222222222222"), "Alice"));
+				}
+			}
+			""";
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.UserDetailsHarness")!;
+
+		var userDetailsValidationThrows = (bool)
+			harnessType.GetMethod("UserDetailsValidationThrows")!.Invoke(null, null)!;
+		var userDetails2ValidationThrows = (bool)
+			harnessType.GetMethod("UserDetails2ValidationThrows")!.Invoke(null, null)!;
+		var userDetailsHashSetCount = (int)harnessType.GetMethod("UserDetailsHashSetCount")!.Invoke(null, null)!;
+		var userDetails2HashSetCount = (int)harnessType.GetMethod("UserDetails2HashSetCount")!.Invoke(null, null)!;
+		var compareUserDetails = (int)harnessType.GetMethod("CompareUserDetails")!.Invoke(null, null)!;
+		var compareUserDetails2 = (int)harnessType.GetMethod("CompareUserDetails2")!.Invoke(null, null)!;
+
+		await Assert.That(userDetailsValidationThrows).IsTrue();
+		await Assert.That(userDetails2ValidationThrows).IsTrue();
+		await Assert.That(userDetailsHashSetCount).IsEqualTo(2);
+		await Assert.That(userDetails2HashSetCount).IsEqualTo(2);
+		await Assert.That(compareUserDetails).IsEqualTo(-1);
+		await Assert.That(compareUserDetails2).IsEqualTo(-1);
 	}
 }
