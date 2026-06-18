@@ -1,3 +1,5 @@
+using Purview.EventSourcing.Samples.ValueObjects;
+
 namespace Purview.EventSourcing.Samples.Domain;
 
 public sealed class ReportUploadAggregateTests
@@ -7,14 +9,14 @@ public sealed class ReportUploadAggregateTests
 	{
 		// Arrange
 		var sut = CreateSUT();
-		sut.Create(CreateValidBlobUri());
-		await Assert.That(sut.Status).IsNotEqualTo(ReportProcessingStatus.Complete);
+		sut.Create(CreateProjectId(), "report.json", CreateValidBlobUri(), CreateUploadedUser());
+		await Assert.That(sut.Status).IsNotEqualTo(ReportProcessingStatus.Completed);
 
 		// Act (status is not passed by caller)
-		sut.MarkAsCompleted(CreateValidBlobUri(), new object());
+		sut.MarkAsComplete(CreateValidBlobUri(), new object());
 
 		// Assert
-		await Assert.That(sut.Status).IsEqualTo(ReportProcessingStatus.Complete);
+		await Assert.That(sut.Status).IsEqualTo(ReportProcessingStatus.Completed);
 	}
 
 	[Test]
@@ -22,17 +24,17 @@ public sealed class ReportUploadAggregateTests
 	{
 		// Arrange
 		var sut = CreateSUT();
-		sut.Create(CreateValidBlobUri());
+		sut.Create(CreateProjectId(), "report.json", CreateValidBlobUri(), CreateUploadedUser());
 
 		// Act
-		sut.MarkAsCompleted(CreateValidBlobUri(), new object());
+		sut.MarkAsComplete(CreateValidBlobUri(), new object());
 
 		// Assert (event contains the computed status value)
 		var completedEvent = sut.GetUnsavedEvents()
 			.Single(@event => @event.GetType().GetProperty("Status") is not null);
 		var statusProperty = completedEvent.GetType().GetProperty("Status");
 		await Assert.That(statusProperty).IsNotNull();
-		await Assert.That(statusProperty!.GetValue(completedEvent)).IsEqualTo(ReportProcessingStatus.Complete);
+		await Assert.That(statusProperty!.GetValue(completedEvent)).IsEqualTo(ReportProcessingStatus.Completed);
 	}
 
 	[Test]
@@ -40,15 +42,21 @@ public sealed class ReportUploadAggregateTests
 	{
 		// Arrange
 		var sut = CreateSUT();
-		sut.Create(CreateValidBlobUri());
+		sut.Create(CreateProjectId(), "report.json", CreateValidBlobUri(), CreateUploadedUser());
 
 		// Act & Assert
 		Assert.Throws<ArgumentException>(() =>
-			sut.MarkAsCompleted(CreateValidBlobUri(), new object(), ReportProcessingStatus.Failed)
+			sut.MarkAsComplete(CreateValidBlobUri(), new object(), ReportProcessingStatus.Failed)
 		);
 	}
 
 	static ReportUploadAggregate CreateSUT() => new();
 
-	static string CreateValidBlobUri() => $"/example/nesting/{Guid.NewGuid()}/blob.json";
+	static ProjectId CreateProjectId() => ProjectId.Create(Guid.NewGuid().ToString());
+
+	static BlobUri CreateValidBlobUri() =>
+		BlobUri.Create(new Uri($"/example/nesting/{Guid.NewGuid()}/blob.json", UriKind.Relative));
+
+	static UserCapture CreateUploadedUser() =>
+		UserCapture.Create(UserDetails.Create(Guid.NewGuid(), "Uploader", true), DateTimeOffset.UtcNow);
 }

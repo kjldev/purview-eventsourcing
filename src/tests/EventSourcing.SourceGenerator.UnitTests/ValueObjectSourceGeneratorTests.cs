@@ -196,6 +196,46 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task ScalarGeneration_GeneratesEmptyByDefault(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public sealed partial record BlobUri
+				{
+					public string Value { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public static global::Testing.BlobUri Empty => Hydrate(null!);");
+	}
+
+	[Test]
+	public async Task ScalarGeneration_CanDisableEmpty(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar(GenerateEmpty = false)]
+				public sealed partial record BlobUri
+				{
+					public string Value { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.BlobUri Empty =>");
+	}
+
+	[Test]
 	public async Task ScalarGeneration_GeneratesPrivateConstructorOnIContextualValueObjectWhenMissing(
 		CancellationToken cancellationToken
 	)
@@ -513,6 +553,58 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 
 		await Assert.That(areEqual).IsTrue();
 		await Assert.That(city).IsEqualTo("London");
+	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_GeneratesEmptyByDefault(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class UserDetails
+				{
+					public System.Guid Id { get; }
+
+					public string? Name { get; }
+
+					public bool IsActive { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static global::Testing.UserDetails Empty => Hydrate(global::System.Guid.Empty, null, default);"
+			);
+	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_CanDisableEmpty(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject(GenerateEmpty = false)]
+				public partial class UserDetails
+				{
+					public System.Guid Id { get; }
+
+					public string? Name { get; }
+
+					public bool IsActive { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.UserDetails Empty =>");
 	}
 
 	[Test]

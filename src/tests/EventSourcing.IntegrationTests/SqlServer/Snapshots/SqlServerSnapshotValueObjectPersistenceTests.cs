@@ -60,7 +60,7 @@ public sealed class SqlServerSnapshotValueObjectPersistenceTests(SqlServerSnapsh
 		var aggregate = new SnapshotValueObjectsAggregate();
 		aggregate.Details.Id = aggregateId;
 		aggregate.CaptureUserDetails(
-			UserDetails.Create(Guid.Parse("11111111-1111-1111-1111-111111111111"), displayName),
+			UserDetails.Create(Guid.Parse("11111111-1111-1111-1111-111111111111"), displayName, true),
 			UserDetails2.Create(Guid.Parse("22222222-2222-2222-2222-222222222222"), displayName2)
 		);
 

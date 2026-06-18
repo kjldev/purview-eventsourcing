@@ -811,51 +811,6 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			eventName += eventSuffix;
 		}
 
-		if (parameters.Any(static parameter => parameter.IsComputed))
-		{
-			var hookSuffix = GetEventHookSuffix(eventName);
-			var modernHookName = $"OnComputed{hookSuffix}";
-			var legacyHookName = $"OnComputing{hookSuffix}";
-			var computedParameters = parameters.Where(static parameter => parameter.IsComputed).ToList();
-			var nonComputedParameters = parameters.Where(static parameter => !parameter.IsComputed).ToList();
-
-			var hasModernHookImplementation =
-				HasImplementedComputeHook(classSymbol, modernHookName, parameters)
-				|| HasImplementedComputeHook(classSymbol, modernHookName, nonComputedParameters);
-			var hasLegacyHookImplementation = HasImplementedComputeHook(
-				classSymbol,
-				legacyHookName,
-				computedParameters
-			) || HasImplementedComputeHook(classSymbol, legacyHookName, nonComputedParameters);
-
-			if (!hasModernHookImplementation && !hasLegacyHookImplementation)
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.ComputedHookImplementationRequired,
-						methodLocation,
-						methodSymbol.Name,
-						modernHookName,
-						legacyHookName
-					)
-				);
-				hasErrors = true;
-			}
-			else if (hasModernHookImplementation && hasLegacyHookImplementation)
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.ComputedHookImplementationAmbiguous,
-						methodLocation,
-						methodSymbol.Name,
-						modernHookName,
-						legacyHookName
-					)
-				);
-				hasErrors = true;
-			}
-		}
-
 		if (hasErrors)
 			return false;
 
@@ -1061,65 +1016,6 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		}
 
 		return false;
-	}
-
-	static bool HasImplementedComputeHook(
-		INamedTypeSymbol aggregateType,
-		string hookName,
-		List<EventPropertyInfo> expectedParameters
-	)
-	{
-		foreach (var method in aggregateType.GetMembers(hookName).OfType<IMethodSymbol>())
-		{
-			if (!MethodSignatureMatchesHook(method, expectedParameters))
-				continue;
-
-			if (method.PartialImplementationPart is not null || method.PartialDefinitionPart is not null)
-				return true;
-
-			foreach (var syntaxReference in method.DeclaringSyntaxReferences)
-			{
-				if (syntaxReference.GetSyntax() is not MethodDeclarationSyntax declaration)
-					continue;
-
-				if (declaration.Body is not null || declaration.ExpressionBody is not null)
-					return true;
-			}
-		}
-
-		return false;
-	}
-
-	static bool MethodSignatureMatchesHook(IMethodSymbol method, List<EventPropertyInfo> expectedParameters)
-	{
-		if (!method.ReturnsVoid || method.Parameters.Length != expectedParameters.Count)
-			return false;
-
-		for (var i = 0; i < expectedParameters.Count; i++)
-		{
-			var parameter = method.Parameters[i];
-			if (parameter.RefKind != RefKind.Ref)
-				return false;
-
-			var parameterTypeName = parameter.Type.ToDisplayString(
-				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-				)
-			);
-			if (!string.Equals(parameterTypeName, expectedParameters[i].PropertyTypeName, StringComparison.Ordinal))
-				return false;
-		}
-
-		return true;
-	}
-
-	static string GetEventHookSuffix(string eventName)
-	{
-		if (!eventName.EndsWith("Event", StringComparison.Ordinal))
-			return $"{eventName}Event";
-
-		return eventName;
 	}
 
 	static bool IsEventType(INamedTypeSymbol typeSymbol)

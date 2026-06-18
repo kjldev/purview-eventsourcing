@@ -5,6 +5,7 @@
     "purview-eventsourcing": "2.0.0-prerelease.0"
   },
   "changesets": [
+    "clean-papayas-hang",
     "early-dryers-slide",
     "eight-walls-report",
     "famous-rice-enter",

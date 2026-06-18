@@ -257,105 +257,8 @@ namespace Testing
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var diagnostics = GetGeneratorDiagnostics(result);
 
-		await Assert.That(diagnostics.Select(static d => d.Id)).Contains("EVENTSTORE018");
-	}
-
-	[Test]
-	public async Task Generate_GivenComputedParameterWithBothComputeHooks_ReportsDiagnostic(
-		CancellationToken cancellationToken
-	)
-	{
-		const string source =
-			@"
-namespace Testing
-{
-	public enum ReportProcessingStatus
-	{
-		Uploaded,
-		Complete,
-		Failed
-	}
-
-	[Purview.EventSourcing.Aggregates.GenerateAggregate]
-	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-	{
-		public string Blob { get; private set; }
-		public object Summary { get; private set; }
-		public ReportProcessingStatus Status { get; private set; }
-
-		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
-		public partial ReportUploadAggregate MarkAsCompleted(
-			string blob,
-			object summary,
-			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
-		);
-
-		partial void OnComputingCompletedEvent(ref ReportProcessingStatus status) => status = ReportProcessingStatus.Complete;
-
-		partial void OnComputedCompletedEvent(
-			ref string blob,
-			ref object summary,
-			ref ReportProcessingStatus status
-		) => status = ReportProcessingStatus.Complete;
-	}
-}
-";
-
-		var (result, _) = await GenerateAsync(source, cancellationToken);
-		var diagnostics = GetGeneratorDiagnostics(result);
-
-		await Assert.That(diagnostics.Select(static d => d.Id)).Contains("EVENTSTORE019");
-	}
-
-	[Test]
-	public async Task Generate_GivenComputedParameterWithOnlyOnComputedHook_DoesNotReportHookDiagnostics(
-		CancellationToken cancellationToken
-	)
-	{
-		const string source =
-			@"
-namespace Testing
-{
-	public enum ReportProcessingStatus
-	{
-		Uploaded,
-		Complete,
-		Failed
-	}
-
-	[Purview.EventSourcing.Aggregates.GenerateAggregate]
-	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-	{
-		public string Blob { get; private set; }
-		public object Summary { get; private set; }
-		public ReportProcessingStatus Status { get; private set; }
-
-		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
-		public partial ReportUploadAggregate MarkAsCompleted(
-			string blob,
-			object summary,
-			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
-		);
-
-		partial void OnComputedCompletedEvent(
-			ref string blob,
-			ref object summary,
-			ref ReportProcessingStatus status
-		) => status = ReportProcessingStatus.Complete;
-	}
-}
-";
-
-		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
-		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
-		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE018");
-		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE019");
-
-		var errors = outputCompilation
-			.GetDiagnostics(cancellationToken)
-			.Where(static d => d.Severity == DiagnosticSeverity.Error)
-			.ToArray();
-		await Assert.That(errors).IsEmpty();
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE018");
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE019");
 	}
 
 	[Test]
@@ -406,47 +309,6 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenComputedParameterWithInvalidOnComputedSignature_ReportsMissingHookDiagnostic(
-		CancellationToken cancellationToken
-	)
-	{
-		const string source =
-			@"
-namespace Testing
-{
-	public enum ReportProcessingStatus
-	{
-		Uploaded,
-		Complete,
-		Failed
-	}
-
-	[Purview.EventSourcing.Aggregates.GenerateAggregate]
-	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-	{
-		public string Blob { get; private set; }
-		public object Summary { get; private set; }
-		public ReportProcessingStatus Status { get; private set; }
-
-		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
-		public partial ReportUploadAggregate MarkAsCompleted(
-			string blob,
-			object summary,
-			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
-		);
-
-		// Invalid: does not include all event parameters.
-		partial void OnComputedCompletedEvent(ref ReportProcessingStatus status) => status = ReportProcessingStatus.Complete;
-	}
-}
-";
-
-		var (result, _) = await GenerateAsync(source, cancellationToken);
-		var diagnostics = GetGeneratorDiagnostics(result);
-		await Assert.That(diagnostics.Select(static d => d.Id)).Contains("EVENTSTORE018");
-	}
-
-	[Test]
 	public async Task Generate_GivenComputedParameterWithInvalidOnComputingSignature_ReportsMissingHookDiagnostic(
 		CancellationToken cancellationToken
 	)
@@ -484,11 +346,12 @@ namespace Testing
 
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var diagnostics = GetGeneratorDiagnostics(result);
-		await Assert.That(diagnostics.Select(static d => d.Id)).Contains("EVENTSTORE018");
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE018");
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE019");
 	}
 
 	[Test]
-	public async Task Generate_GivenComputedParameter_GeneratedSourceContainsComputedAndRaisingHookOverloads(
+	public async Task Generate_GivenComputedParameter_GeneratedSourceContainsComputingAndRaisingHookOverloads(
 		CancellationToken cancellationToken
 	)
 	{
@@ -529,14 +392,8 @@ namespace Testing
 			.Contains("partial void OnComputingCompletedEvent(ref global::Testing.ReportProcessingStatus status);");
 		await Assert
 			.That(generatedSource)
-			.Contains("partial void OnComputingCompletedEvent(ref string blob, ref object summary);");
-		await Assert
-			.That(generatedSource)
-			.Contains("partial void OnComputedCompletedEvent(ref string blob, ref object summary);");
-		await Assert
-			.That(generatedSource)
 			.Contains(
-				"partial void OnComputedCompletedEvent(ref string blob, ref object summary, ref global::Testing.ReportProcessingStatus status);"
+				"partial void OnComputingCompletedEvent(ref string blob, ref object summary, ref global::Testing.ReportProcessingStatus status);"
 			);
 		await Assert
 			.That(generatedSource)
@@ -546,49 +403,6 @@ namespace Testing
 			.Contains(
 				"partial void OnRaisingCompletedEvent(ref string blob, ref object summary, ref global::Testing.ReportProcessingStatus status);"
 			);
-	}
-
-	[Test]
-	public async Task Generate_GivenComputedParameterWithOnlyOnComputedWithoutComputedValuesHook_DoesNotReportHookDiagnostics(
-		CancellationToken cancellationToken
-	)
-	{
-		const string source =
-			@"
-namespace Testing
-{
-	public enum ReportProcessingStatus
-	{
-		Uploaded,
-		Complete,
-		Failed
-	}
-
-	[Purview.EventSourcing.Aggregates.GenerateAggregate]
-	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-	{
-		public string Blob { get; private set; }
-		public object Summary { get; private set; }
-		public ReportProcessingStatus Status { get; private set; }
-
-		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
-		public partial ReportUploadAggregate MarkAsCompleted(
-			string blob,
-			object summary,
-			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
-		);
-
-		partial void OnComputedCompletedEvent(ref string blob, ref object summary)
-		{
-		}
-	}
-}
-";
-
-		var (result, _) = await GenerateAsync(source, cancellationToken);
-		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
-		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE018");
-		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE019");
 	}
 
 	[Test]
@@ -632,6 +446,45 @@ namespace Testing
 		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
 		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE018");
 		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE019");
+	}
+
+	[Test]
+	public async Task Generate_GivenEventNameOverride_HookNamesUseOverriddenEventName(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		None,
+		Complete
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""MarkAsCompleted"")]
+		public partial ReportUploadAggregate MarkAsComplete(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert.That(generatedSource).Contains("OnComputingMarkAsCompletedEvent");
+		await Assert.That(generatedSource).Contains("OnRaisingMarkAsCompletedEvent");
+		await Assert.That(generatedSource).DoesNotContain("OnComputingMarkAsCompleted2Event");
 	}
 
 	[Test]
