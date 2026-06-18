@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.12
+
+### Patch Changes
+
+- Fixed the lack of code-gen attributes on the CollectionEventOperation enum
+
 ## 2.0.0-prerelease.11
 
 ### Patch Changes

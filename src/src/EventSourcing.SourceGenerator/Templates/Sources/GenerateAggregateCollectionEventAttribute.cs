@@ -4,6 +4,10 @@
 
 namespace Purview.EventSourcing.Aggregates;
 
+/// <summary>
+/// Indicates the type of collection operation that a method represents when generating an event for a collection property.
+/// </summary>
+{{NonClassCodeGen}}
 enum CollectionEventOperation
 {
 	Auto = 0,

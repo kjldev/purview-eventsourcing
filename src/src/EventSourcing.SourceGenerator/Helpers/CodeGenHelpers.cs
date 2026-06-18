@@ -6,6 +6,7 @@ namespace Purview.EventSourcing.SourceGenerator.Helpers;
 static class CodeGenHelpers
 {
 	public const string CodeGenReplacementToken = "{{CodeGen}}";
+	public const string NonClassCodeGenReplacementToken = "{{NonClassCodeGen}}";
 
 	const string EmbedAttributesHashDefineName = "PURVIEW_EVENTSOURCING_ATTRIBUTES";
 
@@ -39,7 +40,12 @@ static class CodeGenHelpers
 		]
 	);
 
+	static readonly Lazy<string[]> NonClassGenAttributes = new(() =>
+		[EmbeddedConstant, CompilerGeneratedConstant, GeneratedCodeAttribute.Value]
+	);
+
 	static readonly ConcurrentDictionary<int, string> GeneratedCodeAttributesByTabs = new();
+	static readonly ConcurrentDictionary<int, string> NonClassGeneratedCodeAttributesByTabs = new();
 
 	static string Global(string attribute) => $"[global::{attribute}]";
 
@@ -52,6 +58,21 @@ static class CodeGenHelpers
 
 				string result = string.Empty;
 				foreach (var attr in GenAttributes.Value)
+					result += $"{t}{Global(attr)}{Environment.NewLine}";
+
+				return result;
+			}
+		);
+
+	public static string GetNonClassGeneratedCodeAttribute(int tabs = 0) =>
+		NonClassGeneratedCodeAttributesByTabs.GetOrAdd(
+			tabs,
+			tabs =>
+			{
+				var t = string.Concat(Enumerable.Range(0, tabs).Select(_ => '\t'));
+
+				string result = string.Empty;
+				foreach (var attr in NonClassGenAttributes.Value)
 					result += $"{t}{Global(attr)}{Environment.NewLine}";
 
 				return result;
