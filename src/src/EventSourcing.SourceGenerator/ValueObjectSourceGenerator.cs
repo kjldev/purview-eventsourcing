@@ -235,6 +235,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		var typeName = typeModel.FullyQualifiedName;
 		var scalarTypeName = ToTypeName(scalarProperty.Type);
 		var compareParameterTypeName = scalarProperty.Type.IsReferenceType ? $"{scalarTypeName}?" : scalarTypeName;
+		var compareToSelfParameterTypeName = typeSymbol.TypeKind == TypeKind.Class ? $"{typeName}?" : typeName;
 		var scalarCanBeNull =
 			scalarProperty.Type.IsReferenceType
 			|| scalarProperty.Type.NullableAnnotation == NullableAnnotation.Annotated;
@@ -373,7 +374,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			if (!compareToSelfExists)
 			{
 				sb.AppendLine(
-					$"{indent}\tpublic int CompareTo({typeName} other) => CompareTo(other.{scalarPropertyName});"
+					typeSymbol.TypeKind == TypeKind.Class
+						? $@"{indent}	public int CompareTo({compareToSelfParameterTypeName} other)
+{indent}	{{
+{indent}		if (other is null)
+{indent}			return 1;
+{indent}		return CompareTo(other.{scalarPropertyName});
+{indent}	}}"
+						: $@"{indent}	public int CompareTo({compareToSelfParameterTypeName} other) => CompareTo(other.{scalarPropertyName});"
 				);
 			}
 

@@ -285,6 +285,21 @@ static class EmitHelper
 			)
 				sb.AppendLine();
 
+			foreach (var prop in computedParameters)
+			{
+				sb.AppendLine(
+					$"{indent}\t\tif (!global::System.Collections.Generic.EqualityComparer<{prop.PropertyTypeName}>.Default.Equals({prop.ParameterName}, default({prop.PropertyTypeName})))"
+				);
+				sb.AppendLine($"{indent}\t\t{{");
+				sb.AppendLine(
+					$"{indent}\t\t\tthrow new global::System.ArgumentException(\"Computed parameter '{prop.ParameterName}' cannot be set by callers.\", nameof({prop.ParameterName}));"
+				);
+				sb.AppendLine($"{indent}\t\t}}");
+			}
+
+			if (computedParameters.Count > 0)
+				sb.AppendLine();
+
 			foreach (var prop in mappedParameters)
 			{
 				sb.AppendLine($"{indent}\t\tOn{prop.AggregatePropertyName}Changing(ref {GetWorkingValueName(prop)});");
@@ -299,6 +314,7 @@ static class EmitHelper
 			sb.AppendLine(
 				$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(computedParameters)});"
 			);
+			sb.AppendLine($"{indent}\t\tOnComputed{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
 			sb.AppendLine();
 		}
 
@@ -322,6 +338,7 @@ static class EmitHelper
 			sb.AppendLine(
 				$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(computedParameters)});"
 			);
+			sb.AppendLine($"{indent}\t\tOnComputed{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
 		}
 
 		sb.AppendLine();
@@ -359,6 +376,10 @@ static class EmitHelper
 			EmitCa1822Suppression(sb, indent);
 			sb.AppendLine(
 				$"{indent}\tpartial void OnComputing{hookSuffix}({BuildOnCreatingDeclarationParameterList(computedParameters)});"
+			);
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnComputed{hookSuffix}({BuildOnCreatingDeclarationParameterList(method.Parameters)});"
 			);
 		}
 

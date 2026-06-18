@@ -16,6 +16,7 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 		"GenerateAggregateDefaultsAttribute.g.cs",
 		"GenerateAggregateEventAttribute.g.cs",
 		"MetadataAttribute.g.cs",
+		"ComputedAttribute.g.cs",
 	];
 
 	public static readonly int ExpectedFileCount = GeneratedAttributes.Length;

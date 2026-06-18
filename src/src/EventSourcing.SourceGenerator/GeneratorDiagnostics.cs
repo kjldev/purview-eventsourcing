@@ -123,6 +123,33 @@ static class GeneratorDiagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor ComputedParameterCannotBeSetByCaller = new(
+		id: "EVENTSTORE017",
+		title: "Computed parameter cannot be set by caller",
+		messageFormat: "Method '{0}' cannot set computed parameter '{1}'. Omit this argument so the aggregate computes it.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ComputedHookImplementationRequired = new(
+		id: "EVENTSTORE018",
+		title: "Computed hook implementation required",
+		messageFormat: "Method '{0}' declares [Computed] parameters and must implement exactly one hook: '{1}' or '{2}'",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ComputedHookImplementationAmbiguous = new(
+		id: "EVENTSTORE019",
+		title: "Computed hooks are mutually exclusive",
+		messageFormat: "Method '{0}' implements both computed hooks '{1}' and '{2}'. Implement only one of them.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
 	public static readonly DiagnosticDescriptor EventNameShouldBePastTense = new(
 		id: "EVENTSTORE013",
 		title: "Event names should be past tense",

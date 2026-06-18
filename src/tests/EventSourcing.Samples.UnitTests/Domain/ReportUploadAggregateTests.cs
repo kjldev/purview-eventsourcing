@@ -28,12 +28,24 @@ public sealed class ReportUploadAggregateTests
 		sut.MarkAsCompleted(CreateValidBlobUri(), new object());
 
 		// Assert (event contains the computed status value)
-		var completedEvent = sut
-			.GetUnsavedEvents()
+		var completedEvent = sut.GetUnsavedEvents()
 			.Single(@event => @event.GetType().GetProperty("Status") is not null);
 		var statusProperty = completedEvent.GetType().GetProperty("Status");
 		await Assert.That(statusProperty).IsNotNull();
 		await Assert.That(statusProperty!.GetValue(completedEvent)).IsEqualTo(ReportProcessingStatus.Complete);
+	}
+
+	[Test]
+	public void MarkAsComplete_GivenCallerSetsComputedStatus_ThrowsArgumentException()
+	{
+		// Arrange
+		var sut = CreateSUT();
+		sut.Create(CreateValidBlobUri());
+
+		// Act & Assert
+		Assert.Throws<ArgumentException>(() =>
+			sut.MarkAsCompleted(CreateValidBlobUri(), new object(), ReportProcessingStatus.Failed)
+		);
 	}
 
 	static ReportUploadAggregate CreateSUT() => new();

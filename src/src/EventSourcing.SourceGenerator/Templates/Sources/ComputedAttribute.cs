@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.Aggregates;
 
 /// <summary>
 /// Marks an event parameter as a deterministic computed value.
-/// The parameter can be omitted by callers via an optional default
+/// The parameter must be omitted by callers using the <see langword="default"/> keyword
 /// and is finalized by the generated <c>OnComputing{EventName}</c> hook
 /// before the event is recorded.
 /// </summary>

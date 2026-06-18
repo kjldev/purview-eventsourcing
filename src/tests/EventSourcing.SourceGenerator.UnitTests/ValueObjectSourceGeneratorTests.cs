@@ -120,6 +120,41 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task Scalar_ClassReferenceType_GeneratesNullableCompareToSelfSignature(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public sealed partial record BlobUri
+				{
+					public string Value { get; }
+
+					static partial void OnValidate(string value)
+					{
+						System.ArgumentNullException.ThrowIfNull(value);
+					}
+
+					public static BlobUri Empty => Hydrate(null!);
+				}
+			}
+			""";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public int CompareTo(global::Testing.BlobUri? other)");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
 	public async Task ScalarGeneration_GeneratesPrivateConstructorWhenMissing(CancellationToken cancellationToken)
 	{
 		const string source = """

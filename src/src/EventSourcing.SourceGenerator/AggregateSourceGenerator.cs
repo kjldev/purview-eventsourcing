@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using Purview.EventSourcing.SourceGenerator.Helpers;
 using Purview.EventSourcing.SourceGenerator.Templates;
 
@@ -57,10 +58,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);
 			ctx.AddSource("MetadataAttribute.g.cs", EmbeddedResources.LoadTemplate("MetadataAttribute"));
-			ctx.AddSource(
-				"ComputedAttribute.g.cs",
-				EmbeddedResources.LoadTemplate("ComputedAttribute")
-			);
+			ctx.AddSource("ComputedAttribute.g.cs", EmbeddedResources.LoadTemplate("ComputedAttribute"));
 		});
 
 		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
@@ -94,6 +92,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			predicate: static (node, _) =>
 				node is TypeDeclarationSyntax typeDeclaration && typeDeclaration.BaseList is not null,
 			transform: static (ctx, _) => GetEventTypeValidationResult(ctx)
+		);
+
+		var computedParameterInvocations = context.SyntaxProvider.CreateSyntaxProvider(
+			predicate: static (node, _) => node is InvocationExpressionSyntax,
+			transform: static (ctx, ct) => GetComputedParameterInvocationValidationResult(ctx, ct)
 		);
 
 		context.RegisterSourceOutput(
@@ -137,6 +140,53 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
 			}
 		);
+
+		context.RegisterSourceOutput(
+			computedParameterInvocations.Combine(isDisabled),
+			(spc, result) =>
+			{
+				var (validationResult, disabled) = result;
+				if (disabled)
+					return;
+
+				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
+			}
+		);
+	}
+
+	static EventMethodValidationResult GetComputedParameterInvocationValidationResult(
+		GeneratorSyntaxContext context,
+		CancellationToken ct
+	)
+	{
+		ct.ThrowIfCancellationRequested();
+		if (context.Node is not InvocationExpressionSyntax invocation)
+			return new([]);
+
+		if (context.SemanticModel.GetOperation(invocation, ct) is not IInvocationOperation invocationOperation)
+			return new([]);
+
+		var diagnostics = new List<Diagnostic>();
+		foreach (var argument in invocationOperation.Arguments)
+		{
+			ct.ThrowIfCancellationRequested();
+			if (argument.IsImplicit || argument.Parameter is null)
+				continue;
+
+			if (!HasComputedAttribute(argument.Parameter))
+				continue;
+
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.ComputedParameterCannotBeSetByCaller,
+					argument.Syntax.GetLocation(),
+					invocationOperation.TargetMethod.Name,
+					argument.Parameter.Name
+				)
+			);
+		}
+
+		return new([.. diagnostics]);
 	}
 
 	static AggregateGenerationResult GetAggregateGenerationResult(
@@ -761,6 +811,48 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			eventName += eventSuffix;
 		}
 
+		if (parameters.Any(static parameter => parameter.IsComputed))
+		{
+			var hookSuffix = GetEventHookSuffix(eventName);
+			var modernHookName = $"OnComputed{hookSuffix}";
+			var legacyHookName = $"OnComputing{hookSuffix}";
+			var computedParameters = parameters.Where(static parameter => parameter.IsComputed).ToList();
+
+			var hasModernHookImplementation = HasImplementedComputeHook(classSymbol, modernHookName, parameters);
+			var hasLegacyHookImplementation = HasImplementedComputeHook(
+				classSymbol,
+				legacyHookName,
+				computedParameters
+			);
+
+			if (!hasModernHookImplementation && !hasLegacyHookImplementation)
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.ComputedHookImplementationRequired,
+						methodLocation,
+						methodSymbol.Name,
+						modernHookName,
+						legacyHookName
+					)
+				);
+				hasErrors = true;
+			}
+			else if (hasModernHookImplementation && hasLegacyHookImplementation)
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.ComputedHookImplementationAmbiguous,
+						methodLocation,
+						methodSymbol.Name,
+						modernHookName,
+						legacyHookName
+					)
+				);
+				hasErrors = true;
+			}
+		}
+
 		if (hasErrors)
 			return false;
 
@@ -966,6 +1058,65 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		}
 
 		return false;
+	}
+
+	static bool HasImplementedComputeHook(
+		INamedTypeSymbol aggregateType,
+		string hookName,
+		List<EventPropertyInfo> expectedParameters
+	)
+	{
+		foreach (var method in aggregateType.GetMembers(hookName).OfType<IMethodSymbol>())
+		{
+			if (!MethodSignatureMatchesHook(method, expectedParameters))
+				continue;
+
+			if (method.PartialImplementationPart is not null || method.PartialDefinitionPart is not null)
+				return true;
+
+			foreach (var syntaxReference in method.DeclaringSyntaxReferences)
+			{
+				if (syntaxReference.GetSyntax() is not MethodDeclarationSyntax declaration)
+					continue;
+
+				if (declaration.Body is not null || declaration.ExpressionBody is not null)
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+	static bool MethodSignatureMatchesHook(IMethodSymbol method, List<EventPropertyInfo> expectedParameters)
+	{
+		if (!method.ReturnsVoid || method.Parameters.Length != expectedParameters.Count)
+			return false;
+
+		for (var i = 0; i < expectedParameters.Count; i++)
+		{
+			var parameter = method.Parameters[i];
+			if (parameter.RefKind != RefKind.Ref)
+				return false;
+
+			var parameterTypeName = parameter.Type.ToDisplayString(
+				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+				)
+			);
+			if (!string.Equals(parameterTypeName, expectedParameters[i].PropertyTypeName, StringComparison.Ordinal))
+				return false;
+		}
+
+		return true;
+	}
+
+	static string GetEventHookSuffix(string eventName)
+	{
+		if (!eventName.EndsWith("Event", StringComparison.Ordinal))
+			return $"{eventName}Event";
+
+		return eventName;
 	}
 
 	static bool IsEventType(INamedTypeSymbol typeSymbol)
