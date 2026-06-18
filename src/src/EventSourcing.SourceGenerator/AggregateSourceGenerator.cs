@@ -817,13 +817,16 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			var modernHookName = $"OnComputed{hookSuffix}";
 			var legacyHookName = $"OnComputing{hookSuffix}";
 			var computedParameters = parameters.Where(static parameter => parameter.IsComputed).ToList();
+			var nonComputedParameters = parameters.Where(static parameter => !parameter.IsComputed).ToList();
 
-			var hasModernHookImplementation = HasImplementedComputeHook(classSymbol, modernHookName, parameters);
+			var hasModernHookImplementation =
+				HasImplementedComputeHook(classSymbol, modernHookName, parameters)
+				|| HasImplementedComputeHook(classSymbol, modernHookName, nonComputedParameters);
 			var hasLegacyHookImplementation = HasImplementedComputeHook(
 				classSymbol,
 				legacyHookName,
 				computedParameters
-			);
+			) || HasImplementedComputeHook(classSymbol, legacyHookName, nonComputedParameters);
 
 			if (!hasModernHookImplementation && !hasLegacyHookImplementation)
 			{

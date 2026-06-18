@@ -243,6 +243,7 @@ static class EmitHelper
 	{
 		var paramList = new StringBuilder();
 		var computedParameters = method.Parameters.Where(static parameter => parameter.IsComputed).ToList();
+		var nonComputedParameters = method.Parameters.Where(static parameter => !parameter.IsComputed).ToList();
 		var storedParameters = method.Parameters.Where(static parameter => parameter.IncludeInEvent).ToList();
 		for (var i = 0; i < method.Parameters.Count; i++)
 		{
@@ -311,9 +312,22 @@ static class EmitHelper
 
 		if (computedParameters.Count > 0)
 		{
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\t\tOnComputing{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(nonComputedParameters)});"
+				);
+
 			sb.AppendLine(
 				$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(computedParameters)});"
 			);
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\t\tOnComputed{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\t\tOnComputed{hookSuffix}({BuildOnCreatingCallArgumentList(nonComputedParameters)});"
+				);
 			sb.AppendLine($"{indent}\t\tOnComputed{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
 			sb.AppendLine();
 		}
@@ -327,6 +341,16 @@ static class EmitHelper
 		sb.AppendLine();
 		if (method.Parameters.Count == 0)
 			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}();");
+		else if (computedParameters.Count > 0)
+		{
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\t\tOnRaising{hookSuffix}({BuildOnCreatingCallArgumentList(nonComputedParameters)});"
+				);
+			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
+		}
 		else
 		{
 			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
@@ -335,9 +359,21 @@ static class EmitHelper
 		if (computedParameters.Count > 0)
 		{
 			sb.AppendLine();
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\t\tOnComputing{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(nonComputedParameters)});"
+				);
 			sb.AppendLine(
 				$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(computedParameters)});"
 			);
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\t\tOnComputed{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\t\tOnComputed{hookSuffix}({BuildOnCreatingCallArgumentList(nonComputedParameters)});"
+				);
 			sb.AppendLine($"{indent}\t\tOnComputed{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
 		}
 
@@ -374,9 +410,23 @@ static class EmitHelper
 		if (computedParameters.Count > 0)
 		{
 			EmitCa1822Suppression(sb, indent);
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\tpartial void OnComputing{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\tpartial void OnComputing{hookSuffix}({BuildOnCreatingDeclarationParameterList(nonComputedParameters)});"
+				);
+			EmitCa1822Suppression(sb, indent);
 			sb.AppendLine(
 				$"{indent}\tpartial void OnComputing{hookSuffix}({BuildOnCreatingDeclarationParameterList(computedParameters)});"
 			);
+			EmitCa1822Suppression(sb, indent);
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\tpartial void OnComputed{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\tpartial void OnComputed{hookSuffix}({BuildOnCreatingDeclarationParameterList(nonComputedParameters)});"
+				);
 			EmitCa1822Suppression(sb, indent);
 			sb.AppendLine(
 				$"{indent}\tpartial void OnComputed{hookSuffix}({BuildOnCreatingDeclarationParameterList(method.Parameters)});"
@@ -386,6 +436,19 @@ static class EmitHelper
 		EmitCa1822Suppression(sb, indent);
 		if (method.Parameters.Count == 0)
 			sb.AppendLine($"{indent}\tpartial void OnRaising{hookSuffix}();");
+		else if (computedParameters.Count > 0)
+		{
+			if (nonComputedParameters.Count == 0)
+				sb.AppendLine($"{indent}\tpartial void OnRaising{hookSuffix}();");
+			else
+				sb.AppendLine(
+					$"{indent}\tpartial void OnRaising{hookSuffix}({BuildOnCreatingDeclarationParameterList(nonComputedParameters)});"
+				);
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnRaising{hookSuffix}({BuildOnCreatingDeclarationParameterList(method.Parameters)});"
+			);
+		}
 		else
 		{
 			sb.AppendLine(

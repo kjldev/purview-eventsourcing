@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0-prerelease.8
+
+### Patch Changes
+
+- - Fixed OnRaising{Event} partial method generation for methods with computed parameters
+  - Added partial method generation for OnCompl(ing|d){Event} methods
+
 ## 2.0.0-prerelease.7
 
 ### Patch Changes
