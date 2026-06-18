@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.11
+
+### Patch Changes
+
+- Added support for auto-generated mutation events on lists and sets
+
 ## 2.0.0-prerelease.10
 
 ### Patch Changes
