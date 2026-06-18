@@ -338,6 +338,19 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					);
 				}
 
+				if (IsCollectionLikeType(propertySymbol.Type) && !IsEventStoreCollectionType(propertySymbol.Type))
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections,
+							propertySymbol.Locations.FirstOrDefault(),
+							propertySymbol.Name,
+							classSymbol.Name,
+							propertySymbol.Type.ToDisplayString()
+						)
+					);
+				}
+
 				properties.Add(
 					new AggregateStatePropertyInfo(
 						propertySymbol.Name,
@@ -1211,6 +1224,43 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			logger?.Diagnostic(diagnostic.GetMessage(CultureInfo.InvariantCulture));
 		}
 	}
+
+	static bool IsCollectionLikeType(ITypeSymbol typeSymbol)
+	{
+		if (typeSymbol is IArrayTypeSymbol)
+			return true;
+
+		if (typeSymbol.SpecialType == SpecialType.System_String)
+			return false;
+
+		if (typeSymbol is not INamedTypeSymbol namedType)
+			return false;
+
+		if (
+			namedType.IsGenericType
+			&& namedType.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
+		)
+			return true;
+
+		foreach (var interfaceSymbol in namedType.AllInterfaces)
+		{
+			if (
+				interfaceSymbol is INamedTypeSymbol namedInterface
+				&& namedInterface.IsGenericType
+				&& namedInterface.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
+			)
+				return true;
+		}
+
+		return false;
+	}
+
+	static bool IsEventStoreCollectionType(ITypeSymbol typeSymbol) =>
+		typeSymbol is INamedTypeSymbol namedType
+		&& namedType.IsGenericType
+		&& namedType.OriginalDefinition.ToDisplayString()
+			is "Purview.EventSourcing.EventStoreList<T>"
+				or "Purview.EventSourcing.EventStoreSet<T>";
 
 	void ILogSupport.SetLogOutput(Action<string, OutputType> action) => _logger = new GenerationLogger(action);
 }

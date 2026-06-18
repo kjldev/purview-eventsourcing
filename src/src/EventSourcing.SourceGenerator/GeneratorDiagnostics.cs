@@ -101,7 +101,16 @@ static class GeneratorDiagnostics
 		title: "Aggregate property setters should be private",
 		messageFormat: "Aggregate property '{0}' on '{1}' has a non-private setter ('{2}'). Event-sourced aggregate state should use private setters.",
 		category: Category,
-		defaultSeverity: DiagnosticSeverity.Warning,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor AggregatePropertyCollectionTypeMustUseEventStoreCollections = new(
+		id: "EVENTSTORE018",
+		title: "Aggregate collection properties must use EventStore collections",
+		messageFormat: "Aggregate property '{0}' on '{1}' has unsupported collection type '{2}'. Collection and array properties must use Purview.EventSourcing.EventStoreList<T> or Purview.EventSourcing.EventStoreSet<T>.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
 

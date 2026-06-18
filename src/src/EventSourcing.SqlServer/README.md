@@ -35,9 +35,9 @@ builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
 The snapshot payload is the fully serialized aggregate graph stored in a single JSON column. EF queries run against that JSON payload, so aggregate properties remain transparent to callers.
 
-Supported members are writable primitives, `[Scalar]` value objects, complex objects composed of supported members, and arrays/read-write collections of supported primitive or complex members.
+Supported members are writable primitives, `[Scalar]` value objects, complex objects composed of supported members, and `EventStoreList<T>` / `EventStoreSet<T>` collections of supported primitive or complex members.
 
-Unsupported shapes fail during model creation, including immutable collection types such as `ImmutableArray<T>` and unsupported object types such as dictionaries. Read-only and `[JsonIgnore]` members are excluded from the JSON payload.
+Unsupported shapes fail during model creation, including arrays and collection types other than `EventStoreList<T>` / `EventStoreSet<T>` (for example `List<T>`, `IReadOnlyList<T>`, `IEnumerable<T>`, `HashSet<T>`, `ImmutableArray<T>`) and unsupported object types such as dictionaries. Read-only and `[JsonIgnore]` members are excluded from the JSON payload.
 
 ## Documentation
 

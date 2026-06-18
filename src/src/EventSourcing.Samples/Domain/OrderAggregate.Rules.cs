@@ -1,4 +1,5 @@
-﻿using Purview.EventSourcing.Samples.ValueObjects;
+﻿using Purview.EventSourcing;
+using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -24,13 +25,13 @@ partial class OrderAggregate
 		}
 	}
 
-	partial void OnRaisingLineItemAddedEvent(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
+	partial void OnRaisingLineItemAddedEvent(ref EventStoreList<OrderLineItem> lineItems, ref decimal totalAmount)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only add items to draft orders.");
 	}
 
-	partial void OnRaisingLineItemRemovedEvent(ref List<OrderLineItem> lineItems, ref decimal totalAmount)
+	partial void OnRaisingLineItemRemovedEvent(ref EventStoreList<OrderLineItem> lineItems, ref decimal totalAmount)
 	{
 		if (Status != OrderStatus.Draft)
 			throw new InvalidOperationException("Can only remove items from draft orders.");

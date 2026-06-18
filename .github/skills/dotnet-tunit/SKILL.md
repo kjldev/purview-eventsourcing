@@ -1,5 +1,5 @@
 ---
-name: Dotnet TUnit
+name: dotnet-tunit
 description: Use .NET with TUnit-specific test conventions.
 category: dotnet
 roles:
@@ -13,7 +13,7 @@ tags:
   - tests
 ---
 
-# Dotnet TUnit Skill
+# dotnet-tunit Skill
 
 Use this skill for .NET repositories that use TUnit.
 

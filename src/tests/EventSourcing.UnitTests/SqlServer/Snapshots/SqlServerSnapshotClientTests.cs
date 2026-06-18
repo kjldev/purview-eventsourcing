@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Serialization;
@@ -49,6 +50,34 @@ public sealed class SqlServerSnapshotClientTests
 		var ex = await Assert.That(Act).Throws<InvalidOperationException>();
 		await Assert.That(ex).IsNotNull();
 		await Assert.That(ex.Message).Contains(nameof(UnsupportedPayloadAggregate.UnsupportedMap));
+	}
+
+	[Test]
+	public async Task ValidateAggregatePayloadShape_GivenEventStoreCollections_DoesNotThrow()
+	{
+		await Assert.That(() => ValidateAggregatePayloadShape(typeof(SupportedCollectionAggregate))).ThrowsNothing();
+	}
+
+	[Test]
+	public async Task ValidateAggregatePayloadShape_GivenArrayCollection_Throws()
+	{
+		var ex = await Assert
+			.That(() => ValidateAggregatePayloadShape(typeof(ArrayCollectionAggregate)))
+			.Throws<InvalidOperationException>();
+		await Assert.That(ex).IsNotNull();
+		await Assert.That(ex.Message).Contains(nameof(ArrayCollectionAggregate.Values));
+		await Assert.That(ex.Message).Contains("EventStoreList<T>");
+	}
+
+	[Test]
+	public async Task ValidateAggregatePayloadShape_GivenIReadOnlyListCollection_Throws()
+	{
+		var ex = await Assert
+			.That(() => ValidateAggregatePayloadShape(typeof(ReadOnlyListCollectionAggregate)))
+			.Throws<InvalidOperationException>();
+		await Assert.That(ex).IsNotNull();
+		await Assert.That(ex.Message).Contains(nameof(ReadOnlyListCollectionAggregate.Values));
+		await Assert.That(ex.Message).Contains("EventStoreSet<T>");
 	}
 
 	[Test]
@@ -110,5 +139,89 @@ public sealed class SqlServerSnapshotClientTests
 		public void ClearUnsavedEvents(int? upToVersion = null) { }
 
 		void IAggregate.ApplyEvent(IEvent @event) { }
+	}
+
+	sealed class SupportedCollectionAggregate : IAggregate
+	{
+		public string AggregateType => nameof(SupportedCollectionAggregate);
+
+		public AggregateDetails Details { get; init; } = new();
+
+		public EventStoreList<int> IntValues { get; init; } = new();
+
+		public EventStoreSet<string> StringValues { get; init; } = new();
+
+		public IEnumerable<IEvent> GetUnsavedEvents() => [];
+
+		public bool HasUnsavedEvents() => false;
+
+		public IEnumerable<Type> GetRegisteredEventTypes() => [];
+
+		public bool CanApplyEvent(IEvent aggregateEvent) => false;
+
+		public void ClearUnsavedEvents(int? upToVersion = null) { }
+
+		void IAggregate.ApplyEvent(IEvent @event) { }
+	}
+
+	sealed class ArrayCollectionAggregate : IAggregate
+	{
+		public string AggregateType => nameof(ArrayCollectionAggregate);
+
+		public AggregateDetails Details { get; init; } = new();
+
+		public int[] Values { get; init; } = [];
+
+		public IEnumerable<IEvent> GetUnsavedEvents() => [];
+
+		public bool HasUnsavedEvents() => false;
+
+		public IEnumerable<Type> GetRegisteredEventTypes() => [];
+
+		public bool CanApplyEvent(IEvent aggregateEvent) => false;
+
+		public void ClearUnsavedEvents(int? upToVersion = null) { }
+
+		void IAggregate.ApplyEvent(IEvent @event) { }
+	}
+
+	sealed class ReadOnlyListCollectionAggregate : IAggregate
+	{
+		public string AggregateType => nameof(ReadOnlyListCollectionAggregate);
+
+		public AggregateDetails Details { get; init; } = new();
+
+		public IReadOnlyList<int> Values { get; init; } = [];
+
+		public IEnumerable<IEvent> GetUnsavedEvents() => [];
+
+		public bool HasUnsavedEvents() => false;
+
+		public IEnumerable<Type> GetRegisteredEventTypes() => [];
+
+		public bool CanApplyEvent(IEvent aggregateEvent) => false;
+
+		public void ClearUnsavedEvents(int? upToVersion = null) { }
+
+		void IAggregate.ApplyEvent(IEvent @event) { }
+	}
+
+	static void ValidateAggregatePayloadShape(Type aggregateType)
+	{
+		var method = typeof(SqlServerClient).GetMethod(
+			"ValidateAggregatePayloadShape",
+			BindingFlags.Static | BindingFlags.NonPublic
+		);
+		if (method is null)
+			throw new InvalidOperationException("Unable to locate ValidateAggregatePayloadShape via reflection.");
+
+		try
+		{
+			method.Invoke(null, [aggregateType]);
+		}
+		catch (TargetInvocationException ex) when (ex.InnerException is not null)
+		{
+			throw ex.InnerException;
+		}
 	}
 }

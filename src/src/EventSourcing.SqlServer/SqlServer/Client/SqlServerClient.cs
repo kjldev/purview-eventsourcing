@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage;
+using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Serialization;
 
@@ -407,6 +408,9 @@ sealed partial class SqlServerClient
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
+				if (!IsEventStoreCollectionType(propertyType))
+					throw CreateUnsupportedCollectionTypeException(type, property, propertyType);
+
 				if (IsPrimitiveLike(elementType) || elementType.GetCustomAttribute<ScalarAttribute>() is not null)
 					builder.PrimitiveCollection(propertyType, property.Name);
 				else if (ShouldInspectType(elementType))
@@ -420,6 +424,9 @@ sealed partial class SqlServerClient
 
 				continue;
 			}
+
+			if (IsCollectionLikeType(propertyType))
+				throw CreateUnsupportedCollectionTypeException(type, property, propertyType);
 
 			if (ShouldOwnType(propertyType))
 			{
@@ -437,8 +444,7 @@ sealed partial class SqlServerClient
 				continue;
 			}
 
-			if (!IsPrimitiveLike(propertyType))
-				throw CreateUnsupportedShapeException(type, property);
+			throw CreateUnsupportedShapeException(type, property);
 		}
 	}
 
@@ -469,6 +475,9 @@ sealed partial class SqlServerClient
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
+				if (!IsEventStoreCollectionType(propertyType))
+					throw CreateUnsupportedCollectionTypeException(type, property, propertyType);
+
 				if (IsPrimitiveLike(elementType) || elementType.GetCustomAttribute<ScalarAttribute>() is not null)
 					builder.PrimitiveCollection(propertyType, property.Name);
 				else if (ShouldInspectType(elementType))
@@ -482,6 +491,9 @@ sealed partial class SqlServerClient
 
 				continue;
 			}
+
+			if (IsCollectionLikeType(propertyType))
+				throw CreateUnsupportedCollectionTypeException(type, property, propertyType);
 
 			if (ShouldOwnType(propertyType))
 			{
@@ -499,8 +511,7 @@ sealed partial class SqlServerClient
 				continue;
 			}
 
-			if (!IsPrimitiveLike(propertyType))
-				throw CreateUnsupportedShapeException(type, property);
+			throw CreateUnsupportedShapeException(type, property);
 		}
 	}
 
@@ -553,6 +564,9 @@ sealed partial class SqlServerClient
 
 			if (TryGetEnumerableElementType(propertyType, out var elementType))
 			{
+				if (!IsEventStoreCollectionType(propertyType))
+					throw CreateUnsupportedCollectionTypeException(type, property, propertyType);
+
 				if (!IsPrimitiveLike(elementType) && elementType.GetCustomAttribute<ScalarAttribute>() is null)
 				{
 					if (!ShouldInspectType(elementType))
@@ -563,6 +577,9 @@ sealed partial class SqlServerClient
 
 				continue;
 			}
+
+			if (IsCollectionLikeType(propertyType))
+				throw CreateUnsupportedCollectionTypeException(type, property, propertyType);
 
 			if (ShouldOwnType(propertyType))
 			{
@@ -644,37 +661,52 @@ sealed partial class SqlServerClient
 	{
 		elementType = null!;
 
+		if (!type.IsGenericType)
+			return false;
+
+		if (!IsEventStoreCollectionType(type))
+			return false;
+
+		elementType = type.GetGenericArguments()[0];
+		return true;
+	}
+
+	static bool IsEventStoreCollectionType(Type type) =>
+		type.IsGenericType
+		&& type.GetGenericTypeDefinition() is var genericDefinition
+		&& (genericDefinition == typeof(EventStoreList<>) || genericDefinition == typeof(EventStoreSet<>));
+
+	static bool IsCollectionLikeType(Type type)
+	{
+		if (type == typeof(string) || type == typeof(byte[]))
+			return false;
+
 		if (type.IsArray)
-		{
-			elementType = type.GetElementType()!;
 			return true;
-		}
 
 		if (!type.IsGenericType)
 			return false;
 
-		var genericDefinition = type.GetGenericTypeDefinition();
-		if (
-			genericDefinition == typeof(IEnumerable<>)
-			|| genericDefinition == typeof(ICollection<>)
-			|| genericDefinition == typeof(IList<>)
-			|| genericDefinition == typeof(List<>)
-			|| genericDefinition == typeof(IReadOnlyList<>)
-			|| genericDefinition == typeof(IReadOnlyCollection<>)
-			|| genericDefinition == typeof(HashSet<>)
-		)
-		{
-			elementType = type.GetGenericArguments()[0];
+		if (IsEventStoreCollectionType(type))
 			return true;
-		}
 
-		return false;
+		return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 	}
 
 	static InvalidOperationException CreateUnsupportedShapeException(Type containingType, MemberInfo member) =>
 		new(
 			$"{containingType.Name}.{member.Name} cannot be mapped into the snapshot JSON payload. "
-				+ "Supported members are primitive types, [Scalar] value objects, complex types, and arrays/collections of those shapes."
+				+ "Supported members are primitive types, [Scalar] value objects, complex types, and EventStoreList<T>/EventStoreSet<T> collections of those shapes."
+		);
+
+	static InvalidOperationException CreateUnsupportedCollectionTypeException(
+		Type containingType,
+		MemberInfo member,
+		Type collectionType
+	) =>
+		new(
+			$"{containingType.Name}.{member.Name} uses unsupported collection type '{collectionType.Name}'. "
+				+ "Collection and array members must use Purview.EventSourcing.EventStoreList<T> or Purview.EventSourcing.EventStoreSet<T>."
 		);
 
 	static void EnsureSupportedOrderByExpression(Expression queryExpression) =>

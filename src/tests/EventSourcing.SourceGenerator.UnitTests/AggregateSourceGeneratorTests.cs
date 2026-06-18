@@ -1639,32 +1639,38 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenNonPrivateAggregatePropertySetter_ReportsWarning(
+	[Arguments("set")]
+	[Arguments("protected set")]
+	[Arguments("internal set")]
+	[Arguments("protected internal set")]
+	[Arguments("private protected set")]
+	public async Task Generate_GivenAggregatePropertySetterIsNotPrivate_ReportsError(
+		string setterAccess,
 		CancellationToken cancellationToken
 	)
 	{
-		const string source =
-			@"
+		var source =
+			$@"
 namespace Testing
-{
+{{
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
 	public partial class PublicSetterAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-	{
-		public string Value { get; set; } = default!;
+	{{
+		public string Value {{ get; {setterAccess}; }} = default!;
 
 		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
 		public partial void SetValue(string value);
-	}
-}
+	}}
+}}
 ";
 
 		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
 		var diagnostics = GetGeneratorDiagnostics(result);
-		var warningIds = diagnostics
-			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning)
+		var errorIds = diagnostics
+			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
 			.Select(static diagnostic => diagnostic.Id);
 
-		await Assert.That(warningIds).Contains("EVENTSTORE011");
+		await Assert.That(errorIds).Contains("EVENTSTORE011");
 		await Assert
 			.That(
 				outputCompilation
@@ -2852,5 +2858,88 @@ namespace Testing
 		await Assert
 			.That(warnings.Select(static d => d.Id))
 			.DoesNotContain(GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
+	}
+
+	[Test]
+	[Arguments("System.Collections.Generic.List<string>")]
+	[Arguments("System.Collections.Generic.IList<string>")]
+	[Arguments("System.Collections.Generic.ICollection<string>")]
+	[Arguments("System.Collections.Generic.IReadOnlyList<string>")]
+	[Arguments("System.Collections.Generic.IReadOnlyCollection<string>")]
+	[Arguments("System.Collections.Generic.IEnumerable<string>")]
+	[Arguments("System.Collections.Generic.HashSet<string>")]
+	[Arguments("string[]")]
+	public async Task Generate_GivenNonEventStoreCollectionProperty_ReportsCollectionTypeError(
+		string collectionType,
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			$@"
+namespace Testing
+{{
+		[Purview.EventSourcing.Aggregates.GenerateAggregate]
+		public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+		{{
+			public {collectionType} Tags {{ get; private set; }}
+
+			[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+			public partial void SetTags({collectionType} tags);
+		}}
+}}
+";
+
+		var (result, _) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert
+			.That(diagnostics.Select(static d => d.Id))
+			.Contains(GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections.Id);
+		await Assert
+			.That(
+				diagnostics
+					.Where(static d =>
+						d.Id == GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections.Id
+					)
+					.Select(static d => d.Severity)
+			)
+			.Contains(DiagnosticSeverity.Error);
+	}
+
+	[Test]
+	[Arguments("Purview.EventSourcing.EventStoreList<string>")]
+	[Arguments("Purview.EventSourcing.EventStoreSet<string>")]
+	public async Task Generate_GivenEventStoreCollectionProperty_DoesNotReportCollectionTypeError(
+		string collectionType,
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			$@"
+namespace Testing
+{{
+		[Purview.EventSourcing.Aggregates.GenerateAggregate]
+		public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+		{{
+			public {collectionType} Tags {{ get; private set; }} = new();
+
+			[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+			public partial void SetTags({collectionType} tags);
+		}}
+}}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert
+			.That(diagnostics.Select(static d => d.Id))
+			.DoesNotContain(GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections.Id);
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
 	}
 }
