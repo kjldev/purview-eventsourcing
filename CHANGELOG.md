@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.10
+
+### Patch Changes
+
+- Added specific list and set types to provide readonly proprties but still support EF etc
+
 ## 2.0.0-prerelease.9
 
 ### Patch Changes
