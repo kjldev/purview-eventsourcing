@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.7
+
+### Patch Changes
+
+- Added computed values, enabling deterministic side-effects
+
 ## 2.0.0-prerelease.6
 
 ### Patch Changes
