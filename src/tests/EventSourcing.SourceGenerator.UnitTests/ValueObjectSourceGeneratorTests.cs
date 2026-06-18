@@ -584,6 +584,46 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task ComplexValueObjectGeneration_WithoutProperties_GeneratesValidCreateAndJsonData(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class EmptyValueObject
+				{
+				}
+
+				public static class EmptyValueObjectHarness
+				{
+					public static bool RoundTripsAsEmptyJson()
+					{
+						var value = EmptyValueObject.Create();
+						var json = System.Text.Json.JsonSerializer.Serialize(value);
+						var deserialized = System.Text.Json.JsonSerializer.Deserialize<EmptyValueObject>(json)!;
+						return json == "{}" && value == deserialized;
+					}
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public static global::Testing.EmptyValueObject Create()");
+		await Assert.That(generatedSource).Contains("OnNormalize();");
+		await Assert.That(generatedSource).DoesNotContain("OnNormalize(ref );");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.EmptyValueObjectHarness")!;
+		var roundTripsAsEmptyJson = (bool)harnessType.GetMethod("RoundTripsAsEmptyJson")!.Invoke(null, null)!;
+
+		await Assert.That(roundTripsAsEmptyJson).IsTrue();
+	}
+
+	[Test]
 	public async Task ComplexValueObjectGeneration_CanDisableEmpty(CancellationToken cancellationToken)
 	{
 		const string source = """

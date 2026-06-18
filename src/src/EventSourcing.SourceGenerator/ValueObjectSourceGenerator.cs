@@ -674,10 +674,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				propertyTypeNames.Zip(propertyNames, static (type, name) => $"{type} {ToCamelCase(name)}")
 			);
 			var createArgs = string.Join(", ", propertyNames.Select(ToCamelCase));
+			var normalizeInvocation =
+				propertyNames.Length == 0
+					? "OnNormalize();"
+					: $"OnNormalize(ref {string.Join(", ref ", propertyNames.Select(ToCamelCase))});";
 			sb.AppendLine(
 				$@"{indent}	public static {typeName} Create({createParams})
 {indent}	{{
-{indent}		OnNormalize(ref {string.Join(", ref ", propertyNames.Select(ToCamelCase))});
+{indent}		{normalizeInvocation}
 {indent}		var result = new {typeName}({createArgs});
 {indent}		result.OnValidate({createArgs});
 {indent}		return result;
