@@ -7,6 +7,7 @@ sealed class AggregateInfo(
 	string? namespaceName,
 	string className,
 	Accessibility accessibility,
+	bool shouldDeclareAggregateBase,
 	List<AggregateStatePropertyInfo> properties,
 	List<AggregateEventMethodInfo> methods,
 	List<InvalidAggregateEventMethodInfo> invalidMethods,
@@ -18,6 +19,8 @@ sealed class AggregateInfo(
 	public string ClassName { get; } = className;
 
 	public Accessibility Accessibility { get; } = accessibility;
+
+	public bool ShouldDeclareAggregateBase { get; } = shouldDeclareAggregateBase;
 
 	public List<AggregateStatePropertyInfo> Properties { get; } = properties;
 
@@ -43,7 +46,9 @@ sealed class AggregateEventMethodInfo(
 	string returnTypeName,
 	EventMethodReturnKind returnKind,
 	Accessibility methodAccessibility,
-	int version = 1
+	int version = 1,
+	bool manualApply = false,
+	CollectionEventInfo? collectionEvent = null
 )
 {
 	public string MethodName { get; } = methodName;
@@ -65,6 +70,56 @@ sealed class AggregateEventMethodInfo(
 	/// Defaults to 1.
 	/// </summary>
 	public int Version { get; } = version;
+
+	/// <summary>
+	/// Indicates whether Apply(...) implementation is user-supplied and should not be auto-generated.
+	/// </summary>
+	public bool ManualApply { get; } = manualApply;
+
+	/// <summary>
+	/// Collection-event metadata when the method is decorated with [GenerateAggregateCollectionEvent].
+	/// </summary>
+	public CollectionEventInfo? CollectionEvent { get; } = collectionEvent;
+
+	public bool IsCollectionEvent => CollectionEvent is not null;
+}
+
+sealed class CollectionEventInfo(
+	string propertyName,
+	string elementTypeName,
+	string propertyTypeName,
+	bool isSet,
+	CollectionMutationOperation operation,
+	CollectionParameterShape parameterShape,
+	string normalizeValidateHookSuffix
+)
+{
+	public string PropertyName { get; } = propertyName;
+
+	public string ElementTypeName { get; } = elementTypeName;
+
+	public string PropertyTypeName { get; } = propertyTypeName;
+
+	public bool IsSet { get; } = isSet;
+
+	public CollectionMutationOperation Operation { get; } = operation;
+
+	public CollectionParameterShape ParameterShape { get; } = parameterShape;
+
+	public string NormalizeValidateHookSuffix { get; } = normalizeValidateHookSuffix;
+}
+
+enum CollectionParameterShape
+{
+	Single = 0,
+	Enumerable = 1,
+	Array = 2,
+}
+
+enum CollectionMutationOperation
+{
+	Add = 0,
+	Remove = 1,
 }
 
 sealed class InvalidAggregateEventMethodInfo(string signature, string[] diagnosticIds)
@@ -84,7 +139,8 @@ sealed class EventPropertyInfo(
 	string equalityComparerTypeName,
 	bool useStringOrdinalComparison,
 	EventParameterConversionKind parameterConversionKind,
-	bool isComputed = false
+	bool isComputed = false,
+	bool isParams = false
 )
 {
 	public string ParameterName { get; } = parameterName;
@@ -113,6 +169,8 @@ sealed class EventPropertyInfo(
 	/// computed via OnComputingXxxEvent hook before event creation.
 	/// </summary>
 	public bool IsComputed { get; } = isComputed;
+
+	public bool IsParams { get; } = isParams;
 
 	public bool RequiresParameterToPropertyTypeConversion { get; } =
 		parameterConversionKind is not EventParameterConversionKind.None;

@@ -55,7 +55,10 @@ static class EmitHelper
 		sb.AppendLine(
 			$"{indent}[global::System.Text.Json.Serialization.JsonConverter(typeof({info.ClassName}JsonConverter))]"
 		);
-		sb.AppendLine($"{indent}{accessModifier} partial class {info.ClassName}");
+		var aggregateBaseClause = info.ShouldDeclareAggregateBase
+			? " : global::Purview.EventSourcing.Aggregates.AggregateBase"
+			: string.Empty;
+		sb.AppendLine($"{indent}{accessModifier} partial class {info.ClassName}{aggregateBaseClause}");
 		sb.AppendLine($"{indent}{{");
 
 		GenerateJsonSerializationSupport(sb, info, indent);
@@ -75,6 +78,7 @@ static class EmitHelper
 			GenerateCommandMethod(sb, info, method, indent);
 		}
 
+		GenerateCollectionNormalizationValidationHookDeclarations(sb, info, indent);
 		GeneratePropertyHookDeclarations(sb, info, indent);
 
 		foreach (var method in info.InvalidMethods)
@@ -180,8 +184,28 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateApplyMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
+	static void GenerateApplyMethod(
+		StringBuilder sb,
+		AggregateInfo info,
+		AggregateEventMethodInfo method,
+		string indent
+	)
 	{
+		if (method.ManualApply)
+		{
+			sb.AppendLine(
+				$"{indent}\tprivate partial void Apply(global::{method.EventNamespace}.{method.EventName} @event);"
+			);
+			sb.AppendLine();
+			return;
+		}
+
+		if (method.IsCollectionEvent)
+		{
+			GenerateCollectionApplyMethod(sb, method, indent);
+			return;
+		}
+
 		if (method.Parameters.Count == 0)
 		{
 			sb.AppendLine(
@@ -234,6 +258,48 @@ static class EmitHelper
 		return eventName;
 	}
 
+	static void GenerateCollectionApplyMethod(StringBuilder sb, AggregateEventMethodInfo method, string indent)
+	{
+		var collectionEvent = method.CollectionEvent!;
+		var parameter = method.Parameters[0];
+		const string eventParameterName = "@event";
+		var hookSuffix = GetHookName(method.EventName);
+		var operationMethod = collectionEvent.Operation == CollectionMutationOperation.Add ? "Add" : "Remove";
+
+		sb.AppendLine($"{indent}\tvoid Apply(global::{method.EventNamespace}.{method.EventName} {eventParameterName})");
+		sb.AppendLine($"{indent}\t{{");
+		sb.AppendLine($"{indent}\t\tif ({collectionEvent.PropertyName} is null)");
+		sb.AppendLine($"{indent}\t\t{{");
+		sb.AppendLine(
+			$"{indent}\t\t\tthrow new global::System.InvalidOperationException(\"Collection property '{collectionEvent.PropertyName}' cannot be null when applying {method.EventName}.\");"
+		);
+		sb.AppendLine($"{indent}\t\t}}");
+		sb.AppendLine();
+
+		if (collectionEvent.ParameterShape == CollectionParameterShape.Single)
+		{
+			sb.AppendLine(
+				$"{indent}\t\t((global::System.Collections.Generic.ICollection<{collectionEvent.ElementTypeName}>)"
+					+ $"{collectionEvent.PropertyName}).{operationMethod}({eventParameterName}.{parameter.PropertyName});"
+			);
+		}
+		else
+		{
+			sb.AppendLine($"{indent}\t\tforeach (var __item in {eventParameterName}.{parameter.PropertyName})");
+			sb.AppendLine($"{indent}\t\t{{");
+			sb.AppendLine(
+				$"{indent}\t\t\t((global::System.Collections.Generic.ICollection<{collectionEvent.ElementTypeName}>)"
+					+ $"{collectionEvent.PropertyName}).{operationMethod}(__item);"
+			);
+			sb.AppendLine($"{indent}\t\t}}");
+		}
+
+		sb.AppendLine();
+		sb.AppendLine($"{indent}\t\tOnApplied{hookSuffix}({eventParameterName});");
+		sb.AppendLine($"{indent}\t}}");
+		sb.AppendLine();
+	}
+
 	static void GenerateCommandMethod(
 		StringBuilder sb,
 		AggregateInfo info,
@@ -241,6 +307,12 @@ static class EmitHelper
 		string indent
 	)
 	{
+		if (method.IsCollectionEvent)
+		{
+			GenerateCollectionCommandMethod(sb, method, indent);
+			return;
+		}
+
 		var paramList = new StringBuilder();
 		var computedParameters = method.Parameters.Where(static parameter => parameter.IsComputed).ToList();
 		var nonComputedParameters = method.Parameters.Where(static parameter => !parameter.IsComputed).ToList();
@@ -249,7 +321,10 @@ static class EmitHelper
 		{
 			if (i > 0)
 				paramList.Append(", ");
-			paramList.Append($"{method.Parameters[i].ParameterTypeName} {method.Parameters[i].ParameterName}");
+			var paramsPrefix = method.Parameters[i].IsParams ? "params " : string.Empty;
+			paramList.Append(
+				$"{paramsPrefix}{method.Parameters[i].ParameterTypeName} {method.Parameters[i].ParameterName}"
+			);
 		}
 
 		var hookSuffix = GetHookName(method.EventName);
@@ -308,6 +383,166 @@ static class EmitHelper
 
 			if (mappedParameters.Count > 0)
 				sb.AppendLine();
+		}
+
+		static void GenerateCollectionCommandMethod(StringBuilder sb, AggregateEventMethodInfo method, string indent)
+		{
+			var collectionEvent = method.CollectionEvent!;
+			var parameter = method.Parameters[0];
+			var hookSuffix = GetHookName(method.EventName);
+			var normalizeValidateSuffix = collectionEvent.NormalizeValidateHookSuffix;
+			var isAddOperation = collectionEvent.Operation == CollectionMutationOperation.Add;
+			var methodAccessModifier = GetAccessModifier(method.MethodAccessibility);
+
+			sb.AppendLine(
+				$"{indent}\t{methodAccessModifier} partial {method.ReturnTypeName} {method.MethodName}({(parameter.IsParams ? "params " : string.Empty)}{parameter.ParameterTypeName} {parameter.ParameterName})"
+			);
+			sb.AppendLine($"{indent}\t{{");
+			sb.AppendLine($"{indent}\t\tif ({collectionEvent.PropertyName} is null)");
+			sb.AppendLine($"{indent}\t\t{{");
+			sb.AppendLine(
+				$"{indent}\t\t\tthrow new global::System.InvalidOperationException(\"Collection property '{collectionEvent.PropertyName}' cannot be null.\");"
+			);
+			sb.AppendLine($"{indent}\t\t}}");
+			sb.AppendLine();
+
+			if (collectionEvent.ParameterShape == CollectionParameterShape.Single)
+			{
+				sb.AppendLine($"{indent}\t\tvar __itemValue = {parameter.ParameterName};");
+				sb.AppendLine($"{indent}\t\tOnNormalizing{normalizeValidateSuffix}(ref __itemValue);");
+				sb.AppendLine($"{indent}\t\tOnValidating{normalizeValidateSuffix}(__itemValue);");
+				if (isAddOperation && collectionEvent.IsSet)
+				{
+					sb.AppendLine();
+					sb.AppendLine($"{indent}\t\tif ({collectionEvent.PropertyName}.Contains(__itemValue))");
+					sb.AppendLine($"{indent}\t\t{{");
+					EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+					sb.AppendLine($"{indent}\t\t}}");
+				}
+				else if (!isAddOperation)
+				{
+					sb.AppendLine();
+					sb.AppendLine($"{indent}\t\tif (!{collectionEvent.PropertyName}.Contains(__itemValue))");
+					sb.AppendLine($"{indent}\t\t{{");
+					EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+					sb.AppendLine($"{indent}\t\t}}");
+				}
+
+				sb.AppendLine();
+				sb.AppendLine($"{indent}\t\tvar @event = new global::{method.EventNamespace}.{method.EventName}");
+				sb.AppendLine($"{indent}\t\t{{");
+				sb.AppendLine($"{indent}\t\t\t{parameter.PropertyName} = __itemValue,");
+				sb.AppendLine($"{indent}\t\t}};");
+				sb.AppendLine($"{indent}\t\tif (!ShouldApply{hookSuffix}(@event))");
+				sb.AppendLine($"{indent}\t\t{{");
+				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+				sb.AppendLine($"{indent}\t\t}}");
+				sb.AppendLine();
+				sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}(ref __itemValue);");
+			}
+			else
+			{
+				sb.AppendLine(
+					$"{indent}\t\tglobal::System.Collections.Generic.IEnumerable<{collectionEvent.ElementTypeName}> __itemsValue = {parameter.ParameterName};"
+				);
+				sb.AppendLine($"{indent}\t\tOnNormalizing{normalizeValidateSuffix}(ref __itemsValue);");
+				sb.AppendLine($"{indent}\t\tOnValidating{normalizeValidateSuffix}(__itemsValue);");
+				sb.AppendLine(
+					$"{indent}\t\tvar __eventItems = __itemsValue as {collectionEvent.ElementTypeName}[] ?? [.. __itemsValue];"
+				);
+				sb.AppendLine($"{indent}\t\tif (__eventItems.Length == 0)");
+				sb.AppendLine($"{indent}\t\t{{");
+				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+				sb.AppendLine($"{indent}\t\t}}");
+
+				if (isAddOperation && collectionEvent.IsSet)
+				{
+					sb.AppendLine();
+					sb.AppendLine($"{indent}\t\tvar __hasNewValues = false;");
+					sb.AppendLine($"{indent}\t\tforeach (var __item in __eventItems)");
+					sb.AppendLine($"{indent}\t\t{{");
+					sb.AppendLine($"{indent}\t\t\tif (!{collectionEvent.PropertyName}.Contains(__item))");
+					sb.AppendLine($"{indent}\t\t\t{{");
+					sb.AppendLine($"{indent}\t\t\t\t__hasNewValues = true;");
+					sb.AppendLine($"{indent}\t\t\t\tbreak;");
+					sb.AppendLine($"{indent}\t\t\t}}");
+					sb.AppendLine($"{indent}\t\t}}");
+					sb.AppendLine($"{indent}\t\tif (!__hasNewValues)");
+					sb.AppendLine($"{indent}\t\t{{");
+					EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+					sb.AppendLine($"{indent}\t\t}}");
+				}
+				else if (!isAddOperation)
+				{
+					sb.AppendLine();
+					sb.AppendLine($"{indent}\t\tvar __hasExistingValues = false;");
+					sb.AppendLine($"{indent}\t\tforeach (var __item in __eventItems)");
+					sb.AppendLine($"{indent}\t\t{{");
+					sb.AppendLine($"{indent}\t\t\tif ({collectionEvent.PropertyName}.Contains(__item))");
+					sb.AppendLine($"{indent}\t\t\t{{");
+					sb.AppendLine($"{indent}\t\t\t\t__hasExistingValues = true;");
+					sb.AppendLine($"{indent}\t\t\t\tbreak;");
+					sb.AppendLine($"{indent}\t\t\t}}");
+					sb.AppendLine($"{indent}\t\t}}");
+					sb.AppendLine($"{indent}\t\tif (!__hasExistingValues)");
+					sb.AppendLine($"{indent}\t\t{{");
+					EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+					sb.AppendLine($"{indent}\t\t}}");
+				}
+
+				sb.AppendLine();
+				sb.AppendLine($"{indent}\t\tvar @event = new global::{method.EventNamespace}.{method.EventName}");
+				sb.AppendLine($"{indent}\t\t{{");
+				sb.AppendLine($"{indent}\t\t\t{parameter.PropertyName} = __eventItems,");
+				sb.AppendLine($"{indent}\t\t}};");
+				sb.AppendLine($"{indent}\t\tif (!ShouldApply{hookSuffix}(@event))");
+				sb.AppendLine($"{indent}\t\t{{");
+				EmitNoChangeReturn(sb, method.ReturnKind, indent, 3);
+				sb.AppendLine($"{indent}\t\t}}");
+				sb.AppendLine();
+				sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}(ref __itemsValue);");
+			}
+
+			sb.AppendLine();
+			sb.AppendLine($"{indent}\t\tOnRaised{hookSuffix}(@event);");
+			sb.AppendLine($"{indent}\t\tRecordAndApply(@event);");
+			sb.AppendLine();
+			EmitSuccessReturn(sb, method.ReturnKind, indent, 2);
+			sb.AppendLine($"{indent}\t}}");
+			sb.AppendLine();
+
+			EmitCa1822Suppression(sb, indent);
+			if (collectionEvent.ParameterShape == CollectionParameterShape.Single)
+				sb.AppendLine(
+					$"{indent}\tpartial void OnRaising{hookSuffix}(ref {collectionEvent.ElementTypeName} {parameter.ParameterName});"
+				);
+			else
+				sb.AppendLine(
+					$"{indent}\tpartial void OnRaising{hookSuffix}(ref global::System.Collections.Generic.IEnumerable<{collectionEvent.ElementTypeName}> {parameter.ParameterName});"
+				);
+
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tbool ShouldApply{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event)"
+			);
+			sb.AppendLine($"{indent}\t{{");
+			sb.AppendLine($"{indent}\t\tvar shouldApply = true;");
+			sb.AppendLine($"{indent}\t\tOnShouldApply{hookSuffix}(@event, ref shouldApply);");
+			sb.AppendLine($"{indent}\t\treturn shouldApply;");
+			sb.AppendLine($"{indent}\t}}");
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnShouldApply{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event, ref bool shouldApply);"
+			);
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnRaised{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
+			);
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnApplied{hookSuffix}(global::{method.EventNamespace}.{method.EventName} @event);"
+			);
+			sb.AppendLine();
 		}
 
 		if (computedParameters.Count > 0)
@@ -463,6 +698,37 @@ static class EmitHelper
 			EmitCa1822Suppression(sb, indent);
 			sb.AppendLine(
 				$"{indent}\tpartial void On{prop.AggregatePropertyName}Changed({prop.PropertyTypeName} previous, {prop.PropertyTypeName} current);"
+			);
+			sb.AppendLine();
+		}
+	}
+
+	static void GenerateCollectionNormalizationValidationHookDeclarations(
+		StringBuilder sb,
+		AggregateInfo info,
+		string indent
+	)
+	{
+		var declaredKeys = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var method in info.Methods.Where(static method => method.IsCollectionEvent))
+		{
+			var collectionEvent = method.CollectionEvent!;
+			var parameter = method.Parameters[0];
+			var declarationType =
+				collectionEvent.ParameterShape == CollectionParameterShape.Single
+					? collectionEvent.ElementTypeName
+					: $"global::System.Collections.Generic.IEnumerable<{collectionEvent.ElementTypeName}>";
+			var key = $"{collectionEvent.NormalizeValidateHookSuffix}|{declarationType}";
+			if (!declaredKeys.Add(key))
+				continue;
+
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnNormalizing{collectionEvent.NormalizeValidateHookSuffix}(ref {declarationType} {parameter.ParameterName});"
+			);
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnValidating{collectionEvent.NormalizeValidateHookSuffix}({declarationType} {parameter.ParameterName});"
 			);
 			sb.AppendLine();
 		}

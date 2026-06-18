@@ -114,6 +114,15 @@ static class GeneratorDiagnostics
 		isEnabledByDefault: true
 	);
 
+	public static readonly DiagnosticDescriptor NullableScalarEqualityNullComparisonShouldUsePatternMatching = new(
+		id: "EVENTSTORE019",
+		title: "Use pattern matching for nullable scalar null checks",
+		messageFormat: "Nullable scalar value object comparison '{0}' can trigger CS9342 due to overloaded equality operators. Use '{1}' instead.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Warning,
+		isEnabledByDefault: true
+	);
+
 	public static readonly DiagnosticDescriptor AggregateMethodShouldBeVerbPhrase = new(
 		id: "EVENTSTORE012",
 		title: "Aggregate methods should be verb phrases",

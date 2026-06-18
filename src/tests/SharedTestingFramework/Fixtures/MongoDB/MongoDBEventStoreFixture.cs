@@ -17,10 +17,7 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 
 	IAggregateEventNameMapper _eventNameMapper = default!;
 
-	public MongoDBEventStoreFixture()
-	{
-		_mongoDBContainer = ContainerHelper.CreateMongoDB();
-	}
+	public MongoDBEventStoreFixture() => _mongoDBContainer = ContainerHelper.CreateMongoDB();
 
 	public IDistributedCache Cache { get; private set; } = default!;
 
