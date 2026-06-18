@@ -18,6 +18,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
 	const string AggregatePropertyAttributeMetadataName = "Purview.EventSourcing.Aggregates.AggregatePropertyAttribute";
 	const string MetadataAttributeMetadataName = "Purview.EventSourcing.Aggregates.MetadataAttribute";
+	const string ComputedAttributeMetadataName = "Purview.EventSourcing.Aggregates.ComputedAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
 	const string EventBaseMetadataName = "Purview.EventSourcing.Aggregates.Events.EventBase";
 	const string IEventMetadataName = "Purview.EventSourcing.Aggregates.Events.IEvent";
@@ -56,6 +57,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);
 			ctx.AddSource("MetadataAttribute.g.cs", EmbeddedResources.LoadTemplate("MetadataAttribute"));
+			ctx.AddSource(
+				"ComputedAttribute.g.cs",
+				EmbeddedResources.LoadTemplate("ComputedAttribute")
+			);
 		});
 
 		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
@@ -526,6 +531,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			var aggregatePropertyName =
 				GetAggregatePropertyNameOverride(parameter) ?? EventPropertyInfo.ToPropertyName(parameter.Name);
 			var parameterLocation = parameter.Locations.FirstOrDefault() ?? methodLocation;
+			var isComputedParameter = HasComputedAttribute(parameter);
 			var parameterTypeName = parameter.Type.ToDisplayString(
 				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
 					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
@@ -535,6 +541,22 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 			if (TryGetMetadataStoreSetting(parameter, out var storeMetadata))
 			{
+				if (isComputedParameter)
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+							parameterLocation,
+							parameter.Name,
+							methodSymbol.Name,
+							classSymbol.Name,
+							"parameter cannot be marked with both [Metadata] and [Computed]"
+						)
+					);
+					hasErrors = true;
+					continue;
+				}
+
 				parameters.Add(
 					new EventPropertyInfo(
 						parameter.Name,
@@ -545,7 +567,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 						storeMetadata,
 						parameterTypeName,
 						parameter.Type.SpecialType == SpecialType.System_String,
-						EventParameterConversionKind.None
+						EventParameterConversionKind.None,
+						isComputed: false
 					)
 				);
 				continue;
@@ -662,7 +685,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					propertyTypeName,
 					parameter.Type.SpecialType == SpecialType.System_String
 						&& propertySymbol.Type.SpecialType == SpecialType.System_String,
-					conversionKind.Value
+					conversionKind.Value,
+					isComputed: isComputedParameter
 				)
 			);
 		}
@@ -927,6 +951,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				storeMetadata = value;
 
 			return true;
+		}
+
+		return false;
+	}
+
+	static bool HasComputedAttribute(IParameterSymbol parameterSymbol)
+	{
+		foreach (var attribute in parameterSymbol.GetAttributes())
+		{
+			var attributeClass = attribute.AttributeClass;
+			if (attributeClass is not null && attributeClass.ToDisplayString() == ComputedAttributeMetadataName)
+				return true;
 		}
 
 		return false;

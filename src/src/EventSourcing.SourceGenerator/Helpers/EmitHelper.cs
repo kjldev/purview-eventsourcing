@@ -242,6 +242,7 @@ static class EmitHelper
 	)
 	{
 		var paramList = new StringBuilder();
+		var computedParameters = method.Parameters.Where(static parameter => parameter.IsComputed).ToList();
 		var storedParameters = method.Parameters.Where(static parameter => parameter.IncludeInEvent).ToList();
 		for (var i = 0; i < method.Parameters.Count; i++)
 		{
@@ -263,6 +264,12 @@ static class EmitHelper
 
 			foreach (var prop in method.Parameters)
 			{
+				if (prop.IsComputed)
+				{
+					sb.AppendLine($"{indent}\t\tvar {GetLocalValueName(prop)} = {prop.ParameterName};");
+					continue;
+				}
+
 				if (prop.ParameterConversionKind is EventParameterConversionKind.None)
 					continue;
 
@@ -271,7 +278,11 @@ static class EmitHelper
 				);
 			}
 
-			if (method.Parameters.Any(static p => p.ParameterConversionKind is not EventParameterConversionKind.None))
+			if (
+				method.Parameters.Any(static p =>
+					p.IsComputed || p.ParameterConversionKind is not EventParameterConversionKind.None
+				)
+			)
 				sb.AppendLine();
 
 			foreach (var prop in mappedParameters)
@@ -281,6 +292,14 @@ static class EmitHelper
 
 			if (mappedParameters.Count > 0)
 				sb.AppendLine();
+		}
+
+		if (computedParameters.Count > 0)
+		{
+			sb.AppendLine(
+				$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(computedParameters)});"
+			);
+			sb.AppendLine();
 		}
 
 		EmitEventCreation(sb, method, storedParameters, indent, declareVariable: true);
@@ -295,6 +314,14 @@ static class EmitHelper
 		else
 		{
 			sb.AppendLine($"{indent}\t\tOnRaising{hookSuffix}({BuildOnCreatingCallArgumentList(method.Parameters)});");
+		}
+
+		if (computedParameters.Count > 0)
+		{
+			sb.AppendLine();
+			sb.AppendLine(
+				$"{indent}\t\tOnComputing{hookSuffix}({BuildOnCreatingCallArgumentList(computedParameters)});"
+			);
 		}
 
 		sb.AppendLine();
@@ -326,6 +353,14 @@ static class EmitHelper
 
 		sb.AppendLine($"{indent}\t}}");
 		sb.AppendLine();
+
+		if (computedParameters.Count > 0)
+		{
+			EmitCa1822Suppression(sb, indent);
+			sb.AppendLine(
+				$"{indent}\tpartial void OnComputing{hookSuffix}({BuildOnCreatingDeclarationParameterList(computedParameters)});"
+			);
+		}
 
 		EmitCa1822Suppression(sb, indent);
 		if (method.Parameters.Count == 0)
@@ -466,9 +501,9 @@ static class EmitHelper
 	}
 
 	static string GetWorkingValueName(EventPropertyInfo parameter) =>
-		parameter.ParameterConversionKind is EventParameterConversionKind.None
-			? parameter.ParameterName
-			: GetLocalValueName(parameter);
+		parameter.IsComputed || parameter.ParameterConversionKind is not EventParameterConversionKind.None
+			? GetLocalValueName(parameter)
+			: parameter.ParameterName;
 
 	static void EmitNoChangeReturn(StringBuilder sb, EventMethodReturnKind returnKind, string indent, int indentDepth)
 	{

@@ -83,7 +83,8 @@ sealed class EventPropertyInfo(
 	bool includeInEvent,
 	string equalityComparerTypeName,
 	bool useStringOrdinalComparison,
-	EventParameterConversionKind parameterConversionKind
+	EventParameterConversionKind parameterConversionKind,
+	bool isComputed = false
 )
 {
 	public string ParameterName { get; } = parameterName;
@@ -105,6 +106,13 @@ sealed class EventPropertyInfo(
 	public bool UseStringOrdinalComparison { get; } = useStringOrdinalComparison;
 
 	public EventParameterConversionKind ParameterConversionKind { get; } = parameterConversionKind;
+
+	/// <summary>
+	/// Indicates this property is marked with [Computed] attribute.
+	/// Computed properties are not passed by the caller; instead, they are
+	/// computed via OnComputingXxxEvent hook before event creation.
+	/// </summary>
+	public bool IsComputed { get; } = isComputed;
 
 	public bool RequiresParameterToPropertyTypeConversion { get; } =
 		parameterConversionKind is not EventParameterConversionKind.None;
