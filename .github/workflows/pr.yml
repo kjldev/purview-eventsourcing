@@ -37,7 +37,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Download test result artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: pr-test-results

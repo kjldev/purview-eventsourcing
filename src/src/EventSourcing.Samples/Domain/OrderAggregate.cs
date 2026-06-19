@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Samples.ValueObjects;
 
@@ -22,7 +23,7 @@ public sealed partial class OrderAggregate : AggregateBase
 	[Range(0, double.MaxValue)]
 	public decimal TotalAmount { get; private set; }
 
-	public List<OrderLineItem> LineItems { get; private set; } = [];
+	public EventStoreList<OrderLineItem> LineItems { get; private set; } = new();
 
 	public string? ShippingAddress { get; private set; }
 
@@ -74,7 +75,10 @@ public sealed partial class OrderAggregate : AggregateBase
 		if (existingLineItem is null)
 			updatedLineItems.Add(new OrderLineItem(productId, productName, quantity, unitPrice));
 
-		return AddLineItem(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
+		return AddLineItem(
+			new EventStoreList<OrderLineItem>(updatedLineItems),
+			totalAmount: CalculateTotalAmount(updatedLineItems)
+		);
 	}
 
 	/// <summary>
@@ -87,7 +91,10 @@ public sealed partial class OrderAggregate : AggregateBase
 
 		var updatedLineItems = LineItems.Where(li => li.ProductId != productId).ToList();
 
-		return RemoveLineItem(updatedLineItems, totalAmount: CalculateTotalAmount(updatedLineItems));
+		return RemoveLineItem(
+			new EventStoreList<OrderLineItem>(updatedLineItems),
+			totalAmount: CalculateTotalAmount(updatedLineItems)
+		);
 	}
 
 	static decimal CalculateTotalAmount(IEnumerable<OrderLineItem> lineItems) =>
@@ -97,10 +104,10 @@ public sealed partial class OrderAggregate : AggregateBase
 	public partial OrderAggregate CreateOrder(string customerId);
 
 	[GenerateAggregateEvent]
-	public partial OrderAggregate AddLineItem(List<OrderLineItem> lineItems, decimal totalAmount);
+	public partial OrderAggregate AddLineItem(EventStoreList<OrderLineItem> lineItems, decimal totalAmount);
 
 	[GenerateAggregateEvent]
-	public partial OrderAggregate RemoveLineItem(List<OrderLineItem> lineItems, decimal totalAmount);
+	public partial OrderAggregate RemoveLineItem(EventStoreList<OrderLineItem> lineItems, decimal totalAmount);
 
 	[GenerateAggregateEvent]
 	public partial OrderAggregate SetShippingAddress(string? shippingAddress);

@@ -6,7 +6,7 @@ namespace Purview.EventSourcing.Samples.Domain;
 [GenerateAggregate]
 public sealed partial class SnapshotValueObjectsAggregate : AggregateBase
 {
-	public UserDetails UserDetails { get; private set; } = UserDetails.Hydrate(Guid.Empty, string.Empty);
+	public UserDetails UserDetails { get; private set; } = UserDetails.Hydrate(Guid.Empty, string.Empty, true);
 
 	public UserDetails2 UserDetails2 { get; private set; } = UserDetails2.Hydrate(Guid.Empty, string.Empty);
 

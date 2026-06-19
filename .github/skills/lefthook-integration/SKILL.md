@@ -1,17 +1,9 @@
 ---
-name: Lefthook Integration
+name: lefthook-integration
 description: Lefthook Git hook integration.
-category: devops
-roles:
-  - lefthook
-  - lefthook-integration
-  - devops
-tags:
-  - git-hooks
-  - lefthook
 ---
 
-# Lefthook Integration Skill
+# lefthook-integration Skill
 
 Use this skill for repo-local Git hook setup.
 

@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.0.0-prerelease.12
+
+### Patch Changes
+
+- Fixed the lack of code-gen attributes on the CollectionEventOperation enum
+
+## 2.0.0-prerelease.11
+
+### Patch Changes
+
+- Added support for auto-generated mutation events on lists and sets
+
+## 2.0.0-prerelease.10
+
+### Patch Changes
+
+- Added specific list and set types to provide readonly proprties but still support EF etc
+
+## 2.0.0-prerelease.9
+
+### Patch Changes
+
+- Removed OnComputed{Event} partials and added Empty generation
+
+## 2.0.0-prerelease.8
+
+### Patch Changes
+
+- - Fixed OnRaising{Event} partial method generation for methods with computed parameters
+  - Added partial method generation for OnCompl(ing|d){Event} methods
+
+## 2.0.0-prerelease.7
+
+### Patch Changes
+
+- Added computed values, enabling deterministic side-effects
+
 ## 2.0.0-prerelease.6
 
 ### Patch Changes

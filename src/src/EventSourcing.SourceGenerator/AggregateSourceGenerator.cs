@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using Purview.EventSourcing.SourceGenerator.Helpers;
 using Purview.EventSourcing.SourceGenerator.Templates;
 
@@ -16,13 +17,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		"Purview.EventSourcing.Aggregates.GenerateAggregateDefaultsAttribute";
 	const string GenerateAggregateEventAttributeName =
 		"Purview.EventSourcing.Aggregates.GenerateAggregateEventAttribute";
+	const string GenerateAggregateCollectionEventAttributeName =
+		"Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEventAttribute";
 	const string AggregatePropertyAttributeMetadataName = "Purview.EventSourcing.Aggregates.AggregatePropertyAttribute";
 	const string MetadataAttributeMetadataName = "Purview.EventSourcing.Aggregates.MetadataAttribute";
+	const string ComputedAttributeMetadataName = "Purview.EventSourcing.Aggregates.ComputedAttribute";
 	const string AggregateBaseMetadataName = "Purview.EventSourcing.Aggregates.AggregateBase";
 	const string EventBaseMetadataName = "Purview.EventSourcing.Aggregates.Events.EventBase";
 	const string IEventMetadataName = "Purview.EventSourcing.Aggregates.Events.IEvent";
 	const string ScalarAttributeMetadataName = "Purview.EventSourcing.Serialization.ScalarAttribute";
 	const string ValueObjectContextMetadataName = "Purview.EventSourcing.ValueObjects.ValueObjectContext`1";
+	const string EventStoreListMetadataName = "Purview.EventSourcing.EventStoreList<T>";
+	const string EventStoreSetMetadataName = "Purview.EventSourcing.EventStoreSet<T>";
 	const int HintNameHashHexLength = 16;
 	const string GeneratedSourceFileSuffix = ".g.cs";
 
@@ -48,6 +54,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				EmbeddedResources.LoadTemplate("GenerateAggregateAttribute")
 			);
 			ctx.AddSource(
+				"GenerateAggregateCollectionEventAttribute.g.cs",
+				EmbeddedResources.LoadTemplate("GenerateAggregateCollectionEventAttribute")
+			);
+			ctx.AddSource(
 				"GenerateAggregateDefaultsAttribute.g.cs",
 				EmbeddedResources.LoadTemplate("GenerateAggregateDefaultsAttribute")
 			);
@@ -56,6 +66,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);
 			ctx.AddSource("MetadataAttribute.g.cs", EmbeddedResources.LoadTemplate("MetadataAttribute"));
+			ctx.AddSource("ComputedAttribute.g.cs", EmbeddedResources.LoadTemplate("ComputedAttribute"));
 		});
 
 		// Opt-out: set <DisableEventSourcingSourceGenerator>true</DisableEventSourcingSourceGenerator> to skip generation.
@@ -89,6 +100,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			predicate: static (node, _) =>
 				node is TypeDeclarationSyntax typeDeclaration && typeDeclaration.BaseList is not null,
 			transform: static (ctx, _) => GetEventTypeValidationResult(ctx)
+		);
+
+		var computedParameterInvocations = context.SyntaxProvider.CreateSyntaxProvider(
+			predicate: static (node, _) => node is InvocationExpressionSyntax,
+			transform: static (ctx, ct) => GetComputedParameterInvocationValidationResult(ctx, ct)
+		);
+
+		var nullableScalarNullComparisons = context.SyntaxProvider.CreateSyntaxProvider(
+			predicate: static (node, _) =>
+				node is BinaryExpressionSyntax binary
+				&& (binary.IsKind(SyntaxKind.EqualsExpression) || binary.IsKind(SyntaxKind.NotEqualsExpression)),
+			transform: static (ctx, ct) => GetNullableScalarNullComparisonValidationResult(ctx, ct)
 		);
 
 		context.RegisterSourceOutput(
@@ -132,6 +155,121 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
 			}
 		);
+
+		context.RegisterSourceOutput(
+			computedParameterInvocations.Combine(isDisabled),
+			(spc, result) =>
+			{
+				var (validationResult, disabled) = result;
+				if (disabled)
+					return;
+
+				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
+			}
+		);
+
+		context.RegisterSourceOutput(
+			nullableScalarNullComparisons.Combine(isDisabled),
+			(spc, result) =>
+			{
+				var (validationResult, disabled) = result;
+				if (disabled)
+					return;
+
+				ReportDiagnostics(spc, validationResult.Diagnostics, _logger);
+			}
+		);
+	}
+
+	static EventMethodValidationResult GetComputedParameterInvocationValidationResult(
+		GeneratorSyntaxContext context,
+		CancellationToken ct
+	)
+	{
+		ct.ThrowIfCancellationRequested();
+		if (context.Node is not InvocationExpressionSyntax invocation)
+			return new([]);
+
+		if (context.SemanticModel.GetOperation(invocation, ct) is not IInvocationOperation invocationOperation)
+			return new([]);
+
+		var diagnostics = new List<Diagnostic>();
+		foreach (var argument in invocationOperation.Arguments)
+		{
+			ct.ThrowIfCancellationRequested();
+			if (argument.IsImplicit || argument.Parameter is null)
+				continue;
+
+			if (!HasComputedAttribute(argument.Parameter))
+				continue;
+
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.ComputedParameterCannotBeSetByCaller,
+					argument.Syntax.GetLocation(),
+					invocationOperation.TargetMethod.Name,
+					argument.Parameter.Name
+				)
+			);
+		}
+
+		return new([.. diagnostics]);
+	}
+
+	static EventMethodValidationResult GetNullableScalarNullComparisonValidationResult(
+		GeneratorSyntaxContext context,
+		CancellationToken ct
+	)
+	{
+		ct.ThrowIfCancellationRequested();
+		if (context.Node is not BinaryExpressionSyntax binaryExpression)
+			return new([]);
+
+		if (
+			!binaryExpression.IsKind(SyntaxKind.EqualsExpression)
+			&& !binaryExpression.IsKind(SyntaxKind.NotEqualsExpression)
+		)
+			return new([]);
+
+		var leftIsNull = binaryExpression.Left.IsKind(SyntaxKind.NullLiteralExpression);
+		var rightIsNull = binaryExpression.Right.IsKind(SyntaxKind.NullLiteralExpression);
+		if (leftIsNull == rightIsNull)
+			return new([]);
+
+		var enclosingType = context.SemanticModel.GetEnclosingSymbol(binaryExpression.SpanStart, ct)?.ContainingType;
+		if (enclosingType is null || !HasAttribute(enclosingType, GenerateAggregateAttributeName))
+			return new([]);
+
+		var checkedSide = leftIsNull ? binaryExpression.Right : binaryExpression.Left;
+		var checkedType = context.SemanticModel.GetTypeInfo(checkedSide, ct).Type as INamedTypeSymbol;
+		if (
+			checkedType is null
+			|| !checkedType.IsGenericType
+			|| checkedType.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T
+		)
+			return new([]);
+
+		if (checkedType.TypeArguments[0] is not INamedTypeSymbol underlyingType)
+			return new([]);
+
+		var isScalarValueObject = underlyingType
+			.GetAttributes()
+			.Any(attribute => attribute.AttributeClass?.ToDisplayString() == ScalarAttributeMetadataName);
+		if (!isScalarValueObject)
+			return new([]);
+
+		var recommendedComparison = binaryExpression.IsKind(SyntaxKind.EqualsExpression)
+			? $"{checkedSide} is null"
+			: $"{checkedSide} is not null";
+
+		return new([
+			Diagnostic.Create(
+				GeneratorDiagnostics.NullableScalarEqualityNullComparisonShouldUsePatternMatching,
+				binaryExpression.GetLocation(),
+				binaryExpression.ToString(),
+				recommendedComparison
+			),
+		]);
 	}
 
 	static AggregateGenerationResult GetAggregateGenerationResult(
@@ -149,9 +287,13 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 
 		var diagnostics = new List<Diagnostic>();
 		var canGenerate = true;
+		var shouldDeclareAggregateBase = false;
 		var compilation = ctx.SemanticModel.Compilation;
 		var aggregateBaseSymbol = compilation.GetTypeByMetadataName(AggregateBaseMetadataName);
 		var eventAttributeSymbol = compilation.GetTypeByMetadataName(GenerateAggregateEventAttributeName);
+		var collectionEventAttributeSymbol = compilation.GetTypeByMetadataName(
+			GenerateAggregateCollectionEventAttributeName
+		);
 		var valueObjectContextType = compilation.GetTypeByMetadataName(ValueObjectContextMetadataName);
 
 		var isPartial = false;
@@ -200,7 +342,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			canGenerate = false;
 		}
 
-		if (aggregateBaseSymbol is null || !InheritsFromAggregateBase(classSymbol, aggregateBaseSymbol))
+		if (aggregateBaseSymbol is null)
 		{
 			diagnostics.Add(
 				Diagnostic.Create(
@@ -210,6 +352,24 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				)
 			);
 			canGenerate = false;
+		}
+		else if (!InheritsFromAggregateBase(classSymbol, aggregateBaseSymbol))
+		{
+			if (HasNoDeclaredBaseClass(classSymbol))
+			{
+				shouldDeclareAggregateBase = true;
+			}
+			else
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.AggregateMustInheritAggregateBase,
+						syntax.Identifier.GetLocation(),
+						classSymbol.Name
+					)
+				);
+				canGenerate = false;
+			}
 		}
 
 		var registerEventsMethod = classSymbol
@@ -283,6 +443,19 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					);
 				}
 
+				if (IsCollectionLikeType(propertySymbol.Type) && !IsEventStoreCollectionType(propertySymbol.Type))
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections,
+							propertySymbol.Locations.FirstOrDefault(),
+							propertySymbol.Name,
+							classSymbol.Name,
+							propertySymbol.Type.ToDisplayString()
+						)
+					);
+				}
+
 				properties.Add(
 					new AggregateStatePropertyInfo(
 						propertySymbol.Name,
@@ -297,7 +470,13 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				continue;
 			}
 
-			if (member is IMethodSymbol methodSymbol && HasAttribute(methodSymbol, eventAttributeSymbol))
+			if (
+				member is IMethodSymbol methodSymbol
+				&& (
+					HasAttribute(methodSymbol, eventAttributeSymbol)
+					|| HasAttribute(methodSymbol, collectionEventAttributeSymbol)
+				)
+			)
 				attributedMethods.Add(methodSymbol);
 		}
 
@@ -386,6 +565,7 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 					namespaceName,
 					classSymbol.Name,
 					classSymbol.DeclaredAccessibility,
+					shouldDeclareAggregateBase,
 					properties,
 					methods,
 					invalidMethods,
@@ -460,6 +640,32 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		methodInfo = default!;
 		var hasErrors = false;
 		var methodLocation = methodSymbol.Locations.FirstOrDefault();
+		var eventAttribute = methodSymbol
+			.GetAttributes()
+			.FirstOrDefault(attribute =>
+				attribute.AttributeClass?.ToDisplayString() == GenerateAggregateEventAttributeName
+			);
+		var collectionEventAttribute = methodSymbol
+			.GetAttributes()
+			.FirstOrDefault(attribute =>
+				attribute.AttributeClass?.ToDisplayString() == GenerateAggregateCollectionEventAttributeName
+			);
+		var isCollectionEvent = collectionEventAttribute is not null;
+		var manualApply = false;
+
+		if (eventAttribute is not null && collectionEventAttribute is not null)
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.UnsupportedEventMethodSignature,
+					methodLocation,
+					methodSymbol.Name,
+					"methods cannot combine [GenerateAggregateEvent] and [GenerateAggregateCollectionEvent]"
+				)
+			);
+			return false;
+		}
+
 		if (!methodSymbol.IsPartialDefinition)
 		{
 			diagnostics.Add(
@@ -511,160 +717,14 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			if (parameter.RefKind != RefKind.None)
 				ReportUnsupportedSignature("ref, in, and out parameters are not supported");
 
-			if (parameter.IsParams)
+			if (parameter.IsParams && (!isCollectionEvent || parameter.Type is not IArrayTypeSymbol))
 				ReportUnsupportedSignature("params parameters are not supported");
 		}
 
-		if (hasErrors)
-			return false;
-
-		var parameters = new List<EventPropertyInfo>();
-		foreach (var parameter in methodSymbol.Parameters)
+		if (isCollectionEvent)
 		{
-			ct.ThrowIfCancellationRequested();
-
-			var aggregatePropertyName =
-				GetAggregatePropertyNameOverride(parameter) ?? EventPropertyInfo.ToPropertyName(parameter.Name);
-			var parameterLocation = parameter.Locations.FirstOrDefault() ?? methodLocation;
-			var parameterTypeName = parameter.Type.ToDisplayString(
-				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-				)
-			);
-
-			if (TryGetMetadataStoreSetting(parameter, out var storeMetadata))
-			{
-				parameters.Add(
-					new EventPropertyInfo(
-						parameter.Name,
-						parameterTypeName,
-						parameterTypeName,
-						aggregatePropertyName,
-						false,
-						storeMetadata,
-						parameterTypeName,
-						parameter.Type.SpecialType == SpecialType.System_String,
-						EventParameterConversionKind.None
-					)
-				);
-				continue;
-			}
-
-			if (!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var propertySymbol))
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
-						parameterLocation,
-						parameter.Name,
-						methodSymbol.Name,
-						classSymbol.Name,
-						$"property '{aggregatePropertyName}' does not exist"
-					)
-				);
-				hasErrors = true;
-				continue;
-			}
-
-			if (propertySymbol.SetMethod is null)
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
-						parameterLocation,
-						parameter.Name,
-						methodSymbol.Name,
-						classSymbol.Name,
-						$"property '{aggregatePropertyName}' does not have a setter"
-					)
-				);
-				hasErrors = true;
-				continue;
-			}
-
-			if (propertySymbol.SetMethod.IsInitOnly)
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
-						parameterLocation,
-						parameter.Name,
-						methodSymbol.Name,
-						classSymbol.Name,
-						$"property '{aggregatePropertyName}' is init-only"
-					)
-				);
-				hasErrors = true;
-				continue;
-			}
-
-			var propertyTypeName = propertySymbol.Type.ToDisplayString(
-				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-				)
-			);
-
-			var conversionKind = ResolveParameterConversionKind(
-				compilation,
-				classSymbol,
-				parameter.Type,
-				propertySymbol.Type,
-				valueObjectContextType
-			);
-			if (conversionKind is null)
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
-						parameterLocation,
-						parameter.Name,
-						methodSymbol.Name,
-						classSymbol.Name,
-						$"parameter type '{parameterTypeName}' cannot be mapped to property '{aggregatePropertyName}' of type '{propertyTypeName}' via implicit conversion or value-object Create(...)"
-					)
-				);
-				hasErrors = true;
-				continue;
-			}
-
-			// Warn when a non-nullable parameter maps to a nullable property via nullability widening.
-			// The generator works around this automatically (see ResolveParameterConversionKind), but
-			// the right long-term fix is to align the parameter's nullability with the property.
-			if (
-				conversionKind == EventParameterConversionKind.Implicit
-				&& SymbolEqualityComparer.Default.Equals(parameter.Type, propertySymbol.Type)
-				&& propertySymbol.Type.NullableAnnotation == NullableAnnotation.Annotated
-				&& parameter.Type.NullableAnnotation != NullableAnnotation.Annotated
-			)
-			{
-				diagnostics.Add(
-					Diagnostic.Create(
-						GeneratorDiagnostics.EventParameterNullabilityMismatch,
-						parameterLocation,
-						parameter.Name,
-						methodSymbol.Name,
-						aggregatePropertyName,
-						propertyTypeName
-					)
-				);
-			}
-
-			parameters.Add(
-				new EventPropertyInfo(
-					parameter.Name,
-					parameterTypeName,
-					propertyTypeName,
-					propertySymbol.Name,
-					true,
-					true,
-					propertyTypeName,
-					parameter.Type.SpecialType == SpecialType.System_String
-						&& propertySymbol.Type.SpecialType == SpecialType.System_String,
-					conversionKind.Value
-				)
-			);
+			if (methodSymbol.Parameters.Length != 1)
+				ReportUnsupportedSignature("collection event methods must have exactly one parameter");
 		}
 
 		if (hasErrors)
@@ -674,13 +734,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		var eventName = string.Empty;
 		var hasExplicitEventName = false;
 		string? eventNamespaceOverride = null;
-		foreach (var attribute in methodSymbol.GetAttributes())
+		AttributeData? activeAttribute = collectionEventAttribute ?? eventAttribute;
+		if (activeAttribute is not null)
 		{
-			var attributeClass = attribute.AttributeClass;
-			if (attributeClass is null || attributeClass.ToDisplayString() != GenerateAggregateEventAttributeName)
-				continue;
-
-			foreach (var namedArgument in attribute.NamedArguments)
+			foreach (var namedArgument in activeAttribute.NamedArguments)
 			{
 				if (namedArgument.Key == "Version" && namedArgument.Value.Value is int explicitVersion)
 				{
@@ -696,11 +753,234 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				}
 
 				if (namedArgument.Key == "EventNamespace" && namedArgument.Value.Value is string explicitEventNamespace)
+				{
 					eventNamespaceOverride = explicitEventNamespace;
+					continue;
+				}
+
+				if (namedArgument.Key == "Manual" && namedArgument.Value.Value is bool explicitManual)
+					manualApply = explicitManual;
+			}
+		}
+
+		var parameters = new List<EventPropertyInfo>();
+		CollectionEventInfo? collectionEvent = null;
+		if (isCollectionEvent)
+		{
+			if (
+				!TryCreateCollectionEventInfo(
+					methodSymbol,
+					collectionEventAttribute!,
+					propertySymbolsByName,
+					diagnostics,
+					out var collectionParameter,
+					out collectionEvent
+				)
+			)
+			{
+				return false;
 			}
 
-			break;
+			parameters.Add(collectionParameter);
 		}
+		else
+		{
+			foreach (var parameter in methodSymbol.Parameters)
+			{
+				ct.ThrowIfCancellationRequested();
+
+				var aggregatePropertyName =
+					GetAggregatePropertyNameOverride(parameter) ?? EventPropertyInfo.ToPropertyName(parameter.Name);
+				var parameterLocation = parameter.Locations.FirstOrDefault() ?? methodLocation;
+				var isComputedParameter = HasComputedAttribute(parameter);
+				var parameterTypeName = parameter.Type.ToDisplayString(
+					SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+						SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+							| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+					)
+				);
+
+				if (TryGetMetadataStoreSetting(parameter, out var storeMetadata))
+				{
+					if (isComputedParameter)
+					{
+						diagnostics.Add(
+							Diagnostic.Create(
+								GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+								parameterLocation,
+								parameter.Name,
+								methodSymbol.Name,
+								classSymbol.Name,
+								"parameter cannot be marked with both [Metadata] and [Computed]"
+							)
+						);
+						hasErrors = true;
+						continue;
+					}
+
+					parameters.Add(
+						new EventPropertyInfo(
+							parameter.Name,
+							parameterTypeName,
+							parameterTypeName,
+							aggregatePropertyName,
+							false,
+							storeMetadata,
+							parameterTypeName,
+							parameter.Type.SpecialType == SpecialType.System_String,
+							EventParameterConversionKind.None,
+							isComputed: false
+						)
+					);
+					continue;
+				}
+
+				if (
+					manualApply
+					&& (
+						!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var manualMappedProperty)
+						|| manualMappedProperty.SetMethod is null
+						|| manualMappedProperty.SetMethod.IsInitOnly
+					)
+				)
+				{
+					parameters.Add(
+						new EventPropertyInfo(
+							parameter.Name,
+							parameterTypeName,
+							parameterTypeName,
+							aggregatePropertyName,
+							false,
+							true,
+							parameterTypeName,
+							parameter.Type.SpecialType == SpecialType.System_String,
+							EventParameterConversionKind.None,
+							isComputed: isComputedParameter
+						)
+					);
+					continue;
+				}
+
+				if (!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var propertySymbol))
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+							parameterLocation,
+							parameter.Name,
+							methodSymbol.Name,
+							classSymbol.Name,
+							$"property '{aggregatePropertyName}' does not exist"
+						)
+					);
+					hasErrors = true;
+					continue;
+				}
+
+				if (propertySymbol.SetMethod is null)
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+							parameterLocation,
+							parameter.Name,
+							methodSymbol.Name,
+							classSymbol.Name,
+							$"property '{aggregatePropertyName}' does not have a setter"
+						)
+					);
+					hasErrors = true;
+					continue;
+				}
+
+				if (propertySymbol.SetMethod.IsInitOnly)
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+							parameterLocation,
+							parameter.Name,
+							methodSymbol.Name,
+							classSymbol.Name,
+							$"property '{aggregatePropertyName}' is init-only"
+						)
+					);
+					hasErrors = true;
+					continue;
+				}
+
+				var propertyTypeName = propertySymbol.Type.ToDisplayString(
+					SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+						SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+							| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+					)
+				);
+
+				var conversionKind = ResolveParameterConversionKind(
+					compilation,
+					classSymbol,
+					parameter.Type,
+					propertySymbol.Type,
+					valueObjectContextType
+				);
+				if (conversionKind is null)
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+							parameterLocation,
+							parameter.Name,
+							methodSymbol.Name,
+							classSymbol.Name,
+							$"parameter type '{parameterTypeName}' cannot be mapped to property '{aggregatePropertyName}' of type '{propertyTypeName}' via implicit conversion or value-object Create(...)"
+						)
+					);
+					hasErrors = true;
+					continue;
+				}
+
+				// Warn when a non-nullable parameter maps to a nullable property via nullability widening.
+				// The generator works around this automatically (see ResolveParameterConversionKind), but
+				// the right long-term fix is to align the parameter's nullability with the property.
+				if (
+					conversionKind == EventParameterConversionKind.Implicit
+					&& SymbolEqualityComparer.Default.Equals(parameter.Type, propertySymbol.Type)
+					&& propertySymbol.Type.NullableAnnotation == NullableAnnotation.Annotated
+					&& parameter.Type.NullableAnnotation != NullableAnnotation.Annotated
+				)
+				{
+					diagnostics.Add(
+						Diagnostic.Create(
+							GeneratorDiagnostics.EventParameterNullabilityMismatch,
+							parameterLocation,
+							parameter.Name,
+							methodSymbol.Name,
+							aggregatePropertyName,
+							propertyTypeName
+						)
+					);
+				}
+
+				parameters.Add(
+					new EventPropertyInfo(
+						parameter.Name,
+						parameterTypeName,
+						propertyTypeName,
+						propertySymbol.Name,
+						true,
+						true,
+						propertyTypeName,
+						parameter.Type.SpecialType == SpecialType.System_String
+							&& propertySymbol.Type.SpecialType == SpecialType.System_String,
+						conversionKind.Value,
+						isComputed: isComputedParameter
+					)
+				);
+			}
+		}
+
+		if (hasErrors)
+			return false;
 
 		if (hasExplicitEventName)
 		{
@@ -734,6 +1014,13 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		}
 		else
 		{
+			if (
+				isCollectionEvent
+				&& collectionEvent is not null
+				&& collectionEvent.ParameterShape == CollectionParameterShape.Array
+			)
+				eventName += "Array";
+
 			eventName += eventSuffix;
 		}
 
@@ -754,9 +1041,253 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			returnTypeName,
 			returnKind,
 			methodSymbol.DeclaredAccessibility,
-			version
+			version,
+			manualApply,
+			collectionEvent
 		);
 		return true;
+	}
+
+	static bool TryCreateCollectionEventInfo(
+		IMethodSymbol methodSymbol,
+		AttributeData collectionEventAttribute,
+		Dictionary<string, IPropertySymbol> propertySymbolsByName,
+		List<Diagnostic> diagnostics,
+		out EventPropertyInfo parameterInfo,
+		out CollectionEventInfo? collectionEvent
+	)
+	{
+		parameterInfo = default!;
+		collectionEvent = null;
+
+		var methodLocation = methodSymbol.Locations.FirstOrDefault();
+		if (methodSymbol.Parameters.Length != 1)
+			return false;
+
+		if (
+			collectionEventAttribute.ConstructorArguments.Length != 1
+			|| collectionEventAttribute.ConstructorArguments[0].Value is not string rawPropertyName
+			|| string.IsNullOrWhiteSpace(rawPropertyName)
+		)
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.UnsupportedEventMethodSignature,
+					methodLocation,
+					methodSymbol.Name,
+					"collection property name must be provided via [GenerateAggregateCollectionEvent(nameof(CollectionProperty))]"
+				)
+			);
+			return false;
+		}
+
+		var collectionPropertyName = rawPropertyName.Trim();
+		if (!propertySymbolsByName.TryGetValue(collectionPropertyName, out var collectionProperty))
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+					methodLocation,
+					methodSymbol.Parameters[0].Name,
+					methodSymbol.Name,
+					methodSymbol.ContainingType.Name,
+					$"collection property '{collectionPropertyName}' does not exist"
+				)
+			);
+			return false;
+		}
+
+		if (!TryGetCollectionDetails(collectionProperty.Type, out var elementType, out var isSet))
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.EventParameterMustMapToWritableProperty,
+					methodLocation,
+					methodSymbol.Parameters[0].Name,
+					methodSymbol.Name,
+					methodSymbol.ContainingType.Name,
+					$"collection property '{collectionPropertyName}' must use Purview.EventSourcing.EventStoreList<T> or Purview.EventSourcing.EventStoreSet<T>"
+				)
+			);
+			return false;
+		}
+
+		var parameter = methodSymbol.Parameters[0];
+		var parameterType = parameter.Type;
+		var parameterTypeName = parameterType.ToDisplayString(
+			SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+				SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+					| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+			)
+		);
+		var elementTypeName = elementType.ToDisplayString(
+			SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+				SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+					| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+			)
+		);
+
+		CollectionParameterShape parameterShape;
+		string eventPropertyTypeName;
+		if (SymbolEqualityComparer.Default.Equals(parameterType, elementType))
+		{
+			parameterShape = CollectionParameterShape.Single;
+			eventPropertyTypeName = elementTypeName;
+		}
+		else if (
+			parameterType is IArrayTypeSymbol arrayType
+			&& SymbolEqualityComparer.Default.Equals(arrayType.ElementType, elementType)
+		)
+		{
+			parameterShape = CollectionParameterShape.Array;
+			eventPropertyTypeName = $"{elementTypeName}[]";
+		}
+		else if (TryGetIEnumerableElementType(parameterType, out var enumerableElementType))
+		{
+			if (!SymbolEqualityComparer.Default.Equals(enumerableElementType, elementType))
+			{
+				diagnostics.Add(
+					Diagnostic.Create(
+						GeneratorDiagnostics.UnsupportedEventMethodSignature,
+						parameter.Locations.FirstOrDefault() ?? methodLocation,
+						methodSymbol.Name,
+						$"collection item type '{parameterTypeName}' does not match '{elementTypeName}'"
+					)
+				);
+				return false;
+			}
+
+			parameterShape = CollectionParameterShape.Enumerable;
+			eventPropertyTypeName = $"{elementTypeName}[]";
+		}
+		else
+		{
+			diagnostics.Add(
+				Diagnostic.Create(
+					GeneratorDiagnostics.UnsupportedEventMethodSignature,
+					parameter.Locations.FirstOrDefault() ?? methodLocation,
+					methodSymbol.Name,
+					$"collection methods only support '{elementTypeName}', '{elementTypeName}[]', or IEnumerable<{elementTypeName}> parameters"
+				)
+			);
+			return false;
+		}
+
+		parameterInfo = new EventPropertyInfo(
+			parameter.Name,
+			parameterTypeName,
+			eventPropertyTypeName,
+			collectionPropertyName,
+			hasAggregateProperty: false,
+			includeInEvent: true,
+			equalityComparerTypeName: eventPropertyTypeName,
+			useStringOrdinalComparison: false,
+			parameterConversionKind: EventParameterConversionKind.None,
+			isComputed: false,
+			isParams: parameter.IsParams
+		);
+
+		if (
+			!TryResolveCollectionMutationOperation(
+				methodSymbol,
+				collectionEventAttribute,
+				diagnostics,
+				methodLocation,
+				out var mutationOperation
+			)
+		)
+		{
+			return false;
+		}
+
+		collectionEvent = new CollectionEventInfo(
+			collectionPropertyName,
+			elementTypeName,
+			collectionProperty.Type.ToDisplayString(
+				SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+					SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+						| SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+				)
+			),
+			isSet,
+			mutationOperation,
+			parameterShape,
+			methodSymbol.Name
+		);
+
+		return true;
+	}
+
+	static bool TryResolveCollectionMutationOperation(
+		IMethodSymbol methodSymbol,
+		AttributeData collectionEventAttribute,
+		List<Diagnostic> diagnostics,
+		Location? methodLocation,
+		out CollectionMutationOperation operation
+	)
+	{
+		operation = CollectionMutationOperation.Add;
+
+		foreach (var namedArgument in collectionEventAttribute.NamedArguments)
+		{
+			if (namedArgument.Key != "Operation")
+				continue;
+
+			if (namedArgument.Value.Value is int operationValue)
+			{
+				if (operationValue == 1)
+				{
+					operation = CollectionMutationOperation.Add;
+					return true;
+				}
+
+				if (operationValue == 2)
+				{
+					operation = CollectionMutationOperation.Remove;
+					return true;
+				}
+			}
+
+			return TryInferCollectionMutationOperation(methodSymbol, diagnostics, methodLocation, out operation);
+		}
+
+		return TryInferCollectionMutationOperation(methodSymbol, diagnostics, methodLocation, out operation);
+	}
+
+	static bool TryInferCollectionMutationOperation(
+		IMethodSymbol methodSymbol,
+		List<Diagnostic> diagnostics,
+		Location? methodLocation,
+		out CollectionMutationOperation operation
+	)
+	{
+		operation = CollectionMutationOperation.Add;
+
+		if (methodSymbol.Name.StartsWith("Add", StringComparison.Ordinal))
+		{
+			operation = CollectionMutationOperation.Add;
+			return true;
+		}
+
+		if (
+			methodSymbol.Name.StartsWith("Remove", StringComparison.Ordinal)
+			|| methodSymbol.Name.StartsWith("Delete", StringComparison.Ordinal)
+		)
+		{
+			operation = CollectionMutationOperation.Remove;
+			return true;
+		}
+
+		diagnostics.Add(
+			Diagnostic.Create(
+				GeneratorDiagnostics.UnsupportedEventMethodSignature,
+				methodLocation,
+				methodSymbol.Name,
+				"collection event methods must begin with 'Add', 'Remove', or 'Delete', or explicitly set Operation = CollectionEventOperation.Add/Remove"
+			)
+		);
+
+		return false;
 	}
 
 	static EventParameterConversionKind? ResolveParameterConversionKind(
@@ -932,6 +1463,18 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		return false;
 	}
 
+	static bool HasComputedAttribute(IParameterSymbol parameterSymbol)
+	{
+		foreach (var attribute in parameterSymbol.GetAttributes())
+		{
+			var attributeClass = attribute.AttributeClass;
+			if (attributeClass is not null && attributeClass.ToDisplayString() == ComputedAttributeMetadataName)
+				return true;
+		}
+
+		return false;
+	}
+
 	static bool IsEventType(INamedTypeSymbol typeSymbol)
 	{
 		for (var current = typeSymbol; current is not null; current = current.BaseType)
@@ -1078,6 +1621,9 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 		return false;
 	}
 
+	static bool HasNoDeclaredBaseClass(INamedTypeSymbol classSymbol) =>
+		classSymbol.BaseType is null || classSymbol.BaseType.SpecialType == SpecialType.System_Object;
+
 	static string CreateHintName(INamedTypeSymbol classSymbol)
 	{
 		var symbolName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -1125,6 +1671,101 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			logger?.Diagnostic(diagnostic.GetMessage(CultureInfo.InvariantCulture));
 		}
 	}
+
+	static bool IsCollectionLikeType(ITypeSymbol typeSymbol)
+	{
+		if (typeSymbol is IArrayTypeSymbol)
+			return true;
+
+		if (typeSymbol.SpecialType == SpecialType.System_String)
+			return false;
+
+		if (typeSymbol is not INamedTypeSymbol namedType)
+			return false;
+
+		if (
+			namedType.IsGenericType
+			&& namedType.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
+		)
+			return true;
+
+		foreach (var interfaceSymbol in namedType.AllInterfaces)
+		{
+			if (
+				interfaceSymbol is INamedTypeSymbol namedInterface
+				&& namedInterface.IsGenericType
+				&& namedInterface.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
+			)
+				return true;
+		}
+
+		return false;
+	}
+
+	static bool TryGetCollectionDetails(ITypeSymbol typeSymbol, out ITypeSymbol elementType, out bool isSet)
+	{
+		elementType = null!;
+		isSet = false;
+
+		if (typeSymbol is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+			return false;
+
+		var definitionName = namedType.OriginalDefinition.ToDisplayString();
+		if (definitionName == EventStoreListMetadataName)
+		{
+			elementType = namedType.TypeArguments[0];
+			isSet = false;
+			return true;
+		}
+
+		if (definitionName == EventStoreSetMetadataName)
+		{
+			elementType = namedType.TypeArguments[0];
+			isSet = true;
+			return true;
+		}
+
+		return false;
+	}
+
+	static bool TryGetIEnumerableElementType(ITypeSymbol typeSymbol, out ITypeSymbol elementType)
+	{
+		elementType = null!;
+
+		if (
+			typeSymbol is INamedTypeSymbol namedType
+			&& namedType.IsGenericType
+			&& namedType.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T
+		)
+		{
+			elementType = namedType.TypeArguments[0];
+			return true;
+		}
+
+		if (typeSymbol is not INamedTypeSymbol interfaceCarrier)
+			return false;
+
+		foreach (var interfaceSymbol in interfaceCarrier.AllInterfaces)
+		{
+			if (
+				interfaceSymbol is INamedTypeSymbol enumerableInterface
+				&& enumerableInterface.IsGenericType
+				&& enumerableInterface.OriginalDefinition.SpecialType
+					== SpecialType.System_Collections_Generic_IEnumerable_T
+			)
+			{
+				elementType = enumerableInterface.TypeArguments[0];
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static bool IsEventStoreCollectionType(ITypeSymbol typeSymbol) =>
+		typeSymbol is INamedTypeSymbol namedType
+		&& namedType.IsGenericType
+		&& namedType.OriginalDefinition.ToDisplayString() is EventStoreListMetadataName or EventStoreSetMetadataName;
 
 	void ILogSupport.SetLogOutput(Action<string, OutputType> action) => _logger = new GenerationLogger(action);
 }

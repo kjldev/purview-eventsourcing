@@ -5,7 +5,18 @@
 namespace Purview.EventSourcing.Aggregates;
 
 /// <summary>
-/// Marks a method on a <see cref="GenerateAggregateAttribute"/>-decorated class
+/// Indicates the type of collection operation that a method represents when generating an event for a collection property.
+/// </summary>
+{{NonClassCodeGen}}
+enum CollectionEventOperation
+{
+	Auto = 0,
+	Add = 1,
+	Remove = 2,
+}
+
+/// <summary>
+/// Marks a method on a <see cref="GenerateAggregateCollectionEventAttribute"/>-decorated class
 /// as a command that should have an event class and registration generated.
 /// <para>
 /// The method parameters become the event's properties. The generator creates:
@@ -28,8 +39,16 @@ namespace Purview.EventSourcing.Aggregates;
 /// </remarks>
 {{CodeGen}}
 [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-sealed class GenerateAggregateEventAttribute : global::System.Attribute
+sealed class GenerateAggregateCollectionEventAttribute : global::System.Attribute
 {
+	public GenerateAggregateCollectionEventAttribute(string propertyName)
+	{
+		if (string.IsNullOrWhiteSpace(propertyName))
+			throw new global::System.ArgumentException("Property name cannot be null or whitespace.", nameof(propertyName));
+
+		PropertyName = propertyName;
+	}
+
 	/// <summary>
 	/// The schema version of the generated event class. Defaults to 1.
 	/// Increment when the event's properties change in a <b>breaking</b> way.
@@ -50,6 +69,18 @@ sealed class GenerateAggregateEventAttribute : global::System.Attribute
 	/// unless overridden at aggregate level.
 	/// </summary>
 	public string? EventNamespace { get; set; }
+
+	/// <summary>
+	/// The property name of the collection property on the aggregate that this method modifies.
+	/// </summary>
+	public string PropertyName { get; }
+
+	/// <summary>
+	/// Overrides collection mutation behavior. By default (<see cref="CollectionEventOperation.Auto"/>),
+	/// methods starting with <c>Add</c> are treated as add mutations and methods starting with
+	/// <c>Remove</c> or <c>Delete</c> are treated as remove mutations.
+	/// </summary>
+	public CollectionEventOperation Operation { get; set; } = CollectionEventOperation.Auto;
 
 	/// <summary>
 	/// Indicates whether the event's apply method should be generated manually instead of automatically.

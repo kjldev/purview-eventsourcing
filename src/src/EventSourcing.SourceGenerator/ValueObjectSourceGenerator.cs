@@ -235,6 +235,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		var typeName = typeModel.FullyQualifiedName;
 		var scalarTypeName = ToTypeName(scalarProperty.Type);
 		var compareParameterTypeName = scalarProperty.Type.IsReferenceType ? $"{scalarTypeName}?" : scalarTypeName;
+		var compareToSelfParameterTypeName = typeSymbol.TypeKind == TypeKind.Class ? $"{typeName}?" : typeName;
 		var scalarCanBeNull =
 			scalarProperty.Type.IsReferenceType
 			|| scalarProperty.Type.NullableAnnotation == NullableAnnotation.Annotated;
@@ -348,6 +349,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine();
 		}
 
+		if (options.GenerateEmpty && !HasMemberWithName(typeSymbol, "Empty"))
+		{
+			sb.AppendLine(
+				$"{indent}\tpublic static {typeName} Empty => Hydrate({GetEmptyValueExpression(scalarProperty.Type)});"
+			);
+			sb.AppendLine();
+		}
+
 		if (!tryCreateExists)
 		{
 			sb.AppendLine(
@@ -373,7 +382,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			if (!compareToSelfExists)
 			{
 				sb.AppendLine(
-					$"{indent}\tpublic int CompareTo({typeName} other) => CompareTo(other.{scalarPropertyName});"
+					typeSymbol.TypeKind == TypeKind.Class
+						? $@"{indent}	public int CompareTo({compareToSelfParameterTypeName} other)
+{indent}	{{
+{indent}		if (other is null)
+{indent}			return 1;
+{indent}		return CompareTo(other.{scalarPropertyName});
+{indent}	}}"
+						: $@"{indent}	public int CompareTo({compareToSelfParameterTypeName} other) => CompareTo(other.{scalarPropertyName});"
 				);
 			}
 
@@ -658,10 +674,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				propertyTypeNames.Zip(propertyNames, static (type, name) => $"{type} {ToCamelCase(name)}")
 			);
 			var createArgs = string.Join(", ", propertyNames.Select(ToCamelCase));
+			var normalizeInvocation =
+				propertyNames.Length == 0
+					? "OnNormalize();"
+					: $"OnNormalize(ref {string.Join(", ref ", propertyNames.Select(ToCamelCase))});";
 			sb.AppendLine(
 				$@"{indent}	public static {typeName} Create({createParams})
 {indent}	{{
-{indent}		OnNormalize(ref {string.Join(", ref ", propertyNames.Select(ToCamelCase))});
+{indent}		{normalizeInvocation}
 {indent}		var result = new {typeName}({createArgs});
 {indent}		result.OnValidate({createArgs});
 {indent}		return result;
@@ -696,6 +716,16 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 {indent}		return new({hydrateArgs});
 {indent}	}}"
 			);
+			sb.AppendLine();
+		}
+
+		if (options.GenerateEmpty && !HasMemberWithName(typeSymbol, "Empty"))
+		{
+			var emptyArgs = string.Join(
+				", ",
+				properties.Select(static property => GetEmptyValueExpression(property.Type))
+			);
+			sb.AppendLine($"{indent}\tpublic static {typeName} Empty => Hydrate({emptyArgs});");
 			sb.AppendLine();
 		}
 
@@ -1303,6 +1333,24 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 	static string ToCamelCase(string value) =>
 		string.IsNullOrEmpty(value) ? value : char.ToLowerInvariant(value[0]) + value.Substring(1);
 
+	static string GetEmptyValueExpression(ITypeSymbol typeSymbol)
+	{
+		if (typeSymbol.IsReferenceType)
+			return typeSymbol.NullableAnnotation == NullableAnnotation.Annotated ? "null" : "null!";
+
+		if (
+			typeSymbol is INamedTypeSymbol namedTypeSymbol
+			&& namedTypeSymbol.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+		)
+			return "null";
+
+		return typeSymbol.ToDisplayString() switch
+		{
+			"System.Guid" => "global::System.Guid.Empty",
+			_ => "default",
+		};
+	}
+
 	static IFieldSymbol[] GetEnumFields(ITypeSymbol enumTypeSymbol) =>
 		enumTypeSymbol
 			.GetMembers()
@@ -1353,6 +1401,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		bool generateEnumProperties,
 		bool generateImplicitFromPrimitive,
 		bool generateImplicitToPrimitive,
+		bool generateEmpty,
 		string deserializationMode
 	)
 	{
@@ -1369,6 +1418,8 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		public bool GenerateImplicitFromPrimitive { get; } = generateImplicitFromPrimitive;
 
 		public bool GenerateImplicitToPrimitive { get; } = generateImplicitToPrimitive;
+
+		public bool GenerateEmpty { get; } = generateEmpty;
 
 		public string DeserializationMode { get; } = deserializationMode;
 
@@ -1392,6 +1443,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				GetNamedBool(attribute.NamedArguments, "GenerateEnumProperties", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateImplicitFromPrimitive", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateImplicitToPrimitive", true),
+				GetNamedBool(attribute.NamedArguments, "GenerateEmpty", true),
 				GetDeserializationMode(attribute.NamedArguments, "DeserializationMode")
 			);
 		}
@@ -1401,6 +1453,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		bool generateJsonConverter,
 		bool generateComparable,
 		bool generateComparisonOperators,
+		bool generateEmpty,
 		string deserializationMode
 	)
 	{
@@ -1409,6 +1462,8 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		public bool GenerateComparable { get; } = generateComparable;
 
 		public bool GenerateComparisonOperators { get; } = generateComparisonOperators;
+
+		public bool GenerateEmpty { get; } = generateEmpty;
 
 		public string DeserializationMode { get; } = deserializationMode;
 
@@ -1423,6 +1478,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				GetNamedBool(attribute.NamedArguments, "GenerateJsonConverter", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateComparable", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateComparisonOperators", true),
+				GetNamedBool(attribute.NamedArguments, "GenerateEmpty", true),
 				GetDeserializationMode(attribute.NamedArguments, "DeserializationMode")
 			);
 		}

@@ -101,6 +101,24 @@ static class GeneratorDiagnostics
 		title: "Aggregate property setters should be private",
 		messageFormat: "Aggregate property '{0}' on '{1}' has a non-private setter ('{2}'). Event-sourced aggregate state should use private setters.",
 		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor AggregatePropertyCollectionTypeMustUseEventStoreCollections = new(
+		id: "EVENTSTORE018",
+		title: "Aggregate collection properties must use EventStore collections",
+		messageFormat: "Aggregate property '{0}' on '{1}' has unsupported collection type '{2}'. Collection and array properties must use Purview.EventSourcing.EventStoreList<T> or Purview.EventSourcing.EventStoreSet<T>.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor NullableScalarEqualityNullComparisonShouldUsePatternMatching = new(
+		id: "EVENTSTORE019",
+		title: "Use pattern matching for nullable scalar null checks",
+		messageFormat: "Nullable scalar value object comparison '{0}' can trigger CS9342 due to overloaded equality operators. Use '{1}' instead.",
+		category: Category,
 		defaultSeverity: DiagnosticSeverity.Warning,
 		isEnabledByDefault: true
 	);
@@ -120,6 +138,15 @@ static class GeneratorDiagnostics
 		messageFormat: "Parameter '{0}' on '{1}' is non-nullable but maps to nullable aggregate property '{2}'. Consider declaring the parameter as '{3}' to match the property and avoid generated CS8600 warnings.",
 		category: Category,
 		defaultSeverity: DiagnosticSeverity.Info,
+		isEnabledByDefault: true
+	);
+
+	public static readonly DiagnosticDescriptor ComputedParameterCannotBeSetByCaller = new(
+		id: "EVENTSTORE017",
+		title: "Computed parameter cannot be set by caller",
+		messageFormat: "Method '{0}' cannot set computed parameter '{1}'. Omit this argument so the aggregate computes it.",
+		category: Category,
+		defaultSeverity: DiagnosticSeverity.Error,
 		isEnabledByDefault: true
 	);
 

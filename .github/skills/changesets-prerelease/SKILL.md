@@ -1,14 +1,6 @@
 ---
 name: changesets-prerelease
 description: Create and apply a prerelease bump using Changesets CLI.
-category: release
-roles:
-  - release
-  - changesets-prerelease
-tags:
-  - changesets
-  - versioning
-  - prerelease
 ---
 
 # Changesets Prerelease Skill

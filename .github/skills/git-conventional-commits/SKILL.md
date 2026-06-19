@@ -1,13 +1,6 @@
 ---
-name: Git Conventional Commits
+name: git-conventional-commits
 description: Git workflow and conventional commit guidance.
-category: git
-roles:
-  - git
-  - git-conventional-commits
-tags:
-  - git
-  - conventional-commits
 ---
 
 # Git Conventional Commits Skill

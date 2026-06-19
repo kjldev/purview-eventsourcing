@@ -5,11 +5,17 @@
     "purview-eventsourcing": "2.0.0-prerelease.0"
   },
   "changesets": [
+    "clean-papayas-hang",
+    "curvy-bushes-strive",
+    "eager-bikes-hope",
     "early-dryers-slide",
     "eight-walls-report",
     "famous-rice-enter",
     "pink-parks-brush",
     "shy-fans-show",
-    "tasty-moose-tickle"
+    "tasty-moose-tickle",
+    "two-moose-hug",
+    "wild-trees-shout",
+    "witty-chefs-find"
   ]
 }

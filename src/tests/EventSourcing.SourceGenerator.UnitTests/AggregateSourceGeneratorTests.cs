@@ -175,6 +175,396 @@ namespace Testing
 	}
 
 	[Test]
+	public async Task Generate_GivenComputedParameterIsExplicitlyPassed_ReportsDiagnostic(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		Uploaded,
+		Complete,
+		Failed
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial ReportUploadAggregate MarkAsCompleted(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+	}
+
+	public static class Caller
+	{
+		public static void Run(ReportUploadAggregate aggregate)
+		{
+			aggregate.MarkAsCompleted(""blob://1"", new object(), ReportProcessingStatus.Failed);
+		}
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert.That(diagnostics.Select(static d => d.Id)).Contains("EVENTSTORE017");
+	}
+
+	[Test]
+	public async Task Generate_GivenComputedParameterWithNoComputeHook_ReportsDiagnostic(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		Uploaded,
+		Complete,
+		Failed
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
+		public partial ReportUploadAggregate MarkAsCompleted(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE018");
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE019");
+	}
+
+	[Test]
+	public async Task Generate_GivenNullableScalarComparedToNullWithEquality_ReportsPatternMatchingWarning(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Serialization.Scalar]
+	public readonly partial record struct ProjectId
+	{
+		public string Value { get; }
+		private ProjectId(string value) => Value = value;
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Name { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetName(string name);
+
+		public bool ShouldClear(ProjectId? projectId) => projectId == null;
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert.That(diagnostics.Select(static d => d.Id)).Contains("EVENTSTORE019");
+		await Assert
+			.That(
+				diagnostics
+					.First(static d => d.Id == "EVENTSTORE019")
+					.GetMessage(System.Globalization.CultureInfo.InvariantCulture)
+			)
+			.Contains("is null");
+	}
+
+	[Test]
+	public async Task Generate_GivenNullableScalarComparedToNullWithPatternMatching_DoesNotReportWarning(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Serialization.Scalar]
+	public readonly partial record struct ProjectId
+	{
+		public string Value { get; }
+		private ProjectId(string value) => Value = value;
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Name { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetName(string name);
+
+		public bool ShouldClear(ProjectId? projectId) => projectId is null;
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE019");
+	}
+
+	[Test]
+	public async Task Generate_GivenComputedParameterWithOnlyOnComputingHook_DoesNotReportHookDiagnostics(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		Uploaded,
+		Complete,
+		Failed
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
+		public partial ReportUploadAggregate MarkAsCompleted(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+
+		partial void OnComputingCompletedEvent(ref ReportProcessingStatus status) => status = ReportProcessingStatus.Complete;
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
+		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE018");
+		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE019");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenComputedParameterWithInvalidOnComputingSignature_ReportsMissingHookDiagnostic(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		Uploaded,
+		Complete,
+		Failed
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
+		public partial ReportUploadAggregate MarkAsCompleted(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+
+		// Invalid: missing ref
+		partial void OnComputingCompletedEvent(ReportProcessingStatus status) { }
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE018");
+		await Assert.That(diagnostics.Select(static d => d.Id)).DoesNotContain("EVENTSTORE019");
+	}
+
+	[Test]
+	public async Task Generate_GivenComputedParameter_GeneratedSourceContainsComputingAndRaisingHookOverloads(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		Uploaded,
+		Complete,
+		Failed
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
+		public partial ReportUploadAggregate MarkAsCompleted(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+
+		partial void OnComputingCompletedEvent(ref ReportProcessingStatus status) => status = ReportProcessingStatus.Complete;
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert
+			.That(generatedSource)
+			.Contains("partial void OnComputingCompletedEvent(ref global::Testing.ReportProcessingStatus status);");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"partial void OnComputingCompletedEvent(ref string blob, ref object summary, ref global::Testing.ReportProcessingStatus status);"
+			);
+		await Assert
+			.That(generatedSource)
+			.Contains("partial void OnRaisingCompletedEvent(ref string blob, ref object summary);");
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"partial void OnRaisingCompletedEvent(ref string blob, ref object summary, ref global::Testing.ReportProcessingStatus status);"
+			);
+	}
+
+	[Test]
+	public async Task Generate_GivenComputedParameterWithOnlyOnComputingWithoutComputedValuesHook_DoesNotReportHookDiagnostics(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		Uploaded,
+		Complete,
+		Failed
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""CompletedEvent"")]
+		public partial ReportUploadAggregate MarkAsCompleted(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+
+		partial void OnComputingCompletedEvent(ref string blob, ref object summary)
+		{
+		}
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
+		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE018");
+		await Assert.That(diagnostics).DoesNotContain("EVENTSTORE019");
+	}
+
+	[Test]
+	public async Task Generate_GivenEventNameOverride_HookNamesUseOverriddenEventName(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public enum ReportProcessingStatus
+	{
+		None,
+		Complete
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ReportUploadAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Blob { get; private set; }
+		public object Summary { get; private set; }
+		public ReportProcessingStatus Status { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""MarkAsCompleted"")]
+		public partial ReportUploadAggregate MarkAsComplete(
+			string blob,
+			object summary,
+			[Purview.EventSourcing.Aggregates.Computed] ReportProcessingStatus status = default
+		);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert.That(generatedSource).Contains("OnComputingMarkAsCompletedEvent");
+		await Assert.That(generatedSource).Contains("OnRaisingMarkAsCompletedEvent");
+		await Assert.That(generatedSource).DoesNotContain("OnComputingMarkAsCompleted2Event");
+	}
+
+	[Test]
 	public async Task Generate_ProducesNoDiagnosticErrors(CancellationToken cancellationToken)
 	{
 		// Arrange
@@ -740,9 +1130,10 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenClassNotInheritingAggregateBase_DoesNotGenerate(CancellationToken cancellationToken)
+	public async Task Generate_GivenClassWithNoBaseClass_GeneratesAndAddsAggregateBaseToGeneratedPart(
+		CancellationToken cancellationToken
+	)
 	{
-		// Arrange
 		const string source =
 			@"
 namespace Testing
@@ -756,14 +1147,22 @@ namespace Testing
 }
 ";
 
-		// Act
-		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
 
-		// Assert — only attribute files, no generated aggregate
-		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCount);
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
+		await Assert
+			.That(generatedSource)
+			.Contains("public partial class NotAnAggregate : global::Purview.EventSourcing.Aggregates.AggregateBase");
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
-			.Contains("EVENTSTORE002");
+			.DoesNotContain("EVENTSTORE002");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
 	}
 
 	[Test]
@@ -799,6 +1198,49 @@ namespace Testing
 		await Assert
 			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
 			.Contains("EVENTSTORE007");
+	}
+
+	[Test]
+	public async Task Generate_GivenClassWithOnlyInterfaces_GeneratesAndAddsAggregateBaseToGeneratedPart(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public interface ITaggable
+	{
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class InterfaceOnlyAggregate : ITaggable
+	{
+		public string Value { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void SetValue(string value);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public partial class InterfaceOnlyAggregate : global::Purview.EventSourcing.Aggregates.AggregateBase"
+			);
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.DoesNotContain("EVENTSTORE002");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
 	}
 
 	[Test]
@@ -1326,32 +1768,38 @@ namespace Testing
 	}
 
 	[Test]
-	public async Task Generate_GivenNonPrivateAggregatePropertySetter_ReportsWarning(
+	[Arguments("set")]
+	[Arguments("protected set")]
+	[Arguments("internal set")]
+	[Arguments("protected internal set")]
+	[Arguments("private protected set")]
+	public async Task Generate_GivenAggregatePropertySetterIsNotPrivate_ReportsError(
+		string setterAccess,
 		CancellationToken cancellationToken
 	)
 	{
-		const string source =
-			@"
+		var source =
+			$@"
 namespace Testing
-{
+{{
 	[Purview.EventSourcing.Aggregates.GenerateAggregate]
 	public partial class PublicSetterAggregate : Purview.EventSourcing.Aggregates.AggregateBase
-	{
-		public string Value { get; set; } = default!;
+	{{
+		public string Value {{ get; {setterAccess}; }} = default!;
 
 		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
 		public partial void SetValue(string value);
-	}
-}
+	}}
+}}
 ";
 
 		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
 		var diagnostics = GetGeneratorDiagnostics(result);
-		var warningIds = diagnostics
-			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning)
+		var errorIds = diagnostics
+			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
 			.Select(static diagnostic => diagnostic.Id);
 
-		await Assert.That(warningIds).Contains("EVENTSTORE011");
+		await Assert.That(errorIds).Contains("EVENTSTORE011");
 		await Assert
 			.That(
 				outputCompilation
@@ -2539,5 +2987,292 @@ namespace Testing
 		await Assert
 			.That(warnings.Select(static d => d.Id))
 			.DoesNotContain(GeneratorDiagnostics.EventParameterNullabilityMismatch.Id);
+	}
+
+	[Test]
+	[Arguments("System.Collections.Generic.List<string>")]
+	[Arguments("System.Collections.Generic.IList<string>")]
+	[Arguments("System.Collections.Generic.ICollection<string>")]
+	[Arguments("System.Collections.Generic.IReadOnlyList<string>")]
+	[Arguments("System.Collections.Generic.IReadOnlyCollection<string>")]
+	[Arguments("System.Collections.Generic.IEnumerable<string>")]
+	[Arguments("System.Collections.Generic.HashSet<string>")]
+	[Arguments("string[]")]
+	public async Task Generate_GivenNonEventStoreCollectionProperty_ReportsCollectionTypeError(
+		string collectionType,
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			$@"
+namespace Testing
+{{
+		[Purview.EventSourcing.Aggregates.GenerateAggregate]
+		public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+		{{
+			public {collectionType} Tags {{ get; private set; }}
+
+			[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+			public partial void SetTags({collectionType} tags);
+		}}
+}}
+";
+
+		var (result, _) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert
+			.That(diagnostics.Select(static d => d.Id))
+			.Contains(GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections.Id);
+		await Assert
+			.That(
+				diagnostics
+					.Where(static d =>
+						d.Id == GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections.Id
+					)
+					.Select(static d => d.Severity)
+			)
+			.Contains(DiagnosticSeverity.Error);
+	}
+
+	[Test]
+	[Arguments("Purview.EventSourcing.EventStoreList<string>")]
+	[Arguments("Purview.EventSourcing.EventStoreSet<string>")]
+	public async Task Generate_GivenEventStoreCollectionProperty_DoesNotReportCollectionTypeError(
+		string collectionType,
+		CancellationToken cancellationToken
+	)
+	{
+		var source =
+			$@"
+namespace Testing
+{{
+		[Purview.EventSourcing.Aggregates.GenerateAggregate]
+		public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+		{{
+			public {collectionType} Tags {{ get; private set; }} = new();
+
+			[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+			public partial void SetTags({collectionType} tags);
+		}}
+}}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result);
+
+		await Assert
+			.That(diagnostics.Select(static d => d.Id))
+			.DoesNotContain(GeneratorDiagnostics.AggregatePropertyCollectionTypeMustUseEventStoreCollections.Id);
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenCollectionEvents_UsesCollectionSemanticsAndSharedEnumerableHooks(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public Purview.EventSourcing.EventStoreSet<string> Tags { get; private set; } = [];
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags))]
+		public partial ItemAggregate AddTag(string tag);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags))]
+		public partial ItemAggregate AddTags(System.Collections.Generic.IEnumerable<string> tags);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags))]
+		public partial ItemAggregate AddTags(params string[] tags);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert.That(diagnostics).DoesNotContain(GeneratorDiagnostics.UnsupportedEventMethodSignature.Id);
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"partial void OnNormalizingAddTags(ref global::System.Collections.Generic.IEnumerable<string> tags);"
+			);
+		await Assert
+			.That(generatedSource)
+			.Contains("partial void OnValidatingAddTags(global::System.Collections.Generic.IEnumerable<string> tags);");
+		await Assert.That(generatedSource).Contains("if (Tags.Contains(__itemValue))");
+		await Assert
+			.That(generatedSource)
+			.Contains("var __eventItems = __itemsValue as string[] ?? [.. __itemsValue];");
+		await Assert
+			.That(generatedSource)
+			.Contains("((global::System.Collections.Generic.ICollection<string>)Tags).Add(__item);");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenManualEventAttribute_DisablesAutomaticApplyAndRequiresImplementation(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ManualAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public string Value { get; private set; } = string.Empty;
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent(EventName = ""ValueCommandAppliedEvent"", Manual = true)]
+		public partial void ApplyValueCommand(string input);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert
+			.That(generatedSource)
+			.Contains("private partial void Apply(global::Testing.ManualEvents.ValueCommandAppliedEvent @event);");
+		await Assert.That(generatedSource).DoesNotContain("Value = @event.Input;");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors.Select(static d => d.Id)).Contains("CS8795");
+	}
+
+	[Test]
+	public async Task Generate_GivenManualCollectionEventAttribute_DisablesAutomaticApplyAndRequiresImplementation(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ManualCollectionAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public Purview.EventSourcing.EventStoreList<string> Tags { get; private set; } = [];
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags), Manual = true)]
+		public partial void AddTag(string tag);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, false, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert
+			.That(generatedSource)
+			.Contains("private partial void Apply(global::Testing.ManualCollectionEvents.TagAddedEvent @event);");
+		await Assert
+			.That(generatedSource)
+			.DoesNotContain("((global::System.Collections.Generic.ICollection<string>)Tags).Add(");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors.Select(static d => d.Id)).Contains("CS8795");
+	}
+
+	[Test]
+	public async Task Generate_GivenCollectionRemoveMethodName_InfersRemoveMutationAndSkipsNoChangeEvents(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public Purview.EventSourcing.EventStoreSet<string> Tags { get; private set; } = [];
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags))]
+		public partial ItemAggregate RemoveTag(string tag);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert.That(diagnostics).DoesNotContain(GeneratorDiagnostics.UnsupportedEventMethodSignature.Id);
+		await Assert.That(generatedSource).Contains("if (!Tags.Contains(__itemValue))");
+		await Assert
+			.That(generatedSource)
+			.Contains("((global::System.Collections.Generic.ICollection<string>)Tags).Remove(@event.Tag);");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
+	public async Task Generate_GivenCollectionOperationOverride_UsesSpecifiedMutation(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class ItemAggregate : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+		public Purview.EventSourcing.EventStoreSet<string> Tags { get; private set; } = [];
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags), Operation = Purview.EventSourcing.Aggregates.CollectionEventOperation.Remove)]
+		public partial ItemAggregate ArchiveTag(string tag);
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateCollectionEvent(nameof(Tags), Operation = Purview.EventSourcing.Aggregates.CollectionEventOperation.Add)]
+		public partial ItemAggregate DeleteTag(string tag);
+	}
+}
+";
+
+		var (result, outputCompilation) = await GenerateAsync(source, false, cancellationToken);
+		var diagnostics = GetGeneratorDiagnostics(result).Select(static d => d.Id).ToArray();
+		var generatedSource = GetAggregateGeneratedSource(result);
+		await Assert.That(diagnostics).DoesNotContain(GeneratorDiagnostics.UnsupportedEventMethodSignature.Id);
+		await Assert.That(generatedSource).Contains("if (!Tags.Contains(__itemValue))");
+		await Assert.That(generatedSource).Contains("if (Tags.Contains(__itemValue))");
+		await Assert
+			.That(generatedSource)
+			.Contains("((global::System.Collections.Generic.ICollection<string>)Tags).Remove(@event.Tag);");
+		await Assert
+			.That(generatedSource)
+			.Contains("((global::System.Collections.Generic.ICollection<string>)Tags).Add(@event.Tag);");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
 	}
 }

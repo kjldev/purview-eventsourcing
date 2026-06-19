@@ -120,6 +120,41 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task Scalar_ClassReferenceType_GeneratesNullableCompareToSelfSignature(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public sealed partial record BlobUri
+				{
+					public string Value { get; }
+
+					static partial void OnValidate(string value)
+					{
+						System.ArgumentNullException.ThrowIfNull(value);
+					}
+
+					public static BlobUri Empty => Hydrate(null!);
+				}
+			}
+			""";
+
+		var (result, outputCompilation) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public int CompareTo(global::Testing.BlobUri? other)");
+
+		var errors = outputCompilation
+			.GetDiagnostics(cancellationToken)
+			.Where(static d => d.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+		await Assert.That(errors).IsEmpty();
+	}
+
+	[Test]
 	public async Task ScalarGeneration_GeneratesPrivateConstructorWhenMissing(CancellationToken cancellationToken)
 	{
 		const string source = """
@@ -158,6 +193,46 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 
 		await Assert.That(created).IsEqualTo("12345");
 		await Assert.That(hydrated).IsEqualTo("67890");
+	}
+
+	[Test]
+	public async Task ScalarGeneration_GeneratesEmptyByDefault(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar]
+				public sealed partial record BlobUri
+				{
+					public string Value { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public static global::Testing.BlobUri Empty => Hydrate(null!);");
+	}
+
+	[Test]
+	public async Task ScalarGeneration_CanDisableEmpty(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.Scalar(GenerateEmpty = false)]
+				public sealed partial record BlobUri
+				{
+					public string Value { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.BlobUri Empty =>");
 	}
 
 	[Test]
@@ -478,6 +553,98 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 
 		await Assert.That(areEqual).IsTrue();
 		await Assert.That(city).IsEqualTo("London");
+	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_GeneratesEmptyByDefault(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class UserDetails
+				{
+					public System.Guid Id { get; }
+
+					public string? Name { get; }
+
+					public bool IsActive { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert
+			.That(generatedSource)
+			.Contains(
+				"public static global::Testing.UserDetails Empty => Hydrate(global::System.Guid.Empty, null, default);"
+			);
+	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_WithoutProperties_GeneratesValidCreateAndJsonData(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class EmptyValueObject
+				{
+				}
+
+				public static class EmptyValueObjectHarness
+				{
+					public static bool RoundTripsAsEmptyJson()
+					{
+						var value = EmptyValueObject.Create();
+						var json = System.Text.Json.JsonSerializer.Serialize(value);
+						var deserialized = System.Text.Json.JsonSerializer.Deserialize<EmptyValueObject>(json)!;
+						return json == "{}" && value == deserialized;
+					}
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("public static global::Testing.EmptyValueObject Create()");
+		await Assert.That(generatedSource).Contains("OnNormalize();");
+		await Assert.That(generatedSource).DoesNotContain("OnNormalize(ref );");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.EmptyValueObjectHarness")!;
+		var roundTripsAsEmptyJson = (bool)harnessType.GetMethod("RoundTripsAsEmptyJson")!.Invoke(null, null)!;
+
+		await Assert.That(roundTripsAsEmptyJson).IsTrue();
+	}
+
+	[Test]
+	public async Task ComplexValueObjectGeneration_CanDisableEmpty(CancellationToken cancellationToken)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject(GenerateEmpty = false)]
+				public partial class UserDetails
+				{
+					public System.Guid Id { get; }
+
+					public string? Name { get; }
+
+					public bool IsActive { get; }
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).DoesNotContain("public static global::Testing.UserDetails Empty =>");
 	}
 
 	[Test]
