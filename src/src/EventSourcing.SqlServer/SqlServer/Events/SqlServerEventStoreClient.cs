@@ -232,12 +232,16 @@ sealed partial class SqlServerEventStoreClient
 		return await context.SaveChangesAsync(cancellationToken) > 0;
 	}
 
-	public async Task<int> DeleteByAggregateIdAsync(string aggregateId, CancellationToken cancellationToken = default)
+	public async Task<int> DeleteByAggregateIdAsync(
+		string aggregateId,
+		string aggregateType,
+		CancellationToken cancellationToken = default
+	)
 	{
 		await EnsureConfiguredAsync(cancellationToken);
 		await using var context = CreateContext();
 		var entities = await context
-			.EventStoreEntities.Where(x => x.AggregateId == aggregateId)
+			.EventStoreEntities.Where(x => x.AggregateId == aggregateId && x.AggregateType == aggregateType)
 			.ToListAsync(cancellationToken);
 		if (entities.Count == 0)
 			return 0;
@@ -275,6 +279,7 @@ sealed partial class SqlServerEventStoreClient
 
 	public async Task<RowData?> GetByAggregateIdAndEntityTypeAsync(
 		string aggregateId,
+		string aggregateType,
 		int entityType,
 		CancellationToken cancellationToken = default
 	)
@@ -283,12 +288,16 @@ sealed partial class SqlServerEventStoreClient
 		await using var context = CreateContext();
 		var entity = await context
 			.EventStoreEntities.AsNoTracking()
-			.SingleOrDefaultAsync(x => x.AggregateId == aggregateId && x.EntityType == entityType, cancellationToken);
+			.SingleOrDefaultAsync(
+				x => x.AggregateId == aggregateId && x.AggregateType == aggregateType && x.EntityType == entityType,
+				cancellationToken
+			);
 		return entity is null ? null : ToRow(entity);
 	}
 
 	public async Task<RowData?> GetByAggregateIdAndEntityTypeAsync(
 		string aggregateId,
+		string aggregateType,
 		int entityType,
 		SqlConnection connection,
 		SqlTransaction? transaction,
@@ -300,12 +309,16 @@ sealed partial class SqlServerEventStoreClient
 		await using var context = CreateContext(connection, transaction);
 		var entity = await context
 			.EventStoreEntities.AsNoTracking()
-			.SingleOrDefaultAsync(x => x.AggregateId == aggregateId && x.EntityType == entityType, cancellationToken);
+			.SingleOrDefaultAsync(
+				x => x.AggregateId == aggregateId && x.AggregateType == aggregateType && x.EntityType == entityType,
+				cancellationToken
+			);
 		return entity is null ? null : ToRow(entity);
 	}
 
 	public async IAsyncEnumerable<RowData> GetEventRangeAsync(
 		string aggregateId,
+		string aggregateType,
 		int versionFrom,
 		int versionTo,
 		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default
@@ -316,7 +329,11 @@ sealed partial class SqlServerEventStoreClient
 		var events = context
 			.EventStoreEntities.AsNoTracking()
 			.Where(x =>
-				x.AggregateId == aggregateId && x.EntityType == 1 && x.Version >= versionFrom && x.Version <= versionTo
+				x.AggregateId == aggregateId
+				&& x.AggregateType == aggregateType
+				&& x.EntityType == 1
+				&& x.Version >= versionFrom
+				&& x.Version <= versionTo
 			)
 			.OrderBy(x => x.Version)
 			.AsAsyncEnumerable();
@@ -327,6 +344,7 @@ sealed partial class SqlServerEventStoreClient
 
 	public async Task<List<string>> GetIdempotencyMarkerIdsByAggregateIdAsync(
 		string aggregateId,
+		string aggregateType,
 		CancellationToken cancellationToken = default
 	)
 	{
@@ -334,7 +352,7 @@ sealed partial class SqlServerEventStoreClient
 		await using var context = CreateContext();
 		return await context
 			.EventStoreEntities.AsNoTracking()
-			.Where(x => x.AggregateId == aggregateId && x.EntityType == 2)
+			.Where(x => x.AggregateId == aggregateId && x.AggregateType == aggregateType && x.EntityType == 2)
 			.Select(x => x.Id)
 			.ToListAsync(cancellationToken);
 	}

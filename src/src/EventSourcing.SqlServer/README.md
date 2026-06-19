@@ -30,6 +30,7 @@ builder.Services.AddSqlServerSnapshotQueryableEventStore();
 - SQL Server and Azure SQL configuration binding for both event and snapshot stores
 - Entity Framework-backed schema creation and CRUD paths
 - JSON-column-backed event and snapshot payload storage
+- Shared-table safety: when aggregate types share a table, event-stream reads and deletes are scoped by both aggregate id and aggregate type
 
 ## Payload shape
 
@@ -43,3 +44,4 @@ Unsupported shapes fail during model creation, including arrays and collection t
 
 - Repository README: https://github.com/kjldev/purview-eventsourcing/blob/main/README.md
 - SQL Server guide: https://github.com/kjldev/purview-eventsourcing/blob/main/docs/sql-server.md
+  - Includes behavior notes/caveats (`IsDeletedAsync` missing behavior, tolerant replay, principal requirements)

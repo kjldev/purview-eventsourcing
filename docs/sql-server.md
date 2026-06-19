@@ -21,7 +21,8 @@ Both stores create their tables automatically on first use (configurable) and us
 6. [Per-Aggregate Schema and Table Routing](#per-aggregate-schema-and-table-routing)
 7. [Event Schema Versioning](#event-schema-versioning)
 8. [Source Generator](#source-generator)
-9. [Connection String Examples](#connection-string-examples)
+9. [Behavior Notes and Caveats](#behavior-notes-and-caveats)
+10. [Connection String Examples](#connection-string-examples)
 
 ---
 
@@ -189,7 +190,7 @@ Both stores use a **single shared table** by default. All aggregate types are st
 [AggregateType] NVARCHAR(450)     Short name of the aggregate (e.g. "Order")
 [Version]       INT               Aggregate version at time of event
 [IsDeleted]     BIT               Soft-delete flag on the stream-version row
-[Payload]       NVARCHAR(MAX)     JSON payload (events and snapshots)
+[Payload]       JSON / NVARCHAR(MAX)  JSON payload (events and snapshots)
 [EventType]     NVARCHAR(450)     Mapped event type name (e.g. "Order.CreateOrder")
 [IdempotencyId] NVARCHAR(450)     Idempotency marker id
 [Timestamp]     DATETIMEOFFSET    UTC timestamp of the operation
@@ -204,6 +205,8 @@ Three covering indices are created automatically:
 | `IX_EventStore_AggregateType_EntityType` | `(AggregateType, EntityType, IsDeleted)` INCLUDE AggregateId | Aggregate ID enumeration |
 
 > The single-table design minimises DDL surface area and allows aggregates from different bounded contexts to share a connection pool and database.
+>
+> **Aggregate ID vs type scoping:** when multiple aggregate types share the same schema/table, event-stream read/delete queries scope by both `AggregateId` and `AggregateType`. If you isolate aggregate types by schema/table via `AggregateTableOverrides`, that physical separation provides the same isolation boundary.
 
 ---
 
@@ -381,6 +384,14 @@ public partial void CreateOrder(string customerId, decimal total, string currenc
 ```
 
 Generates `OrderCreated` with `SchemaVersion => 2`.
+
+---
+
+## Behavior Notes and Caveats
+
+- `IsDeletedAsync` throws when the aggregate does not exist (it does not return `false` for missing aggregates).
+- Event replay is tolerant by default: unknown or unappliable events are skipped, and stream version continues to advance.
+- Principal enforcement is enabled by default (`RequiresValidPrincipalIdentifier = true`), so save operations require the configured claim identifier to be present on the current principal.
 
 ---
 

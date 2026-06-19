@@ -37,7 +37,13 @@ partial class SqlServerEventStore<T>
 
 		var aggregateVersion = versionFrom;
 		var effectiveVersionTo = versionTo ?? int.MaxValue;
-		var entities = _client.GetEventRangeAsync(aggregateId, versionFrom, effectiveVersionTo, cancellationToken);
+		var entities = _client.GetEventRangeAsync(
+			aggregateId,
+			_aggregateTypeShortName,
+			versionFrom,
+			effectiveVersionTo,
+			cancellationToken
+		);
 		await foreach (var entity in entities)
 		{
 			var item = DeserializeEvent(entity, aggregateVersion);
