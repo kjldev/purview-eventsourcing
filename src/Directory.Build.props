@@ -1,6 +1,7 @@
 ﻿<Project>
 	<PropertyGroup>
 		<NamespacePrefix>Purview</NamespacePrefix>
+		<UsePackageJsonVersion>Strict</UsePackageJsonVersion>
 		<RepositoryUrl>https://github.com/kjldev/purview-eventsourcing</RepositoryUrl>
 	</PropertyGroup>
 

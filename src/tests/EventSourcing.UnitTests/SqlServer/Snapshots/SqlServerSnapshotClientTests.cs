@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using System.Reflection;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Serialization;
@@ -208,12 +207,11 @@ public sealed class SqlServerSnapshotClientTests
 
 	static void ValidateAggregatePayloadShape(Type aggregateType)
 	{
-		var method = typeof(SqlServerClient).GetMethod(
-			"ValidateAggregatePayloadShape",
-			BindingFlags.Static | BindingFlags.NonPublic
-		);
-		if (method is null)
-			throw new InvalidOperationException("Unable to locate ValidateAggregatePayloadShape via reflection.");
+		var method =
+			typeof(SqlServerClient).GetMethod(
+				"ValidateAggregatePayloadShape",
+				BindingFlags.Static | BindingFlags.NonPublic
+			) ?? throw new InvalidOperationException("Unable to locate ValidateAggregatePayloadShape via reflection.");
 
 		try
 		{

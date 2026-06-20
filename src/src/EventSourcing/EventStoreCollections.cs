@@ -15,10 +15,7 @@ public sealed class EventStoreList<T> : IList<T>, IReadOnlyList<T>, IList
 		_items = [];
 	}
 
-	public EventStoreList(int capacity)
-	{
-		_items = new List<T>(capacity);
-	}
+	public EventStoreList(int capacity) => _items = [with(capacity)];
 
 	public EventStoreList(IEnumerable<T> items)
 	{
@@ -123,8 +120,8 @@ public sealed class EventStoreSet<T> : IList<T>, IReadOnlySet<T>, IReadOnlyList<
 
 	public EventStoreSet(int capacity)
 	{
-		_items = new List<T>(capacity);
-		_set = new HashSet<T>();
+		_items = [with(capacity)];
+		_set = [];
 	}
 
 	public EventStoreSet(IEnumerable<T> items)
@@ -134,7 +131,7 @@ public sealed class EventStoreSet<T> : IList<T>, IReadOnlySet<T>, IReadOnlyList<
 	{
 		ArgumentNullException.ThrowIfNull(items);
 		_items = [];
-		_set = new HashSet<T>(comparer);
+		_set = [with(comparer)];
 
 		foreach (var item in items)
 			AddUnique(item);

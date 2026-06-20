@@ -929,16 +929,14 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		if (!property.IsImplicitlyDeclared)
 			return true;
 
-		if (!typeSymbol.IsRecord)
-			return false;
-
-		return typeSymbol
-			.InstanceConstructors.Where(static ctor => !ctor.IsStatic)
-			.SelectMany(static ctor => ctor.Parameters)
-			.Any(parameter =>
-				SymbolEqualityComparer.Default.Equals(parameter.Type, property.Type)
-				&& string.Equals(parameter.Name, property.Name, StringComparison.OrdinalIgnoreCase)
-			);
+		return typeSymbol.IsRecord
+			&& typeSymbol
+				.InstanceConstructors.Where(static ctor => !ctor.IsStatic)
+				.SelectMany(static ctor => ctor.Parameters)
+				.Any(parameter =>
+					SymbolEqualityComparer.Default.Equals(parameter.Type, property.Type)
+					&& string.Equals(parameter.Name, property.Name, StringComparison.OrdinalIgnoreCase)
+				);
 	}
 
 	static bool HasAttribute(INamedTypeSymbol typeSymbol, string metadataName) =>
@@ -1338,26 +1336,25 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		if (typeSymbol.IsReferenceType)
 			return typeSymbol.NullableAnnotation == NullableAnnotation.Annotated ? "null" : "null!";
 
-		if (
+		return
 			typeSymbol is INamedTypeSymbol namedTypeSymbol
 			&& namedTypeSymbol.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-		)
-			return "null";
-
-		return typeSymbol.ToDisplayString() switch
-		{
-			"System.Guid" => "global::System.Guid.Empty",
-			_ => "default",
-		};
+			? "null"
+			: typeSymbol.ToDisplayString() switch
+			{
+				"System.Guid" => "global::System.Guid.Empty",
+				_ => "default",
+			};
 	}
 
 	static IFieldSymbol[] GetEnumFields(ITypeSymbol enumTypeSymbol) =>
-		enumTypeSymbol
-			.GetMembers()
-			.OfType<IFieldSymbol>()
-			.Where(field => field.HasConstantValue && field.DeclaredAccessibility == Accessibility.Public)
-			.OrderBy(field => field.Locations.FirstOrDefault()?.SourceSpan.Start ?? int.MaxValue)
-			.ToArray();
+		[
+			.. enumTypeSymbol
+				.GetMembers()
+				.OfType<IFieldSymbol>()
+				.Where(field => field.HasConstantValue && field.DeclaredAccessibility == Accessibility.Public)
+				.OrderBy(field => field.Locations.FirstOrDefault()?.SourceSpan.Start ?? int.MaxValue),
+		];
 
 	static bool HasMemberWithName(INamedTypeSymbol typeSymbol, string name) =>
 		typeSymbol.GetMembers(name).Any(member => !member.IsImplicitlyDeclared);
