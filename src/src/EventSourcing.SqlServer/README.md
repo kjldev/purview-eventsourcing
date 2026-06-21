@@ -31,6 +31,7 @@ builder.Services.AddSqlServerSnapshotQueryableEventStore();
 - Entity Framework-backed schema creation and CRUD paths
 - JSON-column-backed event and snapshot payload storage
 - Shared-table safety: when aggregate types share a table, event-stream reads and deletes are scoped by both aggregate id and aggregate type
+- Tolerant replay for long-lived streams: integration-tested handling for unknown event types and schema-evolved/unappliable historical events
 
 ## Payload shape
 

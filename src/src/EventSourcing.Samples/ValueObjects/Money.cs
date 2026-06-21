@@ -15,10 +15,12 @@ public readonly partial record struct Money
 		Currency = currency;
 	}
 
-	public static Money Create(decimal amount, CurrencyCode currency)
+	partial void OnValidate(decimal amount, CurrencyCode currency)
 	{
-		return amount < 0
-			? throw new ArgumentOutOfRangeException(nameof(amount), "Amount cannot be negative.")
-			: new(amount, currency);
+		if (amount < 0)
+			throw new ArgumentOutOfRangeException(nameof(amount), "Amount cannot be negative.");
+
+		if (currency == CurrencyCode.Empty)
+			throw new ArgumentException("Currency cannot be empty.", nameof(currency));
 	}
 }

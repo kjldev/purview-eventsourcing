@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<IsTestProject>false</IsTestProject>
+		<DisableAutoInternalsVisibleTo>true</DisableAutoInternalsVisibleTo>
+		<DisableGenerateAssemblyInfoClass>true</DisableGenerateAssemblyInfoClass>
+		<IsPackable>false</IsPackable>
+		<NoWarn>$(NoWarn);TUnit0034</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EventSourcing.SqlServer\EventSourcing.SqlServer.csproj" />
+		<ProjectReference Include="..\..\src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+		<ProjectReference Include="..\SharedTestingFramework\SharedTestingFramework.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="NSubstitute" />
+	</ItemGroup>
+</Project>

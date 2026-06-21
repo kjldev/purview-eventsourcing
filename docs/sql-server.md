@@ -391,6 +391,11 @@ Generates `OrderCreated` with `SchemaVersion => 2`.
 
 - `IsDeletedAsync` throws when the aggregate does not exist (it does not return `false` for missing aggregates).
 - Event replay is tolerant by default: unknown or unappliable events are skipped, and stream version continues to advance.
+- Integration coverage includes replay compatibility scenarios for:
+  - **Unknown events** (event type name no longer resolvable): replay skips affected records and continues.
+  - **Schema-change style evolution** (event type still deserializes but is no longer applied/registered): replay logs `CannotApplyEvent` and continues.
+  - See: `src/tests/EventSourcing.IntegrationTests/SqlServer/Events/SqlServerEventStoreTests.cs`
+    and `src/tests/EventSourcing.IntegrationTests/SqlServer/Events/GenericSqlServerEventStoreTests.GetAsync.cs`.
 - Principal enforcement is enabled by default (`RequiresValidPrincipalIdentifier = true`), so save operations require the configured claim identifier to be present on the current principal.
 
 ---

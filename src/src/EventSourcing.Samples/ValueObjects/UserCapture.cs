@@ -7,6 +7,4 @@ public sealed partial record UserCapture(UserDetails User, DateTimeOffset Occurr
 {
 	public bool IsEssentialChange(UserCapture userDetails) =>
 		OccurredAt != userDetails?.OccurredAt || User.Id != userDetails?.User.Id;
-
-	public static UserCapture Empty => new(UserDetails.Empty, DateTimeOffset.MinValue);
 }

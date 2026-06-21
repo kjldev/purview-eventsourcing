@@ -38,8 +38,20 @@ public interface ISqlServerEventStoreTests
 		CancellationToken cancellationToken
 	);
 
+	Task GetAsync_GivenAnAggregateWithNonRegisteredEventType_RecreatesAggregateAndLogsCannotApplyEvent(
+		int eventsToCreate,
+		int numberOfOldEventsToCreate,
+		CancellationToken cancellationToken
+	);
+
 	Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
 		int eventsToCreate,
+		CancellationToken cancellationToken
+	);
+
+	Task GetAsync_GivenAnAggregateWithUnknownEventType_RecreatesAggregateAndLogsUnknown(
+		int eventsToCreate,
+		int numberOfOldEventsToCreate,
 		CancellationToken cancellationToken
 	);
 

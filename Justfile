@@ -17,13 +17,9 @@ event_sourcing_cosmosdb_project := root_folder + "/src/EventSourcing.CosmosDb/Ev
 event_sourcing_mongodb_project := root_folder + "/src/EventSourcing.MongoDB/EventSourcing.MongoDB.csproj"
 event_sourcing_sql_server_project := root_folder + "/src/EventSourcing.SqlServer/EventSourcing.SqlServer.csproj"
 
-event_sourcing_integration_tests_project := test_root + "/EventSourcing.IntegrationTests/EventSourcing.IntegrationTests.csproj"
-event_sourcing_samples_integration_tests_project := test_root + "/EventSourcing.Samples.IntegrationTests/EventSourcing.Samples.IntegrationTests.csproj"
-event_sourcing_samples_unit_tests_project := test_root + "/EventSourcing.Samples.UnitTests/EventSourcing.Samples.UnitTests.csproj"
-event_sourcing_samples_web_integration_tests_project := test_root + "/EventSourcing.Samples.Web.IntegrationTests/EventSourcing.Samples.Web.IntegrationTests.csproj"
-event_sourcing_source_generator_performance_tests_project := test_root + "/EventSourcing.SourceGenerator.PerformanceTests/EventSourcing.SourceGenerator.PerformanceTests.csproj"
-event_sourcing_source_generator_unit_tests_project := test_root + "/EventSourcing.SourceGenerator.UnitTests/EventSourcing.SourceGenerator.UnitTests.csproj"
-event_sourcing_unit_tests_project := test_root + "/EventSourcing.UnitTests/EventSourcing.UnitTests.csproj"
+event_sourcing_performance_tests := test_root + "/Purview.EventSourcing.PerformanceTests/Purview.EventSourcing.PerformanceTests.csproj"
+event_sourcing_integration_tests := root_folder + "/Purview.EventSourcing.IntegrationTests.slnf"
+event_sourcing_unit_tests := root_folder + "/Purview.EventSourcing.UnitTests.slnf"
 
 # Default recipe - list available recipes
 [private]
@@ -52,49 +48,20 @@ current_version:
 
 # Run all executable test projects under src/tests, excluding SharedTestingFramework
 test configuration=build_configuration:
-    @just test-project {{ event_sourcing_integration_tests_project }} {{ configuration }}
-    @just test-project {{ event_sourcing_samples_integration_tests_project }} {{ configuration }}
-    @just test-project {{ event_sourcing_samples_unit_tests_project }} {{ configuration }}
-    @just test-project {{ event_sourcing_samples_web_integration_tests_project }} {{ configuration }}
-    @just test-project {{ event_sourcing_source_generator_unit_tests_project }} {{ configuration }}
-    @just test-project {{ event_sourcing_unit_tests_project }} {{ configuration }}
-
-# Run tests with a TUnit treenode filter (e.g.: just test-filter "/*/*/*/MyTest*")
-test-filter filter configuration=build_configuration:
-    @just test-project-filter {{ event_sourcing_integration_tests_project }} "{{ filter }}" {{ configuration }}
-    @just test-project-filter {{ event_sourcing_samples_integration_tests_project }} "{{ filter }}" {{ configuration }}
-    @just test-project-filter {{ event_sourcing_samples_unit_tests_project }} "{{ filter }}" {{ configuration }}
-    @just test-project-filter {{ event_sourcing_samples_web_integration_tests_project }} "{{ filter }}" {{ configuration }}
-    @just test-project-filter {{ event_sourcing_source_generator_unit_tests_project }} "{{ filter }}" {{ configuration }}
-    @just test-project-filter {{ event_sourcing_unit_tests_project }} "{{ filter }}" {{ configuration }}
-    
-# Run tests serially (useful for debugging)
-test-serial configuration=build_configuration:
-    @just test-project-serial {{ event_sourcing_integration_tests_project }} {{ configuration }}
-    @just test-project-serial {{ event_sourcing_samples_integration_tests_project }} {{ configuration }}
-    @just test-project-serial {{ event_sourcing_samples_unit_tests_project }} {{ configuration }}
-    @just test-project-serial {{ event_sourcing_samples_web_integration_tests_project }} {{ configuration }}
-    @just test-project-serial {{ event_sourcing_source_generator_unit_tests_project }}
-    @just test-project-serial {{ event_sourcing_unit_tests_project }}
+    @just test-project {{ event_sourcing_integration_tests }} {{ configuration }}
+    @just test-project {{ event_sourcing_unit_tests }} {{ configuration }}
 
 # Run source generator performance harness (pass --benchmark for larger runs)
 perf-source-generator *args:
-    dotnet run --project {{ event_sourcing_source_generator_performance_tests_project }} --configuration {{ build_configuration }} -- {{ args }}
+    dotnet run {{ event_sourcing_performance_tests }} --configuration {{ build_configuration }} -- {{ args }}
 
-[private]
-test-project project configuration=build_configuration:
-    @echo "==> Testing {{ project }}"
-    dotnet test --project {{ project }} --configuration {{ configuration }}
+# Run SQL Server event/snapshot performance harness (pass --benchmark for larger runs)
+perf-sql-server *args:
+    dotnet run {{ event_sourcing_performance_tests }} --configuration {{ build_configuration }} -- {{ args }}
 
-[private]
-test-project-filter project filter configuration=build_configuration    :
+test-filter project filter="/*/*/*/*/" configuration=build_configuration:
     @echo "==> Testing {{ project }} with filter {{ filter }}"
-    dotnet test --project {{ project }} --configuration {{ configuration }} -- --treenode-filter "{{ filter }}"
-
-[private]
-test-project-serial project configuration=build_configuration:
-    @echo "==> Testing {{ project }} serially"
-    dotnet test --project {{ project }} --configuration {{ configuration }} -- --maximum-parallel-tests 1
+    dotnet test {{ project }} --configuration {{ configuration }} --treenode-filter "{{ filter }}"
 
 # Pack all packable projects using the version from package.json
 pack publish_folder=artifacts_folder version=current_version configuration=build_configuration:

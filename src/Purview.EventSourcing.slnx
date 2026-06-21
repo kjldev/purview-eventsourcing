@@ -32,11 +32,23 @@
 		<Project Path="src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
 	</Folder>
 	<Folder Name="/tests/">
-		<Project Path="tests\EventSourcing.IntegrationTests\EventSourcing.IntegrationTests.csproj" />
 		<Project Path="tests\EventSourcing.SourceGenerator.PerformanceTests\EventSourcing.SourceGenerator.PerformanceTests.csproj" />
 		<Project Path="tests\EventSourcing.SourceGenerator.UnitTests\EventSourcing.SourceGenerator.UnitTests.csproj" />
+		<Project Path="tests\EventSourcing.SqlServer.PerformanceTests\EventSourcing.SqlServer.PerformanceTests.csproj" />
 		<Project Path="tests\EventSourcing.UnitTests\EventSourcing.UnitTests.csproj" />
 		<Project Path="tests\SharedTestingFramework\SharedTestingFramework.csproj" />
+	</Folder>
+	<Folder Name="/tests/implementations/">
+		<Project Path="tests/EventSourcing.AzureStorage.IntegrationTests/EventSourcing.AzureStorage.IntegrationTests.csproj" />
+		<Project
+			Path="tests/EventSourcing.CosmosDb.IntegrationTests/EventSourcing.CosmosDb.IntegrationTests.csproj"
+			Id="99d1f503-f5c6-488b-ba4f-65d04678effd"
+		/>
+		<Project Path="tests/EventSourcing.MongoDB.IntegrationTests/EventSourcing.MongoDB.IntegrationTests.csproj" />
+		<Project
+			Path="tests/EventSourcing.SqlServer.IntegrationTests/EventSourcing.SqlServer.IntegrationTests.csproj"
+			Id="36e93dd0-ae05-4692-a398-12a4376ea052"
+		/>
 	</Folder>
 	<Folder Name="/tests/samples/">
 		<Project Path="tests/EventSourcing.Samples.AppHost.IntegrationTests/EventSourcing.Samples.AppHost.IntegrationTests.csproj" />

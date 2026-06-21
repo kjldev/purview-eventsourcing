@@ -1,26 +1,7 @@
-﻿namespace Purview.EventSourcing.AzureStorage;
+namespace Purview.EventSourcing.SqlServer.Events;
 
-partial class TableEventStoreTests
+partial class SqlServerEventStoreTests
 {
-	public static IEnumerable<(Type, int)> HighEventCountTestData()
-	{
-		const int maximum = StorageClients.Table.AzureTableClient.MaximumBatchSize;
-
-		List<(Type, int)> data = [];
-		foreach (var aggregateType in GetAggregateTestTypes())
-		{
-			data.Add((aggregateType, maximum - 2));
-			data.Add((aggregateType, maximum + (maximum / 2)));
-			data.Add((aggregateType, maximum * 2));
-			data.Add((aggregateType, maximum * 3));
-			data.Add((aggregateType, maximum * 4));
-			data.Add((aggregateType, maximum * 5));
-			data.Add((aggregateType, maximum * 9));
-		}
-
-		return data;
-	}
-
 	public static IEnumerable<(Type, int)> TooManyEventCountTestData()
 	{
 		List<(Type, int)> data = [];
@@ -52,20 +33,6 @@ partial class TableEventStoreTests
 		return data;
 	}
 
-	public static IEnumerable<(Type, int, int)> SteppedEventCountWithOldEventCountTestData()
-	{
-		List<(Type, int, int)> data = [];
-		foreach (var aggregateType in GetAggregateTestTypes())
-		{
-			data.Add((aggregateType, 1, 1));
-			data.Add((aggregateType, 5, 2));
-			data.Add((aggregateType, 10, 5));
-			data.Add((aggregateType, 20, 20));
-		}
-
-		return data;
-	}
-
 	public static IEnumerable<(Type, int, int, int?)> RequestedRangeOfEventsTestData()
 	{
 		List<(Type, int, int, int?)> data = [];
@@ -77,7 +44,6 @@ partial class TableEventStoreTests
 			data.Add((aggregateType, 10, 2, null));
 			data.Add((aggregateType, 15, 15, null));
 			data.Add((aggregateType, 15, 15, 15));
-			// Larger request than actual events exist.
 			data.Add((aggregateType, 5, 1, 20));
 			data.Add((aggregateType, 5, 1, 20000));
 		}
@@ -96,7 +62,6 @@ partial class TableEventStoreTests
 			data.Add((aggregateType, 10, 2, null, 9));
 			data.Add((aggregateType, 15, 15, null, 1));
 			data.Add((aggregateType, 15, 15, 15, 1));
-			// Larger request than actual events exist.
 			data.Add((aggregateType, 5, 1, 20, 5));
 			data.Add((aggregateType, 5, 1, 20000, 5));
 		}
@@ -118,7 +83,21 @@ partial class TableEventStoreTests
 		return data;
 	}
 
-	public static IEnumerable<(Type, int)> GetSnapshotEventCountTestData()
+	public static IEnumerable<(Type, int, int)> SteppedEventCountWithOldEventCountTestData()
+	{
+		List<(Type, int, int)> data = [];
+		foreach (var aggregateType in GetAggregateTestTypes())
+		{
+			data.Add((aggregateType, 1, 1));
+			data.Add((aggregateType, 5, 2));
+			data.Add((aggregateType, 10, 5));
+			data.Add((aggregateType, 20, 20));
+		}
+
+		return data;
+	}
+
+	public static IEnumerable<(Type, int)> SnapshotEventCountTestData()
 	{
 		List<(Type, int)> data = [];
 		foreach (var aggregateType in GetAggregateTestTypes())
@@ -136,16 +115,13 @@ partial class TableEventStoreTests
 	public static IEnumerable<Type> GetAggregateTestTypes()
 	{
 		List<Type> data = [];
-
 		data.Add(typeof(Aggregates.Persistence.PersistenceAggregate));
-
 		return data;
 	}
 
-	internal ITableEventStoreTests CreateTableStoreTests(Type aggregateType)
+	internal ISqlServerEventStoreTests CreateSqlServerStoreTests(Type aggregateType)
 	{
-		var testType = typeof(GenericTableEventStoreTests<>).MakeGenericType(aggregateType);
-
-		return (ITableEventStoreTests)Activator.CreateInstance(testType, args: [fixture])!;
+		var testType = typeof(GenericSqlServerEventStoreTests<>).MakeGenericType(aggregateType);
+		return (ISqlServerEventStoreTests)Activator.CreateInstance(testType, args: [fixture])!;
 	}
 }
