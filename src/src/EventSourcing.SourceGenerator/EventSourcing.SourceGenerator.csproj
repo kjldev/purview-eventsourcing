@@ -3,7 +3,6 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<DisableSourceLink>true</DisableSourceLink>
-		<IsPackable>false</IsPackable>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<!-- snupkg requires standard build output, which this analyzer package suppresses. -->

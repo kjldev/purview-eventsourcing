@@ -1,10 +1,8 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
-using NSubstitute;
-using NSubstitute.ReturnsExtensions;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Persistence;
@@ -201,8 +199,16 @@ sealed class SqlServerStorePerformanceRunner
 		CancellationToken cancellationToken = default
 	)
 	{
-		var customerStore = CreateCustomerSnapshotStore(connectionString, $"{tableName}_Customers");
-		var valueObjectStore = CreateSnapshotValueObjectsStore(connectionString, $"{tableName}_ValueObjects");
+		var customerStore = CreateCustomerSnapshotStore(
+			connectionString,
+			$"{tableName}_CustomerEvents",
+			$"{tableName}_Customers"
+		);
+		var valueObjectStore = CreateSnapshotValueObjectsStore(
+			connectionString,
+			$"{tableName}_SnapshotValueObjectEvents",
+			$"{tableName}_ValueObjects"
+		);
 
 		const int customerAggregateCount = 90;
 		const string matchingCustomerName = "complex customer";
@@ -339,16 +345,18 @@ sealed class SqlServerStorePerformanceRunner
 
 	static SqlServerSnapshotEventStore<CustomerAggregate> CreateCustomerSnapshotStore(
 		string connectionString,
+		string eventTableName,
 		string tableName
 	)
 	{
-		var innerEventStore = Substitute.For<INonQueryableEventStore<CustomerAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<CustomerAggregate>())
-			.Returns(static callInfo => callInfo.Arg<CustomerAggregate>());
+		var eventStore = CreateEventStore<CustomerAggregate>(
+			connectionString,
+			eventTableName,
+			snapshotInterval: 100_000
+		);
 
 		return new SqlServerSnapshotEventStore<CustomerAggregate>(
-			innerEventStore,
+			eventStore,
 			Options.Create(
 				new SqlServerSnapshotEventStoreOptions
 				{
@@ -358,22 +366,24 @@ sealed class SqlServerStorePerformanceRunner
 					AutoCreateTable = true,
 				}
 			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
+			NoOpProxyFactory.Create<ISqlServerSnapshotEventStoreTelemetry>()
 		);
 	}
 
 	static SqlServerSnapshotEventStore<SnapshotValueObjectsAggregate> CreateSnapshotValueObjectsStore(
 		string connectionString,
+		string eventTableName,
 		string tableName
 	)
 	{
-		var innerEventStore = Substitute.For<INonQueryableEventStore<SnapshotValueObjectsAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<SnapshotValueObjectsAggregate>())
-			.Returns(static callInfo => callInfo.Arg<SnapshotValueObjectsAggregate>());
+		var eventStore = CreateEventStore<SnapshotValueObjectsAggregate>(
+			connectionString,
+			eventTableName,
+			snapshotInterval: 100_000
+		);
 
 		return new SqlServerSnapshotEventStore<SnapshotValueObjectsAggregate>(
-			innerEventStore,
+			eventStore,
 			Options.Create(
 				new SqlServerSnapshotEventStoreOptions
 				{
@@ -383,15 +393,22 @@ sealed class SqlServerStorePerformanceRunner
 					AutoCreateTable = true,
 				}
 			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
+			NoOpProxyFactory.Create<ISqlServerSnapshotEventStoreTelemetry>()
 		);
 	}
 
 	static SqlServerEventStore<PersistenceAggregate> CreateEventStore(string connectionString, string tableName)
 	{
-		var cache = Substitute.For<IDistributedCache>();
-		cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).ReturnsNullForAnyArgs();
+		return CreateEventStore<PersistenceAggregate>(connectionString, tableName, snapshotInterval: 100_000);
+	}
 
+	static SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
+		string connectionString,
+		string tableName,
+		int snapshotInterval
+	)
+		where TAggregate : class, IAggregate, new()
+	{
 		var options = new SqlServerEventStoreOptions
 		{
 			ConnectionString = connectionString,
@@ -400,17 +417,17 @@ sealed class SqlServerStorePerformanceRunner
 			AutoCreateTable = true,
 			TimeoutInSeconds = 120,
 			CacheMode = EventStoreCachingOptions.None,
-			SnapshotInterval = 100_000,
+			SnapshotInterval = snapshotInterval,
 			RequiresValidPrincipalIdentifier = false,
 		};
 
-		return new SqlServerEventStore<PersistenceAggregate>(
+		return new SqlServerEventStore<TAggregate>(
 			eventNameMapper: new PerformanceAggregateEventNameMapper(),
 			sqlServerOptions: Options.Create(options),
-			distributedCache: cache,
-			eventStoreTelemetry: Substitute.For<ISqlServerEventStoreTelemetry>(),
-			aggregateChangeNotifier: Substitute.For<IAggregateChangeFeedNotifier<PersistenceAggregate>>(),
-			aggregateRequirementsManager: Substitute.For<IAggregateRequirementsManager>()
+			distributedCache: new NoOpDistributedCache(),
+			eventStoreTelemetry: NoOpProxyFactory.Create<ISqlServerEventStoreTelemetry>(),
+			aggregateChangeNotifier: new NoOpAggregateChangeFeedNotifier<TAggregate>(),
+			aggregateRequirementsManager: new NoOpAggregateRequirementsManager()
 		);
 	}
 
@@ -431,7 +448,7 @@ sealed class SqlServerStorePerformanceRunner
 					AutoCreateTable = true,
 				}
 			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
+			NoOpProxyFactory.Create<ISqlServerSnapshotEventStoreTelemetry>()
 		);
 	}
 
@@ -508,5 +525,98 @@ sealed class SqlServerStorePerformanceRunner
 
 		public string InitializeAggregate<T>()
 			where T : class, IAggregate, new() => new T().AggregateType;
+	}
+
+	sealed class NoOpAggregateRequirementsManager : IAggregateRequirementsManager
+	{
+		public void Fulfil(IAggregate aggregate) { }
+	}
+
+	sealed class NoOpAggregateChangeFeedNotifier<TAggregate> : IAggregateChangeFeedNotifier<TAggregate>
+		where TAggregate : class, IAggregate, new()
+	{
+		public Task BeforeSaveAsync(TAggregate aggregate, bool isNew, CancellationToken cancellationToken = default) =>
+			Task.CompletedTask;
+
+		public Task BeforeDeleteAsync(TAggregate aggregate, CancellationToken cancellationToken = default) =>
+			Task.CompletedTask;
+
+		public Task AfterSaveAsync(
+			TAggregate aggregate,
+			int previousSavedVersion,
+			bool isNew,
+			IEvent[] events,
+			CancellationToken cancellationToken = default
+		) => Task.CompletedTask;
+
+		public Task AfterDeleteAsync(TAggregate aggregate, CancellationToken cancellationToken = default) =>
+			Task.CompletedTask;
+
+		public Task FailureAsync(
+			TAggregate aggregate,
+			bool isDelete,
+			Exception exception,
+			CancellationToken cancellationToken = default
+		) => Task.CompletedTask;
+	}
+
+	sealed class NoOpDistributedCache : IDistributedCache
+	{
+		public byte[]? Get(string key) => null;
+
+		public Task<byte[]?> GetAsync(string key, CancellationToken token = default) => Task.FromResult<byte[]?>(null);
+
+		public void Set(string key, byte[] value, DistributedCacheEntryOptions options) { }
+
+		public Task SetAsync(
+			string key,
+			byte[] value,
+			DistributedCacheEntryOptions options,
+			CancellationToken token = default
+		) => Task.CompletedTask;
+
+		public void Refresh(string key) { }
+
+		public Task RefreshAsync(string key, CancellationToken token = default) => Task.CompletedTask;
+
+		public void Remove(string key) { }
+
+		public Task RemoveAsync(string key, CancellationToken token = default) => Task.CompletedTask;
+	}
+
+	static class NoOpProxyFactory
+	{
+		public static T Create<T>()
+			where T : class => DispatchProxy.Create<T, NoOpDispatchProxy>();
+	}
+
+	class NoOpDispatchProxy : DispatchProxy
+	{
+		protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+		{
+			if (targetMethod is null)
+				return null;
+
+			var returnType = targetMethod.ReturnType;
+
+			if (returnType == typeof(void))
+				return null;
+
+			if (returnType == typeof(Task))
+				return Task.CompletedTask;
+
+			if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+			{
+				var genericType = returnType.GetGenericArguments()[0];
+				var value = genericType.IsValueType ? Activator.CreateInstance(genericType) : null;
+				var method = typeof(Task).GetMethod(nameof(Task.FromResult))!.MakeGenericMethod(genericType);
+				return method.Invoke(null, [value]);
+			}
+
+			if (returnType.IsValueType)
+				return Activator.CreateInstance(returnType);
+
+			return null;
+		}
 	}
 }
