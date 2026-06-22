@@ -2384,6 +2384,47 @@ namespace Testing
 	}
 
 	[Test]
+	public async Task Generate_GivenAggregateWithMultiLevelTransitiveInheritance_GeneratesCode(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source =
+			@"
+namespace Testing
+{
+	public abstract class DomainAggregateBase : Purview.EventSourcing.Aggregates.AggregateBase
+	{
+	}
+
+	public abstract class BillingAggregateBase : DomainAggregateBase
+	{
+	}
+
+	[Purview.EventSourcing.Aggregates.GenerateAggregate]
+	public partial class InvoiceAggregate : BillingAggregateBase
+	{
+		public string InvoiceNumber { get; private set; }
+
+		[Purview.EventSourcing.Aggregates.GenerateAggregateEvent]
+		public partial void CreateInvoice(string invoiceNumber);
+	}
+}
+";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetAggregateGeneratedSource(result);
+
+		await Assert.That(result.GeneratedTrees).Count().IsEqualTo(ExpectedFileCountPlusGen);
+		await Assert.That(generatedSource).Contains("public sealed class InvoiceCreatedEvent");
+		await Assert
+			.That(generatedSource)
+			.Contains("Register<global::Testing.InvoiceEvents.InvoiceCreatedEvent>(Apply);");
+		await Assert
+			.That(GetGeneratorDiagnostics(result).Select(static diagnostic => diagnostic.Id))
+			.DoesNotContain("EVENTSTORE002");
+	}
+
+	[Test]
 	public async Task Generate_GivenNestedNamespace_GeneratesCorrectEventsNamespace(CancellationToken cancellationToken)
 	{
 		// Arrange — deeply nested namespace

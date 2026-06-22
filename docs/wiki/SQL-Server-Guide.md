@@ -20,7 +20,7 @@ Both stores create their tables automatically on first use (configurable) and us
 5. [Single-Table Design](#single-table-design)
 6. [Per-Aggregate Schema and Table Routing](#per-aggregate-schema-and-table-routing)
 7. [Event Schema Versioning](#event-schema-versioning)
-8. [Source Generator](#source-generator)
+8. [Snapshot Payload Shape](#snapshot-payload-shape)
 9. [Behavior Notes and Caveats](#behavior-notes-and-caveats)
 10. [Connection String Examples](#connection-string-examples)
 
@@ -329,61 +329,49 @@ void Apply(OrderCreated e)
 
 ---
 
-## Source Generator
+## Snapshot Payload Shape
 
-The source generator ships with `Purview.EventSourcing` and does not require a separate package.
-Add `Purview.EventSourcing` to your domain project:
+Snapshot payload is the fully serialized aggregate graph stored in a JSON payload column.
 
-```xml
-<PackageReference Include="Purview.EventSourcing" />
-```
+Supported members include:
 
-### Defining an aggregate
+- writable primitive members,
+- `[Scalar]` value objects,
+- complex objects composed of supported members,
+- `EventStoreList<T>` / `EventStoreSet<T>` collections of supported primitive/complex members.
+
+Unsupported members fail during model creation, including:
+
+- arrays,
+- collection types other than `EventStoreList<T>` / `EventStoreSet<T>` (for example `List<T>`, `IReadOnlyList<T>`, `IEnumerable<T>`, `HashSet<T>`, `ImmutableArray<T>`),
+- unsupported object types such as dictionaries.
+
+Read-only and `[JsonIgnore]` members are excluded from snapshot payload mapping.
+
+### Examples
 
 ```csharp
-using Purview.EventSourcing.Aggregates;
-
-[GenerateAggregate]
-public partial class OrderAggregate : AggregateBase
+// Supported snapshot shape
+public sealed class CustomerSnapshot
 {
-    // Properties are set by generated Apply methods
-    public string  CustomerId { get; private set; } = default!;
-    public decimal Total      { get; private set; }
-
-    // Declare commands as partial methods — the generator fills in the body
-    [GenerateAggregateEvent]
-    public partial void CreateOrder(string customerId, decimal total);
-
-    [GenerateAggregateEvent]
-    public partial void UpdateTotal(decimal total);
+    public string Name { get; set; } = string.Empty;
+    public EmailAddress Email { get; set; } = EmailAddress.Hydrate("demo@example.com"); // [Scalar]
+    public EventStoreList<OrderLineItem> Items { get; set; } = [];
+    public EventStoreSet<string> Tags { get; set; } = [];
 }
 ```
 
-The generator produces (in `OrderAggregate.g.cs`):
-
-- `Testing.Events.OrderCreated` — sealed class with `CustomerId` and `Total` properties, `BuildEventHash`, and `SchemaVersion`
-- `Testing.Events.TotalUpdated` — sealed class with `Total` property
-- `OrderAggregate.RegisterEvents()` — registers all events
-- `OrderAggregate.Apply(OrderCreated)` and `Apply(TotalUpdated)`
-- Implementations of the two partial command methods
-
-### Parameterless events
-
 ```csharp
-[GenerateAggregateEvent]
-public partial void Activate();
+// Unsupported snapshot shape (model validation fails)
+public sealed class CustomerSnapshot
+{
+    public List<OrderLineItem> Items { get; set; } = [];       // use EventStoreList<T>
+    public string[] Labels { get; set; } = [];                  // arrays unsupported
+    public Dictionary<string, string> Metadata { get; set; } = []; // dictionaries unsupported
+}
 ```
 
-Generates `OrderActivated` with no properties and `RecordAndApply(new OrderActivated())`.
-
-### Versioned events
-
-```csharp
-[GenerateAggregateEvent(Version = 2)]
-public partial void CreateOrder(string customerId, decimal total, string currency);
-```
-
-Generates `OrderCreated` with `SchemaVersion => 2`.
+For generator/framework behavior (aggregate inheritance paths, hooks, event naming/namespace, manual mode), see [Source Generator Behaviors](Source-Generator-Behaviors.md).
 
 ---
 
