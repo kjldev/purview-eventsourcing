@@ -25,6 +25,8 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 
 	internal SqlServerEventStoreClient Client { get; private set; } = default!;
 
+	public string ConnectionString => _msSqlContainer.GetConnectionString();
+
 	public SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
 		bool removeFromCacheOnDelete = false,

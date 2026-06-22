@@ -20,9 +20,10 @@ Both stores create their tables automatically on first use (configurable) and us
 5. [Single-Table Design](#single-table-design)
 6. [Per-Aggregate Schema and Table Routing](#per-aggregate-schema-and-table-routing)
 7. [Event Schema Versioning](#event-schema-versioning)
-8. [Snapshot Payload Shape](#snapshot-payload-shape)
-9. [Behavior Notes and Caveats](#behavior-notes-and-caveats)
-10. [Connection String Examples](#connection-string-examples)
+8. [SQL Transaction Coordination](#sql-transaction-coordination)
+9. [Snapshot Payload Shape](#snapshot-payload-shape)
+10. [Behavior Notes and Caveats](#behavior-notes-and-caveats)
+11. [Connection String Examples](#connection-string-examples)
 
 ---
 
@@ -329,6 +330,63 @@ void Apply(OrderCreated e)
 
 ---
 
+## SQL Transaction Coordination
+
+Use `ISqlServerEventStoreTransactionFactory` when you need one SQL Server transaction that includes:
+
+- multiple enlisted aggregates saved through SQL Server event stores,
+- extra ad-hoc SQL commands (for example audit/outbox inserts),
+- EF Core operations against the same SQL connection boundary.
+
+### Registration and usage
+
+`AddSqlServerEventStore()` registers `ISqlServerEventStoreTransactionFactory`.
+
+```csharp
+public sealed class CheckoutService(
+    ISqlServerEventStoreTransactionFactory sqlTransactionFactory,
+    IEventStore store)
+{
+    public async Task CheckoutAsync(OrderAggregate order, CancellationToken cancellationToken)
+    {
+        await using var tx = sqlTransactionFactory.CreateSqlServerTransaction();
+        tx.Enlist(order, store);
+
+        tx.Enlist(async (connection, sqlTransaction, token) =>
+        {
+            await using var cmd = new SqlCommand(
+                "INSERT INTO dbo.TransactionAudit(CorrelationId, Value) VALUES (@c, @v)",
+                connection,
+                sqlTransaction);
+            cmd.Parameters.AddWithValue("@c", tx.CorrelationId);
+            cmd.Parameters.AddWithValue("@v", "checkout");
+            await cmd.ExecuteNonQueryAsync(token);
+        });
+
+        var result = await tx.CommitAsync(cancellationToken);
+        if (!result.Success)
+            throw new InvalidOperationException("Transaction failed.");
+    }
+}
+```
+
+### Notes and limits
+
+- SQL-native atomic commit is available when enlisted stores share the same SQL transaction boundary.
+- If you need cross-database/distributed coordination, implement a custom transaction coordinator strategy.
+- The SQL-specific coordinator requires at least one enlisted aggregate (the aggregate store establishes the connection/transaction boundary).
+- `IEventStoreTransactionFactory` remains available and unchanged for provider-agnostic transaction orchestration.
+
+### Integration coverage
+
+`src/tests/EventSourcing.SqlServer.IntegrationTests/Events/SqlServerEventStoreTransactionIntegrationTests.cs` verifies:
+
+- aggregate + raw SQL operation commit in one transaction,
+- aggregate + EF operation commit in one transaction,
+- rollback of both aggregate and enlisted SQL when an enlisted operation throws.
+
+---
+
 ## Snapshot Payload Shape
 
 Snapshot payload is the fully serialized aggregate graph stored in a JSON payload column.
@@ -382,8 +440,8 @@ For generator/framework behavior (aggregate inheritance paths, hooks, event nami
 - Integration coverage includes replay compatibility scenarios for:
   - **Unknown events** (event type name no longer resolvable): replay skips affected records and continues.
   - **Schema-change style evolution** (event type still deserializes but is no longer applied/registered): replay logs `CannotApplyEvent` and continues.
-  - See: `src/tests/EventSourcing.IntegrationTests/SqlServer/Events/SqlServerEventStoreTests.cs`
-    and `src/tests/EventSourcing.IntegrationTests/SqlServer/Events/GenericSqlServerEventStoreTests.GetAsync.cs`.
+  - See: `src/tests/EventSourcing.SqlServer.IntegrationTests/Events/SqlServerEventStoreTests.cs`
+    and `src/tests/EventSourcing.SqlServer.IntegrationTests/Events/GenericSqlServerEventStoreTests.GetAsync.cs`.
 - Principal enforcement is enabled by default (`RequiresValidPrincipalIdentifier = true`), so save operations require the configured claim identifier to be present on the current principal.
 
 ---

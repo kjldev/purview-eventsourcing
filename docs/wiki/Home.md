@@ -19,4 +19,4 @@ This wiki-style documentation is the primary project documentation.
 - `On<Property>Changed` runs in `Apply(...)` (including replay); `On<Property>Changing` runs on command/event-raise path.
 - Event-specific hooks (`OnRaising...`, `OnRaised...`, `OnApplied...`) are event-scoped.
 - `Manual = true` methods are not auto-wired for property hooks unless invoked manually.
-
+- SQL Server guide includes SQL-specific transaction coordination (`ISqlServerEventStoreTransactionFactory`) for enlisting aggregate saves plus additional SQL/EF operations in one SQL transaction.
