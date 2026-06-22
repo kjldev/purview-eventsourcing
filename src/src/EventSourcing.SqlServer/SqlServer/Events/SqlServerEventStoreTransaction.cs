@@ -1,269 +1,373 @@
-//using System.Data.Common;
-//using Purview.EventSourcing.Aggregates;
-//using Purview.EventSourcing.Internal;
+using System.Data.Common;
+using System.Diagnostics;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Internal;
 
-//namespace Purview.EventSourcing.SqlServer.Events;
+namespace Purview.EventSourcing.SqlServer.Events;
 
-//sealed class SqlServerEventStoreTransaction(string? correlationId = null) : IEventStoreTransaction
-//{
-//	readonly List<IEnlistedAggregate> _enlisted = [];
-//	bool _committed;
-//	bool _disposed;
+/// <summary>
+/// A SQL Server transaction coordinator that supports event-store aggregate saves and
+/// additional SQL/EF work inside the same SQL transaction.
+/// </summary>
+public interface ISqlServerEventStoreTransaction : IEventStoreTransaction
+{
+	/// <summary>
+	/// Enlists additional SQL work to execute inside the transaction.
+	/// </summary>
+	void Enlist(Func<SqlConnection, SqlTransaction, CancellationToken, Task> operation);
 
-//	public string CorrelationId { get; } = correlationId ?? Guid.NewGuid().ToString();
+	/// <summary>
+	/// Enlists an EF Core unit of work to execute inside the transaction.
+	/// </summary>
+	void Enlist<TDbContext>(
+		Func<SqlConnection, TDbContext> dbContextFactory,
+		Func<TDbContext, CancellationToken, Task> operation
+	)
+		where TDbContext : DbContext;
+}
 
-//	public void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
-//		where T : class, IAggregate, new()
-//	{
-//		ObjectDisposedException.ThrowIf(_disposed, this);
+sealed class SqlServerEventStoreTransaction(string? correlationId = null) : ISqlServerEventStoreTransaction
+{
+	readonly List<IEnlistedAggregate> _enlisted = [];
+	readonly List<Func<SqlConnection, SqlTransaction, CancellationToken, Task>> _sqlOperations = [];
+	readonly bool _useIdempotencyMarker = !string.IsNullOrWhiteSpace(correlationId ?? Activity.Current?.Id);
 
-//		if (_committed)
-//			throw new InvalidOperationException("Cannot enlist aggregates after the transaction has been committed.");
+	bool _committed;
+	bool _disposed;
 
-//		ArgumentNullException.ThrowIfNull(aggregate);
-//		ArgumentNullException.ThrowIfNull(eventStore);
+	public string CorrelationId { get; } = correlationId ?? Activity.Current?.Id ?? Guid.NewGuid().ToString();
 
-//		if (
-//			(eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>()
-//			is not ITransactionalEventStore<T> transactionalEventStore
-//		)
-//		{
-//			throw new InvalidOperationException(
-//				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
-//			);
-//		}
+	public void Enlist<T>(T aggregate, IEventStore eventStore, EventStoreOperationContext? operationContext = null)
+		where T : class, IAggregate, new()
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
 
-//		_enlisted.Add(new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext));
-//	}
+		if (_committed)
+			throw new InvalidOperationException("Cannot enlist aggregates after the transaction has been committed.");
 
-//	public void Enlist<T>(
-//		T aggregate,
-//		IEventStoreCore<T> eventStore,
-//		EventStoreOperationContext? operationContext = null
-//	)
-//		where T : class, IAggregate, new()
-//	{
-//		ObjectDisposedException.ThrowIf(_disposed, this);
+		ArgumentNullException.ThrowIfNull(aggregate);
+		ArgumentNullException.ThrowIfNull(eventStore);
 
-//		if (_committed)
-//			throw new InvalidOperationException("Cannot enlist aggregates after the transaction has been committed.");
+		if (
+			(eventStore as IEventStoreImplementationAccessor)?.GetEventStore<T>()
+			is not ITransactionalEventStore<T> transactionalEventStore
+		)
+		{
+			throw new InvalidOperationException(
+				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
+			);
+		}
 
-//		ArgumentNullException.ThrowIfNull(aggregate);
-//		ArgumentNullException.ThrowIfNull(eventStore);
+		_enlisted.Add(
+			new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext, _useIdempotencyMarker)
+		);
+	}
 
-//		if (eventStore is not ITransactionalEventStore<T> transactionalEventStore)
-//		{
-//			throw new InvalidOperationException(
-//				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
-//			);
-//		}
+	public void Enlist<T>(
+		T aggregate,
+		IEventStoreCore<T> eventStore,
+		EventStoreOperationContext? operationContext = null
+	)
+		where T : class, IAggregate, new()
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
 
-//		_enlisted.Add(new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext));
-//	}
+		if (_committed)
+			throw new InvalidOperationException("Cannot enlist aggregates after the transaction has been committed.");
 
-//	public async Task<TransactionResult> CommitAsync(CancellationToken cancellationToken = default)
-//	{
-//		ObjectDisposedException.ThrowIf(_disposed, this);
+		ArgumentNullException.ThrowIfNull(aggregate);
+		ArgumentNullException.ThrowIfNull(eventStore);
 
-//		if (_committed)
-//			throw new InvalidOperationException("This transaction has already been committed.");
+		if (eventStore is not ITransactionalEventStore<T> transactionalEventStore)
+		{
+			throw new InvalidOperationException(
+				$"The enlisted event store '{eventStore.GetType().FullName}' does not support atomic SQL Server transactions."
+			);
+		}
 
-//		_committed = true;
+		_enlisted.Add(
+			new EnlistedAggregate<T>(aggregate, transactionalEventStore, operationContext, _useIdempotencyMarker)
+		);
+	}
 
-//		if (_enlisted.Count == 0)
-//			return new TransactionResult([]);
+	public void Enlist(Func<SqlConnection, SqlTransaction, CancellationToken, Task> operation)
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
 
-//		await using var connection = _enlisted[0].CreateTransactionConnection();
-//		await connection.OpenAsync(cancellationToken);
+		if (_committed)
+			throw new InvalidOperationException("Cannot enlist operations after the transaction has been committed.");
 
-//		foreach (var enlisted in _enlisted)
-//			await enlisted.EnsureTransactionConfiguredAsync(connection, cancellationToken);
+		ArgumentNullException.ThrowIfNull(operation);
+		_sqlOperations.Add(operation);
+	}
 
-//		await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+	public void Enlist<TDbContext>(
+		Func<SqlConnection, TDbContext> dbContextFactory,
+		Func<TDbContext, CancellationToken, Task> operation
+	)
+		where TDbContext : DbContext
+	{
+		ArgumentNullException.ThrowIfNull(dbContextFactory);
+		ArgumentNullException.ThrowIfNull(operation);
 
-//		List<IProcessedSaveOperation> processed = [with(_enlisted.Count)];
-//		IEnlistedAggregate? failedEnlisted = null;
-//		Exception? failure = null;
+		Enlist(
+			async (connection, transaction, cancellationToken) =>
+			{
+				await using var dbContext = dbContextFactory(connection);
+				await dbContext.Database.UseTransactionAsync(transaction, cancellationToken);
+				await operation(dbContext, cancellationToken);
+			}
+		);
+	}
 
-//		foreach (var enlisted in _enlisted)
-//		{
-//#pragma warning disable CA1031 // Do not catch general exception types
-//			try
-//			{
-//				var operation = await enlisted.SaveInTransactionAsync(
-//					CorrelationId,
-//					connection,
-//					transaction,
-//					cancellationToken
-//				);
+	public async Task<TransactionResult> CommitAsync(CancellationToken cancellationToken = default)
+	{
+		ObjectDisposedException.ThrowIf(_disposed, this);
 
-//				processed.Add(operation);
+		if (_committed)
+			throw new InvalidOperationException("This transaction has already been committed.");
 
-//				if (!operation.Saved && !operation.Skipped)
-//				{
-//					failedEnlisted = enlisted;
-//					break;
-//				}
-//			}
-//			catch (Exception ex)
-//			{
-//				failedEnlisted = enlisted;
-//				failure = ex;
-//				break;
-//			}
-//#pragma warning restore CA1031 // Do not catch general exception types
-//		}
+		_committed = true;
 
-//		if (failedEnlisted is null)
-//		{
-//			await transaction.CommitAsync(cancellationToken);
+		if (_enlisted.Count == 0)
+		{
+			return _sqlOperations.Count == 0
+				? new TransactionResult([])
+				: throw new InvalidOperationException(
+					"A SQL Server transaction requires at least one enlisted aggregate to establish the transactional connection boundary."
+				);
+		}
 
-//			List<TransactionAggregateResult> committedResults = [with(processed.Count)];
-//			foreach (var operation in processed)
-//			{
-//				Exception? postCommitError = null;
-//#pragma warning disable CA1031 // Do not catch general exception types
-//				try
-//				{
-//					await operation.AfterCommitAsync(cancellationToken);
-//				}
-//				catch (Exception ex)
-//				{
-//					postCommitError = ex;
-//				}
-//#pragma warning restore CA1031 // Do not catch general exception types
+		await using var connection = _enlisted[0].CreateTransactionConnection();
+		await connection.OpenAsync(cancellationToken);
 
-//				committedResults.Add(new(operation.Aggregate, operation.Saved, operation.Skipped, postCommitError));
-//			}
+		foreach (var enlisted in _enlisted)
+			await enlisted.EnsureTransactionConfiguredAsync(connection, cancellationToken);
 
-//			return new TransactionResult(committedResults);
-//		}
+		await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-//		await transaction.RollbackAsync(cancellationToken);
+		List<IProcessedSaveOperation> processed = [with(_enlisted.Count)];
+		IEnlistedAggregate? failedEnlisted = null;
+		Exception? failure = null;
 
-//		foreach (var operation in processed)
-//			await operation.AfterRollbackAsync(cancellationToken);
+		foreach (var enlisted in _enlisted)
+		{
+#pragma warning disable CA1031
+			try
+			{
+				var operation = await enlisted.SaveInTransactionAsync(
+					CorrelationId,
+					connection,
+					transaction,
+					cancellationToken
+				);
 
-//		var rollbackResults = new List<TransactionAggregateResult>(processed.Count + 1);
-//		var rollbackError =
-//			failure
-//			?? new InvalidOperationException(
-//				"The transaction was rolled back because an enlisted aggregate could not be saved."
-//			);
+				processed.Add(operation);
 
-//		foreach (var operation in processed)
-//		{
-//			var isFailedOperation =
-//				failure is null
-//				&& ReferenceEquals(operation.Aggregate, failedEnlisted.Aggregate)
-//				&& !operation.Saved
-//				&& !operation.Skipped;
-//			var wasRolledBack = operation.Saved;
+				if (!operation.Saved && !operation.Skipped)
+				{
+					failedEnlisted = enlisted;
+					break;
+				}
+			}
+			catch (Exception ex)
+			{
+				failedEnlisted = enlisted;
+				failure = ex;
+				break;
+			}
+#pragma warning restore CA1031
+		}
 
-//			rollbackResults.Add(
-//				new TransactionAggregateResult(
-//					operation.Aggregate,
-//					saved: false,
-//					skipped: !isFailedOperation && !wasRolledBack && operation.Skipped,
-//					error: isFailedOperation || operation.Skipped ? null : rollbackError
-//				)
-//			);
-//		}
+		if (failedEnlisted is null && failure is null)
+		{
+			var sqlConnection = GetSqlConnection(connection);
+			var sqlTransaction = GetSqlTransaction(transaction);
 
-//		if (
-//			failure is not null
-//			&& processed.All(operation => !ReferenceEquals(operation.Aggregate, failedEnlisted.Aggregate))
-//		)
-//		{
-//			rollbackResults.Add(
-//				new TransactionAggregateResult(failedEnlisted.Aggregate, saved: false, skipped: false, error: failure)
-//			);
-//		}
+			foreach (var operation in _sqlOperations)
+			{
+#pragma warning disable CA1031
+				try
+				{
+					await operation(sqlConnection, sqlTransaction, cancellationToken);
+				}
+				catch (Exception ex)
+				{
+					failure = ex;
+					break;
+				}
+#pragma warning restore CA1031
+			}
+		}
 
-//		return new TransactionResult(rollbackResults);
-//	}
+		if (failedEnlisted is null && failure is null)
+		{
+			await transaction.CommitAsync(cancellationToken);
 
-//	public ValueTask DisposeAsync()
-//	{
-//		_disposed = true;
-//		_enlisted.Clear();
+			List<TransactionAggregateResult> committedResults = [with(processed.Count)];
+			foreach (var operation in processed)
+			{
+				Exception? postCommitError = null;
+#pragma warning disable CA1031
+				try
+				{
+					await operation.AfterCommitAsync(cancellationToken);
+				}
+				catch (Exception ex)
+				{
+					postCommitError = ex;
+				}
+#pragma warning restore CA1031
 
-//		return ValueTask.CompletedTask;
-//	}
+				committedResults.Add(new(operation.Aggregate, operation.Saved, operation.Skipped, postCommitError));
+			}
 
-//	interface IEnlistedAggregate
-//	{
-//		IAggregate Aggregate { get; }
+			return new TransactionResult(committedResults);
+		}
 
-//		DbConnection CreateTransactionConnection();
+		await transaction.RollbackAsync(cancellationToken);
 
-//		Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken);
+		foreach (var operation in processed)
+			await operation.AfterRollbackAsync(cancellationToken);
 
-//		Task<IProcessedSaveOperation> SaveInTransactionAsync(
-//			string correlationId,
-//			DbConnection connection,
-//			DbTransaction transaction,
-//			CancellationToken cancellationToken
-//		);
-//	}
+		var rollbackResults = new List<TransactionAggregateResult>(processed.Count + 1);
+		var rollbackError =
+			failure
+			?? new InvalidOperationException(
+				"The transaction was rolled back because an enlisted aggregate could not be saved."
+			);
 
-//	interface IProcessedSaveOperation
-//	{
-//		IAggregate Aggregate { get; }
-//		bool Saved { get; }
-//		bool Skipped { get; }
-//		Task AfterCommitAsync(CancellationToken cancellationToken);
-//		Task AfterRollbackAsync(CancellationToken cancellationToken);
-//	}
+		foreach (var operation in processed)
+		{
+			var isFailedOperation =
+				failedEnlisted is not null
+				&& failure is null
+				&& ReferenceEquals(operation.Aggregate, failedEnlisted.Aggregate)
+				&& !operation.Saved
+				&& !operation.Skipped;
+			var wasRolledBack = operation.Saved;
 
-//	sealed class EnlistedAggregate<T>(
-//		T aggregate,
-//		ITransactionalEventStore<T> eventStore,
-//		EventStoreOperationContext? operationContext
-//	) : IEnlistedAggregate
-//		where T : class, IAggregate, new()
-//	{
-//		public IAggregate Aggregate => aggregate;
+			rollbackResults.Add(
+				new TransactionAggregateResult(
+					operation.Aggregate,
+					saved: false,
+					skipped: !isFailedOperation && !wasRolledBack && operation.Skipped,
+					error: isFailedOperation || operation.Skipped ? null : rollbackError
+				)
+			);
+		}
 
-//		public DbConnection CreateTransactionConnection() => eventStore.CreateTransactionConnection();
+		if (
+			failedEnlisted is not null
+			&& failure is not null
+			&& processed.All(operation => !ReferenceEquals(operation.Aggregate, failedEnlisted.Aggregate))
+		)
+		{
+			rollbackResults.Add(
+				new TransactionAggregateResult(failedEnlisted.Aggregate, saved: false, skipped: false, error: failure)
+			);
+		}
 
-//		public Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken) =>
-//			eventStore.EnsureTransactionConfiguredAsync(connection, cancellationToken);
+		return new TransactionResult(rollbackResults);
+	}
 
-//		public async Task<IProcessedSaveOperation> SaveInTransactionAsync(
-//			string correlationId,
-//			DbConnection connection,
-//			DbTransaction transaction,
-//			CancellationToken cancellationToken
-//		)
-//		{
-//			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext;
-//			var context = baseContext with { CorrelationId = baseContext.CorrelationId ?? correlationId };
+	public ValueTask DisposeAsync()
+	{
+		_disposed = true;
+		_enlisted.Clear();
+		_sqlOperations.Clear();
 
-//			var saveOperation = await eventStore.SaveInTransactionAsync(
-//				aggregate,
-//				context,
-//				connection,
-//				transaction,
-//				cancellationToken
-//			);
+		return ValueTask.CompletedTask;
+	}
 
-//			return new ProcessedSaveOperation<T>(aggregate, saveOperation);
-//		}
-//	}
+	interface IEnlistedAggregate
+	{
+		IAggregate Aggregate { get; }
+		DbConnection CreateTransactionConnection();
+		Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken);
+		Task<IProcessedSaveOperation> SaveInTransactionAsync(
+			string correlationId,
+			DbConnection connection,
+			DbTransaction transaction,
+			CancellationToken cancellationToken
+		);
+	}
 
-//	sealed class ProcessedSaveOperation<T>(T aggregate, TransactionalSaveOperation<T> operation)
-//		: IProcessedSaveOperation
-//		where T : class, IAggregate, new()
-//	{
-//		public IAggregate Aggregate => aggregate;
-//		public bool Saved => operation.Result.Saved;
-//		public bool Skipped => operation.Result.Skipped;
+	interface IProcessedSaveOperation
+	{
+		IAggregate Aggregate { get; }
+		bool Saved { get; }
+		bool Skipped { get; }
+		Task AfterCommitAsync(CancellationToken cancellationToken);
+		Task AfterRollbackAsync(CancellationToken cancellationToken);
+	}
 
-//		public Task AfterCommitAsync(CancellationToken cancellationToken) =>
-//			operation.AfterCommitAsync(cancellationToken);
+	sealed class EnlistedAggregate<T>(
+		T aggregate,
+		ITransactionalEventStore<T> eventStore,
+		EventStoreOperationContext? operationContext,
+		bool useIdempotencyMarker
+	) : IEnlistedAggregate
+		where T : class, IAggregate, new()
+	{
+		public IAggregate Aggregate => aggregate;
 
-//		public Task AfterRollbackAsync(CancellationToken cancellationToken) =>
-//			operation.AfterRollbackAsync(cancellationToken);
-//	}
-//}
+		public DbConnection CreateTransactionConnection() => eventStore.CreateTransactionConnection();
+
+		public Task EnsureTransactionConfiguredAsync(DbConnection connection, CancellationToken cancellationToken) =>
+			eventStore.EnsureTransactionConfiguredAsync(connection, cancellationToken);
+
+		public async Task<IProcessedSaveOperation> SaveInTransactionAsync(
+			string correlationId,
+			DbConnection connection,
+			DbTransaction transaction,
+			CancellationToken cancellationToken
+		)
+		{
+			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext;
+			var context = baseContext with
+			{
+				CorrelationId = baseContext.CorrelationId ?? correlationId,
+				UseIdempotencyMarker =
+					baseContext.UseIdempotencyMarker
+					|| useIdempotencyMarker
+					|| !string.IsNullOrWhiteSpace(baseContext.CorrelationId),
+			};
+
+			var saveOperation = await eventStore.SaveInTransactionAsync(
+				aggregate,
+				context,
+				connection,
+				transaction,
+				cancellationToken
+			);
+
+			return new ProcessedSaveOperation<T>(aggregate, saveOperation);
+		}
+	}
+
+	sealed class ProcessedSaveOperation<T>(T aggregate, TransactionalSaveOperation<T> operation)
+		: IProcessedSaveOperation
+		where T : class, IAggregate, new()
+	{
+		public IAggregate Aggregate => aggregate;
+		public bool Saved => operation.Result.Saved;
+		public bool Skipped => operation.Result.Skipped;
+
+		public Task AfterCommitAsync(CancellationToken cancellationToken) =>
+			operation.AfterCommitAsync(cancellationToken);
+
+		public Task AfterRollbackAsync(CancellationToken cancellationToken) =>
+			operation.AfterRollbackAsync(cancellationToken);
+	}
+
+	static SqlConnection GetSqlConnection(DbConnection connection) =>
+		connection as SqlConnection
+		?? throw new InvalidOperationException("SQL Server transactions require a SqlConnection.");
+
+	static SqlTransaction GetSqlTransaction(DbTransaction transaction) =>
+		transaction as SqlTransaction
+		?? throw new InvalidOperationException("SQL Server transactions require a SqlTransaction.");
+}

@@ -12,6 +12,4 @@ public readonly partial record struct ProjectId
 		if (!Guid.TryParse(value, out _))
 			throw new ArgumentException("ProjectId must be a valid GUID.", nameof(value));
 	}
-
-	public static ProjectId Empty => new(null!);
 }

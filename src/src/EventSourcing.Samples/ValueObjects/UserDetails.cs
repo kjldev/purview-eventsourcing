@@ -20,6 +20,4 @@ public sealed partial record UserDetails(Guid Id, string? DisplayName, bool IsAc
 		if (isActive && string.IsNullOrWhiteSpace(displayName))
 			throw new ArgumentException("DisplayName cannot be null or empty.", nameof(displayName));
 	}
-
-	public static UserDetails Empty => new(Guid.Empty, null, false);
 }

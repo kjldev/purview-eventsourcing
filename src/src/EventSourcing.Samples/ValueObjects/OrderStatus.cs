@@ -55,21 +55,4 @@ public readonly partial record struct OrderStatus : IContextualValueObject<Order
 
 			_ => false,
 		};
-
-	// ── Convenience factory properties (hydrate-based, no state-machine check) ──
-
-	/// <inheritdoc cref="OrderStatusCode.Draft"/>
-	public static OrderStatus Draft => Hydrate(OrderStatusCode.Draft);
-
-	/// <inheritdoc cref="OrderStatusCode.Confirmed"/>
-	public static OrderStatus Confirmed => Hydrate(OrderStatusCode.Confirmed);
-
-	/// <inheritdoc cref="OrderStatusCode.Shipped"/>
-	public static OrderStatus Shipped => Hydrate(OrderStatusCode.Shipped);
-
-	/// <inheritdoc cref="OrderStatusCode.Completed"/>
-	public static OrderStatus Completed => Hydrate(OrderStatusCode.Completed);
-
-	/// <inheritdoc cref="OrderStatusCode.Cancelled"/>
-	public static OrderStatus Cancelled => Hydrate(OrderStatusCode.Cancelled);
 }

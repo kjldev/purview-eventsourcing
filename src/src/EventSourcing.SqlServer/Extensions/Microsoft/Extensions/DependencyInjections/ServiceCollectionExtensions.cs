@@ -22,7 +22,7 @@ public static class ServiceCollectionExtensions
 				.AddTransient(typeof(INonQueryableEventStore<>), typeof(SqlServerEventStore<>))
 				.AddTransient(typeof(ISqlServerEventStore<>), typeof(SqlServerEventStore<>))
 				.AddTransient<IEventStore, EventStoreFacade>();
-			//.TryAddSingleton<IEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>();
+			services.TryAddSingleton<ISqlServerEventStoreTransactionFactory, SqlServerEventStoreTransactionFactory>();
 
 			services.AddSqlServerEventStoreTelemetry();
 

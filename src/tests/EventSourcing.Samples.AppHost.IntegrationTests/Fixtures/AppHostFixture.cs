@@ -6,7 +6,7 @@ using TUnit.Aspire;
 
 namespace Purview.EventSourcing.Samples.AppHost.Fixtures;
 
-public sealed class AppHostFixture : AspireFixture<Program>, IServiceProvider
+public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Samples_AppHost>, IServiceProvider
 {
 	readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
 	readonly Lazy<AppServiceHelper> _appService;

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0-prerelease.14
+
+### Patch Changes
+
+- added sql transaction support for event stores, ef contexts, and plain sql operations
+
+## 2.0.0-prerelease.13
+
+### Patch Changes
+
+- fixed same-schema issue on query
+
 ## 2.0.0-prerelease.12
 
 ### Patch Changes

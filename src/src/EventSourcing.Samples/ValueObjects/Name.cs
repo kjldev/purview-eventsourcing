@@ -7,8 +7,6 @@ public readonly partial record struct Name
 {
 	public string Value { get; }
 
-	Name(string value) => Value = value;
-
 	static partial void OnValidate(string value)
 	{
 		if (string.IsNullOrWhiteSpace(value))

@@ -10,8 +10,6 @@ public readonly partial record struct ReportProcessingStatus
 {
 	public ReportProcessingStatusCode Value { get; }
 
-	ReportProcessingStatus(ReportProcessingStatusCode code) => Value = code;
-
 	public static ReportProcessingStatus Create(
 		ReportProcessingStatusCode value,
 		in ValueObjectContext<ReportUploadAggregate> context

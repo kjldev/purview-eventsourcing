@@ -1,0 +1,5 @@
+- [Home](Home.md)
+- [Getting Started](Getting-Started.md)
+- [Source Generator Behaviors](Source-Generator-Behaviors.md)
+- [SQL Server Guide](SQL-Server-Guide.md)
+- [Release Flow](Release-Flow.md)

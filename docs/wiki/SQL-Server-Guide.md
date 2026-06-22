@@ -20,8 +20,10 @@ Both stores create their tables automatically on first use (configurable) and us
 5. [Single-Table Design](#single-table-design)
 6. [Per-Aggregate Schema and Table Routing](#per-aggregate-schema-and-table-routing)
 7. [Event Schema Versioning](#event-schema-versioning)
-8. [Source Generator](#source-generator)
-9. [Connection String Examples](#connection-string-examples)
+8. [SQL Transaction Coordination](#sql-transaction-coordination)
+9. [Snapshot Payload Shape](#snapshot-payload-shape)
+10. [Behavior Notes and Caveats](#behavior-notes-and-caveats)
+11. [Connection String Examples](#connection-string-examples)
 
 ---
 
@@ -189,7 +191,7 @@ Both stores use a **single shared table** by default. All aggregate types are st
 [AggregateType] NVARCHAR(450)     Short name of the aggregate (e.g. "Order")
 [Version]       INT               Aggregate version at time of event
 [IsDeleted]     BIT               Soft-delete flag on the stream-version row
-[Payload]       NVARCHAR(MAX)     JSON payload (events and snapshots)
+[Payload]       JSON / NVARCHAR(MAX)  JSON payload (events and snapshots)
 [EventType]     NVARCHAR(450)     Mapped event type name (e.g. "Order.CreateOrder")
 [IdempotencyId] NVARCHAR(450)     Idempotency marker id
 [Timestamp]     DATETIMEOFFSET    UTC timestamp of the operation
@@ -204,6 +206,8 @@ Three covering indices are created automatically:
 | `IX_EventStore_AggregateType_EntityType` | `(AggregateType, EntityType, IsDeleted)` INCLUDE AggregateId | Aggregate ID enumeration |
 
 > The single-table design minimises DDL surface area and allows aggregates from different bounded contexts to share a connection pool and database.
+>
+> **Aggregate ID vs type scoping:** when multiple aggregate types share the same schema/table, event-stream read/delete queries scope by both `AggregateId` and `AggregateType`. If you isolate aggregate types by schema/table via `AggregateTableOverrides`, that physical separation provides the same isolation boundary.
 
 ---
 
@@ -326,61 +330,119 @@ void Apply(OrderCreated e)
 
 ---
 
-## Source Generator
+## SQL Transaction Coordination
 
-The source generator ships with `Purview.EventSourcing` and does not require a separate package.
-Add `Purview.EventSourcing` to your domain project:
+Use `ISqlServerEventStoreTransactionFactory` when you need one SQL Server transaction that includes:
 
-```xml
-<PackageReference Include="Purview.EventSourcing" />
-```
+- multiple enlisted aggregates saved through SQL Server event stores,
+- extra ad-hoc SQL commands (for example audit/outbox inserts),
+- EF Core operations against the same SQL connection boundary.
 
-### Defining an aggregate
+### Registration and usage
+
+`AddSqlServerEventStore()` registers `ISqlServerEventStoreTransactionFactory`.
 
 ```csharp
-using Purview.EventSourcing.Aggregates;
-
-[GenerateAggregate]
-public partial class OrderAggregate : AggregateBase
+public sealed class CheckoutService(
+    ISqlServerEventStoreTransactionFactory sqlTransactionFactory,
+    IEventStore store)
 {
-    // Properties are set by generated Apply methods
-    public string  CustomerId { get; private set; } = default!;
-    public decimal Total      { get; private set; }
+    public async Task CheckoutAsync(OrderAggregate order, CancellationToken cancellationToken)
+    {
+        await using var tx = sqlTransactionFactory.CreateSqlServerTransaction();
+        tx.Enlist(order, store);
 
-    // Declare commands as partial methods — the generator fills in the body
-    [GenerateAggregateEvent]
-    public partial void CreateOrder(string customerId, decimal total);
+        tx.Enlist(async (connection, sqlTransaction, token) =>
+        {
+            await using var cmd = new SqlCommand(
+                "INSERT INTO dbo.TransactionAudit(CorrelationId, Value) VALUES (@c, @v)",
+                connection,
+                sqlTransaction);
+            cmd.Parameters.AddWithValue("@c", tx.CorrelationId);
+            cmd.Parameters.AddWithValue("@v", "checkout");
+            await cmd.ExecuteNonQueryAsync(token);
+        });
 
-    [GenerateAggregateEvent]
-    public partial void UpdateTotal(decimal total);
+        var result = await tx.CommitAsync(cancellationToken);
+        if (!result.Success)
+            throw new InvalidOperationException("Transaction failed.");
+    }
 }
 ```
 
-The generator produces (in `OrderAggregate.g.cs`):
+### Notes and limits
 
-- `Testing.Events.OrderCreated` — sealed class with `CustomerId` and `Total` properties, `BuildEventHash`, and `SchemaVersion`
-- `Testing.Events.TotalUpdated` — sealed class with `Total` property
-- `OrderAggregate.RegisterEvents()` — registers all events
-- `OrderAggregate.Apply(OrderCreated)` and `Apply(TotalUpdated)`
-- Implementations of the two partial command methods
+- SQL-native atomic commit is available when enlisted stores share the same SQL transaction boundary.
+- If you need cross-database/distributed coordination, implement a custom transaction coordinator strategy.
+- The SQL-specific coordinator requires at least one enlisted aggregate (the aggregate store establishes the connection/transaction boundary).
+- `IEventStoreTransactionFactory` remains available and unchanged for provider-agnostic transaction orchestration.
 
-### Parameterless events
+### Integration coverage
+
+`src/tests/EventSourcing.SqlServer.IntegrationTests/Events/SqlServerEventStoreTransactionIntegrationTests.cs` verifies:
+
+- aggregate + raw SQL operation commit in one transaction,
+- aggregate + EF operation commit in one transaction,
+- rollback of both aggregate and enlisted SQL when an enlisted operation throws.
+
+---
+
+## Snapshot Payload Shape
+
+Snapshot payload is the fully serialized aggregate graph stored in a JSON payload column.
+
+Supported members include:
+
+- writable primitive members,
+- `[Scalar]` value objects,
+- complex objects composed of supported members,
+- `EventStoreList<T>` / `EventStoreSet<T>` collections of supported primitive/complex members.
+
+Unsupported members fail during model creation, including:
+
+- arrays,
+- collection types other than `EventStoreList<T>` / `EventStoreSet<T>` (for example `List<T>`, `IReadOnlyList<T>`, `IEnumerable<T>`, `HashSet<T>`, `ImmutableArray<T>`),
+- unsupported object types such as dictionaries.
+
+Read-only and `[JsonIgnore]` members are excluded from snapshot payload mapping.
+
+### Examples
 
 ```csharp
-[GenerateAggregateEvent]
-public partial void Activate();
+// Supported snapshot shape
+public sealed class CustomerSnapshot
+{
+    public string Name { get; set; } = string.Empty;
+    public EmailAddress Email { get; set; } = EmailAddress.Hydrate("demo@example.com"); // [Scalar]
+    public EventStoreList<OrderLineItem> Items { get; set; } = [];
+    public EventStoreSet<string> Tags { get; set; } = [];
+}
 ```
-
-Generates `OrderActivated` with no properties and `RecordAndApply(new OrderActivated())`.
-
-### Versioned events
 
 ```csharp
-[GenerateAggregateEvent(Version = 2)]
-public partial void CreateOrder(string customerId, decimal total, string currency);
+// Unsupported snapshot shape (model validation fails)
+public sealed class CustomerSnapshot
+{
+    public List<OrderLineItem> Items { get; set; } = [];       // use EventStoreList<T>
+    public string[] Labels { get; set; } = [];                  // arrays unsupported
+    public Dictionary<string, string> Metadata { get; set; } = []; // dictionaries unsupported
+}
 ```
 
-Generates `OrderCreated` with `SchemaVersion => 2`.
+For generator/framework behavior (aggregate inheritance paths, hooks, event naming/namespace, manual mode), see [Source Generator Behaviors](Source-Generator-Behaviors.md).
+
+---
+
+## Behavior Notes and Caveats
+
+- `IsDeletedAsync` throws when the aggregate does not exist (it does not return `false` for missing aggregates).
+- Event replay is tolerant by default: unknown or unappliable events are skipped, and stream version continues to advance.
+- Integration coverage includes replay compatibility scenarios for:
+  - **Unknown events** (event type name no longer resolvable): replay skips affected records and continues.
+  - **Schema-change style evolution** (event type still deserializes but is no longer applied/registered): replay logs `CannotApplyEvent` and continues.
+  - See: `src/tests/EventSourcing.SqlServer.IntegrationTests/Events/SqlServerEventStoreTests.cs`
+    and `src/tests/EventSourcing.SqlServer.IntegrationTests/Events/GenericSqlServerEventStoreTests.GetAsync.cs`.
+- Principal enforcement is enabled by default (`RequiresValidPrincipalIdentifier = true`), so save operations require the configured claim identifier to be present on the current principal.
 
 ---
 

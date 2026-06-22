@@ -129,6 +129,23 @@ public sealed partial class SqlServerEventStoreTests(SqlServerEventStoreFixture 
 	}
 
 	[Test]
+	[MethodDataSource(nameof(SteppedEventCountWithOldEventCountTestData))]
+	public async Task GetAsync_GivenAnAggregateWithNonRegisteredEventType_RecreatesAggregateAndLogsCannotApplyEvent(
+		Type aggregateType,
+		int eventsToCreate,
+		int numberOfOldEventsToCreate,
+		CancellationToken cancellationToken
+	)
+	{
+		var tests = CreateSqlServerStoreTests(aggregateType);
+		await tests.GetAsync_GivenAnAggregateWithNonRegisteredEventType_RecreatesAggregateAndLogsCannotApplyEvent(
+			eventsToCreate,
+			numberOfOldEventsToCreate,
+			cancellationToken
+		);
+	}
+
+	[Test]
 	[MethodDataSource(nameof(SteppedCountTestData))]
 	public async Task GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
 		Type aggregateType,
@@ -139,6 +156,23 @@ public sealed partial class SqlServerEventStoreTests(SqlServerEventStoreFixture 
 		var tests = CreateSqlServerStoreTests(aggregateType);
 		await tests.GetAsync_GivenAnAggregateWithSavedEventsButNoSnapshot_RecreatesAggregate(
 			eventsToCreate,
+			cancellationToken
+		);
+	}
+
+	[Test]
+	[MethodDataSource(nameof(SteppedEventCountWithOldEventCountTestData))]
+	public async Task GetAsync_GivenAnAggregateWithUnknownEventType_RecreatesAggregateAndLogsUnknown(
+		Type aggregateType,
+		int eventsToCreate,
+		int numberOfOldEventsToCreate,
+		CancellationToken cancellationToken
+	)
+	{
+		var tests = CreateSqlServerStoreTests(aggregateType);
+		await tests.GetAsync_GivenAnAggregateWithUnknownEventType_RecreatesAggregateAndLogsUnknown(
+			eventsToCreate,
+			numberOfOldEventsToCreate,
 			cancellationToken
 		);
 	}

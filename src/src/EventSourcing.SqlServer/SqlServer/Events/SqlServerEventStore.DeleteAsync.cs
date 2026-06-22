@@ -61,7 +61,7 @@ partial class SqlServerEventStore<T>
 		using var activity = _eventStoreTelemetry.DeleteAggregate(aggregateId, _aggregateTypeFullName);
 		try
 		{
-			await _client.DeleteByAggregateIdAsync(aggregateId, cancellationToken);
+			await _client.DeleteByAggregateIdAsync(aggregateId, _aggregateTypeShortName, cancellationToken);
 
 			_eventStoreTelemetry.PermanentDeleteComplete(aggregateId);
 			_eventStoreTelemetry.AggregateDeletedCounter(aggregate.AggregateType);

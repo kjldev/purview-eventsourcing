@@ -50,6 +50,12 @@ public partial class OrderAggregate : AggregateBase
 }
 ```
 
+`[GenerateAggregate]` supports three inheritance paths:
+
+- No declared base class: the generated partial type automatically inherits `AggregateBase`.
+- Direct inheritance from `AggregateBase`.
+- Transitive inheritance through one or more intermediate base classes.
+
 ### 2. Register storage
 
 ```csharp
@@ -125,7 +131,7 @@ public sealed class CheckoutService(
 | MongoDB | `Purview.EventSourcing.MongoDB` | `AddMongoDBEventStore()` and `AddMongoDBSnapshotQueryableEventStore()` | Separate event and snapshot implementations in one package |
 | Azure Cosmos DB snapshots | `Purview.EventSourcing.CosmosDb` | `AddCosmosDbQueryableEventStore()` | Queryable snapshot store |
 
-For SQL Server and Azure SQL schema, permissions, and event-versioning guidance, see [docs/sql-server.md](docs/sql-server.md).
+For SQL Server and Azure SQL schema, permissions, and event-versioning guidance, see [docs/wiki/SQL-Server-Guide.md](docs/wiki/SQL-Server-Guide.md).
 
 ## Sample application
 
@@ -142,7 +148,7 @@ The sample solution demonstrates how the framework is intended to be consumed:
 | --- | --- |
 | `src/src` | Packable framework packages and sample applications |
 | `src/tests` | Unit, integration, and source generator test projects |
-| `docs/sql-server.md` | SQL Server and Azure SQL setup guide |
+| `docs/wiki` | Wiki-style project documentation (`Home.md`, SQL Server guide, release flow, source-generator behaviors) |
 | `Justfile` | Build, test, format, version, pack, and publish workflow definitions |
 
 ## Development workflow
@@ -173,7 +179,10 @@ Do not create release tags manually.
 
 ## Documentation
 
-- [SQL Server event store guide](docs/sql-server.md)
+- [Wiki home](docs/wiki/Home.md)
+- [Source generator behaviors](docs/wiki/Source-Generator-Behaviors.md)
+- [SQL Server event store guide](docs/wiki/SQL-Server-Guide.md)
+- [Release flow](docs/wiki/Release-Flow.md)
 - [Core package README](src/src/EventSourcing/README.md)
 - [SQL Server provider README](src/src/EventSourcing.SqlServer/README.md)
 - [MongoDB provider README](src/src/EventSourcing.MongoDB/README.md)

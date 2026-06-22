@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage;
-using Purview.EventSourcing;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Serialization;
 
@@ -687,10 +686,9 @@ sealed partial class SqlServerClient
 		if (!type.IsGenericType)
 			return false;
 
-		if (IsEventStoreCollectionType(type))
-			return true;
-
-		return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+		return IsEventStoreCollectionType(type)
+			? true
+			: type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 	}
 
 	static InvalidOperationException CreateUnsupportedShapeException(Type containingType, MemberInfo member) =>

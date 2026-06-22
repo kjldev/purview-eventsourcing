@@ -241,9 +241,8 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			return new([]);
 
 		var checkedSide = leftIsNull ? binaryExpression.Right : binaryExpression.Left;
-		var checkedType = context.SemanticModel.GetTypeInfo(checkedSide, ct).Type as INamedTypeSymbol;
 		if (
-			checkedType is null
+			context.SemanticModel.GetTypeInfo(checkedSide, ct).Type is not INamedTypeSymbol checkedType
 			|| !checkedType.IsGenericType
 			|| checkedType.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T
 		)
@@ -1303,13 +1302,11 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 			// Same underlying type. If nullability differs (non-nullable param → nullable property),
 			// return Implicit so a typed local variable is generated and ref-hook calls don't produce
 			// CS8600 ("Converting null literal or possible null value to non-nullable type").
-			if (
+			return
 				parameterType.NullableAnnotation != propertyType.NullableAnnotation
 				&& propertyType.NullableAnnotation == NullableAnnotation.Annotated
-			)
-				return EventParameterConversionKind.Implicit;
-
-			return EventParameterConversionKind.None;
+				? EventParameterConversionKind.Implicit
+				: EventParameterConversionKind.None;
 		}
 
 		if (

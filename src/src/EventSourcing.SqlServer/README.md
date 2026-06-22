@@ -27,9 +27,12 @@ builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
 - Event-stream persistence for aggregates loaded through `IEventStore`
 - Query/list/count snapshot-backed reads through `IQueryableEventStore`
+- SQL-specific transaction factory (`ISqlServerEventStoreTransactionFactory`) for enlisting additional SQL/EF work in the same commit
 - SQL Server and Azure SQL configuration binding for both event and snapshot stores
 - Entity Framework-backed schema creation and CRUD paths
 - JSON-column-backed event and snapshot payload storage
+- Shared-table safety: when aggregate types share a table, event-stream reads and deletes are scoped by both aggregate id and aggregate type
+- Tolerant replay for long-lived streams: integration-tested handling for unknown event types and schema-evolved/unappliable historical events
 
 ## Payload shape
 
@@ -42,4 +45,5 @@ Unsupported shapes fail during model creation, including arrays and collection t
 ## Documentation
 
 - Repository README: https://github.com/kjldev/purview-eventsourcing/blob/main/README.md
-- SQL Server guide: https://github.com/kjldev/purview-eventsourcing/blob/main/docs/sql-server.md
+- SQL Server guide: https://github.com/kjldev/purview-eventsourcing/blob/main/docs/wiki/SQL-Server-Guide.md
+  - Includes behavior notes/caveats (`IsDeletedAsync` missing behavior, tolerant replay, principal requirements)

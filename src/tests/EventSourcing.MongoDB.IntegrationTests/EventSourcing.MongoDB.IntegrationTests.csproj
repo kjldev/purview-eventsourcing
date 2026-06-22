@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\EventSourcing.Samples\EventSourcing.Samples.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Update="Resources/**/*">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+</Project>

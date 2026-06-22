@@ -7,12 +7,7 @@ public readonly partial record struct CurrencyCode
 {
 	public string Value { get; }
 
-	CurrencyCode(string value) => Value = value;
-
-	static partial void OnNormalize(ref string value)
-	{
-		value = value?.Trim().ToUpperInvariant()!;
-	}
+	static partial void OnNormalize(ref string value) => value = value?.Trim().ToUpperInvariant()!;
 
 	static partial void OnValidate(string value)
 	{
