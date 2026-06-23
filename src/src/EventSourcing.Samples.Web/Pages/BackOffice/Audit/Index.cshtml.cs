@@ -6,7 +6,7 @@ using Purview.EventSourcing.Samples.Web.Services;
 
 namespace Purview.EventSourcing.Samples.Web.Pages.BackOffice.Audit;
 
-sealed class IndexModel(AggregateAuditService auditService) : PageModel
+sealed class IndexModel(IAggregateAuditService auditService) : PageModel
 {
 	const int DefaultPageSize = ContinuationRequest.DefaultMaxRecords;
 
@@ -38,15 +38,15 @@ sealed class IndexModel(AggregateAuditService auditService) : PageModel
 
 	public string? NextContinuationToken { get; private set; }
 
-	public bool HasQuery => !string.IsNullOrWhiteSpace(AggregateId);
+	public bool HasQuery => !string.IsNullOrWhiteSpace(AggregateId) || FromUtc.HasValue || ToUtc.HasValue;
 
+	public bool IsRecentMode { get; private set; }
+
+	[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static")]
 	public IReadOnlyList<string> SupportedTypes => AggregateAuditService.SupportedAggregateTypes;
 
 	public async Task<IActionResult> OnGetAsync()
 	{
-		if (!HasQuery)
-			return Page();
-
 		if (!AggregateAuditService.IsSupportedAggregateType(AggregateType))
 		{
 			TempData["Error"] = $"Unsupported aggregate type '{AggregateType}'.";
@@ -56,24 +56,90 @@ sealed class IndexModel(AggregateAuditService auditService) : PageModel
 		if (PageSize < 1 || PageSize > 1000)
 			PageSize = DefaultPageSize;
 
-		var response = await auditService.GetHistoryAsync(
-			AggregateType,
-			AggregateId!,
-			new AggregateEventHistoryRequest
-			{
-				FromVersion = FromVersion,
-				ToVersion = ToVersion,
-				FromUtc = FromUtc,
-				ToUtc = ToUtc,
-				MaxRecords = PageSize,
-				ContinuationToken = ContinuationToken,
-			},
-			HttpContext.RequestAborted
-		);
+		AggregateId = AggregateId?.Trim();
+		ResolveDateFiltersFromQuery();
+		if (!HasQuery)
+			IsRecentMode = true;
 
-		Events = response.Results;
-		NextContinuationToken = response.ContinuationToken;
+		if (!string.IsNullOrWhiteSpace(AggregateId))
+		{
+			var response = await auditService.GetHistoryAsync(
+				AggregateType,
+				AggregateId!,
+				new AggregateEventHistoryRequest
+				{
+					FromVersion = FromVersion,
+					ToVersion = ToVersion,
+					FromUtc = FromUtc,
+					ToUtc = ToUtc,
+					MaxRecords = PageSize,
+					ContinuationToken = ContinuationToken,
+				},
+				HttpContext.RequestAborted
+			);
+
+			Events = response.Results;
+			NextContinuationToken = response.ContinuationToken;
+			return Page();
+		}
+
+		void ResolveDateFiltersFromQuery()
+		{
+			if (FromUtc.HasValue && ToUtc.HasValue)
+				return;
+
+			var query = HttpContext.Request.Query;
+			if (!FromUtc.HasValue && TryParseDateTimeLocal(query["fromUtc"], out var fromUtc))
+				FromUtc = fromUtc;
+			if (!ToUtc.HasValue && TryParseDateTimeLocal(query["toUtc"], out var toUtc))
+				ToUtc = toUtc;
+		}
+
+		static bool TryParseDateTimeLocal(string? value, out DateTimeOffset parsed)
+		{
+			if (DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out parsed))
+				return true;
+
+			if (
+				DateTime.TryParse(
+					value,
+					CultureInfo.InvariantCulture,
+					DateTimeStyles.AssumeLocal,
+					out var localDateTime
+				)
+			)
+			{
+				parsed = new DateTimeOffset(localDateTime);
+				return true;
+			}
+
+			parsed = default;
+			return false;
+		}
+
+		IsRecentMode = true;
+		Events = await LoadRecentEventsAsync(HttpContext.RequestAborted);
 		return Page();
+	}
+
+	async Task<IReadOnlyList<AggregateEventHistoryItem>> LoadRecentEventsAsync(CancellationToken cancellationToken)
+	{
+		var request = new AggregateEventHistoryRequest
+		{
+			FromUtc = FromUtc,
+			ToUtc = ToUtc,
+			MaxRecords = PageSize,
+		};
+
+		List<AggregateEventHistoryItem> merged = [];
+		foreach (var aggregateType in SupportedTypes)
+		{
+			var results = await auditService.GetLatestHistoryAsync(aggregateType, request, cancellationToken);
+			if (results.Count > 0)
+				merged.AddRange(results);
+		}
+
+		return [.. merged.OrderByDescending(m => m.When).ThenByDescending(m => m.AggregateVersion).Take(PageSize)];
 	}
 
 	public string BuildContinuationLink(string continuationToken)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.16
+
+### Patch Changes
+
+- added auditing api examples
+
 ## 2.0.0-prerelease.15
 
 ### Patch Changes
