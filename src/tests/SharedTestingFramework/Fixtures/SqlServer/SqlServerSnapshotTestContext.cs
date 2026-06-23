@@ -95,7 +95,6 @@ public sealed class SqlServerSnapshotTestContext
 			Container = TestHelpers.GenAzureBlobContainerName(RunId),
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = true,
-			SnapshotInterval = 1,
 		};
 
 		TableEventStore<PersistenceAggregate> eventStore = new(

@@ -30,13 +30,6 @@ public sealed class SqlServerEventStoreOptions
 {
 	public const string SqlServerEventStore = "EventStore:SqlServer";
 
-	/// <summary>
-	/// Defines the default snapshot interval, when not set in configuration.
-	/// Defaults to 1, which means snapshot when at least 1 event is saved.
-	/// </summary>
-	/// <seealso cref="SnapshotInterval"/>
-	public static int DefaultSnapshotInterval { get; set; } = 1;
-
 	const bool DefaultRemoveDeletedFromCache = true;
 	const int DefaultEventSuffixLength = 30;
 
@@ -68,18 +61,6 @@ public sealed class SqlServerEventStoreOptions
 	/// </summary>
 	[Range(1, 10_000)]
 	public int MaxEventCountOnSave { get; set; } = 1000;
-
-	/// <summary>
-	/// <para>
-	/// Indicates when a snapshot is made of the aggregate, based on the number of events
-	/// applied during a <see cref="IEventStore{T}.SaveAsync(T, EventStoreOperationContext?, CancellationToken)"/> operation.
-	/// </para>
-	/// <para>The default is 1, so a snapshot is made for any change.</para>
-	/// </summary>
-	/// <remarks>The default can be changed statically by setting the <see cref="DefaultSnapshotInterval"/>.</remarks>
-	/// <see cref="IEventStore{T}"/>
-	[Range(1, int.MaxValue)]
-	public int SnapshotInterval { get; set; } = DefaultSnapshotInterval;
 
 	/// <summary>
 	/// <para>Indicates if a deleted aggregate is removed from cache. Defaults to true.</para>

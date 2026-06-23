@@ -4,7 +4,6 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events.Upcasting;
-using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.Services;
 
@@ -32,7 +31,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 	readonly ChangeFeed.IAggregateChangeFeedNotifier<T> _aggregateChangeNotifier;
 	readonly IAggregateRequirementsManager _aggregateRequirementsManager;
 	readonly IEventUpcasterRegistry? _eventUpcasterRegistry;
-	readonly ISnapshotStrategy<T> _snapshotStrategy;
 
 	readonly string _aggregateTypeFullName;
 	readonly string _aggregateTypeShortName;
@@ -46,8 +44,7 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 		IAggregateRequirementsManager aggregateRequirementsManager,
 		FluentValidation.IValidator<T>? validator = null,
 		IAggregateIdFactory? aggregateIdFactory = null,
-		IEventUpcasterRegistry? eventUpcasterRegistry = null,
-		ISnapshotStrategy<T>? snapshotStrategy = null
+		IEventUpcasterRegistry? eventUpcasterRegistry = null
 	)
 	{
 		_eventNameMapper = eventNameMapper;
@@ -59,8 +56,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 		_aggregateChangeNotifier = aggregateChangeNotifier;
 		_aggregateRequirementsManager = aggregateRequirementsManager;
 		_eventUpcasterRegistry = eventUpcasterRegistry;
-		_snapshotStrategy =
-			snapshotStrategy ?? new IntervalSnapshotStrategy<T>(sqlServerOptions.Value.SnapshotInterval);
 
 		_aggregateTypeShortName = typeof(T).Name;
 		_aggregateTypeFullName = typeof(T).FullName ?? _aggregateTypeShortName;
@@ -253,7 +248,6 @@ public sealed partial class SqlServerEventStore<T> : ISqlServerEventStore<T>, IT
 				UseDataCompression = options.UseDataCompression,
 				TimeoutInSeconds = options.TimeoutInSeconds,
 				MaxEventCountOnSave = options.MaxEventCountOnSave,
-				SnapshotInterval = options.SnapshotInterval,
 				RemoveDeletedFromCache = options.RemoveDeletedFromCache,
 				EventSuffixLength = options.EventSuffixLength,
 				CacheMode = options.CacheMode,

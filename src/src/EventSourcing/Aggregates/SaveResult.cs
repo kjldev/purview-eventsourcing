@@ -13,7 +13,7 @@ namespace Purview.EventSourcing.Aggregates;
 /// the <see cref="IEventStore{T}.RestoreAsync(T, EventStoreOperationContext?, CancellationToken)"/> operations.
 /// </remarks>
 /// <typeparam name="TAggregate">The <see cref="IAggregate"/> where a save operations was attempted.</typeparam>
-public record class SaveResult<TAggregate>
+public sealed record class SaveResult<TAggregate>
 	where TAggregate : IAggregate
 {
 	/// <summary>

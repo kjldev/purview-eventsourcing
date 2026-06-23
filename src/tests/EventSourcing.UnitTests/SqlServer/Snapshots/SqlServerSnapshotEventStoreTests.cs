@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
+using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Aggregates.Test;
 using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.SqlServer.Snapshot;
@@ -171,16 +173,62 @@ public sealed class SqlServerSnapshotEventStoreTests
 		eventStore.Received(1).FulfilRequirements(expectedAggregate);
 	}
 
+	[Test]
+	public async Task SaveAsync_GivenNeverSnapshotStrategy_DoesNotWriteSnapshot()
+	{
+		var aggregate = TestHelpers.Aggregate<TestAggregate>(creator: a => a.RecordEvent(), clearEvents: false);
+		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
+		eventStore
+			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
+			.Returns(args => new SaveResult<TestAggregate>(
+				args.Arg<TestAggregate>(),
+				new FluentValidation.Results.ValidationResult(),
+				saved: true,
+				skipped: false
+			));
+		var store = CreateStore(eventStore, snapshotStrategy: new NeverSnapshotStrategy<TestAggregate>());
+
+		var result = await store.SaveAsync(aggregate, null);
+
+		await Assert.That(result.Saved).IsTrue();
+		await eventStore.Received(1).SaveAsync(aggregate, null, Arg.Any<CancellationToken>());
+	}
+
+	[Test]
+	public async Task SaveAsync_GivenContextSnapshotStrategy_OverridesDefaultStrategy()
+	{
+		var aggregate = TestHelpers.Aggregate<TestAggregate>(creator: a => a.RecordEvent(), clearEvents: false);
+		var eventStore = Substitute.For<INonQueryableEventStore<TestAggregate>>();
+		eventStore
+			.SaveAsync(Arg.Any<TestAggregate>(), Arg.Any<EventStoreOperationContext?>(), Arg.Any<CancellationToken>())
+			.Returns(args => new SaveResult<TestAggregate>(
+				args.Arg<TestAggregate>(),
+				new FluentValidation.Results.ValidationResult(),
+				saved: true,
+				skipped: false
+			));
+
+		var store = CreateStore(eventStore, snapshotStrategy: new AlwaysSnapshotStrategy<TestAggregate>());
+		var context = new EventStoreOperationContext().SetSnapshotStrategy(new NeverSnapshotStrategy<TestAggregate>());
+
+		var result = await store.SaveAsync(aggregate, context);
+
+		await Assert.That(result.Saved).IsTrue();
+		await eventStore.Received(1).SaveAsync(aggregate, context, Arg.Any<CancellationToken>());
+	}
+
 	static SqlServerSnapshotEventStore<TestAggregate> CreateStore(
 		INonQueryableEventStore<TestAggregate>? eventStore = null,
-		SqlServerSnapshotEventStoreOptions? options = null
+		SqlServerSnapshotEventStoreOptions? options = null,
+		ISnapshotStrategy<TestAggregate>? snapshotStrategy = null,
+		ISnapshotStrategySelector? snapshotStrategySelector = null
 	)
 	{
 		eventStore ??= Substitute.For<INonQueryableEventStore<TestAggregate>>();
 		var wrappedOptions = Options.Create(options ?? CreateDefaultOptions());
 		var telemetry = Substitute.For<ISqlServerSnapshotEventStoreTelemetry>();
 
-		return new(eventStore, wrappedOptions, telemetry);
+		return new(eventStore, wrappedOptions, telemetry, snapshotStrategy, snapshotStrategySelector);
 	}
 
 	static SqlServerSnapshotEventStoreOptions CreateDefaultOptions() =>

@@ -7,8 +7,7 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// <remarks>
 /// <para>
 /// The snapshot is written when <c>aggregate.Details.SavedVersion % <see cref="Interval"/> == 0</c>
-/// (i.e. the saved version is a multiple of the interval). This mirrors the behaviour of the
-/// legacy <c>SnapshotInterval</c> configuration option.
+/// (i.e. the saved version is a multiple of the interval).
 /// </para>
 /// <para>
 /// A value of <c>1</c> means every save triggers a snapshot (same as

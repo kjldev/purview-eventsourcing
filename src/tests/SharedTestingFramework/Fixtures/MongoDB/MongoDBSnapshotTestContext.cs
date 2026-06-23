@@ -94,7 +94,6 @@ public sealed class MongoDBSnapshotTestContext
 			Container = TestHelpers.GenAzureBlobContainerName(RunId),
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = true,
-			SnapshotInterval = 1,
 		};
 
 		TableEventStore<PersistenceAggregate> eventStore = new(

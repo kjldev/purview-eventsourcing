@@ -49,9 +49,28 @@ public sealed class OrderService(IEventStore store)
 }
 ```
 
+## Query aggregate event history (time/range filters)
+
+```csharp
+var history = await store.GetEventHistoryAsync<OrderAggregate>(
+    aggregateId: orderId,
+    request: new AggregateEventHistoryRequest
+    {
+        FromVersion = 10,
+        ToVersion = 50,
+        FromUtc = DateTimeOffset.UtcNow.AddDays(-7),
+        MaxRecords = 100
+    },
+    cancellationToken: cancellationToken);
+
+foreach (var item in history.Results)
+{
+    Console.WriteLine($"{item.AggregateVersion} {item.When:u} {item.EventType}");
+}
+```
+
 ## Next pages
 
 - [Source Generator Behaviors](Source-Generator-Behaviors.md)
 - [SQL Server Guide](SQL-Server-Guide.md)
 - [Release Flow](Release-Flow.md)
-

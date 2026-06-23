@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using NSubstitute.ReturnsExtensions;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.AzureStorage;
 using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
@@ -71,7 +72,6 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 			Container = containerName,
 			TimeoutInSeconds = 10,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
-			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
 		TableEventStore<TAggregate> eventStore = new(
@@ -81,7 +81,8 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 			aggregateChangeNotifier: aggregateChangeNotifier
 				?? Substitute.For<IAggregateChangeFeedNotifier<TAggregate>>(),
 			eventStoreTelemetry: telemetry,
-			aggregateRequirementsManager: aggregateRequirementsManager
+			aggregateRequirementsManager: aggregateRequirementsManager,
+			snapshotStrategy: new IntervalSnapshotStrategy<TAggregate>(snapshotRecalculationInterval)
 		);
 
 		var tableClient = new AzureTableClient(azureStorageOptions, eventStore.TableName);

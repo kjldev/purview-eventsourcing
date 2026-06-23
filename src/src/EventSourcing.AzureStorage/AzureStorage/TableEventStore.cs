@@ -4,6 +4,7 @@ using Azure.Data.Tables;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.AzureStorage.Entities;
 using Purview.EventSourcing.Services;
 
@@ -26,6 +27,8 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 	readonly ITableEventStoreTelemetry _eventStoreTelemetry;
 	readonly ChangeFeed.IAggregateChangeFeedNotifier<T> _aggregateChangeNotifier;
 	readonly IAggregateRequirementsManager _aggregateRequirementsManager;
+	readonly ISnapshotStrategy<T> _snapshotStrategy;
+	readonly ISnapshotStrategySelector? _snapshotStrategySelector;
 
 	readonly string _aggregateTypeFullName;
 	readonly string _aggregateTypeShortName;
@@ -39,7 +42,9 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 		IAggregateRequirementsManager aggregateRequirementsManager,
 		FluentValidation.IValidator<T>? validator = null,
 		ITableEventStoreStorageNameBuilder? nameBuilder = null,
-		IAggregateIdFactory? aggregateIdFactory = null
+		IAggregateIdFactory? aggregateIdFactory = null,
+		ISnapshotStrategy<T>? snapshotStrategy = null,
+		ISnapshotStrategySelector? snapshotStrategySelector = null
 	)
 	{
 		_eventNameMapper = eventNameMapper;
@@ -50,6 +55,8 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 		_eventStoreTelemetry = eventStoreTelemetry;
 		_aggregateChangeNotifier = aggregateChangeNotifier;
 		_aggregateRequirementsManager = aggregateRequirementsManager;
+		_snapshotStrategy = snapshotStrategy ?? new IntervalSnapshotStrategy<T>();
+		_snapshotStrategySelector = snapshotStrategySelector;
 
 		var name = typeof(T).Name;
 

@@ -7,6 +7,7 @@ using Azure;
 using FluentValidation.Results;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.AzureStorage.Entities;
 using Purview.EventSourcing.AzureStorage.Events;
 using Purview.EventSourcing.AzureStorage.StorageClients.Table;
@@ -113,7 +114,7 @@ partial class TableEventStore<T>
 		try
 		{
 			var previousAggregateVersion = aggregate.Details.SavedVersion;
-			var shouldSnapshot = ShouldSnapShot(aggregate, changeEvents);
+			var shouldSnapshot = ShouldSnapShot(aggregate, changeEvents, operationContext);
 			BatchOperation batchOperation = new();
 			streamEntity = new()
 			{
@@ -250,12 +251,18 @@ partial class TableEventStore<T>
 			: await _validator.ValidateAsync(aggregate, cancellationToken);
 	}
 
-	bool ShouldSnapShot(T aggregate, IEvent[] events)
+	bool ShouldSnapShot(T aggregate, IEvent[] events, EventStoreOperationContext? operationContext)
 	{
-		return aggregate.Details.IsDeleted
-			|| events.OfType<Restored>().Any()
-			|| (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
-				>= _eventStoreOptions.Value.SnapshotInterval;
+		if (aggregate.Details.IsDeleted || events.OfType<Restored>().Any())
+			return true;
+
+		return SnapshotStrategyResolver.ShouldSnapshot(
+			aggregate,
+			events.Length,
+			operationContext,
+			_snapshotStrategy,
+			_snapshotStrategySelector
+		);
 	}
 
 	async Task WriteLargeEventEntitiesAsync(

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.SqlServer.Client;
 using Purview.EventSourcing.SqlServer.Snapshots;
@@ -14,6 +15,8 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 	readonly IEventStoreCore<T> _eventStore;
 	readonly IOptions<SqlServerSnapshotEventStoreOptions> _sqlServerEventStoreOptions;
 	readonly ISqlServerSnapshotEventStoreTelemetry _telemetry;
+	readonly ISnapshotStrategy<T> _snapshotStrategy;
+	readonly ISnapshotStrategySelector? _snapshotStrategySelector;
 
 	readonly SqlServerClient _sqlServerClient;
 
@@ -26,12 +29,16 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 		// Explicitly request a non-queryable event store.
 		INonQueryableEventStore<T> eventStore,
 		IOptions<SqlServerSnapshotEventStoreOptions> sqlServerEventStoreOptions,
-		ISqlServerSnapshotEventStoreTelemetry telemetry
+		ISqlServerSnapshotEventStoreTelemetry telemetry,
+		ISnapshotStrategy<T>? snapshotStrategy = null,
+		ISnapshotStrategySelector? snapshotStrategySelector = null
 	)
 	{
 		_eventStore = eventStore;
 		_sqlServerEventStoreOptions = sqlServerEventStoreOptions;
 		_telemetry = telemetry;
+		_snapshotStrategy = snapshotStrategy ?? new AlwaysSnapshotStrategy<T>();
+		_snapshotStrategySelector = snapshotStrategySelector;
 
 		_aggregateName = TypeNameHelper.GetName(_aggregateType, "Aggregate");
 

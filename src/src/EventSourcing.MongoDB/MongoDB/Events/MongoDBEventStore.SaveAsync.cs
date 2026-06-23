@@ -215,12 +215,9 @@ partial class MongoDBEventStore<T>
 		;
 	}
 
-	bool ShouldSnapShot(T aggregate, IEvent[] events)
+	static bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
-		return aggregate.Details.IsDeleted
-			|| events.OfType<Restored>().Any()
-			|| (aggregate.Details.CurrentVersion - aggregate.Details.SnapshotVersion)
-				>= _eventStoreOptions.Value.SnapshotInterval;
+		return aggregate.Details.IsDeleted || events.OfType<Restored>().Any() || events.Length > 0;
 	}
 
 	IdempotencyMarkerEntity CreateIdempotencyMarkerOperation(T aggregate, string idempotencyId, IEvent[] changeEvents)
