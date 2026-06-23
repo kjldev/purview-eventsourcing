@@ -1,22 +1,28 @@
 # Purview EventSourcing Wiki
 
-This wiki-style documentation is the primary project documentation.
+This wiki is the project documentation hub for framework features, provider capabilities, and release workflow.
 
 ## Start here
 
 - [Getting Started](Getting-Started.md)
+- [Provider Feature Matrix](Provider-Feature-Matrix.md)
 - [Source Generator Behaviors](Source-Generator-Behaviors.md)
 - [SQL Server Guide](SQL-Server-Guide.md)
 - [Release Flow](Release-Flow.md)
 
-## Important behaviors
+## Feature highlights
 
-- `[GenerateAggregate]` supports:
-  - no declared base class (generator auto-adds `AggregateBase`),
-  - direct inheritance from `AggregateBase`,
-  - transitive inheritance through one or more intermediate base classes.
-- `On<Property>Changing/Changed` hooks are property-scoped across generated events that map the same property.
-- `On<Property>Changed` runs in `Apply(...)` (including replay); `On<Property>Changing` runs on command/event-raise path.
-- Event-specific hooks (`OnRaising...`, `OnRaised...`, `OnApplied...`) are event-scoped.
-- `Manual = true` methods are not auto-wired for property hooks unless invoked manually.
-- SQL Server guide includes SQL-specific transaction coordination (`ISqlServerEventStoreTransactionFactory`) for enlisting aggregate saves plus additional SQL/EF operations in one SQL transaction.
+- **Core framework (`Purview.EventSourcing`)**
+  - `AggregateBase`, `IEventStore`, `IQueryableEventStore`, and `IEventStoreTransactionFactory`.
+  - Source-generated aggregate events/command wiring from partial methods.
+  - Provider-agnostic aggregate load/save/query APIs.
+- **Storage providers**
+  - SQL Server / Azure SQL: event streams + queryable snapshots + SQL transaction coordination.
+  - Azure Storage: table-backed event streams with blob support for snapshots/large payloads.
+  - MongoDB: event streams + queryable snapshots.
+  - Cosmos DB: queryable snapshot store.
+- **Generator behavior**
+  - `[GenerateAggregate]` supports no base, direct `AggregateBase`, and transitive base-chain inheritance.
+  - Property hooks are property-scoped across generated events that map that property.
+  - `On<Property>Changed` runs in `Apply(...)` (including replay); `On<Property>Changing` runs on command/event-raise path only.
+  - Event hooks (`OnRaising...`, `OnRaised...`, `OnApplied...`) are event-scoped.

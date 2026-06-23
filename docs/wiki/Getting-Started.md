@@ -4,10 +4,18 @@
 
 ```bash
 dotnet add package Purview.EventSourcing
-dotnet add package Purview.EventSourcing.SqlServer
 ```
 
-## Define an aggregate
+Add one or more provider packages based on your persistence target:
+
+```bash
+dotnet add package Purview.EventSourcing.SqlServer
+dotnet add package Purview.EventSourcing.AzureStorage
+dotnet add package Purview.EventSourcing.MongoDB
+dotnet add package Purview.EventSourcing.CosmosDb
+```
+
+## Define an aggregate (source generator)
 
 ```csharp
 using Purview.EventSourcing.Aggregates;
@@ -29,8 +37,26 @@ public partial class OrderAggregate : AggregateBase
 ## Register storage
 
 ```csharp
+// SQL Server / Azure SQL (events + queryable snapshots)
 builder.Services.AddSqlServerEventStore();
 builder.Services.AddSqlServerSnapshotQueryableEventStore();
+```
+
+Other provider registrations:
+
+```csharp
+// Azure Storage (event store with blob support)
+builder.Services.AddAzureTableEventStore();
+
+// MongoDB (events + queryable snapshots)
+builder.Services.AddMongoDBEventStore();
+builder.Services.AddMongoDBSnapshotQueryableEventStore();
+
+// Cosmos DB (queryable snapshots)
+builder.Services.AddCosmosDbQueryableEventStore();
+
+// Core-only fallback for projects without persistent query snapshots
+builder.Services.AddNullQueryableEventStore();
 ```
 
 ## Use the provider-agnostic facade
@@ -71,6 +97,7 @@ foreach (var item in history.Results)
 
 ## Next pages
 
+- [Provider Feature Matrix](Provider-Feature-Matrix.md)
 - [Source Generator Behaviors](Source-Generator-Behaviors.md)
 - [SQL Server Guide](SQL-Server-Guide.md)
 - [Release Flow](Release-Flow.md)
