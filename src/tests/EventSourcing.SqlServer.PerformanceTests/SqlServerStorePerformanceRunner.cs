@@ -349,11 +349,7 @@ sealed class SqlServerStorePerformanceRunner
 		string tableName
 	)
 	{
-		var eventStore = CreateEventStore<CustomerAggregate>(
-			connectionString,
-			eventTableName,
-			snapshotInterval: 100_000
-		);
+		var eventStore = CreateEventStore<CustomerAggregate>(connectionString, eventTableName);
 
 		return new SqlServerSnapshotEventStore<CustomerAggregate>(
 			eventStore,
@@ -376,11 +372,7 @@ sealed class SqlServerStorePerformanceRunner
 		string tableName
 	)
 	{
-		var eventStore = CreateEventStore<SnapshotValueObjectsAggregate>(
-			connectionString,
-			eventTableName,
-			snapshotInterval: 100_000
-		);
+		var eventStore = CreateEventStore<SnapshotValueObjectsAggregate>(connectionString, eventTableName);
 
 		return new SqlServerSnapshotEventStore<SnapshotValueObjectsAggregate>(
 			eventStore,
@@ -399,14 +391,10 @@ sealed class SqlServerStorePerformanceRunner
 
 	static SqlServerEventStore<PersistenceAggregate> CreateEventStore(string connectionString, string tableName)
 	{
-		return CreateEventStore<PersistenceAggregate>(connectionString, tableName, snapshotInterval: 100_000);
+		return CreateEventStore<PersistenceAggregate>(connectionString, tableName);
 	}
 
-	static SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
-		string connectionString,
-		string tableName,
-		int snapshotInterval
-	)
+	static SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(string connectionString, string tableName)
 		where TAggregate : class, IAggregate, new()
 	{
 		var options = new SqlServerEventStoreOptions
@@ -417,7 +405,6 @@ sealed class SqlServerStorePerformanceRunner
 			AutoCreateTable = true,
 			TimeoutInSeconds = 120,
 			CacheMode = EventStoreCachingOptions.None,
-			SnapshotInterval = snapshotInterval,
 			RequiresValidPrincipalIdentifier = false,
 		};
 

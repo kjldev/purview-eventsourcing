@@ -332,23 +332,9 @@ partial class SqlServerEventStore<T>
 			: await _validator.ValidateAsync(aggregate, cancellationToken);
 	}
 
-	bool ShouldSnapShot(T aggregate, IEvent[] events)
+	static bool ShouldSnapShot(T aggregate, IEvent[] events)
 	{
-		if (aggregate.Details.IsDeleted || events.OfType<Restored>().Any())
-			return true;
-
-		var savedVersion = aggregate.Details.SavedVersion;
-
-		try
-		{
-			aggregate.Details.SavedVersion = aggregate.Details.CurrentVersion;
-
-			return _snapshotStrategy.ShouldSnapshot(aggregate, events.Length);
-		}
-		finally
-		{
-			aggregate.Details.SavedVersion = savedVersion;
-		}
+		return aggregate.Details.IsDeleted || events.OfType<Restored>().Any() || events.Length > 0;
 	}
 
 	async Task SubmitBatchOperationsAsync(

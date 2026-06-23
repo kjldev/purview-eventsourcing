@@ -22,6 +22,7 @@ builder.Services.AddSqlServerEventStore();
 builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
 builder.Services.AddDomainServices();
+builder.Services.AddScoped<AggregateAuditService>();
 
 // Register product image service — uses Azure Blob Storage when configured, no-op otherwise
 var blobConnectionString = builder.Configuration.GetConnectionString("blob-storage");
@@ -52,6 +53,45 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.MapRazorPages();
+app.MapGroup("/api/audit")
+	.MapGet(
+		"/aggregates/{aggregateType}/{aggregateId}/events",
+		async Task<IResult> (
+			string aggregateType,
+			string aggregateId,
+			int? fromVersion,
+			int? toVersion,
+			DateTimeOffset? fromUtc,
+			DateTimeOffset? toUtc,
+			int? maxRecords,
+			string? continuationToken,
+			AggregateAuditService auditService,
+			CancellationToken cancellationToken
+		) =>
+		{
+			if (!AggregateAuditService.IsSupportedAggregateType(aggregateType))
+				return Results.BadRequest(
+					new
+					{
+						Error = $"Unsupported aggregate type '{aggregateType}'.",
+						SupportedAggregateTypes = AggregateAuditService.SupportedAggregateTypes,
+					}
+				);
+
+			var request = new AggregateEventHistoryRequest
+			{
+				FromVersion = fromVersion,
+				ToVersion = toVersion,
+				FromUtc = fromUtc,
+				ToUtc = toUtc,
+				MaxRecords = maxRecords ?? ContinuationRequest.DefaultMaxRecords,
+				ContinuationToken = continuationToken,
+			};
+			var response = await auditService.GetHistoryAsync(aggregateType, aggregateId, request, cancellationToken);
+
+			return Results.Ok(response);
+		}
+	);
 app.MapDefaultEndpoints().MapGet("/pingz", () => Results.Ok());
 
 // Seed demo data on startup (no-op if data already exists).

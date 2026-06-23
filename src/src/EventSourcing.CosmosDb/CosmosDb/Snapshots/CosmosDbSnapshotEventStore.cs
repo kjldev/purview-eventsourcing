@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.CosmosDb.Snapshots;
 using Purview.EventSourcing.Internal;
 
@@ -12,6 +13,8 @@ public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEve
 	readonly IEventStoreCore<T> _eventStore;
 	readonly IOptions<CosmosDbEventStoreOptions> _cosmosDbEventStoreOptions;
 	readonly ICosmosDbSnapshotEventStoreTelemetry _telemetry;
+	readonly ISnapshotStrategy<T> _snapshotStrategy;
+	readonly ISnapshotStrategySelector? _snapshotStrategySelector;
 
 	readonly CosmosDbClient _cosmosDbClient;
 
@@ -27,12 +30,16 @@ public sealed partial class CosmosDbSnapshotEventStore<T> : ICosmosDbSnapshotEve
 		INonQueryableEventStore<T> eventStore,
 		IOptions<CosmosDbEventStoreOptions> cosmosDbEventStoreOptions,
 		ICosmosDbSnapshotEventStoreTelemetry telemetry,
-		CosmosClient? cosmosClient = null
+		CosmosClient? cosmosClient = null,
+		ISnapshotStrategy<T>? snapshotStrategy = null,
+		ISnapshotStrategySelector? snapshotStrategySelector = null
 	)
 	{
 		_eventStore = eventStore;
 		_cosmosDbEventStoreOptions = cosmosDbEventStoreOptions;
 		_telemetry = telemetry;
+		_snapshotStrategy = snapshotStrategy ?? new AlwaysSnapshotStrategy<T>();
+		_snapshotStrategySelector = snapshotStrategySelector;
 
 		_partitionKey = new(GetAggregateTypeName());
 

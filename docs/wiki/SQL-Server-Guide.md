@@ -67,6 +67,26 @@ public class OrderService(IEventStore store)
 }
 ```
 
+### Event-history API (version and time filters)
+
+The provider-agnostic facade exposes aggregate history reads for audit/review use-cases:
+
+```csharp
+var response = await store.GetEventHistoryAsync<OrderAggregate>(
+    orderId,
+    new AggregateEventHistoryRequest
+    {
+        FromVersion = 1,
+        ToVersion = 200,
+        FromUtc = DateTimeOffset.UtcNow.AddDays(-30),
+        ToUtc = DateTimeOffset.UtcNow,
+        MaxRecords = 100
+    },
+    cancellationToken);
+```
+
+The response is a `ContinuationResponse<AggregateEventHistoryItem>` so callers can page using the returned `ContinuationToken`.
+
 ### Snapshot Store
 
 ```csharp
@@ -99,7 +119,6 @@ builder.Services.AddSqlServerSnapshotQueryableEventStore();
 | `UseDataCompression` | `bool` | `true` | Apply `PAGE` compression (Enterprise / Azure SQL) |
 | `TimeoutInSeconds` | `int?` | `60` | Command timeout (1–120 000 s) |
 | `MaxEventCountOnSave` | `int` | `1000` | Maximum events per save operation |
-| `SnapshotInterval` | `int` | `1` | Snapshot every N events saved |
 | `EventSuffixLength` | `int` | `30` | Zero-padded version suffix on event row IDs |
 | `RemoveDeletedFromCache` | `bool` | `true` | Evict deleted aggregates from distributed cache |
 | `CacheMode` | `EventStoreCachingOptions` | `GetAndStore` | Distributed-cache interaction policy |

@@ -1,0 +1,115 @@
+@page
+@model Purview.EventSourcing.Samples.Web.Pages.BackOffice.Audit.IndexModel
+@{
+    ViewData["Title"] = "Audit / Review";
+}
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <h2 class="text-base font-semibold text-gray-700 mb-2">Aggregate Event History</h2>
+    <p class="text-sm text-gray-500 mb-4">Inspect aggregate timelines using version and UTC time ranges.</p>
+
+    <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Aggregate Type</label>
+            <select name="aggregateType" class="w-full rounded-lg border-gray-300" value="@Model.AggregateType">
+                @foreach (var type in Model.SupportedTypes)
+                {
+                    if (string.Equals(type, Model.AggregateType, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option selected value="@type">@type</option>
+                    }
+                    else
+                    {
+                        <option value="@type">@type</option>
+                    }
+                }
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Aggregate Id</label>
+            <input name="aggregateId" value="@Model.AggregateId" class="w-full rounded-lg border-gray-300" placeholder="e.g. order-123" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Page Size</label>
+            <input type="number" min="1" max="1000" name="pageSize" value="@Model.PageSize" class="w-full rounded-lg border-gray-300" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">From Version</label>
+            <input type="number" min="1" name="fromVersion" value="@Model.FromVersion" class="w-full rounded-lg border-gray-300" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">To Version</label>
+            <input type="number" min="1" name="toVersion" value="@Model.ToVersion" class="w-full rounded-lg border-gray-300" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">From UTC</label>
+            <input type="datetime-local" name="fromUtc" value="@Model.FromUtc?.UtcDateTime.ToString("yyyy-MM-ddTHH:mm")" class="w-full rounded-lg border-gray-300" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">To UTC</label>
+            <input type="datetime-local" name="toUtc" value="@Model.ToUtc?.UtcDateTime.ToString("yyyy-MM-ddTHH:mm")" class="w-full rounded-lg border-gray-300" />
+        </div>
+        <div class="md:col-span-3 flex gap-2">
+            <button type="submit" class="px-4 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">Load History</button>
+            <a asp-page="/BackOffice/Audit/Index" class="px-4 py-2 bg-gray-100 text-sm rounded-lg hover:bg-gray-200 transition-colors">Reset</a>
+        </div>
+    </form>
+</div>
+
+@if (Model.HasQuery)
+{
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-700">Events (@Model.Events.Count)</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.NextContinuationToken))
+            {
+                <a href="@Model.BuildContinuationLink(Model.NextContinuationToken)"
+                   class="px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">
+                    Next Page →
+                </a>
+            }
+        </div>
+
+        @if (Model.Events.Count == 0)
+        {
+            <p class="text-sm text-gray-500">No events matched the current filters.</p>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="text-left border-b">
+                            <th class="py-2 pr-4">Version</th>
+                            <th class="py-2 pr-4">When (UTC)</th>
+                            <th class="py-2 pr-4">Event Type</th>
+                            <th class="py-2 pr-4">Correlation</th>
+                            <th class="py-2 pr-4">Payload</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Events)
+                        {
+                            <tr class="border-b align-top">
+                                <td class="py-2 pr-4 font-mono">@item.AggregateVersion</td>
+                                <td class="py-2 pr-4 font-mono">@item.When.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td class="py-2 pr-4">
+                                    <div>@item.EventType</div>
+                                    @if (item.IsUnknownEvent)
+                                    {
+                                        <div class="text-xs text-amber-700">Unknown event payload</div>
+                                    }
+                                </td>
+                                <td class="py-2 pr-4 font-mono text-xs">@item.CorrelationId</td>
+                                <td class="py-2 pr-4">
+                                    <pre class="whitespace-pre-wrap text-xs bg-gray-50 rounded p-2 border border-gray-100 max-w-xl overflow-x-auto">@item.Payload</pre>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+

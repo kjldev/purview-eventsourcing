@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.SqlServer.Snapshot;
@@ -36,9 +37,20 @@ partial class SqlServerSnapshotEventStore<T>
 	)
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
+		var eventsApplied = aggregate.GetUnsavedEvents().Count();
 
 		var result = await _eventStore.SaveAsync(aggregate, operationContext, cancellationToken);
-		if (result)
+		if (
+			result
+			&& !result.Skipped
+			&& SnapshotStrategyResolver.ShouldSnapshot(
+				aggregate,
+				eventsApplied,
+				operationContext,
+				_snapshotStrategy,
+				_snapshotStrategySelector
+			)
+		)
 			await SnapshotAsync(aggregate, cancellationToken);
 
 		return result;
@@ -81,6 +93,7 @@ partial class SqlServerSnapshotEventStore<T>
 		if (_eventStore is not ITransactionalEventStore<T> transactionalEventStore)
 			throw new InvalidOperationException("The inner event store does not support transactional saves.");
 
+		var eventsApplied = aggregate.GetUnsavedEvents().Count();
 		var innerOperation = await transactionalEventStore.SaveInTransactionAsync(
 			aggregate,
 			operationContext,
@@ -91,7 +104,17 @@ partial class SqlServerSnapshotEventStore<T>
 
 		try
 		{
-			if (innerOperation.Result.Saved)
+			if (
+				innerOperation.Result.Saved
+				&& !innerOperation.Result.Skipped
+				&& SnapshotStrategyResolver.ShouldSnapshot(
+					aggregate,
+					eventsApplied,
+					operationContext,
+					_snapshotStrategy,
+					_snapshotStrategySelector
+				)
+			)
 			{
 				var snapshotSaved = await _sqlServerClient.UpsertAsync(
 					aggregate,

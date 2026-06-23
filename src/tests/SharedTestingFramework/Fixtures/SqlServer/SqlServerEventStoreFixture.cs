@@ -69,7 +69,6 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 			AutoCreateTable = true,
 			TimeoutInSeconds = 60,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
-			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
 		var client = new SqlServerEventStoreClient(options);

@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Security.Claims;
 using Microsoft.Extensions.Caching.Distributed;
+using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 
 namespace Purview.EventSourcing;
 
@@ -10,6 +12,8 @@ namespace Purview.EventSourcing;
 [System.Diagnostics.DebuggerStepThrough]
 public sealed record class EventStoreOperationContext
 {
+	readonly Dictionary<Type, object> _snapshotStrategies = [];
+
 	/// <summary>
 	/// Get or sets the default <see cref="EventStoreOperationContext"/>, for
 	/// when <see cref="IEventStore{T}"/> operations provide a null operational context.
@@ -102,4 +106,36 @@ public sealed record class EventStoreOperationContext
 	/// The claim identifier to use when retrieving the Id from the <see cref="ClaimsPrincipal"/>.
 	/// </summary>
 	public string ClaimIdentifier { get; set; } = "sub";
+
+	/// <summary>
+	/// Gets or sets a selector that can resolve snapshot strategies for this specific operation.
+	/// </summary>
+	public ISnapshotStrategySelector? SnapshotStrategySelector { get; set; }
+
+	/// <summary>
+	/// Sets the snapshot strategy to use for <typeparamref name="TAggregate"/> for this operation.
+	/// </summary>
+	public EventStoreOperationContext SetSnapshotStrategy<TAggregate>(ISnapshotStrategy<TAggregate> strategy)
+		where TAggregate : class, IAggregate, new()
+	{
+		ArgumentNullException.ThrowIfNull(strategy);
+		_snapshotStrategies[typeof(TAggregate)] = strategy;
+		return this;
+	}
+
+	/// <summary>
+	/// Attempts to resolve an operation-specific snapshot strategy for <typeparamref name="TAggregate"/>.
+	/// </summary>
+	public bool TryGetSnapshotStrategy<TAggregate>(out ISnapshotStrategy<TAggregate>? strategy)
+		where TAggregate : class, IAggregate, new()
+	{
+		if (_snapshotStrategies.TryGetValue(typeof(TAggregate), out var value))
+		{
+			strategy = value as ISnapshotStrategy<TAggregate>;
+			return strategy is not null;
+		}
+
+		strategy = null;
+		return false;
+	}
 }

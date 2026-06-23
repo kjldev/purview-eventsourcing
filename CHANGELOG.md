@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.15
+
+### Patch Changes
+
+- implemented snapshot strategies snapshot-store wide (+ azure table/ blob storage)
+
 ## 2.0.0-prerelease.14
 
 ### Patch Changes

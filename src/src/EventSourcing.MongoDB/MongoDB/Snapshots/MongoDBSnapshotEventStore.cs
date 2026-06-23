@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.MongoDB.StorageClient;
 
 namespace Purview.EventSourcing.MongoDB.Snapshots;
@@ -12,6 +13,8 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 	readonly MongoDBClient _mongoDbClient;
 	readonly IOptions<MongoDBSnapshotEventStoreOptions> _mongoDbOptions;
 	readonly IMongoDBSnapshotEventStoreTelemetry _telemetry;
+	readonly ISnapshotStrategy<T> _snapshotStrategy;
+	readonly ISnapshotStrategySelector? _snapshotStrategySelector;
 
 	readonly string _aggregateName;
 
@@ -19,12 +22,16 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 		Internal.INonQueryableEventStore<T> eventStore,
 		IOptions<MongoDBSnapshotEventStoreOptions> mongoDbOptions,
 		IMongoDBSnapshotEventStoreTelemetry telemetry,
-		IMongoDBClientTelemetry mongoDBClientTelemetry
+		IMongoDBClientTelemetry mongoDBClientTelemetry,
+		ISnapshotStrategy<T>? snapshotStrategy = null,
+		ISnapshotStrategySelector? snapshotStrategySelector = null
 	)
 	{
 		_eventStore = eventStore;
 		_mongoDbOptions = mongoDbOptions;
 		_telemetry = telemetry;
+		_snapshotStrategy = snapshotStrategy ?? new AlwaysSnapshotStrategy<T>();
+		_snapshotStrategySelector = snapshotStrategySelector;
 
 		_aggregateName = TypeNameHelper.GetName(typeof(T), "Aggregate");
 		var collectionName = _mongoDbOptions.Value.Collection ?? $"snapshot-{_aggregateName}-store";

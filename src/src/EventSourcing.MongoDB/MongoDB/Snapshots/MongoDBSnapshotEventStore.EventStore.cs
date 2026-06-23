@@ -1,4 +1,5 @@
 ﻿using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
 
 namespace Purview.EventSourcing.MongoDB.Snapshots;
 
@@ -32,8 +33,21 @@ partial class MongoDBSnapshotEventStore<T>
 		CancellationToken cancellationToken = default
 	)
 	{
+		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
+
+		var eventsApplied = aggregate.GetUnsavedEvents().Count();
 		var result = await _eventStore.SaveAsync(aggregate, operationContext, cancellationToken);
-		if (result)
+		if (
+			result
+			&& !result.Skipped
+			&& SnapshotStrategyResolver.ShouldSnapshot(
+				aggregate,
+				eventsApplied,
+				operationContext,
+				_snapshotStrategy,
+				_snapshotStrategySelector
+			)
+		)
 			await SnapshotAsync(aggregate, cancellationToken);
 
 		return result;

@@ -13,8 +13,7 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// </para>
 /// <para>
 /// Register your implementation with DI to replace the default behaviour. If no implementation
-/// is registered, the default <see cref="IntervalSnapshotStrategy{T}"/> is used, which
-/// mirrors the existing <c>SnapshotInterval</c> configuration setting.
+/// is registered, the default <see cref="IntervalSnapshotStrategy{T}"/> is used.
 /// </para>
 /// <para>Built-in implementations:</para>
 /// <list type="bullet">

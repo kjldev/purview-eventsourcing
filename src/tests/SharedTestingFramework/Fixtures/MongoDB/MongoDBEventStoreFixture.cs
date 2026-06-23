@@ -75,7 +75,6 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 			ReplicaName = "rs0",
 			TimeoutInSeconds = 60,
 			RemoveDeletedFromCache = removeFromCacheOnDelete,
-			SnapshotInterval = snapshotRecalculationInterval,
 		};
 
 		var mongoDBClientTelemetry = Substitute.For<IMongoDBClientTelemetry>();

@@ -94,20 +94,14 @@ partial class GenericMongoDBEventStoreTests<TAggregate>
 	)
 	{
 		// Arrange
-		// eventsToCreate is a multiple of snapshotInterval (10, 20, 50, 80, 100).
-		// First save triggers a snapshot at CurrentVersion == eventsToCreate.
-		// Second save adds eventCountOffset more events (not reaching the next interval),
-		// so no new snapshot is taken and the aggregate must be reconstructed from
-		// the snapshot plus the trailing events.
-		const int snapshotInterval = 5;
-		const int eventCountOffset = snapshotInterval - 1;
-
-		var expectedSnapshotVersion = eventsToCreate;
+		// The MongoDB event store snapshots on every save that persists events.
+		const int eventCountOffset = 4;
+		var expectedSnapshotVersion = eventsToCreate + eventCountOffset;
 		var totalEventsToCreate = eventsToCreate + eventCountOffset;
 
 		var aggregateId = $"{Guid.NewGuid()}";
 
-		var eventStore = fixture.CreateEventStore<TAggregate>(snapshotRecalculationInterval: snapshotInterval);
+		var eventStore = fixture.CreateEventStore<TAggregate>();
 
 		// Act
 		var aggregate = TestHelpers.Aggregate<TAggregate>(aggregateId: aggregateId);
