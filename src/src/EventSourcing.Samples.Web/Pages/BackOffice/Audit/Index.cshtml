@@ -56,12 +56,12 @@
     </form>
 </div>
 
-@if (Model.HasQuery)
+@if (Model.HasQuery || Model.IsRecentMode)
 {
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-semibold text-gray-700">Events (@Model.Events.Count)</h2>
-            @if (!string.IsNullOrWhiteSpace(Model.NextContinuationToken))
+            <h2 class="text-base font-semibold text-gray-700">@(Model.IsRecentMode ? "Recent Events" : "Events") (@Model.Events.Count)</h2>
+            @if (!Model.IsRecentMode && !string.IsNullOrWhiteSpace(Model.NextContinuationToken))
             {
                 <a href="@Model.BuildContinuationLink(Model.NextContinuationToken)"
                    class="px-3 py-2 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">
@@ -72,7 +72,7 @@
 
         @if (Model.Events.Count == 0)
         {
-            <p class="text-sm text-gray-500">No events matched the current filters.</p>
+            <p class="text-sm text-gray-500">@(Model.IsRecentMode ? "No recent events matched the current filters." : "No events matched the current filters.")</p>
         }
         else
         {
@@ -112,4 +112,3 @@
         }
     </div>
 }
-

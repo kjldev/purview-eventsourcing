@@ -22,7 +22,7 @@ builder.Services.AddSqlServerEventStore();
 builder.Services.AddSqlServerSnapshotQueryableEventStore();
 
 builder.Services.AddDomainServices();
-builder.Services.AddScoped<AggregateAuditService>();
+builder.Services.AddScoped<IAggregateAuditService, AggregateAuditService>();
 
 // Register product image service — uses Azure Blob Storage when configured, no-op otherwise
 var blobConnectionString = builder.Configuration.GetConnectionString("blob-storage");
@@ -65,7 +65,7 @@ app.MapGroup("/api/audit")
 			DateTimeOffset? toUtc,
 			int? maxRecords,
 			string? continuationToken,
-			AggregateAuditService auditService,
+			IAggregateAuditService auditService,
 			CancellationToken cancellationToken
 		) =>
 		{
@@ -114,3 +114,6 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 await app.RunAsync();
+
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1515:Consider making public types internal")]
+public partial class Program;
