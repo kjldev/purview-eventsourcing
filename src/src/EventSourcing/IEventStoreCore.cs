@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 
 namespace Purview.EventSourcing;
 
@@ -61,4 +62,11 @@ public interface IEventStoreCore<T>
 	Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken cancellationToken = default);
 
 	T FulfilRequirements(T aggregate);
+
+	IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	);
 }

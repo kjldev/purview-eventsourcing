@@ -8,7 +8,7 @@ using Purview.EventSourcing.Fixtures.SqlServer;
 namespace Purview.EventSourcing.SqlServer.Events;
 
 [ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
-public sealed class SqlServerEventStoreTransactionIntegrationTests(SqlServerEventStoreFixture fixture)
+public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlServerEventStoreFixture fixture)
 {
 	[Test]
 	public async Task CommitAsync_GivenEnlistedRawSqlOperation_CommitsAggregateAndRawSqlTogether(
@@ -183,10 +183,9 @@ public sealed class SqlServerEventStoreTransactionIntegrationTests(SqlServerEven
 
 	static string QuoteTableName(string tableName)
 	{
-		if (!Regex.IsMatch(tableName, "^[A-Za-z0-9_]+$", RegexOptions.CultureInvariant))
-			throw new ArgumentException("Audit table name contains unsupported characters.", nameof(tableName));
-
-		return $"[dbo].[{tableName}]";
+		return AzureTableNameRegEx().IsMatch(tableName)
+			? $"[dbo].[{tableName}]"
+			: throw new ArgumentException("Audit table name contains unsupported characters.", nameof(tableName));
 	}
 
 	sealed class FixedCorrelationIdProvider(string correlationId) : IEventStoreCorrelationIdProvider
@@ -221,4 +220,7 @@ public sealed class SqlServerEventStoreTransactionIntegrationTests(SqlServerEven
 		public string CorrelationId { get; set; } = string.Empty;
 		public string Value { get; set; } = string.Empty;
 	}
+
+	[GeneratedRegex("^[A-Za-z0-9_]+$", RegexOptions.CultureInvariant)]
+	private static partial Regex AzureTableNameRegEx();
 }

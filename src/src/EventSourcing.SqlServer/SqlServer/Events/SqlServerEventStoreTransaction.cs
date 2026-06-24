@@ -326,7 +326,7 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : ISql
 			CancellationToken cancellationToken
 		)
 		{
-			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext;
+			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext();
 			var context = baseContext with
 			{
 				CorrelationId = baseContext.CorrelationId ?? correlationId,

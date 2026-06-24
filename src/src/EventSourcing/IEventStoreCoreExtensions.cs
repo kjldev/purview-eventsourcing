@@ -462,7 +462,7 @@ public static class IEventStoreCoreExtensions
 		where T : class, IAggregate, new()
 	{
 		return string.IsNullOrWhiteSpace(aggregateId)
-			? Task.FromResult(ExistsState.DoesNotExists)
+			? Task.FromResult(ExistsState.DoesNotExist)
 			: eventStore.ExistsAsync(aggregateId, cancellationToken);
 	}
 

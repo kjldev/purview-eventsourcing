@@ -4,7 +4,7 @@
 /// Controls how the cache is used in <see cref="IEventStore{T}"/> operations.
 /// </summary>
 [Flags]
-public enum EventStoreCachingOptions
+public enum SnapshotCachingOptions
 {
 	/// <summary>
 	/// Disables the cache completely.

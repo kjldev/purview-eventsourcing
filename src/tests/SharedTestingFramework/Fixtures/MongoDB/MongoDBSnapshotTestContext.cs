@@ -38,6 +38,7 @@ public sealed class MongoDBSnapshotTestContext
 		_mongoDbConnectionString = mongoDbConnectionString;
 		_azuriteConnectionString = azuriteConnectionString;
 
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
 		EventStore = CreateMongoDBEventStore(correlationIdsToGenerate, collectionName);
 	}
 

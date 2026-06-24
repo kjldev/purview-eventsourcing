@@ -1,4 +1,5 @@
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 
 namespace Purview.EventSourcing;
 
@@ -169,5 +170,21 @@ public interface IEventStore
 	/// <returns>The aggregate with the requirements fulfilled.</returns>
 	/// <remarks>This is called automatically for any options from within the store.</remarks>
 	T FulfilRequirements<T>(T aggregate)
+		where T : class, IAggregate, new();
+
+	/// <summary>
+	/// Gets a range of <see cref="IEvent"/>s for a given aggregate, as specified by it's <paramref name="aggregateId"/>.
+	/// </summary>
+	/// <param name="aggregateId">The id of the aggregate.</param>
+	/// <param name="versionFrom">The inclusive event number to start the range at.</param>
+	/// <param name="versionTo">Optional, the inclusive event number to finish the range at.</param>
+	/// <param name="cancellationToken">The stopping token.</param>
+	/// <returns>If no <paramref name="versionTo"/> is specified all available events greater than <paramref name="versionFrom"/> are returned.</returns>
+	IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync<T>(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	)
 		where T : class, IAggregate, new();
 }

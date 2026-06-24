@@ -1,8 +1,5 @@
-using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Fixtures.SqlServer;
-using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.SqlServer.Snapshot;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
 
@@ -14,30 +11,12 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 		CancellationToken cancellationToken
 	)
 	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
+		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
 		var email = "updated@test.com";
 		var aggregate = new CustomerAggregate();
 		aggregate.Details.Id = Guid.NewGuid().ToString("D");
 		aggregate.RegisterCustomer("Jane Smith", "jane@test.com");
 		aggregate.ChangeEmail(email);
-		var innerEventStore = Substitute.For<INonQueryableEventStore<CustomerAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<CustomerAggregate>())
-			.Returns(callInfo => callInfo.Arg<CustomerAggregate>());
-
-		var store = new SqlServerSnapshotEventStore<CustomerAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
 
 		await store.SnapshotAsync(aggregate, cancellationToken);
 
@@ -54,26 +33,7 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 	[Test]
 	public async Task QueryAsync_GivenOrderByScalarValueObject_TranslatesAndOrders(CancellationToken cancellationToken)
 	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
-		var innerEventStore = Substitute.For<INonQueryableEventStore<CustomerAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<CustomerAggregate>())
-			.Returns(callInfo => callInfo.Arg<CustomerAggregate>());
-
-		var store = new SqlServerSnapshotEventStore<CustomerAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
-
+		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
 		var charlie = new CustomerAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
 		charlie.RegisterCustomer("Charlie", "charlie@test.com");
 		await store.SnapshotAsync(charlie, cancellationToken);
@@ -97,26 +57,7 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 	[Test]
 	public async Task QueryAsync_GivenOrderByScalarInnerValue_FailsWithClearMessage(CancellationToken cancellationToken)
 	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
-		var innerEventStore = Substitute.For<INonQueryableEventStore<CustomerAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<CustomerAggregate>())
-			.Returns(callInfo => callInfo.Arg<CustomerAggregate>());
-
-		var store = new SqlServerSnapshotEventStore<CustomerAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
-
+		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
 		var customer = new CustomerAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
 		customer.RegisterCustomer("Zed", "zed@test.com");
 		await store.SnapshotAsync(customer, cancellationToken);

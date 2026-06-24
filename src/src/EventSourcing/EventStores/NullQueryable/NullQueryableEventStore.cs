@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.EventStores.NullQueryable;
@@ -11,6 +12,13 @@ sealed class NullQueryableEventStore<T>(INonQueryableEventStore<T> eventStore) :
 	readonly IEventStoreCore<T> _eventStore = eventStore;
 
 	public T FulfilRequirements(T aggregate) => _eventStore.FulfilRequirements(aggregate);
+
+	public IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	) => _eventStore.GetEventRangeAsync(aggregateId, versionFrom, versionTo, cancellationToken);
 
 	public Task<T> CreateAsync(string? id = null, CancellationToken cancellationToken = default) =>
 		_eventStore.CreateAsync(id, cancellationToken);

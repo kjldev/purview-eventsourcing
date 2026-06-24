@@ -16,7 +16,7 @@ partial class TableEventStore<T>
 		if (!aggregate.Details.IsDeleted)
 			throw AggregateNotDeletedException(aggregate.Id());
 
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		var restoreAggregateEvent = new Restored
 		{

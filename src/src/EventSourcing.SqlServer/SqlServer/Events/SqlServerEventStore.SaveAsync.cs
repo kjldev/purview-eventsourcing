@@ -62,7 +62,7 @@ partial class SqlServerEventStore<T>
 		params IEvent[] additionalEvents
 	)
 	{
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		FulfilRequirements(aggregate);
 

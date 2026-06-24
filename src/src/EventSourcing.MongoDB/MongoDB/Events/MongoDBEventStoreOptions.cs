@@ -58,10 +58,10 @@ public sealed class MongoDBEventStoreOptions
 
 	/// <summary>
 	/// Gets/ sets a value indicating how the <see cref="IEventStore{T}"/>
-	/// uses the <see cref="IDistributedCache"/> during it's operations. Defaults to <see cref="EventStoreCachingOptions.GetAndStore"/>.
+	/// uses the <see cref="IDistributedCache"/> during it's operations. Defaults to <see cref="SnapshotCachingOptions.GetAndStore"/>.
 	/// </summary>
-	[DefaultValue(EventStoreCachingOptions.GetAndStore)]
-	public EventStoreCachingOptions CacheMode { get; set; } = EventStoreCachingOptions.GetAndStore;
+	[DefaultValue(SnapshotCachingOptions.GetAndStore)]
+	public SnapshotCachingOptions CacheMode { get; set; } = SnapshotCachingOptions.GetAndStore;
 
 	public TimeSpan DefaultCacheSlidingDuration { get; set; } = TimeSpan.FromMinutes(60);
 

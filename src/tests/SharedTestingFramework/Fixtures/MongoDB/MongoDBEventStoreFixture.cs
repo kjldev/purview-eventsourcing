@@ -17,7 +17,11 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 
 	IAggregateEventNameMapper _eventNameMapper = default!;
 
-	public MongoDBEventStoreFixture() => _mongoDBContainer = ContainerHelper.CreateMongoDB();
+	public MongoDBEventStoreFixture()
+	{
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
+		_mongoDBContainer = ContainerHelper.CreateMongoDB();
+	}
 
 	public IDistributedCache Cache { get; private set; } = default!;
 
@@ -29,15 +33,10 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 
 	public MongoDBEventStore<TAggregate> CreateEventStore<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1
+		bool removeFromCacheOnDelete = false
 	)
 		where TAggregate : class, IAggregate, new() =>
-		CreateEventStoreContext(
-			aggregateChangeNotifier,
-			removeFromCacheOnDelete,
-			snapshotRecalculationInterval
-		).EventStore;
+		CreateEventStoreContext(aggregateChangeNotifier, removeFromCacheOnDelete).EventStore;
 
 	internal (
 		MongoDBEventStore<TAggregate> EventStore,
@@ -47,8 +46,7 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 		MongoDBClient SnapshotClient
 	) CreateEventStoreContext<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
-		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1
+		bool removeFromCacheOnDelete = false
 	)
 		where TAggregate : class, IAggregate, new()
 	{

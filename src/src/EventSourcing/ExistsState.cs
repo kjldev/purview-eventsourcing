@@ -33,7 +33,7 @@ public readonly record struct ExistsState(ExistsStatus Status, int? Version)
 	/// <summary>
 	/// Represents a value that indicates the aggregate does not exist.
 	/// </summary>
-	public static ExistsState DoesNotExists => new(ExistsStatus.DoesNotExist, null);
+	public static ExistsState DoesNotExist => new(ExistsStatus.DoesNotExist, null);
 
 	/// <summary>
 	/// Represents a value that indicates the aggregate does exist.

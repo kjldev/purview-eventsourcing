@@ -687,8 +687,7 @@ sealed partial class SqlServerClient
 			return false;
 
 		return IsEventStoreCollectionType(type)
-			? true
-			: type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+			|| type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 	}
 
 	static InvalidOperationException CreateUnsupportedShapeException(Type containingType, MemberInfo member) =>

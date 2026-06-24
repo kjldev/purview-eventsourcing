@@ -18,6 +18,11 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 	IAggregateEventNameMapper _eventNameMapper = default!;
 	IDisposable? _eventStoreAsDisposable;
 
+	public TableEventStoreFixture()
+	{
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
+	}
+
 	public IDistributedCache Cache { get; private set; } = default!;
 
 	public ITableEventStoreTelemetry Telemetry { get; private set; } = default!;

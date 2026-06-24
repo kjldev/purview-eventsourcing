@@ -13,7 +13,7 @@ partial class SqlServerEventStore<T>
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		_eventStoreTelemetry.GetAggregateAtSpecificVersionStart(aggregateId, version, _aggregateTypeFullName);
 		using var activity = _eventStoreTelemetry.GetAggregateAtVersion(aggregateId, version, _aggregateTypeFullName);

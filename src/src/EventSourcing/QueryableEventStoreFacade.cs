@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using Microsoft.Extensions.DependencyInjection;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing;
@@ -86,6 +87,15 @@ public sealed class QueryableEventStoreFacade(IServiceProvider serviceProvider)
 
 	public T FulfilRequirements<T>(T aggregate)
 		where T : class, IAggregate, new() => GetQueryableEventStore<T>().FulfilRequirements(aggregate);
+
+	public IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync<T>(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	)
+		where T : class, IAggregate, new() =>
+		GetQueryableEventStore<T>().GetEventRangeAsync(aggregateId, versionFrom, versionTo, cancellationToken);
 
 	public IAsyncEnumerable<T> GetQueryEnumerableAsync<T>(
 		Expression<Func<T, bool>> whereClause,

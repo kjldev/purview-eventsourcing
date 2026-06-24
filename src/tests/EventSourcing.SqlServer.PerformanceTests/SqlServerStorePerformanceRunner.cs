@@ -7,7 +7,6 @@ using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Persistence;
 using Purview.EventSourcing.ChangeFeed;
-using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.ValueObjects;
 using Purview.EventSourcing.Services;
@@ -15,7 +14,7 @@ using Purview.EventSourcing.SqlServer.Events;
 using Purview.EventSourcing.SqlServer.Snapshot;
 using Purview.EventSourcing.SqlServer.Snapshots;
 
-namespace Purview.EventSourcing.SqlServer.PerformanceTests;
+namespace Purview.EventSourcing.SqlServer;
 
 sealed class SqlServerStorePerformanceRunner
 {
@@ -105,13 +104,9 @@ sealed class SqlServerStorePerformanceRunner
 					loadedAggregates.Clear();
 					for (var i = 0; i < aggregateIds.Length; i++)
 					{
-						var aggregate = await eventStore.GetAsync(
-							aggregateIds[i],
-							operationContext: null,
-							cancellationToken
-						);
-						if (aggregate is null)
-							throw new InvalidOperationException($"Aggregate '{aggregateIds[i]}' was not found.");
+						var aggregate =
+							await eventStore.GetAsync(aggregateIds[i], operationContext: null, cancellationToken)
+							?? throw new InvalidOperationException($"Aggregate '{aggregateIds[i]}' was not found.");
 
 						ValidateAggregate(aggregate, i, workload.EventsPerAggregate);
 						loadedAggregates.Add(aggregate);
@@ -280,6 +275,7 @@ sealed class SqlServerStorePerformanceRunner
 				&& aggregate.UserDetails2.DisplayName.StartsWith(matchingDisplayName2Prefix),
 			cancellationToken
 		);
+
 		if (valueObjectMatchCount != expectedValueObjectMatches)
 		{
 			throw new InvalidOperationException(
@@ -404,7 +400,7 @@ sealed class SqlServerStorePerformanceRunner
 			SchemaName = "dbo",
 			AutoCreateTable = true,
 			TimeoutInSeconds = 120,
-			CacheMode = EventStoreCachingOptions.None,
+			CacheMode = SnapshotCachingOptions.None,
 			RequiresValidPrincipalIdentifier = false,
 		};
 
@@ -577,7 +573,7 @@ sealed class SqlServerStorePerformanceRunner
 			where T : class => DispatchProxy.Create<T, NoOpDispatchProxy>();
 	}
 
-	class NoOpDispatchProxy : DispatchProxy
+	sealed class NoOpDispatchProxy : DispatchProxy
 	{
 		protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
 		{
@@ -600,10 +596,7 @@ sealed class SqlServerStorePerformanceRunner
 				return method.Invoke(null, [value]);
 			}
 
-			if (returnType.IsValueType)
-				return Activator.CreateInstance(returnType);
-
-			return null;
+			return returnType.IsValueType ? Activator.CreateInstance(returnType) : null;
 		}
 	}
 }

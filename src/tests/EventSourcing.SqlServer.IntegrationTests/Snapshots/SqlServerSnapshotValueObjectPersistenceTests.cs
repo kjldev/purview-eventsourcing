@@ -1,13 +1,7 @@
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Aggregates.Events;
-using Purview.EventSourcing.ChangeFeed;
 using Purview.EventSourcing.Fixtures.SqlServer;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.ValueObjects;
-using Purview.EventSourcing.Services;
-using Purview.EventSourcing.SqlServer.Events;
-using Purview.EventSourcing.SqlServer.Snapshot;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
 
@@ -19,43 +13,11 @@ public sealed class SqlServerSnapshotValueObjectPersistenceTests(SqlServerSnapsh
 		CancellationToken cancellationToken
 	)
 	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
+		var store = fixture.CreateSnapshotStore<SnapshotValueObjectsAggregate>();
 		var aggregateId = Guid.NewGuid().ToString("D");
 		var eventTableName = $"EventStore_{Guid.NewGuid():N}";
 		var displayName = "Jane Snapshot";
 		var displayName2 = "Jane Snapshot 2";
-
-		var innerEventStore = new SqlServerEventStore<SnapshotValueObjectsAggregate>(
-			eventNameMapper: new AggregateEventNameMapper(),
-			sqlServerOptions: Options.Create(
-				new SqlServerEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = eventTableName,
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-					TimeoutInSeconds = 60,
-				}
-			),
-			distributedCache: Substitute.For<IDistributedCache>(),
-			eventStoreTelemetry: Substitute.For<ISqlServerEventStoreTelemetry>(),
-			aggregateChangeNotifier: Substitute.For<IAggregateChangeFeedNotifier<SnapshotValueObjectsAggregate>>(),
-			aggregateRequirementsManager: Substitute.For<IAggregateRequirementsManager>()
-		);
-
-		var store = new SqlServerSnapshotEventStore<SnapshotValueObjectsAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
 
 		var aggregate = new SnapshotValueObjectsAggregate();
 		aggregate.Details.Id = aggregateId;
@@ -74,12 +36,7 @@ public sealed class SqlServerSnapshotValueObjectPersistenceTests(SqlServerSnapsh
 
 		var events = new List<(IEvent @event, string eventType)>();
 		await foreach (
-			var @event in innerEventStore.GetEventRangeAsync(
-				aggregateId,
-				versionFrom: 1,
-				versionTo: null,
-				cancellationToken
-			)
+			var @event in store.GetEventRangeAsync(aggregateId, versionFrom: 1, versionTo: null, cancellationToken)
 		)
 		{
 			events.Add(@event);

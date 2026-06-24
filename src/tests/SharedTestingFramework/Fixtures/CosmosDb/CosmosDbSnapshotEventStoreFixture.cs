@@ -9,6 +9,8 @@ public class CosmosDbSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDispos
 
 	public CosmosDbSnapshotEventStoreFixture()
 	{
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
+
 		_azuriteContainer = ContainerHelper.CreateAzurite();
 		_cosmosDbContainer = ContainerHelper.CreateCosmosDB();
 	}

@@ -1,9 +1,10 @@
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Fixtures.SqlServer;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
-[ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
-public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixture fixture)
+[ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public sealed class InventoryAggregateIntegrationTests(SqlServerSnapshotEventStoreFixture fixture)
 {
 	static InventoryAggregate CreateInitialized(
 		string id,
@@ -175,7 +176,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerEventStoreFixtur
 		inv.ShipStock(50, "order-snap");
 		inv.ReceiveStock(100);
 
-		var store = fixture.CreateEventStore<InventoryAggregate>(snapshotRecalculationInterval: int.MaxValue);
+		var store = fixture.CreateSnapshotStore(snapshotStrategy: new AlwaysSnapshotStrategy<InventoryAggregate>());
 		await store.SaveAsync(inv, cancellationToken);
 
 		var loaded = await store.GetAsync(inv.Id(), cancellationToken);

@@ -17,7 +17,7 @@ partial class MongoDBEventStore<T>
 		if (aggregate.Details.IsDeleted)
 			throw AggregateIsDeletedException(aggregate.Id());
 
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		if (aggregate.IsNew())
 			return false;

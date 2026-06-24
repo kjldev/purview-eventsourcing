@@ -38,6 +38,8 @@ public sealed class CosmosDbSnapshotEventStoreContext(
 	)]
 	public void CreateCosmosDbEventStore(int correlationIdsToGenerate = 1, string? container = null)
 	{
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
+
 		var tableEventStore = CreateTableEventStore(correlationIdsToGenerate);
 
 		CosmosDbEventStoreOptions config = new()

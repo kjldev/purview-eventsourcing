@@ -16,7 +16,7 @@ public class ExistsStateTests
 	public async Task ImplicitBoolConversion_GivenDoesNotExist_ReturnsFalse()
 	{
 		// Act
-		bool result = ExistsState.DoesNotExists;
+		bool result = ExistsState.DoesNotExist;
 
 		// Assert
 		await Assert.That(result).IsFalse();

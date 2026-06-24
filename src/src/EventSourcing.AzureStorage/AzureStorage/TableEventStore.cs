@@ -104,7 +104,7 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 				await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
 			else
 			{
-				if (!_eventStoreOptions.Value.CacheMode.HasFlag(EventStoreCachingOptions.StoreInCache))
+				if (!_eventStoreOptions.Value.CacheMode.HasFlag(SnapshotCachingOptions.StoreInCache))
 					return;
 
 				var data = SerializeSnapshot(aggregate);
@@ -169,7 +169,11 @@ public sealed partial class TableEventStore<T> : ITableEventStore<T>, IAsyncDisp
 			if (result == null)
 			{
 				if (expectedToExist)
-					_eventStoreTelemetry.StreamVersionExpectedToExistButNotFound(aggregateId);
+					_eventStoreTelemetry.StreamVersionExpectedToExistButNotFound(
+						aggregateId,
+						_aggregateTypeShortName,
+						_aggregateTypeFullName
+					);
 				else
 					_eventStoreTelemetry.StreamVersionNotFound(aggregateId);
 			}

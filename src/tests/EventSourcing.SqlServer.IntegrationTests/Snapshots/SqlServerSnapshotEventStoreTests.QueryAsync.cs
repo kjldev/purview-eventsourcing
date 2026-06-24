@@ -1,4 +1,6 @@
-﻿namespace Purview.EventSourcing.SqlServer.Snapshots;
+﻿using Purview.EventSourcing.Aggregates.Persistence;
+
+namespace Purview.EventSourcing.SqlServer.Snapshots;
 
 partial class SqlServerSnapshotEventStoreTests
 {
@@ -19,25 +21,23 @@ partial class SqlServerSnapshotEventStoreTests
 	)
 	{
 		// Arrange
-		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
-
-		var eventStore = context.EventStore;
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
-			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
+			var aggregate = CreateAggregate($"agg_{aggregateIndex}");
 
 			for (var eventIndex = 0; eventIndex < numberOfEvents; eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			bool saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
 		var aggregates = (
-			await eventStore.QueryAsync(m => m.IncrementInt32 == numberOfEvents, cancellationToken: cancellationToken)
+			await store.QueryAsync(m => m.IncrementInt32 == numberOfEvents, cancellationToken: cancellationToken)
 		).Results;
 
 		// Assert
@@ -54,23 +54,23 @@ partial class SqlServerSnapshotEventStoreTests
 	)
 	{
 		// Arrange
-		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregateType = CreateAggregate().AggregateType;
 
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
-			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
+			var aggregate = CreateAggregate($"agg_{aggregateIndex}");
 			aggregate.IncrementInt32Value();
 
-			bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			bool saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
 		var aggregates = (
-			await context.EventStore.QueryAsync(
+			await store.QueryAsync(
 				m => m.AggregateType == aggregateType,
 				maxRecordCount: numberOfAggregates + 1,
 				cancellationToken: cancellationToken

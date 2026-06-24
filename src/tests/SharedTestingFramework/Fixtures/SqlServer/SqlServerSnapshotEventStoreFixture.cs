@@ -1,37 +1,40 @@
-using TUnit.Core.Interfaces;
+using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Snapshotting;
+using Purview.EventSourcing.ChangeFeed;
+using Purview.EventSourcing.SqlServer.Snapshot;
+using Purview.EventSourcing.SqlServer.Snapshots;
 
 namespace Purview.EventSourcing.Fixtures.SqlServer;
 
-public class SqlServerSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposable
+public class SqlServerSnapshotEventStoreFixture : SqlServerEventStoreFixture
 {
-	readonly Testcontainers.Azurite.AzuriteContainer _azuriteContainer;
-	readonly Testcontainers.MsSql.MsSqlContainer _msSqlContainer;
-
-	public SqlServerSnapshotEventStoreFixture()
+	public SqlServerSnapshotEventStore<TAggregate> CreateSnapshotStore<TAggregate>(
+		ISnapshotStrategy<TAggregate>? snapshotStrategy = null,
+		ISnapshotStrategySelector? snapshotStrategySelector = null,
+		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
+		bool removeFromCacheOnDelete = false,
+		Guid? runId = null
+	)
+		where TAggregate : class, IAggregate, new()
 	{
-		_azuriteContainer = ContainerHelper.CreateAzurite();
-		_msSqlContainer = ContainerHelper.CreateMsSql();
-	}
+		runId ??= Guid.NewGuid();
+		var eventStore = CreateEventStore(aggregateChangeNotifier, removeFromCacheOnDelete, runId);
+		SqlServerSnapshotEventStoreOptions config = new()
+		{
+			ConnectionString = ConnectionString,
+			TableName = $"Snapshots_{runId:N}",
+			SchemaName = "dbo",
+			AutoCreateTable = true,
+		};
 
-	public SqlServerSnapshotTestContext CreateContext(int correlationIdsToGenerate = 1, string? tableName = null) =>
-		new(
-			_msSqlContainer.GetConnectionString(),
-			_azuriteContainer.GetConnectionString(),
-			correlationIdsToGenerate,
-			tableName
+		SqlServerSnapshotEventStore<TAggregate> snapshotStore = new(
+			eventStore,
+			Microsoft.Extensions.Options.Options.Create(config),
+			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>(),
+			snapshotStrategy: snapshotStrategy,
+			snapshotStrategySelector: snapshotStrategySelector
 		);
 
-	public async Task InitializeAsync()
-	{
-		await _msSqlContainer.StartAsync();
-		await _azuriteContainer.StartAsync();
-	}
-
-	public async ValueTask DisposeAsync()
-	{
-		GC.SuppressFinalize(this);
-
-		await _msSqlContainer.DisposeAsync();
-		await _azuriteContainer.DisposeAsync();
+		return snapshotStore;
 	}
 }

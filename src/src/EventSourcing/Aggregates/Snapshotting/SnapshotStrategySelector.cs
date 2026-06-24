@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Purview.EventSourcing.Aggregates.Snapshotting;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace Purview.EventSourcing.Aggregates.Snapshotting;
 /// </summary>
 public sealed class SnapshotStrategySelector : ISnapshotStrategySelector
 {
-	readonly Dictionary<Type, object> _snapshotStrategies = [];
+	readonly ConcurrentDictionary<Type, object> _snapshotStrategies = new();
 	object? _defaultStrategy;
 
 	/// <summary>
@@ -16,6 +18,7 @@ public sealed class SnapshotStrategySelector : ISnapshotStrategySelector
 	{
 		ArgumentNullException.ThrowIfNull(strategy);
 		_defaultStrategy = strategy;
+
 		return this;
 	}
 
@@ -26,7 +29,8 @@ public sealed class SnapshotStrategySelector : ISnapshotStrategySelector
 		where T : class, IAggregate, new()
 	{
 		ArgumentNullException.ThrowIfNull(strategy);
-		_snapshotStrategies[typeof(T)] = strategy;
+
+		_snapshotStrategies.AddOrUpdate(typeof(T), strategy, (_, __) => strategy);
 		return this;
 	}
 
@@ -34,9 +38,7 @@ public sealed class SnapshotStrategySelector : ISnapshotStrategySelector
 	public ISnapshotStrategy<T>? Resolve<T>()
 		where T : class, IAggregate, new()
 	{
-		if (_snapshotStrategies.TryGetValue(typeof(T), out var strategy))
-			return strategy as ISnapshotStrategy<T>;
-
-		return _defaultStrategy as ISnapshotStrategy<T>;
+		return (_snapshotStrategies.TryGetValue(typeof(T), out var strategy) ? strategy : _defaultStrategy)
+			as ISnapshotStrategy<T>;
 	}
 }

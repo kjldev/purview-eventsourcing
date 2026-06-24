@@ -10,34 +10,34 @@ partial class SqlServerSnapshotEventStoreTests
 	)
 	{
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregateId = Guid.NewGuid().ToString();
 		var aggregate = CreateAggregate(id: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 		await Assert.That(saveResult).IsTrue();
 
-		var aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+		var aggregateFromSqlServer = await store.GetAsync<PersistenceAggregate>(
 			aggregateId,
 			cancellationToken: cancellationToken
 		);
 		await Assert.That(aggregateFromSqlServer).IsNotNull();
 
-		var deleteResult = await context.EventStore.DeleteAsync(aggregate, cancellationToken: cancellationToken);
+		var deleteResult = await store.DeleteAsync(aggregate, cancellationToken: cancellationToken);
 		await Assert.That(deleteResult).IsTrue();
 
-		aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+		aggregateFromSqlServer = await store.GetAsync<PersistenceAggregate>(
 			aggregateId,
 			cancellationToken: cancellationToken
 		);
 		await Assert.That(aggregateFromSqlServer).IsNull();
 
 		// Act
-		var restoreResult = await context.EventStore.RestoreAsync(aggregate, cancellationToken: cancellationToken);
+		var restoreResult = await store.RestoreAsync(aggregate, cancellationToken: cancellationToken);
 
-		aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+		aggregateFromSqlServer = await store.GetAsync<PersistenceAggregate>(
 			aggregateId,
 			cancellationToken: cancellationToken
 		);

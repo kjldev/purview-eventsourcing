@@ -29,7 +29,7 @@ partial class MongoDBEventStore<T>
 		params IEvent[] additionalEvents
 	)
 	{
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		FulfilRequirements(aggregate);
 

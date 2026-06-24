@@ -15,6 +15,8 @@ public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Sample
 
 	public AppHostFixture()
 	{
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
+
 		_appService = new(() => new(ConfigureAppServiceHelper));
 	}
 

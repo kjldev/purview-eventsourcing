@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.Extensions.Caching.Distributed;
 using Purview.EventSourcing.Aggregates;
@@ -12,22 +12,14 @@ namespace Purview.EventSourcing;
 [System.Diagnostics.DebuggerStepThrough]
 public sealed record class EventStoreOperationContext
 {
-	readonly Dictionary<Type, object> _snapshotStrategies = [];
+	readonly ConcurrentDictionary<Type, object> _snapshotStrategies = new();
 
 	/// <summary>
 	/// Get or sets the default <see cref="EventStoreOperationContext"/>, for
 	/// when <see cref="IEventStore{T}"/> operations provide a null operational context.
 	/// </summary>
-	public static EventStoreOperationContext DefaultContext
-	{
-		get;
-		set =>
-			field =
-				value
-				?? throw new NullReferenceException(
-					$"A default {nameof(EventStoreOperationContext)} is required, null is not allowed."
-				);
-	} = new();
+	public static EventStoreOperationContext DefaultContext(string? correlationId = null) =>
+		new() { CorrelationId = correlationId! };
 
 	/// <summary>
 	/// Gets/ sets the default value for <see cref="RequiresValidPrincipalIdentifier"/>.
@@ -40,9 +32,18 @@ public sealed record class EventStoreOperationContext
 	public static bool UseIdempotencyMarkerDefault { get; set; }
 
 	/// <summary>
+	/// Gets or sets the default value for the <see cref="UseSnapshotCache"/>. Defaults to true.
+	/// </summary>
+	public static SnapshotCachingOptions UseDefaultCacheMode { get; set; } = SnapshotCachingOptions.GetAndStore;
+
+	/// <summary>
 	/// Used during the saving of aggregates.
 	/// </summary>
-	public string? CorrelationId { get; set; }
+	public string CorrelationId
+	{
+		get => field ?? System.Diagnostics.Activity.Current?.Id ?? $"{Guid.NewGuid()}";
+		set;
+	}
 
 	/// <summary>
 	/// Controls how to handle aggregates marked as deleted during get and save/ restore operations.
@@ -56,10 +57,9 @@ public sealed record class EventStoreOperationContext
 
 	/// <summary>
 	/// Gets/ sets a value indicating how the <see cref="IEventStore{T}"/>
-	/// uses the <see cref="IDistributedCache"/> during it's operations. Defaults to <see cref="EventStoreCachingOptions.GetAndStore"/>.
+	/// uses the <see cref="IDistributedCache"/> during it's operations. Defaults to <see cref="SnapshotCachingOptions.GetAndStore"/>.
 	/// </summary>
-	[DefaultValue(EventStoreCachingOptions.GetAndStore)]
-	public EventStoreCachingOptions CacheMode { get; set; } = EventStoreCachingOptions.GetAndStore;
+	public SnapshotCachingOptions SnapshotCacheMode { get; set; } = SnapshotCachingOptions.GetAndStore;
 
 	/// <summary>
 	/// Manages caching operations for the operation.
@@ -119,7 +119,7 @@ public sealed record class EventStoreOperationContext
 		where TAggregate : class, IAggregate, new()
 	{
 		ArgumentNullException.ThrowIfNull(strategy);
-		_snapshotStrategies[typeof(TAggregate)] = strategy;
+		_snapshotStrategies.AddOrUpdate(typeof(TAggregate), strategy, (key, oldValue) => strategy);
 		return this;
 	}
 

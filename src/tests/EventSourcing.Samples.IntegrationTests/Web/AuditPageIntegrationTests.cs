@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Purview.EventSourcing.Samples.Services;
 using Purview.EventSourcing.Samples.Web.Services;
 
-namespace Purview.EventSourcing.Samples.IntegrationTests.Web;
+namespace Purview.EventSourcing.Samples.Web;
 
 public sealed class AuditPageIntegrationTests
 {

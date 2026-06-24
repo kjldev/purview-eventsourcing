@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.17
+
+### Patch Changes
+
+- added an inmemory event and snapshot store for testing
+
 ## 2.0.0-prerelease.16
 
 ### Patch Changes

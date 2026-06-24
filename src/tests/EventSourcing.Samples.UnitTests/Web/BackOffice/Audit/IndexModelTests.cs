@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Purview.EventSourcing.Samples.Web.Pages.BackOffice.Audit;
 using Purview.EventSourcing.Samples.Web.Services;
@@ -167,8 +166,7 @@ public sealed class IndexModelTests
 		if (!string.IsNullOrWhiteSpace(queryString))
 			httpContext.Request.QueryString = new QueryString(queryString);
 
-		var model = new IndexModel(auditService);
-		model.PageContext = new PageContext { HttpContext = httpContext };
+		IndexModel model = new(auditService) { PageContext = new PageContext { HttpContext = httpContext } };
 
 		return model;
 	}

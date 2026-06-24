@@ -43,7 +43,7 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 		_aggregateName = TypeNameHelper.GetName(_aggregateType, "Aggregate");
 
 		var clientOptions = ResolveClientOptions(_sqlServerEventStoreOptions.Value, _aggregateName);
-		_sqlServerClient = new SqlServerClient(clientOptions);
+		_sqlServerClient = new(clientOptions);
 	}
 
 	/// <summary>
@@ -60,7 +60,7 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 			table = ovr.TableName ?? table;
 		}
 
-		return new SqlServerClientOptions(options.ConnectionString, options.UseDataCompression)
+		return new(options.ConnectionString, options.UseDataCompression)
 		{
 			TableName = table,
 			SchemaName = schema,

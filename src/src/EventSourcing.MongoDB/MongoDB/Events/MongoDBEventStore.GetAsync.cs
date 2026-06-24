@@ -23,13 +23,13 @@ partial class MongoDBEventStore<T>
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId, nameof(aggregateId));
 
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		_eventStoreTelemetry.GetAggregateStart(aggregateId, _aggregateTypeFullName);
 		var getStopwatch = System.Diagnostics.Stopwatch.StartNew();
 		try
 		{
-			var aggregate = operationContext.CacheMode.HasFlag(EventStoreCachingOptions.GetFromCache)
+			var aggregate = operationContext.SnapshotCacheMode.HasFlag(SnapshotCachingOptions.GetFromCache)
 				? await GetFromCacheAsync(aggregateId, cancellationToken)
 				: null;
 

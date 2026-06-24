@@ -1,4 +1,6 @@
-﻿namespace Purview.EventSourcing.SqlServer.Snapshots;
+﻿using Purview.EventSourcing.Aggregates.Persistence;
+
+namespace Purview.EventSourcing.SqlServer.Snapshots;
 
 partial class SqlServerSnapshotEventStoreTests
 {
@@ -10,7 +12,7 @@ partial class SqlServerSnapshotEventStoreTests
 		const int matchingIncrement = 10;
 
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		for (var i = 0; i < matchingIncrement; i++)
 		{
@@ -18,7 +20,7 @@ partial class SqlServerSnapshotEventStoreTests
 			for (var x = 0; x < matchingIncrement; x++)
 				aggregate.IncrementInt32Value();
 
-			var saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			var saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 			await Assert.That(saveResult.ToBoolean()).IsTrue();
 			await Assert.That(saveResult.Skipped).IsFalse();
@@ -26,7 +28,7 @@ partial class SqlServerSnapshotEventStoreTests
 
 		// Act
 		async Task Func() =>
-			await context.EventStore.SingleOrDefaultAsync(
+			await store.SingleOrDefaultAsync(
 				m => m.IncrementInt32 == matchingIncrement,
 				cancellationToken: cancellationToken
 			);
@@ -46,18 +48,18 @@ partial class SqlServerSnapshotEventStoreTests
 		const int matchingIncrement = 10;
 
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregateId = Guid.NewGuid().ToString();
 		var aggregate = CreateAggregate(id: aggregateId);
 		for (var x = 0; x < matchingIncrement; x++)
 			aggregate.IncrementInt32Value();
 
-		bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 		await Assert.That(saveResult).IsTrue();
 
 		// Act
-		var result = await context.EventStore.SingleOrDefaultAsync(
+		var result = await store.SingleOrDefaultAsync(
 			m => m.IncrementInt32 == matchingIncrement,
 			cancellationToken: cancellationToken
 		);
@@ -73,20 +75,19 @@ partial class SqlServerSnapshotEventStoreTests
 		const int eventsToCreate = 10;
 
 		// Arrange
-		var context = fixture.CreateContext();
-
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 		for (var i = 0; i < aggregatesToCreate; i++)
 		{
 			var aggregate = CreateAggregate();
 			for (var x = 0; x < eventsToCreate; x++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			bool saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
-		var result = await context.EventStore.SingleOrDefaultAsync(
+		var result = await store.SingleOrDefaultAsync(
 			m => m.IncrementInt32 == -1,
 			cancellationToken: cancellationToken
 		);

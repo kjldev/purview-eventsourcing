@@ -114,7 +114,7 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 				await _distributedCache.RemoveAsync(cacheKey, cancellationToken);
 			else
 			{
-				if (!_eventStoreOptions.Value.CacheMode.HasFlag(EventStoreCachingOptions.StoreInCache))
+				if (!_eventStoreOptions.Value.CacheMode.HasFlag(SnapshotCachingOptions.StoreInCache))
 					return;
 
 				var data = SerializeSnapshot(aggregate);
@@ -177,7 +177,11 @@ public sealed partial class MongoDBEventStore<T> : IMongoDBEventStore<T>, IDispo
 			if (result == null)
 			{
 				if (expectedToExist)
-					_eventStoreTelemetry.StreamVersionExpectedToExistButNotFound(aggregateId);
+					_eventStoreTelemetry.StreamVersionExpectedToExistButNotFound(
+						aggregateId,
+						_aggregateTypeFullName,
+						_aggregateTypeShortName
+					);
 				else
 					_eventStoreTelemetry.StreamVersionNotFound(aggregateId);
 			}

@@ -121,7 +121,11 @@ public interface IMongoDBEventStoreTelemetry
 	void GetAggregateFailed(string aggregateId, string aggregateTypeFullName, Exception exception);
 
 	[Warning]
-	void StreamVersionExpectedToExistButNotFound(string aggregateId);
+	void StreamVersionExpectedToExistButNotFound(
+		string aggregateId,
+		string aggregateTypeName,
+		string aggregateTypeFullName
+	);
 
 	[Debug]
 	void StreamVersionNotFound(string aggregateId);

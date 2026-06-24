@@ -32,7 +32,7 @@ partial class TableEventStore<T>
 		params IEvent[] additionalEvents
 	)
 	{
-		operationContext ??= EventStoreOperationContext.DefaultContext;
+		operationContext ??= EventStoreOperationContext.DefaultContext();
 
 		FulfilRequirements(aggregate);
 

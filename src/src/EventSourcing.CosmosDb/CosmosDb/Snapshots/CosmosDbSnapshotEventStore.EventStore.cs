@@ -1,4 +1,5 @@
 ﻿using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Snapshotting;
 
 namespace Purview.EventSourcing.CosmosDb.Snapshot;
@@ -98,4 +99,11 @@ partial class CosmosDbSnapshotEventStore<T>
 		_eventStore.ExistsAsync(aggregateId, cancellationToken);
 
 	public T FulfilRequirements(T aggregate) => _eventStore.FulfilRequirements(aggregate);
+
+	public IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	) => _eventStore.GetEventRangeAsync(aggregateId, versionFrom, versionTo, cancellationToken);
 }

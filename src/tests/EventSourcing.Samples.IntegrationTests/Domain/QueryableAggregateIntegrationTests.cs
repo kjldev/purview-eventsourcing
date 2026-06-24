@@ -1,10 +1,5 @@
 using System.Linq.Expressions;
-using Microsoft.Extensions.Options;
-using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Fixtures.SqlServer;
-using Purview.EventSourcing.Internal;
-using Purview.EventSourcing.SqlServer.Snapshot;
-using Purview.EventSourcing.SqlServer.Snapshots;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
@@ -16,7 +11,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		CancellationToken cancellationToken
 	)
 	{
-		var store = CreateSnapshotStore<CustomerAggregate>(fixture);
+		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
 
 		var alice = NewCustomer("Alice Able", "alice@example.com", isActive: true);
 		var adam = NewCustomer("Adam Atlas", "adam@example.com", isActive: true);
@@ -50,7 +45,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		CancellationToken cancellationToken
 	)
 	{
-		var store = CreateSnapshotStore<CustomerAggregate>(fixture);
+		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
 
 		var lowEmail = NewCustomer("Carol C", "a@example.com", isActive: true);
 		var highEmail = NewCustomer("Bob B", "z@example.com", isActive: false);
@@ -82,7 +77,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		CancellationToken cancellationToken
 	)
 	{
-		var store = CreateSnapshotStore<InventoryAggregate>(fixture);
+		var store = fixture.CreateSnapshotStore<InventoryAggregate>();
 
 		var highAvailable = NewInventory("prod-alpha", "Alpha Widget", quantityOnHand: 20, reserved: 2);
 		var lowAvailable = NewInventory("prod-beta", "Beta Widget", quantityOnHand: 10, reserved: 6);
@@ -113,7 +108,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		CancellationToken cancellationToken
 	)
 	{
-		var store = CreateSnapshotStore<InventoryAggregate>(fixture);
+		var store = fixture.CreateSnapshotStore<InventoryAggregate>();
 
 		var highAvailable = NewInventory("prod-alpha", "Alpha Widget", quantityOnHand: 20, reserved: 2);
 		var lowAvailable = NewInventory("prod-beta", "Beta Widget", quantityOnHand: 10, reserved: 6);
@@ -137,7 +132,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		CancellationToken cancellationToken
 	)
 	{
-		var store = CreateSnapshotStore<InventoryAggregate>(fixture);
+		var store = fixture.CreateSnapshotStore<InventoryAggregate>();
 
 		var first = NewInventory("PROD-ALPHA", "Alpha Widget", quantityOnHand: 20, reserved: 2);
 		var second = NewInventory("prod-beta", "beta widget", quantityOnHand: 10, reserved: 6);
@@ -174,7 +169,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		CancellationToken cancellationToken
 	)
 	{
-		var store = CreateSnapshotStore<OrderAggregate>(fixture);
+		var store = fixture.CreateSnapshotStore<OrderAggregate>();
 		var selectedCustomerId = $"customer-{Guid.NewGuid():N}";
 		var otherCustomerId = $"customer-{Guid.NewGuid():N}";
 
@@ -214,30 +209,6 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		await Assert.That(page1.Results[0].Details.SavedVersion).IsGreaterThan(page2.Results[0].Details.SavedVersion);
 		await Assert.That(page1.Results[0].CustomerId).IsEqualTo(selectedCustomerId);
 		await Assert.That(page2.Results[0].CustomerId).IsEqualTo(selectedCustomerId);
-	}
-
-	static SqlServerSnapshotEventStore<TAggregate> CreateSnapshotStore<TAggregate>(
-		SqlServerSnapshotEventStoreFixture fixture
-	)
-		where TAggregate : class, IAggregate, new()
-	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
-		var innerEventStore = Substitute.For<INonQueryableEventStore<TAggregate>>();
-		innerEventStore.FulfilRequirements(Arg.Any<TAggregate>()).Returns(callInfo => callInfo.Arg<TAggregate>());
-
-		return new SqlServerSnapshotEventStore<TAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
 	}
 
 	static CustomerAggregate NewCustomer(string name, string email, bool isActive)

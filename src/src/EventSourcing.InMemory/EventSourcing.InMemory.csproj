@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<RootNamespace>Purview.EventSourcing</RootNamespace>
+	</PropertyGroup>
+
+	<PropertyGroup Label="NuGet Package Values">
+		<IsPackable>true</IsPackable>
+		<Title>Purview In-Memory Non-Queryable and Queryable Snapshot Store</Title>
+		<Description>In-memory non-queryable and queryable snapshot storage provider for Purview EventSourcing.</Description>
+		<PackageId>Purview.EventSourcing.InMemory</PackageId>
+		<PackageTags>$(PackageTags);purview;kjldev;dotnet;testing;event-sourcing;event-store;queryable-store;snapshot;in-memory;</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>EventSourcing.UnitTests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\EventSourcing\EventSourcing.csproj" />
+	</ItemGroup>
+</Project>

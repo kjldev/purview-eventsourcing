@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using FluentValidation.Results;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Internal;
 
 namespace Purview.EventSourcing.Samples.QuickStart.Infrastructure;
@@ -126,11 +127,18 @@ sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failurePlan)
 	public Task<ExistsState> ExistsAsync(string aggregateId, CancellationToken cancellationToken = default)
 	{
 		return !Persisted.TryGetValue(aggregateId, out var json)
-			? Task.FromResult(ExistsState.DoesNotExists)
+			? Task.FromResult(ExistsState.DoesNotExist)
 			: Task.FromResult(new ExistsState(ExistsStatus.Exists, Deserialize(json).Details.CurrentVersion));
 	}
 
 	public T FulfilRequirements(T aggregate) => aggregate;
+
+	public IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	) => throw new NotSupportedException("The quick start store only demonstrates create, load, query, and save.");
 
 	public async IAsyncEnumerable<T> GetQueryEnumerableAsync(
 		Expression<Func<T, bool>> whereClause,

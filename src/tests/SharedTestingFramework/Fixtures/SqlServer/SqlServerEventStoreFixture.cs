@@ -9,14 +9,15 @@ using TUnit.Core.Interfaces;
 
 namespace Purview.EventSourcing.Fixtures.SqlServer;
 
-public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
+public class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 {
-	readonly MsSqlContainer _msSqlContainer;
+	readonly MsSqlContainer _msSqlContainer = ContainerHelper.CreateMsSql();
+
 	IAggregateEventNameMapper _eventNameMapper = default!;
 
 	public SqlServerEventStoreFixture()
 	{
-		_msSqlContainer = ContainerHelper.CreateMsSql();
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
 	}
 
 	public IDistributedCache Cache { get; private set; } = default!;
@@ -30,14 +31,10 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 	public SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
 		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1
+		Guid? runId = null
 	)
 		where TAggregate : class, IAggregate, new() =>
-		CreateEventStoreContext(
-			aggregateChangeNotifier,
-			removeFromCacheOnDelete,
-			snapshotRecalculationInterval
-		).EventStore;
+		CreateEventStoreContext(aggregateChangeNotifier, removeFromCacheOnDelete, runId).EventStore;
 
 	internal (
 		SqlServerEventStore<TAggregate> EventStore,
@@ -47,11 +44,11 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 	) CreateEventStoreContext<TAggregate>(
 		IAggregateChangeFeedNotifier<TAggregate>? aggregateChangeNotifier = null,
 		bool removeFromCacheOnDelete = false,
-		int snapshotRecalculationInterval = 1
+		Guid? runId = null
 	)
 		where TAggregate : class, IAggregate, new()
 	{
-		var runId = Guid.NewGuid();
+		runId ??= Guid.NewGuid();
 		var cache = CreateDistributedCache();
 		Cache = cache;
 		var telemetry = Substitute.For<ISqlServerEventStoreTelemetry>();
@@ -102,5 +99,6 @@ public sealed class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDispos
 	public async ValueTask DisposeAsync()
 	{
 		await _msSqlContainer.DisposeAsync();
+		GC.SuppressFinalize(this);
 	}
 }

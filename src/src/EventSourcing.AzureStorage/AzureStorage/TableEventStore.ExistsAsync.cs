@@ -8,7 +8,7 @@ partial class TableEventStore<T>
 
 		var streamVersion = await GetStreamVersionAsync(aggregateId, false, cancellationToken);
 		return streamVersion == null
-			? ExistsState.DoesNotExists
+			? ExistsState.DoesNotExist
 			: new ExistsState
 			{
 				Status = streamVersion.IsDeleted ? ExistsStatus.ExistsInDeletedState : ExistsStatus.Exists,

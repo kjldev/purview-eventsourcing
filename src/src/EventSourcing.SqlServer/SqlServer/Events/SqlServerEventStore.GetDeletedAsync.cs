@@ -6,7 +6,7 @@ partial class SqlServerEventStore<T>
 	{
 		var aggregate = await GetCoreAsync(
 			aggregateId,
-			new() { CacheMode = EventStoreCachingOptions.None, DeleteMode = DeleteHandlingMode.ReturnsAggregate },
+			new() { SnapshotCacheMode = SnapshotCachingOptions.None, DeleteMode = DeleteHandlingMode.ReturnsAggregate },
 			cancellationToken
 		);
 

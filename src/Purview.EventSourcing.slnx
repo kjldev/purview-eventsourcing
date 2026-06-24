@@ -15,6 +15,10 @@
 			Id="49d7274a-a63e-4975-9841-96ffd78071c2"
 		/>
 		<Project
+			Path="src/EventSourcing.InMemory/EventSourcing.InMemory.csproj"
+			Id="5a3855b2-c523-47e3-b824-fc7a24dfa152"
+		/>
+		<Project
 			Path="src/EventSourcing.MongoDB/EventSourcing.MongoDB.csproj"
 			Id="8a60d312-155e-44e4-8d0a-014bb0ab7c50"
 		/>

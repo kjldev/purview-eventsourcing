@@ -1,4 +1,4 @@
-namespace Purview.EventSourcing.SqlServer.PerformanceTests;
+namespace Purview.EventSourcing.SqlServer;
 
 public static class Program
 {

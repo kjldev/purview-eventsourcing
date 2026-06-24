@@ -1,6 +1,7 @@
 using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Internal;
 
@@ -201,6 +202,13 @@ partial class SqlServerSnapshotEventStore<T>
 		_eventStore.ExistsAsync(aggregateId, cancellationToken);
 
 	public T FulfilRequirements(T aggregate) => _eventStore.FulfilRequirements(aggregate);
+
+	public IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+		string aggregateId,
+		int versionFrom,
+		int? versionTo,
+		CancellationToken cancellationToken
+	) => _eventStore.GetEventRangeAsync(aggregateId, versionFrom, versionTo, cancellationToken);
 
 	static SqlConnection GetSqlConnection(DbConnection connection) =>
 		connection as SqlConnection

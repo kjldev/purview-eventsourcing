@@ -358,14 +358,14 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 			CancellationToken cancellationToken
 		)
 		{
-			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext;
+			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext();
 			var context = baseContext with
 			{
-				CorrelationId = baseContext.CorrelationId ?? correlationId,
+				CorrelationId = correlationId ?? baseContext.CorrelationId,
 				UseIdempotencyMarker =
 					baseContext.UseIdempotencyMarker
 					|| _useIdempotencyMarker
-					|| !string.IsNullOrWhiteSpace(baseContext.CorrelationId),
+					|| !string.IsNullOrWhiteSpace(correlationId),
 			};
 
 			var result = _eventStoreImpl is not null
@@ -400,14 +400,14 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 				);
 			}
 
-			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext;
+			var baseContext = _operationContext ?? EventStoreOperationContext.DefaultContext();
 			var context = baseContext with
 			{
-				CorrelationId = baseContext.CorrelationId ?? correlationId,
+				CorrelationId = correlationId ?? baseContext.CorrelationId,
 				UseIdempotencyMarker =
 					baseContext.UseIdempotencyMarker
 					|| _useIdempotencyMarker
-					|| !string.IsNullOrWhiteSpace(baseContext.CorrelationId),
+					|| !string.IsNullOrWhiteSpace(correlationId),
 			};
 
 			var saveOperation = await _transactionalEventStore.SaveInTransactionAsync(

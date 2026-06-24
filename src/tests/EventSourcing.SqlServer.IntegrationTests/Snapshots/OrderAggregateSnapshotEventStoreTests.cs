@@ -1,8 +1,5 @@
-using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Fixtures.SqlServer;
-using Purview.EventSourcing.Internal;
 using Purview.EventSourcing.Samples.Domain;
-using Purview.EventSourcing.SqlServer.Snapshot;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
 
@@ -14,7 +11,7 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 		CancellationToken cancellationToken
 	)
 	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
+		var store = fixture.CreateSnapshotStore<OrderAggregate>();
 		var id = Guid.NewGuid().ToString("D");
 
 		var aggregate = new OrderAggregate();
@@ -23,25 +20,6 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 			.CreateOrder("customer-1")
 			.AddLineItem("prod-1", "Widget A", 2, 29.99m)
 			.AddLineItem("prod-2", "Widget B", 1, 49.99m);
-
-		var innerEventStore = Substitute.For<INonQueryableEventStore<OrderAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<OrderAggregate>())
-			.Returns(callInfo => callInfo.Arg<OrderAggregate>());
-
-		var store = new SqlServerSnapshotEventStore<OrderAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
 
 		await store.SnapshotAsync(aggregate, cancellationToken);
 
@@ -67,7 +45,7 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 		CancellationToken cancellationToken
 	)
 	{
-		var context = fixture.CreateContext(tableName: $"Snapshots_{Guid.NewGuid():N}");
+		var store = fixture.CreateSnapshotStore<OrderAggregate>();
 		var id = Guid.NewGuid().ToString("D");
 
 		var aggregate = new OrderAggregate();
@@ -76,25 +54,6 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 			.CreateOrder("customer-1")
 			.AddLineItem("prod-1", "Widget A", 2, 29.99m)
 			.AddLineItem("prod-2", "Widget B", 1, 49.99m);
-
-		var innerEventStore = Substitute.For<INonQueryableEventStore<OrderAggregate>>();
-		innerEventStore
-			.FulfilRequirements(Arg.Any<OrderAggregate>())
-			.Returns(callInfo => callInfo.Arg<OrderAggregate>());
-
-		var store = new SqlServerSnapshotEventStore<OrderAggregate>(
-			innerEventStore,
-			Options.Create(
-				new SqlServerSnapshotEventStoreOptions
-				{
-					ConnectionString = context.SqlServerConnectionString,
-					TableName = $"Snapshots_{Guid.NewGuid():N}",
-					SchemaName = "dbo",
-					AutoCreateTable = true,
-				}
-			),
-			Substitute.For<ISqlServerSnapshotEventStoreTelemetry>()
-		);
 
 		await store.SnapshotAsync(aggregate, cancellationToken);
 

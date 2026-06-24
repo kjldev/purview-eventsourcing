@@ -1,9 +1,10 @@
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Fixtures.SqlServer;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
-[ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
-public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture fixture)
+[ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStoreFixture fixture)
 {
 	#region Round-Trip Persistence
 
@@ -214,7 +215,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerEventStoreFixture
 		customer.Deactivate();
 
 		// Use a very high snapshot interval to force pure event replay
-		var store = fixture.CreateEventStore<CustomerAggregate>(snapshotRecalculationInterval: int.MaxValue);
+		var store = fixture.CreateSnapshotStore(snapshotStrategy: new AlwaysSnapshotStrategy<CustomerAggregate>());
 		await store.SaveAsync(customer, cancellationToken);
 
 		var loaded = await store.GetAsync(id, cancellationToken);

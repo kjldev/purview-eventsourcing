@@ -8,7 +8,7 @@ partial class SqlServerSnapshotEventStoreTests
 	public async Task SaveAsync_GivenNewAggregateWithChanges_SavesAggregate(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregateId = Guid.NewGuid().ToString();
 		var aggregate = CreateAggregate(id: aggregateId);
@@ -16,14 +16,14 @@ partial class SqlServerSnapshotEventStoreTests
 		aggregate.AppendString(aggregateId);
 
 		// Act
-		bool result = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool result = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 
 		// Assert
 		await Assert.That(result).IsTrue();
 		await Assert.That(aggregate.IsNew()).IsFalse();
 
 		// Verify by re-getting the aggregate directly from SQL Server, not via the event store.
-		var aggregateFromSqlServer = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
+		var aggregateFromSqlServer = await store.GetAsync<PersistenceAggregate>(
 			aggregateId,
 			cancellationToken: cancellationToken
 		);

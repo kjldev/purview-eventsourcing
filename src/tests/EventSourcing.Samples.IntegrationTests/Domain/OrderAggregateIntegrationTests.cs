@@ -1,10 +1,11 @@
+using Purview.EventSourcing.Aggregates.Snapshotting;
 using Purview.EventSourcing.Fixtures.SqlServer;
 using Purview.EventSourcing.Samples.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.Domain;
 
-[ClassDataSource<SqlServerEventStoreFixture>(Shared = SharedType.PerAssembly)]
-public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fixture)
+[ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerAssembly)]
+public sealed class OrderAggregateIntegrationTests(SqlServerSnapshotEventStoreFixture fixture)
 {
 	static OrderAggregate CreateDraftWithItems(string id)
 	{
@@ -239,7 +240,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		order.SetShippingAddress("1 Event Replay Rd");
 		order.ConfirmOrder();
 
-		var store = fixture.CreateEventStore<OrderAggregate>(snapshotRecalculationInterval: int.MaxValue);
+		var store = fixture.CreateSnapshotStore(snapshotStrategy: new AlwaysSnapshotStrategy<OrderAggregate>());
 		await store.SaveAsync(order, cancellationToken);
 
 		var loaded = await store.GetAsync(id, cancellationToken);

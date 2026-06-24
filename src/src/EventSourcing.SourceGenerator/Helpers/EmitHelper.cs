@@ -184,12 +184,7 @@ static class EmitHelper
 		sb.AppendLine();
 	}
 
-	static void GenerateApplyMethod(
-		StringBuilder sb,
-		AggregateInfo info,
-		AggregateEventMethodInfo method,
-		string indent
-	)
+	static void GenerateApplyMethod(StringBuilder sb, AggregateInfo _, AggregateEventMethodInfo method, string indent)
 	{
 		if (method.ManualApply)
 		{

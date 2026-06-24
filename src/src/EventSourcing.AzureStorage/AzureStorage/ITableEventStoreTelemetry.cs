@@ -125,7 +125,11 @@ public interface ITableEventStoreTelemetry
 	void GetAggregateFailed(string aggregateId, string aggregateTypeFullName, Exception exception);
 
 	[Log(LogLevel.Warning)]
-	void StreamVersionExpectedToExistButNotFound(string aggregateId);
+	void StreamVersionExpectedToExistButNotFound(
+		string aggregateId,
+		string aggregateTypeName,
+		string aggregateTypeFullName
+	);
 
 	[Log(LogLevel.Debug)]
 	void StreamVersionNotFound(string aggregateId);

@@ -2,6 +2,7 @@ using System.Data;
 using System.Data.Common;
 using NSubstitute.ExceptionExtensions;
 using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Test;
 using Purview.EventSourcing.Internal;
 
@@ -551,7 +552,7 @@ public sealed class EventStoreTransactionTests
 				new SaveResult<TestAggregate>(aggregate, new FluentValidation.Results.ValidationResult(), true, false)
 			);
 
-		var originalDefaultCorrelationId = EventStoreOperationContext.DefaultContext.CorrelationId;
+		var originalDefaultCorrelationId = EventStoreOperationContext.DefaultContext().CorrelationId;
 
 		await using var transaction = new EventStoreTransaction("my-correlation");
 		transaction.Enlist(aggregate, eventStore);
@@ -561,7 +562,7 @@ public sealed class EventStoreTransactionTests
 
 		// Assert — DefaultContext was not mutated
 		await Assert
-			.That(EventStoreOperationContext.DefaultContext.CorrelationId)
+			.That(EventStoreOperationContext.DefaultContext().CorrelationId)
 			.IsEqualTo(originalDefaultCorrelationId);
 	}
 
@@ -678,11 +679,17 @@ public sealed class EventStoreTransactionTests
 		readonly SaveBehavior _behavior = behavior ?? new SaveBehavior(true, false);
 
 		public int SaveAsyncCalls { get; private set; }
+
 		public int SaveInTransactionCalls { get; private set; }
+
 		public int EnsureConfiguredCalls { get; private set; }
+
 		public int AfterCommitCalls { get; private set; }
+
 		public int AfterRollbackCalls { get; private set; }
+
 		public string? LastCorrelationId { get; private set; }
+
 		public bool? LastUseIdempotencyMarker { get; private set; }
 
 		public string TransactionBoundaryKey { get; } = transactionBoundaryKey;
@@ -802,6 +809,13 @@ public sealed class EventStoreTransactionTests
 
 		T IEventStore.FulfilRequirements<T>(T aggregate) => aggregate;
 
+		IAsyncEnumerable<(IEvent @event, string eventType)> IEventStore.GetEventRangeAsync<T>(
+			string aggregateId,
+			int versionFrom,
+			int? versionTo,
+			CancellationToken cancellationToken
+		) => throw new NotSupportedException();
+
 		TransactionalSaveOperation<TestAggregate> CreateOperation(TestAggregate aggregate) =>
 			new(
 				new SaveResult<TestAggregate>(
@@ -874,6 +888,13 @@ public sealed class EventStoreTransactionTests
 			throw new NotSupportedException();
 
 		public TestAggregate FulfilRequirements(TestAggregate aggregate) => aggregate;
+
+		public IAsyncEnumerable<(IEvent @event, string eventType)> GetEventRangeAsync(
+			string aggregateId,
+			int versionFrom,
+			int? versionTo,
+			CancellationToken cancellationToken = default
+		) => throw new NotSupportedException();
 	}
 
 	sealed class FakeDbConnection : DbConnection

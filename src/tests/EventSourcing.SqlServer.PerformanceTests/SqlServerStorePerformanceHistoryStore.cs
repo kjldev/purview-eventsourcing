@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Purview.EventSourcing.SqlServer.PerformanceTests;
+namespace Purview.EventSourcing.SqlServer;
 
 sealed class SqlServerStorePerformanceHistoryStore
 {

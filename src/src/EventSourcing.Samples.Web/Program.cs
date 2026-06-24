@@ -56,7 +56,7 @@ app.MapRazorPages();
 app.MapGroup("/api/audit")
 	.MapGet(
 		"/aggregates/{aggregateType}/{aggregateId}/events",
-		async Task<IResult> (
+		static async Task<IResult> (
 			string aggregateType,
 			string aggregateId,
 			int? fromVersion,
@@ -74,7 +74,7 @@ app.MapGroup("/api/audit")
 					new
 					{
 						Error = $"Unsupported aggregate type '{aggregateType}'.",
-						SupportedAggregateTypes = AggregateAuditService.SupportedAggregateTypes,
+						AggregateAuditService.SupportedAggregateTypes,
 					}
 				);
 
@@ -114,6 +114,3 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 await app.RunAsync();
-
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1515:Consider making public types internal")]
-public partial class Program;

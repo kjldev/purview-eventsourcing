@@ -17,23 +17,25 @@ partial class SqlServerSnapshotEventStoreTests
 		const int numberOfEvents = 5;
 
 		// Arrange
-		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
-
-		var eventStore = context.EventStore;
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
-			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
+			var aggregate = CreateAggregate($"agg_{aggregateIndex}");
 
 			for (var eventIndex = 0; eventIndex < numberOfEvents; eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			bool saveResult = await store.SaveAsync(
+				aggregate,
+				operationContext: new() { CorrelationId = $"{Guid.NewGuid()}" },
+				cancellationToken: cancellationToken
+			);
 			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
-		var count = await eventStore.CountAsync(
+		var count = await store.CountAsync(
 			m => m.IncrementInt32 == numberOfEvents,
 			cancellationToken: cancellationToken
 		);
@@ -46,19 +48,16 @@ partial class SqlServerSnapshotEventStoreTests
 	public async Task CountAsync_GivenNoMatchingAggregates_ReturnsZero(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregate = CreateAggregate();
 		aggregate.IncrementInt32Value();
 
-		bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool saveResult = await store.SaveAsync(aggregate, cancellationToken: cancellationToken);
 		await Assert.That(saveResult).IsTrue();
 
 		// Act
-		var count = await context.EventStore.CountAsync(
-			m => m.IncrementInt32 == -1,
-			cancellationToken: cancellationToken
-		);
+		var count = await store.CountAsync(m => m.IncrementInt32 == -1, cancellationToken: cancellationToken);
 
 		// Assert
 		await Assert.That(count).IsEqualTo(0);
@@ -76,25 +75,27 @@ partial class SqlServerSnapshotEventStoreTests
 		const int numberOfEvents = 5;
 
 		// Arrange
-		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
-
-		var eventStore = context.EventStore;
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
-			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
+			var aggregate = CreateAggregate($"agg_{aggregateIndex}");
 
 			for (var eventIndex = 0; eventIndex < numberOfEvents; eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			bool saveResult = await store.SaveAsync(
+				aggregate,
+				new EventStoreOperationContext() { CorrelationId = $"{Guid.NewGuid()}" },
+				cancellationToken: cancellationToken
+			);
 			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
 		List<PersistenceAggregate> aggregates = [];
 		await foreach (
-			var aggregate in eventStore.GetQueryEnumerableAsync(
+			var aggregate in store.GetQueryEnumerableAsync(
 				m => m.IncrementInt32 == numberOfEvents,
 				cancellationToken: cancellationToken
 			)
@@ -117,24 +118,26 @@ partial class SqlServerSnapshotEventStoreTests
 		const int numberOfEvents = 5;
 
 		// Arrange
-		var context = fixture.CreateContext(correlationIdsToGenerate: numberOfAggregates);
-
-		var eventStore = context.EventStore;
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		for (var aggregateIndex = 0; aggregateIndex < numberOfAggregates; aggregateIndex++)
 		{
-			var aggregate = CreateAggregate($"{aggregateIndex}_{context.RunId}");
+			var aggregate = CreateAggregate($"agg_{aggregateIndex}");
 
 			for (var eventIndex = 0; eventIndex < numberOfEvents; eventIndex++)
 				aggregate.IncrementInt32Value();
 
-			bool saveResult = await eventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+			bool saveResult = await store.SaveAsync(
+				aggregate,
+				new EventStoreOperationContext() { CorrelationId = $"{Guid.NewGuid()}" },
+				cancellationToken: cancellationToken
+			);
 			await Assert.That(saveResult).IsTrue();
 		}
 
 		// Act
 		List<PersistenceAggregate> aggregates = [];
-		await foreach (var aggregate in eventStore.GetListEnumerableAsync(cancellationToken: cancellationToken))
+		await foreach (var aggregate in store.GetListEnumerableAsync(cancellationToken: cancellationToken))
 			aggregates.Add(aggregate);
 
 		// Assert
@@ -147,7 +150,7 @@ partial class SqlServerSnapshotEventStoreTests
 	)
 	{
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregateId = Guid.NewGuid().ToString();
 		var aggregate = CreateAggregate(id: aggregateId);
@@ -170,16 +173,18 @@ partial class SqlServerSnapshotEventStoreTests
 		);
 
 		// Act
-		bool saveResult = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool saveResult = await store.SaveAsync(
+			aggregate,
+			new EventStoreOperationContext() { CorrelationId = $"{Guid.NewGuid()}" },
+			cancellationToken: cancellationToken
+		);
 
 		// Assert
 		await Assert.That(saveResult).IsTrue();
 
 		// Verify via direct SQL Server read
-		var fromDb = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
-			aggregateId,
-			cancellationToken: cancellationToken
-		);
+		var fromDb = await store.GetAsync<PersistenceAggregate>(aggregateId, cancellationToken: cancellationToken);
+
 		await Assert.That(fromDb).IsNotNull();
 		await Assert.That(fromDb.IncrementInt32).IsEqualTo(3);
 		await Assert.That(fromDb.Int32Value).IsEqualTo(42);
@@ -191,10 +196,7 @@ partial class SqlServerSnapshotEventStoreTests
 		await Assert.That(fromDb.ComplexTestType.StringProperty).IsEqualTo("complex-test");
 
 		// Also verify via LINQ query
-		var queried = await context.EventStore.SingleOrDefaultAsync(
-			m => m.Int32Value == 42,
-			cancellationToken: cancellationToken
-		);
+		var queried = await store.SingleOrDefaultAsync(m => m.Int32Value == 42, cancellationToken: cancellationToken);
 		await Assert.That(queried).IsNotNull();
 		await Assert.That(queried!.Id()).IsEqualTo(aggregateId);
 		await Assert.That(queried.ComplexTestType).IsNotNull();
@@ -205,13 +207,17 @@ partial class SqlServerSnapshotEventStoreTests
 	public async Task SaveAsync_GivenMultipleSavesOfSameAggregate_UpdatesSnapshot(CancellationToken cancellationToken)
 	{
 		// Arrange
-		var context = fixture.CreateContext();
+		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
 
 		var aggregateId = Guid.NewGuid().ToString();
 		var aggregate = CreateAggregate(id: aggregateId);
 		aggregate.IncrementInt32Value();
 
-		bool firstSave = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool firstSave = await store.SaveAsync(
+			aggregate,
+			new EventStoreOperationContext() { CorrelationId = $"{Guid.NewGuid()}" },
+			cancellationToken: cancellationToken
+		);
 		await Assert.That(firstSave).IsTrue();
 
 		var firstVersion = aggregate.Details.CurrentVersion;
@@ -220,14 +226,15 @@ partial class SqlServerSnapshotEventStoreTests
 		aggregate.IncrementInt32Value();
 		aggregate.SetInt32Value(99);
 
-		bool secondSave = await context.EventStore.SaveAsync(aggregate, cancellationToken: cancellationToken);
+		bool secondSave = await store.SaveAsync(
+			aggregate,
+			new EventStoreOperationContext() { CorrelationId = $"{Guid.NewGuid()}" },
+			cancellationToken: cancellationToken
+		);
 		await Assert.That(secondSave).IsTrue();
 
 		// Act - Read from SQL Server
-		var fromDb = await context.SqlServerClient.GetByIdAsync<PersistenceAggregate>(
-			aggregateId,
-			cancellationToken: cancellationToken
-		);
+		var fromDb = await store.GetAsync(aggregateId, cancellationToken: cancellationToken);
 
 		// Assert - Should have the latest state
 		await Assert.That(fromDb).IsNotNull();

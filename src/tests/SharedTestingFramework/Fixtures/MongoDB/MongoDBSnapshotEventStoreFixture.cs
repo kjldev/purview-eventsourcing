@@ -9,6 +9,8 @@ public class MongoDBSnapshotEventStoreFixture : IAsyncInitializer, IAsyncDisposa
 
 	public MongoDBSnapshotEventStoreFixture()
 	{
+		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
+
 		_azuriteContainer = ContainerHelper.CreateAzurite();
 		_mongoDBContainer = ContainerHelper.CreateMongoDB();
 	}
