@@ -1,10 +1,9 @@
 using Purview.EventSourcing.Serialization;
-using Purview.EventSourcing.ValueObjects;
 
 namespace Purview.EventSourcing.Samples.ValueObjects;
 
 [ValueObject]
-public sealed partial record UserDetails(Guid Id, string? DisplayName, bool IsActive = true) : IValueObject<UserDetails>
+public sealed partial record UserDetails(Guid Id, string? DisplayName, bool IsActive = true)
 {
 	static partial void OnNormalize(ref Guid id, ref string? displayName, ref bool isActive)
 	{

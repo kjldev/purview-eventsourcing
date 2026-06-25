@@ -9,12 +9,6 @@ public readonly partial record struct Money
 
 	public CurrencyCode Currency { get; }
 
-	Money(decimal amount, CurrencyCode currency)
-	{
-		Amount = amount;
-		Currency = currency;
-	}
-
 	partial void OnValidate(decimal amount, CurrencyCode currency)
 	{
 		if (amount < 0)

@@ -10,8 +10,6 @@ public readonly partial record struct EmailAddress
 
 	public string Domain => Value.Split('@')[1];
 
-	EmailAddress(string value) => Value = value;
-
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1308:Normalize strings to uppercase")]
 	static partial void OnNormalize(ref string value) => value = value?.Trim().ToLowerInvariant()!;
 

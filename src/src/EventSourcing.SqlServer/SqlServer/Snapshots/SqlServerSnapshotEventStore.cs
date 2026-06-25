@@ -69,13 +69,18 @@ public sealed partial class SqlServerSnapshotEventStore<T>
 	}
 
 	/// <summary>
-	/// This will upsert the aggregate regardless of it's save state in the internal event store.
+	/// This will upsert the aggregate in the snapshot store.
+	/// <strong>Note</strong> if the aggregate has unsaved events, it will first save those
+	/// events to the event store before upserting the snapshot to ensure consistency.
 	/// </summary>
 	/// <param name="aggregate"></param>
 	/// <param name="cancellationToken"></param>
 	public async Task SnapshotAsync(T aggregate, CancellationToken cancellationToken = default)
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
+
+		if (aggregate.HasUnsavedEvents())
+			await _eventStore.SaveAsync(aggregate, cancellationToken);
 
 		_telemetry.SnapshotSaveStart(aggregate.Details.Id, _aggregateName);
 		using var activity = _telemetry.SnapshotSave(aggregate.Details.Id, _aggregateName);

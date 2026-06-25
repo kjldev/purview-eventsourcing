@@ -62,6 +62,10 @@ public sealed class AggregateSourceGenerator : IIncrementalGenerator, ILogSuppor
 				EmbeddedResources.LoadTemplate("GenerateAggregateDefaultsAttribute")
 			);
 			ctx.AddSource(
+				"GenerateAggregateDefaultBaseAttribute.g.cs",
+				EmbeddedResources.LoadTemplate("GenerateAggregateDefaultBaseAttribute")
+			);
+			ctx.AddSource(
 				"GenerateAggregateEventAttribute.g.cs",
 				EmbeddedResources.LoadTemplate("GenerateAggregateEventAttribute")
 			);

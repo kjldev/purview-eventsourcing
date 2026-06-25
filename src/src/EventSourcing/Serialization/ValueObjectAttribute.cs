@@ -11,5 +11,7 @@ public sealed class ValueObjectAttribute : Attribute
 
 	public bool GenerateEmpty { get; init; } = true;
 
+	public bool GenerateConstructor { get; init; } = true;
+
 	public ValueObjectDeserializationMode DeserializationMode { get; init; } = ValueObjectDeserializationMode.Hydrate;
 }

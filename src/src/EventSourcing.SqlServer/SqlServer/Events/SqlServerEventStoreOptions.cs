@@ -36,7 +36,7 @@ public sealed class SqlServerEventStoreOptions
 	[Required]
 	public string ConnectionString { get; set; } = default!;
 
-	public string TableName { get; set; } = "EventStore";
+	public string TableName { get; set; } = "EventStoreEvents";
 
 	public string SchemaName { get; set; } = "dbo";
 

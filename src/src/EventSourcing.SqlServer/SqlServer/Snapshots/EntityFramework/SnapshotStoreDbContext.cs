@@ -29,7 +29,7 @@ public class SnapshotStoreDbContext(
 	/// Schema and table names default to "dbo" and "Snapshots".
 	/// </summary>
 	public SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options)
-		: this(options, "dbo", "Snapshots") { }
+		: this(options, "dbo", "EventStoreSnapshots") { }
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

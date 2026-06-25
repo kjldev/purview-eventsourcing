@@ -69,6 +69,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
 		}
 
+		var assemblyDefaults = GetAssemblyValueObjectDefaults(context.SemanticModel.Compilation);
 		var scalarOptions = ScalarOptions.From(attributes, ScalarAttributeName);
 		var scalarProperty = typeSymbol
 			.GetMembers(scalarOptions.PropertyName)
@@ -145,7 +146,12 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
 		}
 
-		var valueObjectOptions = ValueObjectOptions.From(attributes, ValueObjectAttributeName);
+		var assemblyDefaults = GetAssemblyValueObjectDefaults(context.SemanticModel.Compilation);
+		var valueObjectOptions = ValueObjectOptions.From(
+			attributes,
+			ValueObjectAttributeName,
+			assemblyDefaults.GenerateConstructor
+		);
 		var typeModel = BuildTypeModel(typeSymbol);
 		if (typeModel is null)
 			return new ValueObjectGenerationResult(null, null, [.. diagnostics]);
@@ -633,6 +639,11 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			includeRef: true
 		);
 
+		// Check if parameterless constructor already exists
+		var parameterlessCtorExists = typeSymbol
+			.Constructors.Where(static ctor => !ctor.IsStatic)
+			.Any(ctor => ctor.Parameters.Length == 0);
+
 		var hydrateFactoryName = options.DeserializationMode == StrictModeName ? "Create" : "Hydrate";
 
 		StringBuilder sb = new();
@@ -742,6 +753,27 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			);
 			foreach (var propertyName in propertyNames)
 				sb.AppendLine($"{indent}\t\t{propertyName} = {ToCamelCase(propertyName)};");
+			sb.AppendLine($"{indent}	}}");
+		}
+
+		if (options.GenerateConstructor && !parameterlessCtorExists)
+		{
+			sb.AppendLine();
+			sb.AppendLine($"{indent}\t/// <summary>");
+			sb.AppendLine($"{indent}\t/// Parameterless constructor for EF Core deserialization.");
+			sb.AppendLine(
+				$"{indent}\t/// This constructor is required to work around EF Core's ConstructorBindingConvention,"
+			);
+			sb.AppendLine($"{indent}\t/// which cannot bind complex type parameters during JSON deserialization.");
+			sb.AppendLine(
+				$"{indent}\t/// EF Core uses this parameterless constructor to instantiate the value object,"
+			);
+			sb.AppendLine($"{indent}\t/// then sets properties directly from the JSON payload.");
+			sb.AppendLine($"{indent}\t/// </summary>");
+			sb.AppendLine(
+				$@"{indent}	private {typeModel.Name}() : this({string.Join(", ", properties.Select(static property => GetEmptyValueExpression(property.Type)))})
+{indent}	{{"
+			);
 			sb.AppendLine($"{indent}	}}");
 		}
 
@@ -1374,6 +1406,27 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		public static ValueObjectGenerationResult Empty { get; } = new(null, null, []);
 	}
 
+	readonly struct ValueObjectAssemblyDefaults(bool generateConstructor = true)
+	{
+		public bool GenerateConstructor { get; } = generateConstructor;
+	}
+
+	static ValueObjectAssemblyDefaults GetAssemblyValueObjectDefaults(Compilation compilation)
+	{
+		const string assemblyDefaultsName = "Purview.EventSourcing.Serialization.GenerateValueObjectDefaultsAttribute";
+
+		var assemblyAttributes = compilation.Assembly.GetAttributes();
+		var defaultsAttribute = assemblyAttributes.FirstOrDefault(attr =>
+			attr.AttributeClass?.ToDisplayString() == assemblyDefaultsName
+		);
+
+		if (defaultsAttribute is null)
+			return new ValueObjectAssemblyDefaults(generateConstructor: true);
+
+		var generateConstructor = GetNamedBool(defaultsAttribute.NamedArguments, "GenerateConstructor", true);
+		return new ValueObjectAssemblyDefaults(generateConstructor);
+	}
+
 	readonly struct GeneratedTypeModel(
 		string name,
 		string? @namespace,
@@ -1451,6 +1504,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		bool generateComparable,
 		bool generateComparisonOperators,
 		bool generateEmpty,
+		bool generateConstructor,
 		string deserializationMode
 	)
 	{
@@ -1462,12 +1516,21 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 
 		public bool GenerateEmpty { get; } = generateEmpty;
 
+		public bool GenerateConstructor { get; } = generateConstructor;
+
 		public string DeserializationMode { get; } = deserializationMode;
 
-		public static ValueObjectOptions From(INamedTypeSymbol typeSymbol, string metadataName) =>
-			From(typeSymbol.GetAttributes(), metadataName);
+		public static ValueObjectOptions From(
+			INamedTypeSymbol typeSymbol,
+			string metadataName,
+			bool assemblyDefaultGenerateConstructor = true
+		) => From(typeSymbol.GetAttributes(), metadataName, assemblyDefaultGenerateConstructor);
 
-		public static ValueObjectOptions From(ImmutableArray<AttributeData> attributes, string metadataName)
+		public static ValueObjectOptions From(
+			ImmutableArray<AttributeData> attributes,
+			string metadataName,
+			bool assemblyDefaultGenerateConstructor = true
+		)
 		{
 			var attribute = attributes.First(data => data.AttributeClass?.ToDisplayString() == metadataName);
 
@@ -1476,6 +1539,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				GetNamedBool(attribute.NamedArguments, "GenerateComparable", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateComparisonOperators", true),
 				GetNamedBool(attribute.NamedArguments, "GenerateEmpty", true),
+				GetNamedBool(attribute.NamedArguments, "GenerateConstructor", assemblyDefaultGenerateConstructor),
 				GetDeserializationMode(attribute.NamedArguments, "DeserializationMode")
 			);
 		}

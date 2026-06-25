@@ -15,6 +15,7 @@ public abstract class SourceGeneratorTestBase<TGenerator>(bool throwOnLogError =
 		"GenerateAggregateAttribute.g.cs",
 		"GenerateAggregateCollectionEventAttribute.g.cs",
 		"GenerateAggregateDefaultsAttribute.g.cs",
+		"GenerateAggregateDefaultBaseAttribute.g.cs",
 		"GenerateAggregateEventAttribute.g.cs",
 		"MetadataAttribute.g.cs",
 		"ComputedAttribute.g.cs",

@@ -32,7 +32,7 @@ public sealed class SqlServerSnapshotEventStoreOptions
 	[Required]
 	public string ConnectionString { get; set; } = default!;
 
-	public string TableName { get; set; } = "Snapshots";
+	public string TableName { get; set; } = "EventStoreSnapshots";
 
 	public string SchemaName { get; set; } = "dbo";
 
