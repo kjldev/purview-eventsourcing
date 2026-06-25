@@ -14,7 +14,7 @@ sealed class SnapshotQueryRow<TAggregate>
 
 sealed record SqlServerClientOptions(string ConnectionString, bool UseDataCompression)
 {
-	public string TableName { get; init; } = "Snapshots";
+	public string TableName { get; init; } = "EventStoreSnapshots";
 
 	public string SchemaName { get; init; } = "dbo";
 

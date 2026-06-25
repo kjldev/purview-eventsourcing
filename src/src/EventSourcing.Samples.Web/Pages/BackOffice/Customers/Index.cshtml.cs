@@ -60,8 +60,11 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 		Expression<Func<CustomerAggregate, bool>>? where = hasFilter
 			? c =>
-				(string.IsNullOrEmpty(search) || c.Name.Value.Contains(search) || c.Email.Value.Contains(search))
-				&& (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
+				(
+					string.IsNullOrEmpty(search)
+					|| ((string)c.Name).Contains(search)
+					|| ((string)c.Email).Contains(search)
+				) && (!activeFilter.HasValue || c.IsActive == activeFilter.Value)
 			: null;
 
 		Func<IQueryable<CustomerAggregate>, IQueryable<CustomerAggregate>> orderBy = (SortBy, SortDir) switch

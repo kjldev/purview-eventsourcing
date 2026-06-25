@@ -57,6 +57,6 @@ public sealed class ReportUploadAggregateTests
 	static BlobUri CreateValidBlobUri() =>
 		BlobUri.Create(new Uri($"/example/nesting/{Guid.NewGuid()}/blob.json", UriKind.Relative));
 
-	static UserCapture CreateUploadedUser() =>
-		UserCapture.Create(UserDetails.Create(Guid.NewGuid(), "Uploader", true), DateTimeOffset.UtcNow);
+	static UserCaptureRecord CreateUploadedUser() =>
+		UserCaptureRecord.Create(UserDetails.Create(Guid.NewGuid(), "Uploader", true), DateTimeOffset.UtcNow);
 }

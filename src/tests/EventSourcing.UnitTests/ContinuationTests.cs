@@ -2,8 +2,6 @@ namespace Purview.EventSourcing;
 
 public class ContinuationTests
 {
-	#region ContinuationResponse Tests
-
 	[Test]
 	public async Task ContinuationResponse_HasRecords_GivenEmptyResults_ReturnsFalse()
 	{
@@ -92,6 +90,4 @@ public class ContinuationTests
 		await Assert.That(converted.ContinuationToken).IsEqualTo("token");
 		await Assert.That(converted.RequestedCount).IsEqualTo(10);
 	}
-
-	#endregion
 }

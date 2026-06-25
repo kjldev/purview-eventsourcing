@@ -43,6 +43,11 @@ public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Sample
 
 		configurationBuilder.AddInMemoryCollection([
 			new KeyValuePair<string, string?>("ConnectionStrings:SqlServer", _databaseConnectionString),
+			// Mirror web app settings so test-side writes hit the same SQL tables as the running AppHost web process.
+			new KeyValuePair<string, string?>("EventStore:SqlServer:TableName", "Events"),
+			new KeyValuePair<string, string?>("EventStore:SqlServer:SchemaName", "dbo"),
+			new KeyValuePair<string, string?>("EventStore:SqlServerSnapshot:TableName", "Snapshots"),
+			new KeyValuePair<string, string?>("EventStore:SqlServerSnapshot:SchemaName", "dbo"),
 		]);
 	}
 
@@ -50,10 +55,12 @@ public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Sample
 	{
 		await base.InitializeAsync();
 
-		_databaseConnectionString = BuildDatabaseConnectionString(
-			await GetConnectionStringAsync("sql")
-				?? throw new InvalidOperationException("The AppHost did not expose a database connection string.")
-		);
+		_databaseConnectionString =
+			await GetConnectionStringAsync("eventstore-sqlserver")
+			?? BuildDatabaseConnectionString(
+				await GetConnectionStringAsync("sql")
+					?? throw new InvalidOperationException("The AppHost did not expose a database connection string.")
+			);
 
 		await WaitForWebAppAsync(CancellationToken.None);
 	}

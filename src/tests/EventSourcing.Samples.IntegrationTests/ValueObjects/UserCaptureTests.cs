@@ -34,16 +34,16 @@ public class UserCaptureTests(SqlServerSnapshotEventStoreFixture fixture)
 
 		// Assert
 		await Assert.That(retrievedAggregate).IsNotNull();
-		await Assert.That(retrievedAggregate!.UserCapture).IsEqualTo(aggregate.UserCapture);
+		await Assert.That(retrievedAggregate!.UserCaptureRecord).IsEqualTo(aggregate.UserCaptureRecord);
 	}
 
-	static UserCapture CreateSUT(UserDetails? user = null, DateTimeOffset? occurredAt = null) =>
-		UserCapture.Create(user ?? CreateUserDetails(), occurredAt ?? Faker.Date.RecentOffset());
+	static UserCaptureRecord CreateSUT(UserDetails? user = null, DateTimeOffset? occurredAt = null) =>
+		UserCaptureRecord.Create(user ?? CreateUserDetails(), occurredAt ?? Faker.Date.RecentOffset());
 
 	static UserDetails CreateUserDetails(Guid? id = null, string? displayName = null, bool isActive = true) =>
 		new(id ?? Faker.Random.Guid(), displayName ?? Faker.Person.FullName, isActive);
 
-	static ValueObjectTestAggregate CreateTestAggregate(UserCapture? user = null)
+	static ValueObjectTestAggregate CreateTestAggregate(UserCaptureRecord? user = null)
 	{
 		ValueObjectTestAggregate aggregate = new();
 		aggregate.Details.Id = Faker.Random.Guid().ToString();

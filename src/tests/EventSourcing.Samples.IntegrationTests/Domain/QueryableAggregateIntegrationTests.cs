@@ -24,7 +24,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 		var search = "a";
 		var showInactive = false;
 		Expression<Func<CustomerAggregate, bool>> where = c =>
-			(string.IsNullOrEmpty(search) || c.Name.Value.Contains(search) || c.Email.Value.Contains(search))
+			(string.IsNullOrEmpty(search) || ((string)c.Name).Contains(search) || ((string)c.Email).Contains(search))
 			&& (showInactive || c.IsActive);
 
 		var result = await store.QueryAsync(

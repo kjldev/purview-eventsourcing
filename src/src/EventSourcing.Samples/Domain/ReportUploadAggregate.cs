@@ -14,7 +14,7 @@ public sealed partial class ReportUploadAggregate : AggregateBase
 
 	public BlobUri? ExcelReportBlob { get; private set; }
 
-	public UserCapture Uploaded { get; private set; } = UserCapture.Empty;
+	public UserCaptureRecord Uploaded { get; private set; } = UserCaptureRecord.Empty;
 
 	public ReportProcessingStatus Status { get; private set; } = ReportProcessingStatus.None;
 
@@ -55,7 +55,7 @@ public sealed partial class ReportUploadAggregate : AggregateBase
 		ProjectId projectId,
 		string originalFilename,
 		BlobUri sourceJsonBlob,
-		UserCapture uploaded
+		UserCaptureRecord uploaded
 	);
 
 	[GenerateAggregateEvent]

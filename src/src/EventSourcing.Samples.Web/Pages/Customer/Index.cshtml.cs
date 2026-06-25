@@ -54,8 +54,11 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 		Expression<Func<CustomerAggregate, bool>> where = hasFilter
 			? c =>
-				(string.IsNullOrEmpty(search) || c.Name.Value.Contains(search) || c.Email.Value.Contains(search))
-				&& (ShowInactive || c.IsActive)
+				(
+					string.IsNullOrEmpty(search)
+					|| ((string)c.Name).Contains(search)
+					|| ((string)c.Email).Contains(search)
+				) && (ShowInactive || c.IsActive)
 			: c => true;
 
 		var result = await store.QueryAsync(where, q => q.OrderBy(c => c.Name), request, ct);

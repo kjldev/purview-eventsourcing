@@ -740,7 +740,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine();
 		}
 
-		if (!ctorExists)
+		if (!ctorExists && properties.Length > 0)
 		{
 			var ctorParams = string.Join(
 				", ",
@@ -756,7 +756,11 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine($"{indent}	}}");
 		}
 
-		if (options.GenerateConstructor && !parameterlessCtorExists)
+		if (
+			options.GenerateConstructor
+			&& !parameterlessCtorExists
+			&& TryGetEfConstructorArguments(typeSymbol, properties, out var efCtorArguments)
+		)
 		{
 			sb.AppendLine();
 			sb.AppendLine($"{indent}\t/// <summary>");
@@ -771,7 +775,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine($"{indent}\t/// then sets properties directly from the JSON payload.");
 			sb.AppendLine($"{indent}\t/// </summary>");
 			sb.AppendLine(
-				$@"{indent}	private {typeModel.Name}() : this({string.Join(", ", properties.Select(static property => GetEmptyValueExpression(property.Type)))})
+				$@"{indent}	private {typeModel.Name}() : this({efCtorArguments})
 {indent}	{{"
 			);
 			sb.AppendLine($"{indent}	}}");
@@ -954,6 +958,36 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		}
 
 		return true;
+	}
+
+	static bool TryGetEfConstructorArguments(
+		INamedTypeSymbol typeSymbol,
+		IPropertySymbol[] properties,
+		out string arguments
+	)
+	{
+		if (properties.Length > 0)
+		{
+			arguments = string.Join(", ", properties.Select(static property => GetEmptyValueExpression(property.Type)));
+			return true;
+		}
+
+		var parameterizedConstructors = typeSymbol
+			.Constructors.Where(static ctor => !ctor.IsStatic && ctor.Parameters.Length > 0)
+			.ToArray();
+
+		if (parameterizedConstructors.Length == 1)
+		{
+			arguments = string.Join(
+				", ",
+				parameterizedConstructors[0]
+					.Parameters.Select(static parameter => GetEmptyValueExpression(parameter.Type))
+			);
+			return true;
+		}
+
+		arguments = string.Empty;
+		return false;
 	}
 
 	static bool IsValueObjectPropertyCandidate(INamedTypeSymbol typeSymbol, IPropertySymbol property)

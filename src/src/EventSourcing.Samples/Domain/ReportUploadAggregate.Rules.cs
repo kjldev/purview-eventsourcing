@@ -8,7 +8,7 @@ partial class ReportUploadAggregate
 		ref ProjectId projectId,
 		ref string originalFilename,
 		ref BlobUri sourceJsonBlob,
-		ref UserCapture uploaded
+		ref UserCaptureRecord uploaded
 	)
 	{
 		if (Details.CurrentVersion > 0)
@@ -18,9 +18,9 @@ partial class ReportUploadAggregate
 		ArgumentNullException.ThrowIfNull(sourceJsonBlob);
 	}
 
-	partial void OnUploadedChanging(ref UserCapture uploaded)
+	partial void OnUploadedChanging(ref UserCaptureRecord uploaded)
 	{
-		if (uploaded == UserCapture.Empty)
+		if (uploaded == UserCaptureRecord.Empty)
 			throw new InvalidOperationException("Uploaded information cannot be empty.");
 
 		if (Details.CurrentVersion > 0 && Uploaded.IsEssentialChange(uploaded))

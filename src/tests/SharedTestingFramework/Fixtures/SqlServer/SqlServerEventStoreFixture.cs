@@ -61,7 +61,7 @@ public class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = connectionString,
-			TableName = $"EventStore_{runId:N}",
+			TableName = $"EventStoreEvents_{runId:N}",
 			SchemaName = "dbo",
 			AutoCreateTable = true,
 			TimeoutInSeconds = 60,

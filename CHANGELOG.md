@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.18
+
+### Patch Changes
+
+- added EF support for complex value objects
+
 ## 2.0.0-prerelease.17
 
 ### Patch Changes

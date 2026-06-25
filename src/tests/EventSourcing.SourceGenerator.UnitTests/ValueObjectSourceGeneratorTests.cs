@@ -1026,6 +1026,39 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task ComplexValueObjectGeneration_PrimaryConstructorClass_GeneratesSingleEfConstructor(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class UserCaptureClass(UserDetails user, System.DateTimeOffset occurredAt);
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class UserDetails(System.Guid id, string displayName, bool isActive);
+
+				public static class UserCaptureClassHarness
+				{
+					public static UserCaptureClass Create() => UserCaptureClass.Create();
+				}
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("private UserCaptureClass() : this(null!, default)");
+		await Assert.That(generatedSource).DoesNotContain("private UserCaptureClass()\r\n\t\t{");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var harnessType = assembly.GetType("Testing.UserCaptureClassHarness")!;
+
+		await Assert.That(harnessType.GetMethod("Create")!.Invoke(null, null)).IsNotNull();
+	}
+
+	[Test]
 	public async Task ComplexValueObjectGeneration_SupportsNormalizeHook(CancellationToken cancellationToken)
 	{
 		const string source = """

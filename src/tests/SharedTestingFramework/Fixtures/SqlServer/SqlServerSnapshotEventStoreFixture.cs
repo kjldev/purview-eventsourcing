@@ -22,7 +22,7 @@ public class SqlServerSnapshotEventStoreFixture : SqlServerEventStoreFixture
 		SqlServerSnapshotEventStoreOptions config = new()
 		{
 			ConnectionString = ConnectionString,
-			TableName = $"Snapshots_{runId:N}",
+			TableName = $"EventStoreSnapshots_{runId:N}",
 			SchemaName = "dbo",
 			AutoCreateTable = true,
 		};
