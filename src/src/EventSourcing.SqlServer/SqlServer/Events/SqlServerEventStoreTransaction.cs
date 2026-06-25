@@ -326,14 +326,11 @@ sealed class SqlServerEventStoreTransaction(string? correlationId = null) : ISql
 			CancellationToken cancellationToken
 		)
 		{
-			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext();
+			var baseContext = operationContext ?? EventStoreOperationContext.DefaultContext(correlationId);
 			var context = baseContext with
 			{
-				CorrelationId = baseContext.CorrelationId ?? correlationId,
-				UseIdempotencyMarker =
-					baseContext.UseIdempotencyMarker
-					|| useIdempotencyMarker
-					|| !string.IsNullOrWhiteSpace(baseContext.CorrelationId),
+				CorrelationId = operationContext is null ? correlationId : baseContext.CorrelationId,
+				UseIdempotencyMarker = baseContext.UseIdempotencyMarker || useIdempotencyMarker,
 			};
 
 			var saveOperation = await eventStore.SaveInTransactionAsync(
