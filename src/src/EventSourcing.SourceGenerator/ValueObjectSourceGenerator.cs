@@ -319,8 +319,12 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				$"{indent}[global::System.Text.Json.Serialization.JsonConverter(typeof({typeModel.Name}JsonConverter))]"
 			);
 
+		var scalarSelfEquatableInterface =
+			typeSymbol.TypeKind == TypeKind.Struct && !ImplementsSelfEquatable(typeSymbol)
+				? $", global::System.IEquatable<{typeName}>"
+				: string.Empty;
 		sb.AppendLine(
-			$"{indent}{typeModel.DeclarationPrefix} : global::Purview.EventSourcing.ValueObjects.IScalarValueObject<{typeName}, {scalarTypeName}>, global::System.IComparable<{typeName}>, global::System.IComparable<{scalarTypeName}>, global::System.IComparable"
+			$"{indent}{typeModel.DeclarationPrefix} : global::Purview.EventSourcing.ValueObjects.IScalarValueObject<{typeName}, {scalarTypeName}>{scalarSelfEquatableInterface}, global::System.IComparable<{typeName}>, global::System.IComparable<{scalarTypeName}>, global::System.IComparable"
 		);
 		sb.AppendLine($"{indent}{{");
 
@@ -663,8 +667,12 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 				$"{indent}[global::System.Text.Json.Serialization.JsonConverter(typeof({typeModel.Name}JsonConverter))]"
 			);
 
+		var valueObjectSelfEquatableInterface =
+			typeSymbol.TypeKind == TypeKind.Struct && !ImplementsSelfEquatable(typeSymbol)
+				? $", global::System.IEquatable<{typeName}>"
+				: string.Empty;
 		sb.AppendLine(
-			$"{indent}{typeModel.DeclarationPrefix} : global::Purview.EventSourcing.ValueObjects.IValueObject<{typeName}>, global::System.IComparable<{typeName}>, global::System.IComparable"
+			$"{indent}{typeModel.DeclarationPrefix} : global::Purview.EventSourcing.ValueObjects.IValueObject<{typeName}>{valueObjectSelfEquatableInterface}, global::System.IComparable<{typeName}>, global::System.IComparable"
 		);
 		sb.AppendLine($"{indent}{{");
 
@@ -1424,6 +1432,15 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 
 	static bool HasMemberWithName(INamedTypeSymbol typeSymbol, string name) =>
 		typeSymbol.GetMembers(name).Any(member => !member.IsImplicitlyDeclared);
+
+	static bool ImplementsSelfEquatable(INamedTypeSymbol typeSymbol) =>
+		typeSymbol.AllInterfaces.Any(interfaceSymbol =>
+			interfaceSymbol is INamedTypeSymbol namedTypeSymbol
+			&& namedTypeSymbol.OriginalDefinition.Name == nameof(IEquatable<int>)
+			&& namedTypeSymbol.OriginalDefinition.ContainingNamespace.ToDisplayString() == "System"
+			&& namedTypeSymbol.TypeArguments.Length == 1
+			&& SymbolEqualityComparer.Default.Equals(namedTypeSymbol.TypeArguments[0], typeSymbol)
+		);
 
 	readonly struct ValueObjectGenerationResult(
 		string? hintName,

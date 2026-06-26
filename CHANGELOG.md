@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.19
+
+### Patch Changes
+
+- added IEquatible for value object structs
+
 ## 2.0.0-prerelease.18
 
 ### Patch Changes

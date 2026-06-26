@@ -447,15 +447,15 @@ sealed partial class SqlServerEventStoreClient
 
 	EventStoreDbContext CreateContext()
 	{
-		var optionsBuilder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> optionsBuilder = new();
 		var commandTimeout = Math.Max(1, _options.TimeoutInSeconds ?? 60);
 		optionsBuilder.UseSqlServer(_options.ConnectionString, sql => sql.CommandTimeout(commandTimeout));
-		return new EventStoreDbContext(optionsBuilder.Options, _options.SchemaName, _options.TableName);
+		return new(optionsBuilder.Options, _options.SchemaName, _options.TableName);
 	}
 
 	EventStoreDbContext CreateContext(SqlConnection connection, SqlTransaction? transaction)
 	{
-		var optionsBuilder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> optionsBuilder = new();
 		var commandTimeout = Math.Max(1, _options.TimeoutInSeconds ?? 60);
 		optionsBuilder.UseSqlServer(connection, sql => sql.CommandTimeout(commandTimeout));
 		var context = new EventStoreDbContext(optionsBuilder.Options, _options.SchemaName, _options.TableName);

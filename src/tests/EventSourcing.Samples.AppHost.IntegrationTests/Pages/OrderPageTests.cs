@@ -55,6 +55,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 	[Test]
 	public async Task BackOfficeStockTransfer_Post_WithValidData(CancellationToken cancellationToken)
 	{
+		using var client = fixture.CreateWebClient(followRedirects: true);
 		var (sourceInventoryId, destinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Stock/Transfer", cancellationToken);
 
@@ -68,7 +69,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		};
 
 		using var content = new FormUrlEncodedContent(form);
-		var response = await _client.PostAsync("/BackOffice/Stock/Transfer", content, cancellationToken);
+		var response = await client.PostAsync("/BackOffice/Stock/Transfer", content, cancellationToken);
 
 		await Assert.That((int)response.StatusCode).IsEqualTo(200);
 	}

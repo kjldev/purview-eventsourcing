@@ -584,6 +584,38 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
+	public async Task ComplexValueObjectGeneration_PlainStructImplementsSelfEquatable(
+		CancellationToken cancellationToken
+	)
+	{
+		const string source = """
+			namespace Testing
+			{
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial struct UserCaptureStruct
+				{
+					public UserDetails User { get; }
+
+					public System.DateTimeOffset OccurredAt { get; }
+				}
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class UserDetails(System.Guid id, string displayName);
+			}
+			""";
+
+		var (result, _) = await GenerateAsync(source, cancellationToken);
+		var generatedSource = GetGeneratedSource(result);
+
+		await Assert.That(generatedSource).Contains("global::System.IEquatable<global::Testing.UserCaptureStruct>");
+
+		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
+		var generatedType = assembly.GetType("Testing.UserCaptureStruct")!;
+
+		await Assert.That(typeof(IEquatable<>).MakeGenericType(generatedType).IsAssignableFrom(generatedType)).IsTrue();
+	}
+
+	[Test]
 	public async Task ComplexValueObjectGeneration_WithoutProperties_GeneratesValidCreateAndJsonData(
 		CancellationToken cancellationToken
 	)
@@ -802,6 +834,9 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 			.Contains(
 				"public static bool operator !=(global::Testing.ReportProcessingStatus left, global::Testing.ReportProcessingStatus right)"
 			);
+		await Assert
+			.That(generatedSource)
+			.Contains("global::System.IEquatable<global::Testing.ReportProcessingStatus>");
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
 		var harnessType = assembly.GetType("Testing.StatusHarness")!;

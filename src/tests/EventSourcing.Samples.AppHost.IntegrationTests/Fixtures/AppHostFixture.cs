@@ -8,7 +8,7 @@ namespace Purview.EventSourcing.Samples.AppHost.Fixtures;
 
 public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Samples_AppHost>, IServiceProvider
 {
-	readonly string _databaseName = $"EventSourcingSampleTest_" + $"{Guid.NewGuid():N}"[..8];
+	readonly string _databaseName = $"EventStoreSample_" + $"{Guid.NewGuid():N}"[..8];
 	readonly Lazy<AppServiceHelper> _appService;
 
 	string? _databaseConnectionString;
@@ -42,12 +42,7 @@ public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Sample
 			.AddDomainServices();
 
 		configurationBuilder.AddInMemoryCollection([
-			new KeyValuePair<string, string?>("ConnectionStrings:SqlServer", _databaseConnectionString),
-			// Mirror web app settings so test-side writes hit the same SQL tables as the running AppHost web process.
-			new KeyValuePair<string, string?>("EventStore:SqlServer:TableName", "Events"),
-			new KeyValuePair<string, string?>("EventStore:SqlServer:SchemaName", "dbo"),
-			new KeyValuePair<string, string?>("EventStore:SqlServerSnapshot:TableName", "Snapshots"),
-			new KeyValuePair<string, string?>("EventStore:SqlServerSnapshot:SchemaName", "dbo"),
+			new KeyValuePair<string, string?>("ConnectionStrings:eventstore-sqlserver", _databaseConnectionString),
 		]);
 	}
 
@@ -70,9 +65,11 @@ public sealed class AppHostFixture : AspireFixture<Projects.EventSourcing_Sample
 		"Reliability",
 		"CA5399:Do not use HttpClientHandler.AllowAutoRedirect"
 	)]
-	public HttpClient CreateWebClient()
+	public HttpClient CreateWebClient(bool followRedirects = false)
 	{
 		var httpClient = CreateHttpClient("web", "http");
+		if (followRedirects)
+			return httpClient;
 
 		// We want auto redirect disabled for tests to be able to assert on 302 responses,
 		// but HttpClient doesn't allow changing that setting after the client is created,

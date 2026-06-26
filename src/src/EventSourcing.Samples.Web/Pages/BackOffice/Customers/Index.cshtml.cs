@@ -58,6 +58,8 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 		var activeFilter = ActiveFilter;
 		var hasFilter = search.Length > 0 || activeFilter.HasValue;
 
+		var results = (await store.ListAsync<CustomerAggregate>(maxRecordCount: 100, ct));
+
 		Expression<Func<CustomerAggregate, bool>>? where = hasFilter
 			? c =>
 				(
