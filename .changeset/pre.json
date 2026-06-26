@@ -5,6 +5,7 @@
     "purview-eventsourcing": "2.0.0-prerelease.0"
   },
   "changesets": [
+    "bumpy-symbols-learn",
     "chubby-suns-fry",
     "clean-papayas-hang",
     "curvy-bushes-strive",

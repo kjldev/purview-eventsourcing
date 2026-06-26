@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.21
+
+### Patch Changes
+
+- fixed GetOrCreate that called created func regardless of state
+
 ## 2.0.0-prerelease.20
 
 ### Patch Changes
