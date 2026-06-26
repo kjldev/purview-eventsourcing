@@ -646,7 +646,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 		// Check if parameterless constructor already exists
 		var parameterlessCtorExists = typeSymbol
 			.Constructors.Where(static ctor => !ctor.IsStatic)
-			.Any(ctor => ctor.Parameters.Length == 0);
+			.Any(ctor => ctor.Parameters.Length == 0 && !ctor.IsImplicitlyDeclared);
 
 		var hydrateFactoryName = options.DeserializationMode == StrictModeName ? "Create" : "Hydrate";
 
@@ -770,6 +770,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			&& TryGetEfConstructorArguments(typeSymbol, properties, out var efCtorArguments)
 		)
 		{
+			var efCtorAccessibility = typeSymbol.TypeKind == TypeKind.Struct ? "public" : "private";
 			sb.AppendLine();
 			sb.AppendLine($"{indent}\t/// <summary>");
 			sb.AppendLine($"{indent}\t/// Parameterless constructor for EF Core deserialization.");
@@ -783,7 +784,7 @@ public sealed class ValueObjectSourceGenerator : IIncrementalGenerator
 			sb.AppendLine($"{indent}\t/// then sets properties directly from the JSON payload.");
 			sb.AppendLine($"{indent}\t/// </summary>");
 			sb.AppendLine(
-				$@"{indent}	private {typeModel.Name}() : this({efCtorArguments})
+				$@"{indent}	{efCtorAccessibility} {typeModel.Name}() : this({efCtorArguments})
 {indent}	{{"
 			);
 			sb.AppendLine($"{indent}	}}");

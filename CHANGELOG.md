@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0-prerelease.20
+
+### Patch Changes
+
+- fixed the valueobject EF ctor generation not covering all valueobject types
+
 ## 2.0.0-prerelease.19
 
 ### Patch Changes

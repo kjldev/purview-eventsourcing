@@ -1061,7 +1061,7 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 	}
 
 	[Test]
-	public async Task ComplexValueObjectGeneration_PrimaryConstructorClass_GeneratesSingleEfConstructor(
+	public async Task ComplexValueObjectGeneration_GeneratesEfConstructorsForAllUserCaptureShapes(
 		CancellationToken cancellationToken
 	)
 	{
@@ -1069,14 +1069,50 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 			namespace Testing
 			{
 				[Purview.EventSourcing.Serialization.ValueObject]
-				public partial class UserCaptureClass(UserDetails user, System.DateTimeOffset occurredAt);
+				public sealed partial record UserCaptureRecord(UserDetails User, System.DateTimeOffset OccurredAt);
 
 				[Purview.EventSourcing.Serialization.ValueObject]
-				public partial class UserDetails(System.Guid id, string displayName, bool isActive);
+				public partial record struct UserCaptureRecordStruct(UserDetails User, System.DateTimeOffset OccurredAt);
 
-				public static class UserCaptureClassHarness
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public readonly partial record struct UserCaptureRecordStruct1(UserDetails User, System.DateTimeOffset OccurredAt);
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public sealed partial record class UserCaptureRecordClass(UserDetails User, System.DateTimeOffset OccurredAt);
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public sealed partial class UserCaptureClass(UserDetails User, System.DateTimeOffset OccurredAt);
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial struct UserCaptureStruct(UserDetails User, System.DateTimeOffset OccurredAt);
+
+				[Purview.EventSourcing.Serialization.ValueObject]
+				public partial class UserDetails
 				{
-					public static UserCaptureClass Create() => UserCaptureClass.Create();
+					public System.Guid Id { get; }
+
+					public string DisplayName { get; }
+				}
+
+				public static class UserCaptureHarness
+				{
+					public static object[] CreateAll()
+					{
+						var user = UserDetails.Create(
+							System.Guid.Parse("11111111-1111-1111-1111-111111111111"),
+							"Alice"
+						);
+
+						return
+						[
+							UserCaptureRecord.Create(user, System.DateTimeOffset.UnixEpoch),
+							UserCaptureRecordStruct.Create(user, System.DateTimeOffset.UnixEpoch),
+							UserCaptureRecordStruct1.Create(user, System.DateTimeOffset.UnixEpoch),
+							UserCaptureRecordClass.Create(user, System.DateTimeOffset.UnixEpoch),
+							UserCaptureClass.Create(),
+							UserCaptureStruct.Create()
+						];
+					}
 				}
 			}
 			""";
@@ -1084,13 +1120,18 @@ public sealed class ValueObjectSourceGeneratorTests : SourceGeneratorTestBase<Va
 		var (result, _) = await GenerateAsync(source, cancellationToken);
 		var generatedSource = GetGeneratedSource(result);
 
+		await Assert.That(generatedSource).Contains("private UserCaptureRecord() : this(null!, default)");
+		await Assert.That(generatedSource).Contains("public UserCaptureRecordStruct() : this(null!, default)");
+		await Assert.That(generatedSource).Contains("public UserCaptureRecordStruct1() : this(null!, default)");
+		await Assert.That(generatedSource).Contains("private UserCaptureRecordClass() : this(null!, default)");
 		await Assert.That(generatedSource).Contains("private UserCaptureClass() : this(null!, default)");
-		await Assert.That(generatedSource).DoesNotContain("private UserCaptureClass()\r\n\t\t{");
+		await Assert.That(generatedSource).Contains("public UserCaptureStruct() : this(null!, default)");
 
 		var assembly = await CompileToAssemblyAsync(source, cancellationToken);
-		var harnessType = assembly.GetType("Testing.UserCaptureClassHarness")!;
+		var harnessType = assembly.GetType("Testing.UserCaptureHarness")!;
+		var created = (object[])harnessType.GetMethod("CreateAll")!.Invoke(null, null)!;
 
-		await Assert.That(harnessType.GetMethod("Create")!.Invoke(null, null)).IsNotNull();
+		await Assert.That(created.Length).IsEqualTo(6);
 	}
 
 	[Test]
