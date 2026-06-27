@@ -1,5 +1,7 @@
 - [Home](Home.md)
 - [Getting Started](Getting-Started.md)
+- [Solution Design Guide](Solution-Design-Guide.md)
+- [Solution Design Worksheet](Solution-Design-Worksheet.md)
 - [Provider Feature Matrix](Provider-Feature-Matrix.md)
 - [Source Generator Behaviors](Source-Generator-Behaviors.md)
 - [SQL Server Guide](SQL-Server-Guide.md)

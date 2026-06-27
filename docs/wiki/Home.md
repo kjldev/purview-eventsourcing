@@ -5,6 +5,8 @@ This wiki is the project documentation hub for framework features, provider capa
 ## Start here
 
 - [Getting Started](Getting-Started.md)
+- [Solution Design Guide](Solution-Design-Guide.md)
+- [Solution Design Worksheet](Solution-Design-Worksheet.md)
 - [Provider Feature Matrix](Provider-Feature-Matrix.md)
 - [Source Generator Behaviors](Source-Generator-Behaviors.md)
 - [SQL Server Guide](SQL-Server-Guide.md)
@@ -16,6 +18,9 @@ This wiki is the project documentation hub for framework features, provider capa
   - `AggregateBase`, `IEventStore`, `IQueryableEventStore`, and `IEventStoreTransactionFactory`.
   - Source-generated aggregate events/command wiring from partial methods.
   - Provider-agnostic aggregate load/save/query APIs.
+- **Solution design**
+  - Paper-first worksheets for aggregate boundaries, commands, events, relationships, and event streams.
+  - Guidance for relational data, value objects, validation layers, and schema evolution.
 - **Storage providers**
   - SQL Server / Azure SQL: event streams + queryable snapshots + SQL transaction coordination.
   - Azure Storage: table-backed event streams with blob support for snapshots/large payloads.
