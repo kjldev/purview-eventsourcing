@@ -25,13 +25,13 @@ static class ValueObjectSymbolInspector
 		GreaterThanOrEqualOperatorName,
 	];
 
-	public static List<DiagnosticInfo> ValidateValueObjectType(
+	public static List<ReportableDiagnostic> ValidateValueObjectType(
 		INamedTypeSymbol typeSymbol,
 		string attributeName,
 		Location location
 	)
 	{
-		List<DiagnosticInfo> diagnostics = [];
+		List<ReportableDiagnostic> diagnostics = [];
 
 		var isPartial = typeSymbol
 			.DeclaringSyntaxReferences.Select(reference => reference.GetSyntax())
@@ -40,8 +40,9 @@ static class ValueObjectSymbolInspector
 		if (!isPartial)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.ValueObjectMustBePartial,
+					isBlocking: true,
 					location,
 					typeSymbol.Name,
 					attributeName
@@ -52,8 +53,9 @@ static class ValueObjectSymbolInspector
 		if (typeSymbol.ContainingType is not null)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.NestedValueObjectsAreNotSupported,
+					isBlocking: true,
 					location,
 					typeSymbol.Name,
 					attributeName
@@ -64,8 +66,9 @@ static class ValueObjectSymbolInspector
 		if (typeSymbol.TypeParameters.Length > 0)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.GenericValueObjectsAreNotSupported,
+					isBlocking: true,
 					location,
 					typeSymbol.Name,
 					attributeName

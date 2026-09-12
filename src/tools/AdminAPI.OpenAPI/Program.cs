@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Purview.EventSourcing.Admin.Abstractions.Models;
 using Purview.EventSourcing.Admin.Abstractions.Queries;
 using Purview.EventSourcing.Admin.Abstractions.Services;
-using Purview.EventSourcing.Admin.API;
-using Purview.EventSourcing.Admin.Security;
 
 // Exports the Admin API OpenAPI document to a file so it can be committed and used to generate a typed client
 // (for example with NSwag). Usage:
@@ -15,7 +13,7 @@ using Purview.EventSourcing.Admin.Security;
 var outputPath = ResolveOutputPath(args);
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddPurviewEventSourcingAdminApi(options =>
+builder.AddPurviewEventSourcingAdminAPI(options =>
 {
 	// The exported document describes the full Admin API surface, so all feature-gated endpoints are enabled.
 	options.Features.ExportEvents = true;
@@ -26,7 +24,7 @@ builder.Services.AddPurviewEventSourcingAdminApi(options =>
 	options.Features.ViewSnapshot = true;
 	options.Features.RebuildSnapshot = true;
 });
-builder.Services.AddPurviewEventSourcingAdminOpenApi();
+builder.AddPurviewEventSourcingAdminOpenAPI();
 builder.Services.AddPurviewEventSourcingAdminSecurity();
 builder.Services.AddEventSourcing();
 
@@ -51,8 +49,8 @@ var baseAddress =
 	serverAddresses?.Addresses.FirstOrDefault()
 	?? throw new InvalidOperationException("Could not determine the Kestrel bound address.");
 
-using var client = new HttpClient();
-var documentUrl = new Uri($"{baseAddress}/openapi/{AdminApiOpenApiExtensions.DocumentName}.json");
+using HttpClient client = new();
+Uri documentUrl = new($"{baseAddress}/openapi/{builder.OpenAPIDocumentName}.json");
 var json = await client.GetStringAsync(documentUrl);
 
 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);

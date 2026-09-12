@@ -41,7 +41,7 @@ partial class WebAppKit
 			variant.WithReference(HostKit.AzureStorage.SnapshotBlob).WaitFor(HostKit.AzureStorage.SnapshotBlob);
 
 		variant.WithEnvironment(
-			OptionsHelper.ForSet<SampleStoreOptions>(
+			OptionsHelper.Assign<SampleStoreOptions>(
 				c => c.CurrentKey = variantKey,
 				c => c.CurrentDisplayName = configuration.DisplayName,
 				c => c.CurrentDescription = configuration.Description,
@@ -63,7 +63,7 @@ partial class WebAppKit
 		if (!string.IsNullOrWhiteSpace(configuration.EventStoreDatabaseName))
 		{
 			variant.WithEnvironment(
-				OptionsHelper.ForSet<SampleStoreOptions>(c =>
+				OptionsHelper.Assign<SampleStoreOptions>(c =>
 					c.EventStoreDatabaseName = configuration.EventStoreDatabaseName
 				)
 			);
@@ -72,7 +72,7 @@ partial class WebAppKit
 		if (!string.IsNullOrWhiteSpace(configuration.QueryStoreDatabaseName))
 		{
 			variant.WithEnvironment(
-				OptionsHelper.ForSet<SampleStoreOptions>(c =>
+				OptionsHelper.Assign<SampleStoreOptions>(c =>
 					c.QueryStoreDatabaseName = configuration.QueryStoreDatabaseName
 				)
 			);
@@ -81,7 +81,7 @@ partial class WebAppKit
 		if (!string.IsNullOrWhiteSpace(configuration.AdminDatabaseName))
 		{
 			variant.WithEnvironment(
-				OptionsHelper.ForSet<SampleStoreOptions>(c => c.AdminDatabaseName = configuration.AdminDatabaseName)
+				OptionsHelper.Assign<SampleStoreOptions>(c => c.AdminDatabaseName = configuration.AdminDatabaseName)
 			);
 		}
 	}
@@ -107,7 +107,7 @@ partial class WebAppKit
 					.WithReference(ResolvePostgresDatabase(hostKit, configuration.EventStoreConnectionName))
 					.WaitFor(ResolvePostgresDatabase(hostKit, configuration.EventStoreConnectionName));
 				break;
-			case SampleEventStoreKind.MongoDb:
+			case SampleEventStoreKind.MongoDB:
 				AddMongoReference(variant, hostKit, configuration.EventStoreDatabaseName);
 				mongoReferenced = true;
 				break;
@@ -128,9 +128,9 @@ partial class WebAppKit
 					.WithReference(ResolvePostgresDatabase(hostKit, configuration.QueryStoreConnectionName))
 					.WaitFor(ResolvePostgresDatabase(hostKit, configuration.QueryStoreConnectionName));
 				break;
-			case SampleQueryStoreKind.MongoDb:
+			case SampleQueryStoreKind.MongoDB:
 				if (!mongoReferenced)
-					variant.WithReference(hostKit.MongoDb);
+					variant.WithReference(hostKit.MongoDB);
 
 				variant.WaitFor(ResolveMongoDatabase(hostKit, configuration.QueryStoreDatabaseName));
 				break;
@@ -143,7 +143,7 @@ partial class WebAppKit
 		string? databaseName
 	)
 	{
-		variant.WithReference(hostKit.MongoDb);
+		variant.WithReference(hostKit.MongoDB);
 		variant.WaitFor(ResolveMongoDatabase(hostKit, databaseName));
 	}
 
@@ -175,8 +175,8 @@ partial class WebAppKit
 	) =>
 		databaseName switch
 		{
-			Platform.MongoDatabase => hostKit.MongoDb.Database,
-			Platform.MongoSharedQueryDatabase => hostKit.MongoDb.SharedQueryDatabase,
+			Platform.MongoDatabase => hostKit.MongoDB.Database,
+			Platform.MongoSharedQueryDatabase => hostKit.MongoDB.SharedQueryDatabase,
 			_ => throw new InvalidOperationException($"Unsupported MongoDB database name '{databaseName}'."),
 		};
 }

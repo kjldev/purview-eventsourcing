@@ -29,8 +29,8 @@ static class EventContractComparer
 			return Empty;
 
 		var baseline = baselineState.Manifest;
-		var issues = new List<ContractIssue>();
-		var currentAggregates = new Dictionary<(string Namespace, string Name), AggregateContract>();
+		List<ContractIssue> issues = [];
+		Dictionary<(string Namespace, string Name), AggregateContract> currentAggregates = [];
 		foreach (var aggregate in current.Aggregates)
 			currentAggregates[(aggregate.AggregateNamespace, aggregate.AggregateName)] = aggregate;
 
@@ -71,8 +71,8 @@ static class EventContractComparer
 			baselineAggregate.AggregateName
 		);
 
-		var currentEvents = new Dictionary<(string Name, string Namespace, int Version), EventContractEntry>();
-		var currentByName = new Dictionary<(string Name, string Namespace), List<EventContractEntry>>();
+		Dictionary<(string Name, string Namespace, int Version), EventContractEntry> currentEvents = [];
+		Dictionary<(string Name, string Namespace), List<EventContractEntry>> currentByName = [];
 		foreach (var entry in currentAggregate.Events)
 		{
 			currentEvents[(entry.EventName, entry.EventNamespace, entry.SchemaVersion)] = entry;
@@ -154,7 +154,7 @@ static class EventContractComparer
 		);
 		var version = baselineEvent.SchemaVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-		var currentFields = new Dictionary<string, EventContractField>(StringComparer.Ordinal);
+		Dictionary<string, EventContractField> currentFields = new(StringComparer.Ordinal);
 		foreach (var field in currentEvent.Fields)
 			currentFields[field.Name] = field;
 

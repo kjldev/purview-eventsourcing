@@ -38,9 +38,9 @@ public sealed class PostgresAdminProjectionService(IOptions<PostgresEventStoreOp
 		var table = PostgresAdminTableResolver.ResolveTable(options.Value, aggregateType);
 		await using var context = CreateContext(options.Value, table);
 
-		var appliedVersions = new List<long>();
-		var skippedVersions = new List<long>();
-		var projectedState = new Dictionary<string, object>();
+		List<long> appliedVersions = [];
+		List<long> skippedVersions = [];
+		Dictionary<string, object> projectedState = [];
 
 		var rows = context
 			.EventStoreEntities.AsNoTracking()
@@ -115,9 +115,9 @@ public sealed class PostgresAdminProjectionService(IOptions<PostgresEventStoreOp
 		var table = PostgresAdminTableResolver.ResolveTable(options.Value, aggregateType);
 		await using var context = CreateContext(options.Value, table);
 
-		var appliedVersions = new List<long>();
-		var skippedVersions = new List<long>();
-		var projectedState = new Dictionary<string, object>();
+		List<long> appliedVersions = [];
+		List<long> skippedVersions = [];
+		Dictionary<string, object> projectedState = [];
 
 		var rows = context
 			.EventStoreEntities.AsNoTracking()
@@ -186,7 +186,7 @@ public sealed class PostgresAdminProjectionService(IOptions<PostgresEventStoreOp
 
 	static EventStoreDbContext CreateContext(PostgresEventStoreOptions options, PostgresAdminTableDescriptor table)
 	{
-		var builder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> builder = new();
 		builder.UseNpgsql(options.ConnectionString);
 		return new EventStoreDbContext(builder.Options, table.SchemaName, table.TableName);
 	}

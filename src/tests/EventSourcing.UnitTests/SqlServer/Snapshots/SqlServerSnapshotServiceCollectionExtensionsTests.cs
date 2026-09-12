@@ -9,7 +9,7 @@ public sealed class SqlServerSnapshotServiceCollectionExtensionsTests
 	[Test]
 	public async Task AddSqlServerSnapshotQueryableEventStore_GivenInvalidJsonIndexConfiguration_ResolvingOptionsThrowsValidationException()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddSingleton<IConfiguration>(
 			new ConfigurationBuilder()
 				.AddInMemoryCollection(

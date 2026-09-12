@@ -13,7 +13,7 @@ public sealed class EventSourcingPackageContentTests
 
 	static string ResolveTargetsPath()
 	{
-		var current = new DirectoryInfo(AppContext.BaseDirectory);
+		DirectoryInfo? current = new(AppContext.BaseDirectory);
 		while (current is not null)
 		{
 			if (File.Exists(Path.Combine(current.FullName, "nuget.config")))

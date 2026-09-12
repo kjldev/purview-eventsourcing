@@ -13,6 +13,7 @@ using Purview.EventSourcing.Validation;
 
 namespace Purview.EventSourcing.Samples.QuickStart.Infrastructure;
 
+[SuppressMessage("Naming", "PDS0004:Use correct acronym capitalization", Justification = "Matches source.")]
 sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failurePlan)
 	: IQueryableEventStoreCore<T>,
 		ITransactionalEventStore<T>
@@ -24,7 +25,7 @@ sealed class InMemoryTransactionalEventStore<T>(InMemoryFailurePlan failurePlan)
 
 	public Task<T> CreateAsync(string? aggregateId = null, CancellationToken cancellationToken = default)
 	{
-		var aggregate = new T();
+		T aggregate = new();
 #pragma warning disable CA1308 // Normalize strings to uppercase
 		aggregate.Details.Id = string.IsNullOrWhiteSpace(aggregateId)
 			? $"{typeof(T).Name.ToLowerInvariant()}-{Guid.NewGuid():N}"

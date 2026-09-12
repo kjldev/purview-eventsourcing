@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates.Persistence;
+using Purview.EventSourcing.Aggregates.Persistence;
 using Purview.EventSourcing.Fixtures.SqlServer;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
@@ -7,7 +7,7 @@ namespace Purview.EventSourcing.SqlServer.Snapshots;
 // unsupported payloads). The provider-agnostic snapshot contract suite lives in
 // SnapshotStoreContractTests.
 [ClassDataSource<SqlServerSnapshotEventStoreFixture>(Shared = SharedType.PerTestSession)]
-public partial class SqlServerSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture)
+public partial class SQLServerSnapshotEventStoreTests(SqlServerSnapshotEventStoreFixture fixture)
 {
 	static PersistenceAggregate CreateAggregate(string? id = null, Action<PersistenceAggregate>? action = null)
 	{

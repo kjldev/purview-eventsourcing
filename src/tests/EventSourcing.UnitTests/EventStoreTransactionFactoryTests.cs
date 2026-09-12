@@ -7,7 +7,7 @@ public sealed class EventStoreTransactionFactoryTests
 	{
 		var correlationIdProvider = IEventStoreCorrelationIdProvider.Mock();
 		correlationIdProvider.GetCorrelationId().Returns("ambient-correlation");
-		var factory = new EventStoreTransactionFactory(correlationIdProvider);
+		EventStoreTransactionFactory factory = new(correlationIdProvider);
 
 		await using var transaction = factory.Create(
 			new EventStoreTransactionOptions { RequiredGuarantee = EventStoreTransactionGuarantee.Atomic }
@@ -23,7 +23,7 @@ public sealed class EventStoreTransactionFactoryTests
 		// Arrange
 		var correlationIdProvider = IEventStoreCorrelationIdProvider.Mock();
 		correlationIdProvider.GetCorrelationId().Returns("ambient-correlation");
-		var factory = new EventStoreTransactionFactory(correlationIdProvider);
+		EventStoreTransactionFactory factory = new(correlationIdProvider);
 
 		// Act
 		await using var transaction = factory.Create();
@@ -38,7 +38,7 @@ public sealed class EventStoreTransactionFactoryTests
 		// Arrange
 		var correlationIdProvider = IEventStoreCorrelationIdProvider.Mock();
 		correlationIdProvider.GetCorrelationId().Returns("ambient-correlation");
-		var factory = new EventStoreTransactionFactory(correlationIdProvider);
+		EventStoreTransactionFactory factory = new(correlationIdProvider);
 
 		// Act
 		await using var transaction = factory.Create("explicit-correlation");

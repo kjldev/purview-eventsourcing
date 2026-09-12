@@ -1,15 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Purview.EventSourcing.Admin.Abstractions.Services;
 
-namespace Purview.EventSourcing.Admin.SqlServer;
+namespace Purview.EventSourcing.Admin.SQLServer;
 
-public class SqlServerAdminProjectionServiceTests
+public class SQLServerAdminProjectionServiceTests
 {
 	[Test]
 	public async Task ProjectionService_IsRegisterable_InDependencyContainer()
 	{
 		// Arrange
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		var options = Microsoft.Extensions.Options.Options.Create(
 			new EventSourcing.SqlServer.Events.SqlServerEventStoreOptions { ConnectionString = "test" }
 		);

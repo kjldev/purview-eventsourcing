@@ -43,7 +43,7 @@ public sealed class AzureStorageAdminEventQueryService(IOptions<AzureStorageEven
 			cancellationToken
 		);
 
-		var rows = new List<(string AggregateType, int Version, EventEntity Event)>();
+		List<(string AggregateType, int Version, EventEntity Event)> rows = [];
 		foreach (var tableName in tableNames)
 		{
 			var table = AzureStorageAdminTableHelpers.CreateTableClient(tableService, tableName);

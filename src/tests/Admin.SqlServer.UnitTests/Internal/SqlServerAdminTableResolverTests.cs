@@ -1,13 +1,13 @@
 using Purview.EventSourcing.SqlServer.Events;
 
-namespace Purview.EventSourcing.Admin.SqlServer.Internal;
+namespace Purview.EventSourcing.Admin.SQLServer.Internal;
 
 public sealed class SqlServerAdminTableResolverTests
 {
 	[Test]
 	public async Task ResolveTables_ReturnsDefaultTable_WhenAggregateTypeIsNotSpecified()
 	{
-		var options = new SqlServerEventStoreOptions
+		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = "Server=.;Database=Db;Trusted_Connection=True;",
 			SchemaName = "dbo",
@@ -24,7 +24,7 @@ public sealed class SqlServerAdminTableResolverTests
 	[Test]
 	public async Task ResolveTable_UsesAggregateOverride_WhenConfigured()
 	{
-		var options = new SqlServerEventStoreOptions
+		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = "Server=.;Database=Db;Trusted_Connection=True;",
 			SchemaName = "dbo",

@@ -124,7 +124,7 @@ sealed class IndexModel(IAggregateAuditService auditService) : PageModel
 
 	async Task<IReadOnlyList<AggregateEventHistoryItem>> LoadRecentEventsAsync(CancellationToken cancellationToken)
 	{
-		var request = new AggregateEventHistoryRequest
+		AggregateEventHistoryRequest request = new()
 		{
 			FromUtc = FromUtc,
 			ToUtc = ToUtc,
@@ -144,7 +144,7 @@ sealed class IndexModel(IAggregateAuditService auditService) : PageModel
 
 	public string BuildContinuationLink(string continuationToken)
 	{
-		var query = new QueryBuilder
+		QueryBuilder query = new()
 		{
 			{ "aggregateType", AggregateType },
 			{ "aggregateId", AggregateId ?? string.Empty },

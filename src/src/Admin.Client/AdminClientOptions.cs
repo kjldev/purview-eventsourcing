@@ -27,7 +27,7 @@ public sealed class AdminClientOptions
 	/// (same-origin), which is appropriate when the caller runs inside the web application that hosts the Admin
 	/// API.
 	/// </summary>
-	public Uri? BaseUrl { get; set; }
+	public Uri? BaseURL { get; set; }
 
 	/// <summary>
 	/// Gets or sets the bearer access token sent with every request, or <see langword="null"/> when the API does

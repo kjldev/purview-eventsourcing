@@ -9,7 +9,7 @@ public sealed class AggregateTypeRegistryTests
 	[Test]
 	public async Task TryResolve_GivenInitializedAggregate_ReturnsClrType()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 		using var provider = services.BuildServiceProvider();
 
@@ -26,7 +26,7 @@ public sealed class AggregateTypeRegistryTests
 	[Test]
 	public async Task TryResolve_GivenUnknownName_ReturnsFalse()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 		using var provider = services.BuildServiceProvider();
 
@@ -39,7 +39,7 @@ public sealed class AggregateTypeRegistryTests
 	[Test]
 	public async Task GetTypeName_GivenRegisteredEventName_ReturnsAssemblyQualifiedTypeName()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 		using var provider = services.BuildServiceProvider();
 
@@ -56,7 +56,7 @@ public sealed class AggregateTypeRegistryTests
 	[Test]
 	public async Task GetTypeName_GivenUnknownEventName_ReturnsNull()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 		using var provider = services.BuildServiceProvider();
 

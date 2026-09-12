@@ -21,7 +21,7 @@ partial class PostgresEventStore<T>
 				aggregateId = $"{Guid.NewGuid():D}";
 		}
 
-		var aggregate = new T { Details = { Id = aggregateId } };
+		T aggregate = new() { Details = { Id = aggregateId } };
 
 		return FulfilRequirements(aggregate);
 	}

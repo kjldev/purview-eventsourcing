@@ -11,7 +11,7 @@ namespace Purview.EventSourcing.Samples.Web.Admin;
 /// </summary>
 [NotInParallel("SamplesAppHost")]
 [ClassDataSource<AppHostFixture>(Shared = SharedType.PerTestSession)]
-public sealed class AdminApiClientTests(AppHostFixture fixture)
+public sealed class AdminAPIClientTests(AppHostFixture fixture)
 {
 	const string ExpectedAggregateType = "order";
 
@@ -152,7 +152,7 @@ public sealed class AdminApiClientTests(AppHostFixture fixture)
 			aggregateId,
 			cancellationToken: cancellationToken
 		);
-		using var reader = new StreamReader(response.Stream);
+		using StreamReader reader = new(response.Stream);
 		var text = await reader.ReadToEndAsync(cancellationToken);
 
 		var lines = text.Split(['\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();

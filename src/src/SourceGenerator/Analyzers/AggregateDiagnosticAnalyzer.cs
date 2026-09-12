@@ -16,7 +16,7 @@ public sealed class AggregateDiagnosticAnalyzer : DiagnosticAnalyzer
 			DiagnosticLibrary.ManualRegisterEventsIsNotSupported,
 			DiagnosticLibrary.AggregatePropertySetterShouldBePrivate,
 			DiagnosticLibrary.AggregatePropertyCollectionTypeMustUseEventStoreCollections,
-			DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSqlSnapshots,
+			DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSQLSnapshots,
 			DiagnosticLibrary.EventMethodMustBePartial,
 			DiagnosticLibrary.UnsupportedEventMethodSignature,
 			DiagnosticLibrary.EventSchemaVersionMustBePositive,

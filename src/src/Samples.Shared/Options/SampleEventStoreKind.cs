@@ -6,7 +6,7 @@ public enum SampleEventStoreKind
 
 	Postgres,
 
-	MongoDb,
+	MongoDB,
 
 	AzureStorage,
 }

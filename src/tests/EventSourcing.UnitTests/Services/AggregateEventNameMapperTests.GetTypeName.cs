@@ -1,4 +1,4 @@
-﻿namespace Purview.EventSourcing;
+namespace Purview.EventSourcing;
 
 partial class AggregateEventNameMapperTests
 {
@@ -21,9 +21,7 @@ partial class AggregateEventNameMapperTests
 	[Arguments(" ")]
 	[Arguments("    ")]
 	[Arguments(null)]
-	public async Task GetTypeName_GivenEventTypeNameIsNullOrWhitespace_ThrowsArgumentNullException(
-		string? eventTypeName
-	)
+	public async Task GetTypeName_GivenEventTypeNameIsNullOrWhitespace_ThrowsArgumentException(string? eventTypeName)
 	{
 		// Arrange
 		var mapper = CreateMapper<CorrectlyNamedAggregate>();
@@ -32,6 +30,6 @@ partial class AggregateEventNameMapperTests
 		string? Action() => mapper.GetTypeName<CorrectlyNamedAggregate>(eventTypeName!);
 
 		// Assert
-		await Assert.That(Action).Throws<ArgumentNullException>().WithParameterName(nameof(eventTypeName));
+		await Assert.That(Action).Throws<ArgumentException>().WithParameterName(nameof(eventTypeName));
 	}
 }

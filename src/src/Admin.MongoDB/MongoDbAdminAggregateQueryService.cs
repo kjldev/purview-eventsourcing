@@ -16,7 +16,7 @@ namespace Purview.EventSourcing.Admin.MongoDB;
 /// </remarks>
 /// <param name="mongoClient">The MongoDB client used to reach the event store database.</param>
 /// <param name="databaseName">The name of the database that holds the event store collections.</param>
-public sealed class MongoDbAdminAggregateQueryService(IMongoClient mongoClient, string databaseName)
+public sealed class MongoDBAdminAggregateQueryService(IMongoClient mongoClient, string databaseName)
 	: IAdminAggregateQueryService
 {
 	readonly IMongoClient _mongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));

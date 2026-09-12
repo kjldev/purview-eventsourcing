@@ -193,7 +193,7 @@ sealed partial class SqlServerClient
 	{
 		ArgumentNullException.ThrowIfNull(aggregate);
 		var exists = await context.Snapshots.AsNoTracking().AnyAsync(s => s.Id == id, cancellationToken);
-		var entity = new SnapshotQueryRow<T>
+		SnapshotQueryRow<T> entity = new()
 		{
 			Id = id,
 			AggregateType = aggregateType,
@@ -326,7 +326,7 @@ sealed partial class SqlServerClient
 
 	static void RegisterScalarValueObjectConversions(ModelConfigurationBuilder configurationBuilder, Type rootType)
 	{
-		var visited = new HashSet<Type>();
+		HashSet<Type> visited = [];
 		RegisterScalarValueObjectConversionsRecursive(configurationBuilder, rootType, visited);
 	}
 
@@ -388,7 +388,7 @@ sealed partial class SqlServerClient
 
 	static void ConfigureComplexGraph(ComplexPropertyBuilder builder, Type type)
 	{
-		var visited = new HashSet<Type>();
+		HashSet<Type> visited = [];
 		ConfigureComplexGraphRecursive(builder, type, visited);
 	}
 
@@ -592,7 +592,7 @@ sealed partial class SqlServerClient
 
 	static void ValidateAggregatePayloadShape(Type type)
 	{
-		var visited = new HashSet<Type>();
+		HashSet<Type> visited = [];
 		ValidateAggregatePayloadShapeRecursive(type, visited);
 	}
 
@@ -875,11 +875,11 @@ sealed partial class SqlServerClient
 	)
 		where T : class
 	{
-		var aggregateTypeVisitor = new AggregateTypeExpressionVisitor(aggregateType);
+		AggregateTypeExpressionVisitor aggregateTypeVisitor = new(aggregateType);
 		var rewritten = (Expression<Func<T, bool>>)aggregateTypeVisitor.Visit(whereClause);
-		var invariantCasingVisitor = new InvariantStringMethodNormalizationVisitor();
+		InvariantStringMethodNormalizationVisitor invariantCasingVisitor = new();
 		rewritten = (Expression<Func<T, bool>>)invariantCasingVisitor.Visit(rewritten);
-		var scalarVisitor = new ScalarValueMemberAccessPredicateVisitor();
+		ScalarValueMemberAccessPredicateVisitor scalarVisitor = new();
 		return (Expression<Func<T, bool>>)scalarVisitor.Visit(rewritten);
 	}
 
@@ -1097,7 +1097,7 @@ sealed partial class SqlServerClient
 			{
 				await using var context = CreateStorageContext();
 				await CreateStorageTablesWithEfAsync(context, cancellationToken);
-				await using var connection = new SqlConnection(_options.ConnectionString);
+				await using SqlConnection connection = new(_options.ConnectionString);
 				await connection.OpenAsync(cancellationToken);
 				await SqlServerJsonIndexSchemaManager.ApplyAsync(
 					connection,

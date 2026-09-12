@@ -132,7 +132,7 @@ static class DiagnosticLibrary
 		isEnabledByDefault: true
 	);
 
-	public static readonly DiagnosticDescriptor ScalarComplexValueMayNotTranslateInSqlSnapshots = new(
+	public static readonly DiagnosticDescriptor ScalarComplexValueMayNotTranslateInSQLSnapshots = new(
 		id: "EVENTSTORE020",
 		title: "Complex scalar Value paths may not translate in SQL snapshot queries",
 		messageFormat: "Aggregate property '{0}' on '{1}' is a [Scalar] whose Value type '{2}' is complex. Deep SQL predicates through '.Value' are typically non-translatable; prefer a computed mirror property for query scenarios.",

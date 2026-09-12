@@ -3,8 +3,8 @@ using Purview.Aspire.ResourceKit;
 
 namespace Purview.EventSourcing.Samples.AppHost.AppModel.Resources;
 
-[ResourceDefinition<MongoDBServerResource>(Platform.MongoDb)]
-sealed partial class MongoDbKit
+[ResourceDefinition<MongoDBServerResource>(Platform.MongoDB)]
+sealed partial class MongoDBKit
 {
 	public IResourceBuilder<MongoDBDatabaseResource> Database { get; private set; }
 	public IResourceBuilder<MongoDBDatabaseResource> SharedQueryDatabase { get; private set; }
@@ -22,7 +22,7 @@ sealed partial class MongoDbKit
 		return mongo;
 	}
 
-	partial class MongoDbKitOptions
+	partial class MongoDBKitOptions
 	{
 		[Required(AllowEmptyStrings = false)]
 		public string DatabaseName { get; set; } = Platform.MongoDatabase;

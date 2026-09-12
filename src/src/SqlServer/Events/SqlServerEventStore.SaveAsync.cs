@@ -202,7 +202,7 @@ partial class SqlServerEventStore<T>
 			var now = DateTimeOffset.UtcNow;
 
 			var streamVersionId = streamEntity?.Id ?? CreateStreamVersionId(aggregate.Id());
-			var streamVersionRow = new SqlServerEventStoreClient.RowData
+			SqlServerEventStoreClient.RowData streamVersionRow = new()
 			{
 				Id = streamVersionId,
 				EntityType = StreamVersionType,

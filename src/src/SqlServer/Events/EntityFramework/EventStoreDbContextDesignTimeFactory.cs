@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace Purview.EventSourcing.SqlServer.Events.EntityFramework;
@@ -12,7 +12,7 @@ public sealed class EventStoreDbContextDesignTimeFactory : IDesignTimeDbContextF
 	///<inheritdoc/>
 	public EventStoreDbContext CreateDbContext(string[] args)
 	{
-		var optionsBuilder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> optionsBuilder = new();
 		optionsBuilder.UseSqlServer(
 			"Server=(localdb)\\mssqllocaldb;Database=EventStore_Design;Trusted_Connection=True;"
 		);

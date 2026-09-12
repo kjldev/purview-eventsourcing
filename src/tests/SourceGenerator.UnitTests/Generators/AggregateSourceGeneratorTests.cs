@@ -342,7 +342,7 @@ namespace Testing
 ";
 
 		var result = await GenerateAsync(source, EventSourcingGeneratorTestOptions.NoValidation, cancellationToken);
-		await Assert.That(result).HasDiagnostic(DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSqlSnapshots);
+		await Assert.That(result).HasDiagnostic(DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSQLSnapshots);
 	}
 
 	[Test]
@@ -377,7 +377,7 @@ namespace Testing
 
 		await Assert
 			.That(result)
-			.DoesNotHaveDiagnostic(DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSqlSnapshots);
+			.DoesNotHaveDiagnostic(DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSQLSnapshots);
 	}
 
 	[Test]

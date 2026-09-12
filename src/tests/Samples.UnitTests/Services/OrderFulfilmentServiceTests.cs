@@ -9,7 +9,7 @@ public sealed class OrderFulfilmentServiceTests
 {
 	static CustomerAggregate ActiveCustomer(string id = "cust-1")
 	{
-		var c = new CustomerAggregate();
+		CustomerAggregate c = new();
 		c.Details.Id = id;
 		c.RegisterCustomer("Alice Johnson", "alice@example.com");
 		return c;
@@ -17,7 +17,7 @@ public sealed class OrderFulfilmentServiceTests
 
 	static InventoryAggregate StockedInventory(string id = "inv-1", int quantity = 100)
 	{
-		var i = new InventoryAggregate();
+		InventoryAggregate i = new();
 		i.Details.Id = id;
 		i.Create("widget-sku", "Widget", "warehouse-1", "Main Warehouse", initialQuantity: quantity);
 		return i;
@@ -25,7 +25,7 @@ public sealed class OrderFulfilmentServiceTests
 
 	static OrderAggregate NewOrder(string? id = null)
 	{
-		var o = new OrderAggregate();
+		OrderAggregate o = new();
 		o.Details.Id = id ?? Guid.NewGuid().ToString("N");
 		return o;
 	}

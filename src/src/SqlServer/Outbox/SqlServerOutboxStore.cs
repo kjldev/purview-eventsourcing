@@ -73,7 +73,7 @@ public sealed partial class SqlServerOutboxStore(
 			{
 				await EnsureSchemaAsync(token);
 
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET [LeaseOwner] = @owner, [LeaseExpiresUtc] = @leaseUntil
@@ -96,7 +96,7 @@ public sealed partial class SqlServerOutboxStore(
 				command.Parameters.AddWithValue("@batch", batchSize);
 				command.Parameters.AddWithValue("@now", DateTimeOffset.UtcNow);
 
-				var messages = new List<OutboxEnvelope>();
+				List<OutboxEnvelope> messages = [];
 				await using var reader = await command.ExecuteReaderAsync(token);
 				while (await reader.ReadAsync(token))
 					messages.Add(ReadMessage(reader));
@@ -111,7 +111,7 @@ public sealed partial class SqlServerOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET [State] = 1, [DispatchedUtc] = @now, [LeaseExpiresUtc] = NULL,
@@ -137,7 +137,7 @@ public sealed partial class SqlServerOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET [State] = 2, [AttemptCount] = [AttemptCount] + 1, [NextAttemptUtc] = @next,
@@ -159,7 +159,7 @@ public sealed partial class SqlServerOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET [State] = 3, [LeaseExpiresUtc] = NULL, [LeaseOwner] = NULL, [LastError] = @errorMessage
@@ -179,7 +179,7 @@ public sealed partial class SqlServerOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"""
 					DELETE FROM {_schema}.{_table}
 					WHERE [CreatedUtc] < @cutoff AND ([State] = 1 OR [State] = 3)
@@ -201,7 +201,7 @@ public sealed partial class SqlServerOutboxStore(
 		await ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"""
 					SELECT [Id], [AggregateType], [AggregateId], [EventType], [PayloadJson],
 						[IdempotencyKey], [CorrelationId], [CreatedUtc], [State], [AttemptCount],
@@ -216,7 +216,7 @@ public sealed partial class SqlServerOutboxStore(
 				command.Parameters.AddWithValue("@skip", skip);
 				command.Parameters.AddWithValue("@take", take);
 
-				var messages = new List<OutboxEnvelope>();
+				List<OutboxEnvelope> messages = [];
 				await using var reader = await command.ExecuteReaderAsync(token);
 				while (await reader.ReadAsync(token))
 					messages.Add(ReadMessage(reader));
@@ -233,7 +233,7 @@ public sealed partial class SqlServerOutboxStore(
 		CancellationToken cancellationToken
 	)
 	{
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			$"""
 			INSERT INTO {_schema}.{_table}
 				([Id], [AggregateType], [AggregateId], [EventType], [PayloadJson], [IdempotencyKey],
@@ -267,7 +267,7 @@ public sealed partial class SqlServerOutboxStore(
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(_connectionString);
+		await using SqlConnection connection = new(_connectionString);
 		await connection.OpenAsync(cancellationToken);
 		return await operation(connection, cancellationToken);
 	}
@@ -277,7 +277,7 @@ public sealed partial class SqlServerOutboxStore(
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(_connectionString);
+		await using SqlConnection connection = new(_connectionString);
 		await connection.OpenAsync(cancellationToken);
 		await operation(connection, cancellationToken);
 	}
@@ -289,11 +289,11 @@ public sealed partial class SqlServerOutboxStore(
 
 		if (outboxOptions.Value.AutoCreateTable)
 		{
-			await using var connection = new SqlConnection(_connectionString);
+			await using SqlConnection connection = new(_connectionString);
 			await connection.OpenAsync(cancellationToken);
 
 			var indexName = QuoteIdentifier($"UX_{outboxOptions.Value.TableName}_IdempotencyKey");
-			await using var command = new SqlCommand(
+			await using SqlCommand command = new(
 				$"""
 				IF OBJECT_ID(N'{_schema}.{_table}', N'U') IS NULL
 				BEGIN

@@ -24,7 +24,7 @@
 		<!-- The Microsoft.AspNetCore.OpenApi XML-comment source generator builds a cache of XML doc IDs across the
 		     compilation and its references. Purview telemetry scaffolding re-declares the same types in several
 		     assemblies, which makes that cache throw at runtime with a duplicate key when an OpenAPI document is
-		     generated (see AddPurviewEventSourcingAdminOpenApi). This analyzer is therefore not used by this
+		     generated (see AddPurviewEventSourcingAdminOpenAPI). This analyzer is therefore not used by this
 		     project. -->
 		<RemoveOpenApiXmlCommentAnalyzer>true</RemoveOpenApiXmlCommentAnalyzer>
 	</PropertyGroup>

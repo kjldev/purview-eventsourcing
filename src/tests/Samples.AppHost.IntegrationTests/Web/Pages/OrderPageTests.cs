@@ -31,7 +31,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		var customerId = await CreateCustomerWithOrdersAsync(11, cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync(_client, "/Customer", cancellationToken);
 
-		using var content = new FormUrlEncodedContent([
+		using FormUrlEncodedContent content = new([
 			new("id", customerId),
 			new("__RequestVerificationToken", antiForgery),
 		]);
@@ -60,7 +60,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 		var (sourceInventoryId, destinationLocationId) = await CreateTransferScenarioAsync(cancellationToken);
 		var antiForgery = await GetAntiForgeryTokenAsync(client, "/BackOffice/Stock/Transfer", cancellationToken);
 
-		var form = new Dictionary<string, string>
+		Dictionary<string, string> form = new()
 		{
 			["SourceInventoryId"] = sourceInventoryId,
 			["DestinationLocationId"] = destinationLocationId,
@@ -69,7 +69,7 @@ public sealed class OrderPageTests(AppHostFixture fixture)
 			["__RequestVerificationToken"] = antiForgery,
 		};
 
-		using var content = new FormUrlEncodedContent(form);
+		using FormUrlEncodedContent content = new(form);
 		var response = await client.PostAsync("/BackOffice/Stock/Transfer", content, cancellationToken);
 
 		await Assert.That((int)response.StatusCode).IsEqualTo(200);

@@ -24,7 +24,7 @@ public sealed class AzureVariantStartupUsageTests(AppHostFixture fixture)
 
 	[Test]
 	public Task AzureMongoVariant_StartsAndServesDashboard(CancellationToken cancellationToken) =>
-		AssertVariantDashboardAsync(Platform.AzureMongoDbWebApp, SampleQueryStoreKind.MongoDb, cancellationToken);
+		AssertVariantDashboardAsync(Platform.AzureMongoDBWebApp, SampleQueryStoreKind.MongoDB, cancellationToken);
 
 	async Task AssertVariantDashboardAsync(
 		string resourceName,

@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Aggregates.Events;
 
 namespace Purview.EventSourcing.AzureStorage;
 
@@ -19,7 +19,7 @@ partial class TableEventStore<T>
 
 		operationContext ??= EventStoreOperationContext.DefaultContext();
 
-		var restoreAggregateEvent = new Restored
+		Restored restoreAggregateEvent = new()
 		{
 			Details = { AggregateVersion = aggregate.Details.CurrentVersion + 1, When = DateTimeOffset.UtcNow },
 		};

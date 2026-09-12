@@ -38,7 +38,7 @@ static partial class PostgresJsonIndexSchemaManager
 			try
 			{
 #pragma warning disable CA2100
-				await using var command = new NpgsqlCommand(sql, connection, transaction);
+				await using NpgsqlCommand command = new(sql, connection, transaction);
 #pragma warning restore CA2100
 				await command.ExecuteNonQueryAsync(cancellationToken);
 			}
@@ -58,7 +58,7 @@ static partial class PostgresJsonIndexSchemaManager
 			return [];
 
 		var quotedTable = $"{QuoteIdentifier(schemaName)}.{QuoteIdentifier(tableName)}";
-		var commands = new List<string>();
+		List<string> commands = [];
 
 		var ginName = string.IsNullOrWhiteSpace(options.GinIndexName)
 			? $"IX_{tableName}_Payload_Gin"

@@ -28,7 +28,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("raw-sql");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("sql-raw"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("sql-raw"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
@@ -36,7 +36,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 			{
 				var quotedTableName = QuoteTableName(tableName);
 #pragma warning disable CA2100
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"INSERT INTO {quotedTableName} ([CorrelationId], [Value]) VALUES (@correlationId, @value)",
 					connection,
 					sqlTransaction
@@ -72,11 +72,11 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("ef");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("sql-ef"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("sql-ef"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
-			connection => new TransactionAuditDbContext(connection, tableName),
+			connection => new TransactionAuditDBContext(connection, tableName),
 			async (dbContext, token) =>
 			{
 				dbContext.Entries.Add(new TransactionAuditEntry { CorrelationId = "sql-ef", Value = "ef" });
@@ -113,7 +113,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("rollback");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("sql-rollback"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("sql-rollback"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
@@ -121,7 +121,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 			{
 				var quotedTableName = QuoteTableName(tableName);
 #pragma warning disable CA2100
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"INSERT INTO {quotedTableName} ([CorrelationId], [Value]) VALUES (@correlationId, @value)",
 					connection,
 					sqlTransaction
@@ -165,7 +165,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 		var secondAggregate = await snapshotStore.CreateAsync(secondAggregateId, cancellationToken);
 		secondAggregate.AppendString("snapshot");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("sql-cross"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("sql-cross"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(firstAggregate, primaryStore);
 		transaction.Enlist(secondAggregate, snapshotStore);
@@ -174,7 +174,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 			{
 				var quotedTableName = QuoteTableName(tableName);
 #pragma warning disable CA2100
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"INSERT INTO {quotedTableName} ([CorrelationId], [Value]) VALUES (@correlationId, @value)",
 					connection,
 					sqlTransaction
@@ -219,7 +219,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 		var secondAggregate = await snapshotStore.CreateAsync(secondAggregateId, cancellationToken);
 		secondAggregate.AppendString("snapshot-rollback");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("sql-cross-rollback"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("sql-cross-rollback"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(firstAggregate, primaryStore);
 		transaction.Enlist(secondAggregate, snapshotStore);
@@ -228,7 +228,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 			{
 				var quotedTableName = QuoteTableName(tableName);
 #pragma warning disable CA2100
-				await using var command = new SqlCommand(
+				await using SqlCommand command = new(
 					$"INSERT INTO {quotedTableName} ([CorrelationId], [Value]) VALUES (@correlationId, @value)",
 					connection,
 					sqlTransaction
@@ -260,10 +260,10 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 	{
 		var quotedTableName = QuoteTableName(tableName);
 
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
 #pragma warning disable CA2100
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			$"""
 			IF OBJECT_ID(N'{quotedTableName}', N'U') IS NULL
 			BEGIN
@@ -288,10 +288,10 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 	{
 		var quotedTableName = QuoteTableName(tableName);
 
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
 #pragma warning disable CA2100
-		await using var command = new SqlCommand($"SELECT COUNT(1) FROM {quotedTableName}", connection);
+		await using SqlCommand command = new($"SELECT COUNT(1) FROM {quotedTableName}", connection);
 #pragma warning restore CA2100
 		var count = await command.ExecuteScalarAsync(cancellationToken);
 		return Convert.ToInt32(count, CultureInfo.InvariantCulture);
@@ -309,7 +309,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 		public string? GetCorrelationId() => correlationId;
 	}
 
-	sealed class TransactionAuditDbContext(SqlConnection connection, string tableName) : DbContext
+	sealed class TransactionAuditDBContext(SqlConnection connection, string tableName) : DbContext
 	{
 		readonly string _tableName = tableName;
 
@@ -343,7 +343,7 @@ public sealed partial class SqlServerEventStoreTransactionIntegrationTests(SqlSe
 	SqlServerSnapshotEventStore<PersistenceAggregate> CreateSnapshotStore(Guid runId)
 	{
 		var backingStore = fixture.CreateEventStore<PersistenceAggregate>(runId: runId);
-		var options = new SqlServerSnapshotEventStoreOptions
+		SqlServerSnapshotEventStoreOptions options = new()
 		{
 			ConnectionString = fixture.ConnectionString,
 			TableName = $"EventStoreSnapshots_{runId:N}",

@@ -13,7 +13,7 @@ public sealed class SqlServerSnapshotClientTests
 	public async Task Constructor_GivenDefaultOptions_DoesNotUseLegacyEnsureTableSql()
 	{
 		// Arrange & Act
-		var client = new SqlServerClient(
+		SqlServerClient client = new(
 			new SqlServerClientOptions("Server=.;Database=Test;Trusted_Connection=True;", false)
 			{
 				SchemaName = "dbo",

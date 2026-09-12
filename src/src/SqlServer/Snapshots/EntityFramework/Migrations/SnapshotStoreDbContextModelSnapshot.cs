@@ -9,7 +9,7 @@ using Purview.EventSourcing.SqlServer.Snapshots.EntityFramework;
 
 namespace Purview.EventSourcing.SqlServer.EntityFramework.Migrations
 {
-    [DbContext(typeof(SnapshotStoreDbContext))]
+    [DbContext(typeof(SnapshotStoreDBContext))]
     partial class SnapshotStoreDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

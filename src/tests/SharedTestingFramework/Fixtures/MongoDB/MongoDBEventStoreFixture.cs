@@ -85,7 +85,7 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 			aggregateRequirementsManager: aggregateRequirementsManager
 		);
 
-		var eventClient = new MongoDBClient(
+		MongoDBClient eventClient = new(
 			mongoDBClientTelemetry,
 			new() { ConnectionString = mongoDBOptions.ConnectionString, ReplicaName = mongoDBOptions.ReplicaName },
 			mongoDBOptions.Database,
@@ -93,7 +93,7 @@ public sealed class MongoDBEventStoreFixture : IAsyncInitializer, IAsyncDisposab
 		);
 		EventClient = eventClient;
 
-		var snapshotClient = new MongoDBClient(
+		MongoDBClient snapshotClient = new(
 			mongoDBClientTelemetry,
 			new() { ConnectionString = mongoDBOptions.ConnectionString, ReplicaName = mongoDBOptions.ReplicaName },
 			mongoDBOptions.Database,

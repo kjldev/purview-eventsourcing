@@ -128,7 +128,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 	{
 		// Arrange
 		var correlationId = "context-correlation";
-		var context = new EventStoreOperationContext { CorrelationId = correlationId };
+		EventStoreOperationContext context = new() { CorrelationId = correlationId };
 
 		var aggregate = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		aggregate.Increment();
@@ -182,7 +182,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 	{
 		// Arrange
 		var eventStore = IEventStore.Mock();
-		var context = new EventStoreOperationContext();
+		EventStoreOperationContext context = new();
 
 		// Act & Assert
 		await Assert
@@ -215,7 +215,7 @@ public sealed class IEventStoreExtensionsEnlistTests
 	)
 	{
 		// Arrange
-		var context = new EventStoreOperationContext { CorrelationId = "shared" };
+		EventStoreOperationContext context = new() { CorrelationId = "shared" };
 
 		var agg1 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg1.Increment();

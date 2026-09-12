@@ -38,7 +38,7 @@ sealed class SourceGeneratorPerformanceRunner
 	PerformanceRun Run(string mode, int warmupIterations, int measurementIterations)
 	{
 		var scenarios = SourceGeneratorPerformanceScenarios.All;
-		var results = new List<PerformanceScenarioRun>(scenarios.Count);
+		List<PerformanceScenarioRun> results = new(scenarios.Count);
 
 		foreach (var scenario in scenarios)
 		{

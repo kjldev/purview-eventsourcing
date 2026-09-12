@@ -6,7 +6,7 @@ public partial class AggregateBaseTests
 	public async Task ForceSave_GivenNoUnsavedEvents_RecordsForceSaveEvent()
 	{
 		// Arrange
-		var aggregate = new Test.TestAggregate();
+		Test.TestAggregate aggregate = new();
 
 		// Act
 		aggregate.ForceSave();
@@ -20,7 +20,7 @@ public partial class AggregateBaseTests
 	public async Task ForceSave_GivenExistingUnsavedEvents_DoesNotRecordForceSaveEvent()
 	{
 		// Arrange
-		var aggregate = new Test.TestAggregate();
+		Test.TestAggregate aggregate = new();
 		aggregate.RecordEvent();
 
 		var eventCountBefore = aggregate.GetUnsavedEvents().Count();
@@ -36,7 +36,7 @@ public partial class AggregateBaseTests
 	public async Task AggregateType_UsesTypeNameHelper_RemovesAggregateSuffix()
 	{
 		// Arrange
-		var aggregate = new Test.TestAggregate();
+		Test.TestAggregate aggregate = new();
 
 		// Assert — "TestAggregate" becomes "test" via TypeNameHelper
 		await Assert.That(aggregate.AggregateType).IsEqualTo("test");

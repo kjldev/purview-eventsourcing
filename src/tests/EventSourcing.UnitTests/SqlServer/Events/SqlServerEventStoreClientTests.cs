@@ -10,7 +10,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenDefaultOptions_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act
-		var client = new SqlServerEventStoreClient(
+		SqlServerEventStoreClient client = new(
 			new SqlServerEventStoreOptions
 			{
 				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -28,7 +28,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenCustomSchemaAndTable_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act
-		var client = new SqlServerEventStoreClient(
+		SqlServerEventStoreClient client = new(
 			new SqlServerEventStoreOptions
 			{
 				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -46,7 +46,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task Constructor_GivenIdentifierWithHyphen_CreatesClientWithoutThrowing()
 	{
 		// Arrange & Act — hyphens are valid in SQL identifiers when quoted
-		var client = new SqlServerEventStoreClient(
+		SqlServerEventStoreClient client = new(
 			new SqlServerEventStoreOptions
 			{
 				ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -67,7 +67,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -87,7 +87,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -107,7 +107,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -127,7 +127,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -144,7 +144,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task SqlServerEventStoreOptions_GivenNoOverride_AggregateTableOverridesIsEmpty()
 	{
 		// Arrange & Act
-		var options = new SqlServerEventStoreOptions
+		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
 		};
@@ -157,7 +157,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task SqlServerEventStoreOptions_GivenOverride_OverrideIsStoredCaseInsensitively()
 	{
 		// Arrange
-		var options = new SqlServerEventStoreOptions
+		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
 			AggregateTableOverrides = new(StringComparer.OrdinalIgnoreCase)
@@ -176,7 +176,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task SqlServerAggregateTableOverride_GivenOnlySchemaOverride_TableNameIsNull()
 	{
 		// Arrange & Act
-		var ovr = new SqlServerAggregateTableOverride { SchemaName = "orders" };
+		SqlServerAggregateTableOverride ovr = new() { SchemaName = "orders" };
 
 		// Assert
 		await Assert.That(ovr.SchemaName).IsEqualTo("orders");
@@ -187,7 +187,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task SqlServerAggregateTableOverride_GivenOnlyTableOverride_SchemaNameIsNull()
 	{
 		// Arrange & Act
-		var ovr = new SqlServerAggregateTableOverride { TableName = "OrderEvents" };
+		SqlServerAggregateTableOverride ovr = new() { TableName = "OrderEvents" };
 
 		// Assert
 		await Assert.That(ovr.SchemaName).IsNull();
@@ -198,7 +198,7 @@ public sealed class SqlServerEventStoreClientTests
 	public async Task SqlServerAggregateTableOverride_GivenBothOverrides_BothAreStored()
 	{
 		// Arrange & Act
-		var ovr = new SqlServerAggregateTableOverride { SchemaName = "orders", TableName = "Events" };
+		SqlServerAggregateTableOverride ovr = new() { SchemaName = "orders", TableName = "Events" };
 
 		// Assert
 		await Assert.That(ovr.SchemaName).IsEqualTo("orders");
@@ -208,7 +208,7 @@ public sealed class SqlServerEventStoreClientTests
 	[Test]
 	public async Task SqlServerEventStoreOptions_GivenDefaults_JsonIndexOptionsIsInitialized()
 	{
-		var options = new SqlServerEventStoreOptions
+		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
 		};
@@ -223,7 +223,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -254,7 +254,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -278,7 +278,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",
@@ -310,7 +310,7 @@ public sealed class SqlServerEventStoreClientTests
 		await Assert
 			.That(() =>
 			{
-				var _ = new SqlServerEventStoreClient(
+				SqlServerEventStoreClient _ = new(
 					new SqlServerEventStoreOptions
 					{
 						ConnectionString = "Server=.;Database=Test;Trusted_Connection=True;",

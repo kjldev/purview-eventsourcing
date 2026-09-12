@@ -10,7 +10,7 @@ using Purview.EventSourcing.SqlServer.Snapshots.EntityFramework;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots.EntityFramework.Migrations
 {
-    [DbContext(typeof(SnapshotStoreDbContext))]
+    [DbContext(typeof(SnapshotStoreDBContext))]
     [Migration("20260412000000_InitialCreate")]
     partial class InitialCreate
     {

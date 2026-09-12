@@ -1,4 +1,4 @@
-﻿using MongoDB.Bson;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Bson.Serialization.IdGenerators;
@@ -99,7 +99,7 @@ sealed partial class MongoDBClient : IDisposable
 
 	static FilterDefinition<T> BuildPredicate<T>(string id, int? entityType)
 	{
-		var builder = new FilterDefinitionBuilder<T>();
+		FilterDefinitionBuilder<T> builder = new();
 
 		return entityType == null
 			? builder.Eq("_id", id)

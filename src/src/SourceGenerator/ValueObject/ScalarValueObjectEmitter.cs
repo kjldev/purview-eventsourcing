@@ -9,7 +9,7 @@ static partial class ScalarValueObjectEmitter
 		if (model.TypeModel.Namespace is not null)
 			writer.FileScopedNamespace(model.TypeModel.Namespace);
 
-		var declaration = new TypeDeclarationOptions(model.TypeModel.Name, model.Accessibility)
+		TypeDeclarationOptions declaration = new(model.TypeModel.Name, model.Accessibility)
 		{
 			Kind = GetTypeKind(model),
 			IsPartial = true,

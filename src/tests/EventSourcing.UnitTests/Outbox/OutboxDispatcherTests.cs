@@ -22,22 +22,22 @@ public sealed class OutboxDispatcherTests
 	[Test]
 	public async Task Validate_GivenInvalidOptions_Throws()
 	{
-		var invalid = new OutboxDispatchOptions { BatchSize = 0 };
+		OutboxDispatchOptions invalid = new() { BatchSize = 0 };
 		await Assert.That(invalid.Validate).Throws<InvalidOperationException>();
 	}
 
 	[Test]
 	public async Task Validate_GivenValidOptions_DoesNotThrow()
 	{
-		var valid = new OutboxDispatchOptions();
+		OutboxDispatchOptions valid = new();
 		await Assert.That(valid.Validate).ThrowsNothing();
 	}
 
 	[Test]
 	public async Task DispatchAsync_GivenMessages_CompletesEachAndReturnsCounts()
 	{
-		var store = new InMemoryOutboxStore();
-		var handler = new RecordingHandler();
+		InMemoryOutboxStore store = new();
+		RecordingHandler handler = new();
 		var dispatcher = CreateDispatcher(store, handler);
 
 		store.Add(Message("a", "{}"));
@@ -56,8 +56,8 @@ public sealed class OutboxDispatcherTests
 	[Test]
 	public async Task DispatchAsync_GivenFailingHandler_MarksFailedWithBackoff()
 	{
-		var store = new InMemoryOutboxStore();
-		var handler = new FailingHandler();
+		InMemoryOutboxStore store = new();
+		FailingHandler handler = new();
 		var dispatcher = CreateDispatcher(store, handler);
 
 		store.Add(Message("a", "{}"));
@@ -73,8 +73,8 @@ public sealed class OutboxDispatcherTests
 	[Test]
 	public async Task DispatchAsync_GivenMaxAttemptsReached_MovesToPoisoned()
 	{
-		var store = new InMemoryOutboxStore();
-		var handler = new FailingHandler();
+		InMemoryOutboxStore store = new();
+		FailingHandler handler = new();
 		var dispatcher = CreateDispatcher(
 			store,
 			handler,
@@ -97,8 +97,8 @@ public sealed class OutboxDispatcherTests
 	[Test]
 	public async Task DispatchAsync_GivenCancellation_Cancels()
 	{
-		var store = new InMemoryOutboxStore();
-		var handler = new CancellingHandler();
+		InMemoryOutboxStore store = new();
+		CancellingHandler handler = new();
 		var dispatcher = CreateDispatcher(store, handler);
 
 		store.Add(Message("a", "{}"));
@@ -114,7 +114,7 @@ public sealed class OutboxDispatcherTests
 		Action<OutboxDispatchOptions>? configure = null
 	)
 	{
-		var options = new OutboxDispatchOptions();
+		OutboxDispatchOptions options = new();
 		configure?.Invoke(options);
 		return new OutboxDispatcher(store, handler, Options.Create(options), NullLogger<OutboxDispatcher>.Instance);
 	}

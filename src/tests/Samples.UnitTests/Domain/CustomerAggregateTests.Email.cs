@@ -1,4 +1,4 @@
-﻿namespace Purview.EventSourcing.Samples.Domain;
+namespace Purview.EventSourcing.Samples.Domain;
 
 partial class CustomerAggregateTests
 {
@@ -9,7 +9,7 @@ partial class CustomerAggregateTests
 	public async Task Email_WhenEmailIsSetToEmployeeDomain_ThrowsArgumentException(string email)
 	{
 		// Arrange
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 
 		// Act
 		void Act() => customer.ChangeEmail(email);

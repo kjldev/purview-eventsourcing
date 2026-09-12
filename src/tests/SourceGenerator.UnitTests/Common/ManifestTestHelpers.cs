@@ -92,7 +92,7 @@ static class ManifestTestHelpers
 
 	static string Unescape(string literal)
 	{
-		var builder = new StringBuilder(literal.Length);
+		StringBuilder builder = new(literal.Length);
 		for (var i = 0; i < literal.Length; i++)
 		{
 			if (literal[i] != '\\' || i + 1 >= literal.Length)

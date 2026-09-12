@@ -12,7 +12,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	public async Task SaveAsync_GivenRegisteredCustomer_LoadedStateMatchesOriginal(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
 
@@ -32,7 +32,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	public async Task SaveAsync_GivenCustomerWithPhoneNumber_LoadedPhoneMatches(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Bob Jones", "bob@test.com");
 		customer.ChangePhoneNumber("+1-555-0199");
@@ -54,7 +54,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Alice", "v1@test.com");
 		customer.ChangeEmail("v2@test.com");
@@ -73,7 +73,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	public async Task SaveAsync_GivenDeactivatedCustomer_LoadedIsActiveFalse(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Eve", "eve@test.com");
 		customer.Deactivate();
@@ -91,7 +91,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	public async Task SaveAsync_GivenReactivatedCustomer_LoadedIsActiveTrue(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Carol", "carol@test.com");
 		customer.Deactivate();
@@ -114,7 +114,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	public async Task SaveAsync_GivenMultipleOperations_VersionIsTrackedCorrectly(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("David", "david@test.com"); // v1
 		customer.ChangeEmail("david2@test.com"); // v2
@@ -140,7 +140,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	public async Task DeleteAsync_GivenSavedCustomer_AggregateIsMarkedDeleted(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Frank", "frank@test.com");
 
@@ -159,7 +159,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Grace", "grace@test.com");
 
@@ -187,7 +187,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Heidi", "original@test.com"); // v1
 		customer.ChangeEmail("updated@test.com"); // v2
@@ -212,7 +212,7 @@ public sealed class CustomerAggregateIntegrationTests(SqlServerSnapshotEventStor
 	)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = id;
 		customer.RegisterCustomer("Ivan", "ivan@test.com");
 		customer.ChangeEmail("ivan2@test.com");

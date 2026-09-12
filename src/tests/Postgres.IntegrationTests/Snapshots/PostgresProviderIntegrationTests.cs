@@ -28,7 +28,7 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 	public async Task SnapshotStore_UpsertAndLinqQuery_WorksWithNestedPayload(CancellationToken cancellationToken)
 	{
 		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
-		var aggregate = new PersistenceAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		PersistenceAggregate aggregate = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		aggregate.SetComplexProperty(new() { Int32Property = 42, StringProperty = "active" });
 
 		await store.SnapshotAsync(aggregate, cancellationToken);
@@ -48,7 +48,7 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 	)
 	{
 		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
-		var aggregate = new PersistenceAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		PersistenceAggregate aggregate = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		aggregate.AddKVPs(new KeyValuePair<string, string>("status", "active"));
 		aggregate.SetComplexProperty(new() { StringProperty = "active" });
 
@@ -74,9 +74,9 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 	public async Task ExecuteUpdate_PartialJsonUpdate_UpdatesSingleField(CancellationToken cancellationToken)
 	{
 		var tableName = $"exec_update_{Guid.NewGuid():N}";
-		var options = new DbContextOptionsBuilder<ExecuteUpdateDbContext>().UseNpgsql(fixture.ConnectionString).Options;
+		var options = new DbContextOptionsBuilder<ExecuteUpdateDBContext>().UseNpgsql(fixture.ConnectionString).Options;
 
-		await using (var setupContext = new ExecuteUpdateDbContext(options, tableName))
+		await using (var setupContext = new ExecuteUpdateDBContext(options, tableName))
 		{
 			await setupContext.Database.EnsureCreatedAsync(cancellationToken);
 			setupContext.Rows.Add(
@@ -89,7 +89,7 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 			await setupContext.SaveChangesAsync(cancellationToken);
 		}
 
-		await using (var updateContext = new ExecuteUpdateDbContext(options, tableName))
+		await using (var updateContext = new ExecuteUpdateDBContext(options, tableName))
 		{
 			await updateContext
 				.Rows.Where(static r => r.State.Status == "pending")
@@ -99,7 +99,7 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 				);
 		}
 
-		await using var verifyContext = new ExecuteUpdateDbContext(options, tableName);
+		await using ExecuteUpdateDBContext verifyContext = new(options, tableName);
 		var row = await verifyContext.Rows.SingleAsync(cancellationToken);
 		await Assert.That(row.State.Version).IsEqualTo(2);
 		await Assert.That(row.State.Status).IsEqualTo("pending");
@@ -120,13 +120,13 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 					PathIndexes = [new() { Path = "ComplexTestType.StringProperty" }],
 				}
 		);
-		var aggregate = new PersistenceAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		PersistenceAggregate aggregate = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		aggregate.SetComplexProperty(new() { StringProperty = "indexed" });
 		await store.SnapshotAsync(aggregate, cancellationToken);
 
-		await using var connection = new NpgsqlConnection(fixture.ConnectionString);
+		await using NpgsqlConnection connection = new(fixture.ConnectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new NpgsqlCommand(
+		await using NpgsqlCommand command = new(
 			"""
 			SELECT indexdef
 			FROM pg_indexes
@@ -136,7 +136,7 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 		);
 		command.Parameters.AddWithValue("tableName", tableName.ToUpperInvariant());
 
-		var indexDefinitions = new List<string>();
+		List<string> indexDefinitions = [];
 		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 		while (await reader.ReadAsync(cancellationToken))
 			indexDefinitions.Add(reader.GetString(0));
@@ -147,7 +147,7 @@ public sealed class PostgresProviderIntegrationTests(PostgresSnapshotEventStoreF
 		await Assert.That(indexDefinitions.Any(def => def.Contains("#>>", StringComparison.Ordinal))).IsTrue();
 	}
 
-	sealed class ExecuteUpdateDbContext(DbContextOptions<ExecuteUpdateDbContext> options, string tableName)
+	sealed class ExecuteUpdateDBContext(DbContextOptions<ExecuteUpdateDBContext> options, string tableName)
 		: DbContext(options)
 	{
 		readonly string _tableName = tableName;

@@ -3,12 +3,12 @@ using Purview.EventSourcing.Aggregates.Events;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
 
-partial class SqlServerSnapshotEventStoreTests
+partial class SQLServerSnapshotEventStoreTests
 {
 	[Test]
 	public async Task GetByIdAsync_GivenUnsupportedPayloadShape_ThrowsEarly()
 	{
-		var client = new Client.SqlServerClient(
+		Client.SqlServerClient client = new(
 			new Client.SqlServerClientOptions(fixture.ConnectionString, false)
 			{
 				SchemaName = "dbo",

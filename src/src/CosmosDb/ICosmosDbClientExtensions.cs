@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -84,7 +84,7 @@ static class CosmosDbClientExtensions
 	)
 		where T : class
 	{
-		var request = new ContinuationRequest { MaxRecords = maxRecordsPerOperation };
+		ContinuationRequest request = new() { MaxRecords = maxRecordsPerOperation };
 		do
 		{
 			var response = await cosmosDbClient.ListAsync(orderByClause, request, partitionKey, cancellationToken);

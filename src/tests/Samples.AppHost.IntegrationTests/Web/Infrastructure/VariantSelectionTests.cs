@@ -12,10 +12,10 @@ public sealed class VariantSelectionTests(AppHostFixture fixture)
 	[
 		(Platform.SqlWebApp, "SqlServer", "SqlServer", "SqlServer"),
 		(Platform.PostgresWebApp, "Postgres", "Postgres", "Postgres"),
-		(Platform.MongoDbWebApp, "MongoDb", "MongoDb", "MongoDb"),
+		(Platform.MongoDBWebApp, "MongoDB", "MongoDB", "MongoDB"),
 		(Platform.AzureSqlWebApp, "AzureStorage", "SqlServer", "AzureStorage"),
 		(Platform.AzurePostgresWebApp, "AzureStorage", "Postgres", "AzureStorage"),
-		(Platform.AzureMongoDbWebApp, "AzureStorage", "MongoDb", "AzureStorage"),
+		(Platform.AzureMongoDBWebApp, "AzureStorage", "MongoDB", "AzureStorage"),
 	];
 
 	[Test]

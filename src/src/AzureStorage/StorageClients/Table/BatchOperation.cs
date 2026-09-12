@@ -1,4 +1,4 @@
-﻿using Azure.Data.Tables;
+using Azure.Data.Tables;
 
 namespace Purview.EventSourcing.AzureStorage.StorageClients.Table;
 
@@ -42,7 +42,7 @@ sealed class BatchOperation
 		else if (PartitionKey != entity.PartitionKey)
 			throw new InvalidPartitionKeyException(PartitionKey, entity.PartitionKey);
 
-		var tableOperation = new TableTransactionAction(actionType, entity);
+		TableTransactionAction tableOperation = new(actionType, entity);
 		if (recordAt.HasValue)
 			_operations.Insert(recordAt.Value, tableOperation);
 		else

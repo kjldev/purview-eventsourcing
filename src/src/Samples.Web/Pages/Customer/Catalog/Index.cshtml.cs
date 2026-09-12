@@ -39,7 +39,7 @@ sealed class IndexModel(
 		var ct = HttpContext.RequestAborted;
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, ct);
 
-		var request = new ContinuationRequest { MaxRecords = 500 };
+		ContinuationRequest request = new() { MaxRecords = 500 };
 		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(
 			q => q.OrderBy(i => i.ProductName),
 			request,

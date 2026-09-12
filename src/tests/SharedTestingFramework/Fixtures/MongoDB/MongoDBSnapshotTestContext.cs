@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Distributed;
 using Purview.EventSourcing.Aggregates.Persistence;
 using Purview.EventSourcing.AzureStorage;
 using Purview.EventSourcing.AzureStorage.StorageClients.Blob;
@@ -12,7 +12,7 @@ namespace Purview.EventSourcing.Fixtures.MongoDB;
 
 public sealed class MongoDBSnapshotTestContext
 {
-	readonly string _mongoDbConnectionString;
+	readonly string _mongoDBConnectionString;
 	readonly string _azuriteConnectionString;
 
 	ITableEventStoreTelemetry _telemetry = default!;
@@ -29,13 +29,13 @@ public sealed class MongoDBSnapshotTestContext
 	public MongoDBSnapshotEventStore<PersistenceAggregate> EventStore { get; init; }
 
 	public MongoDBSnapshotTestContext(
-		string mongoDbConnectionString,
+		string mongoDBConnectionString,
 		string azuriteConnectionString,
 		int correlationIdsToGenerate = 1,
 		string? collectionName = null
 	)
 	{
-		_mongoDbConnectionString = mongoDbConnectionString;
+		_mongoDBConnectionString = mongoDBConnectionString;
 		_azuriteConnectionString = azuriteConnectionString;
 
 		EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
@@ -51,7 +51,7 @@ public sealed class MongoDBSnapshotTestContext
 
 		MongoDBSnapshotEventStoreOptions config = new()
 		{
-			ConnectionString = _mongoDbConnectionString,
+			ConnectionString = _mongoDBConnectionString,
 			Database = GetType().Name,
 			Collection = collectionName ?? TestHelpers.GenMongoDBCollectionName(),
 		};

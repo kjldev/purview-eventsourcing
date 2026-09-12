@@ -87,7 +87,7 @@ public partial class InMemoryEventStore<T>(
 				aggregateId = $"{Guid.NewGuid()}:D";
 		}
 
-		var aggregate = new T { Details = { Id = aggregateId } };
+		T aggregate = new() { Details = { Id = aggregateId } };
 
 		return FulfilRequirements(aggregate);
 	}
@@ -236,7 +236,7 @@ public partial class InMemoryEventStore<T>(
 		if (!exists)
 			return null;
 
-		var aggregate = new T() { Details = new() { Id = aggregateId } };
+		T aggregate = new() { Details = new() { Id = aggregateId } };
 
 		var events = GetEventRangeAsync(aggregateId, 1, version, cancellationToken);
 		await foreach (var @event in events.WithCancellation(cancellationToken))

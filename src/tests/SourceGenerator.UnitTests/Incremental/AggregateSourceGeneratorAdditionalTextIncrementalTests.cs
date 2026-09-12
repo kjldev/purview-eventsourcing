@@ -32,7 +32,7 @@ public sealed class AggregateSourceGeneratorAdditionalTextIncrementalTests
 	[Test]
 	public async Task Generate_GivenUnrelatedAdditionalFileChange_TargetsUnaffected(CancellationToken cancellationToken)
 	{
-		var unrelated = new InMemoryAdditionalText("notes.txt", "first");
+		InMemoryAdditionalText unrelated = new("notes.txt", "first");
 		GeneratorDriver driver = CreateDriver([unrelated]);
 		var compilation = CreateCompilation([ParseTree(OrderAggregateSource, "Order.cs")]);
 

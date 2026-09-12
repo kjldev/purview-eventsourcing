@@ -3,7 +3,6 @@ using Purview.EventSourcing.Aggregates;
 
 namespace Purview.EventSourcing.Contracts;
 
-#pragma warning disable CA1506 // Avoid excessive class coupling - the shared contract surface intentionally touches many snapshot-store contract types.
 /// <summary>
 /// Provider-agnostic snapshot-store contract tests.
 ///

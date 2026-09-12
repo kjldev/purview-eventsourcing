@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates.Events;
+using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.MongoDB.Events.Entities;
 
 namespace Purview.EventSourcing.MongoDB;

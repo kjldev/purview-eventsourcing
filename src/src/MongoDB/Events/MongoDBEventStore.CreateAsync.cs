@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Services;
+using Purview.EventSourcing.Services;
 
 namespace Purview.EventSourcing.MongoDB;
 
@@ -21,7 +21,7 @@ partial class MongoDBEventStore<T>
 				aggregateId = $"{Guid.NewGuid()}:D";
 		}
 
-		var aggregate = new T { Details = { Id = aggregateId } };
+		T aggregate = new() { Details = { Id = aggregateId } };
 
 		return FulfilRequirements(aggregate);
 	}

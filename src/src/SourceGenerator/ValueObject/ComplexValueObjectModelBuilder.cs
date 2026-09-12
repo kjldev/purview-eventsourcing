@@ -22,16 +22,21 @@ static class ComplexValueObjectModelBuilder
 			return GeneratorResult<ComplexValueObjectModel>.Empty;
 
 		var location = syntax.GetLocation();
-		var diagnosticsList = new List<DiagnosticInfo>();
-		diagnosticsList.AddRange(
-			ValueObjectSymbolInspector.ValidateValueObjectType(typeSymbol, "ValueObject", location)
-		);
+		List<ReportableDiagnostic> diagnosticsList =
+		[
+			.. ValueObjectSymbolInspector.ValidateValueObjectType(typeSymbol, "ValueObject", location),
+		];
 
 		var attributes = typeSymbol.GetAttributes();
 		if (ValueObjectSymbolInspector.HasAttribute(attributes, ValueObjectSymbolInspector.ScalarAttributeName))
 		{
 			diagnosticsList.Add(
-				DiagnosticInfo.Create(DiagnosticLibrary.ConflictingValueObjectAttributes, location, typeSymbol.Name)
+				ReportableDiagnostic.Create(
+					DiagnosticLibrary.ConflictingValueObjectAttributes,
+					isBlocking: true,
+					location,
+					typeSymbol.Name
+				)
 			);
 			return GeneratorResult<ComplexValueObjectModel>.Create([.. diagnosticsList]);
 		}
@@ -145,7 +150,7 @@ static class ComplexValueObjectModelBuilder
 		foreach (var property in properties)
 			emptyArguments.Add(ValueObjectSymbolInspector.GetEmptyValueExpression(property.Type));
 
-		var model = new ComplexValueObjectModel(
+		ComplexValueObjectModel model = new(
 			typeModel.Value,
 			propertyModels.ToImmutable(),
 			valueObjectOptions,

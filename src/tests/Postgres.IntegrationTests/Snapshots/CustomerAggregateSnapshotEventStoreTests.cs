@@ -13,7 +13,7 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 	{
 		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
 		var email = "updated@test.com";
-		var aggregate = new CustomerAggregate();
+		CustomerAggregate aggregate = new();
 		aggregate.Details.Id = Guid.NewGuid().ToString("D");
 		aggregate.RegisterCustomer("Jane Smith", "jane@test.com");
 		aggregate.ChangeEmail(email);
@@ -34,11 +34,11 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 	public async Task QueryAsync_GivenOrderByScalarValueObject_TranslatesAndOrders(CancellationToken cancellationToken)
 	{
 		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
-		var charlie = new CustomerAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		CustomerAggregate charlie = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		charlie.RegisterCustomer("Charlie", "charlie@test.com");
 		await store.SnapshotAsync(charlie, cancellationToken);
 
-		var alice = new CustomerAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		CustomerAggregate alice = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		alice.RegisterCustomer("Alice", "alice@test.com");
 		await store.SnapshotAsync(alice, cancellationToken);
 
@@ -58,7 +58,7 @@ public sealed class CustomerAggregateSnapshotEventStoreTests(SqlServerSnapshotEv
 	public async Task QueryAsync_GivenOrderByScalarInnerValue_FailsWithClearMessage(CancellationToken cancellationToken)
 	{
 		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
-		var customer = new CustomerAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		CustomerAggregate customer = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		customer.RegisterCustomer("Zed", "zed@test.com");
 		await store.SnapshotAsync(customer, cancellationToken);
 

@@ -21,7 +21,7 @@ partial class CosmosDbClient
 
 		public override Stream ToStream<T>(T input)
 		{
-			var streamPayload = new MemoryStream();
+			MemoryStream streamPayload = new();
 			System.Text.Json.JsonSerializer.Serialize(streamPayload, input, _jsonSerializerOptions);
 
 			streamPayload.Position = 0;

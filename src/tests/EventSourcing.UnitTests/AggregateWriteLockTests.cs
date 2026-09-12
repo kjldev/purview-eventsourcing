@@ -42,7 +42,7 @@ public sealed class AggregateWriteLockTests
 		var streamId2 = UniqueId();
 		var active = 0;
 		var maxActive = 0;
-		var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		TaskCompletionSource gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 		async Task Work(string id)
 		{

@@ -76,8 +76,8 @@ public sealed class EventUpcasterRegistryTests
 	public async Task CanUpcast_GivenNoUpcasterRegistered_ReturnsFalse()
 	{
 		// Arrange
-		var registry = new EventUpcasterRegistry([]);
-		var legacyEvent = new LegacyEvent { OldField = "value" };
+		EventUpcasterRegistry registry = new([]);
+		LegacyEvent legacyEvent = new() { OldField = "value" };
 
 		// Act
 		var result = registry.CanUpcast(legacyEvent);
@@ -90,9 +90,9 @@ public sealed class EventUpcasterRegistryTests
 	public async Task CanUpcast_GivenUpcasterRegistered_ReturnsTrue()
 	{
 		// Arrange
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
-		var registry = new EventUpcasterRegistry([descriptor]);
-		var legacyEvent = new LegacyEvent { OldField = "value" };
+		EventUpcasterDescriptor<LegacyEvent, CurrentEvent> descriptor = new(new LegacyToCurrentUpcaster());
+		EventUpcasterRegistry registry = new([descriptor]);
+		LegacyEvent legacyEvent = new() { OldField = "value" };
 
 		// Act
 		var result = registry.CanUpcast(legacyEvent);
@@ -105,8 +105,8 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenNoUpcasterRegistered_ReturnsSameInstance()
 	{
 		// Arrange
-		var registry = new EventUpcasterRegistry([]);
-		var currentEvent = new CurrentEvent { NewField = "value" };
+		EventUpcasterRegistry registry = new([]);
+		CurrentEvent currentEvent = new() { NewField = "value" };
 
 		// Act
 		var result = registry.Upcast(currentEvent);
@@ -119,9 +119,9 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenSingleUpcaster_ReturnsUpcastEvent()
 	{
 		// Arrange
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
-		var registry = new EventUpcasterRegistry([descriptor]);
-		var legacyEvent = new LegacyEvent { OldField = "hello" };
+		EventUpcasterDescriptor<LegacyEvent, CurrentEvent> descriptor = new(new LegacyToCurrentUpcaster());
+		EventUpcasterRegistry registry = new([descriptor]);
+		LegacyEvent legacyEvent = new() { OldField = "hello" };
 
 		// Act
 		var result = registry.Upcast(legacyEvent);
@@ -136,15 +136,13 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenChainedUpcasters_AppliesChainInOrder()
 	{
 		// Arrange: LegacyEvent → IntermediateEvent → CurrentEvent
-		var legacyToMid = new EventUpcasterDescriptor<LegacyEvent, IntermediateEvent>(
-			new LegacyToIntermediateUpcaster()
-		);
-		var midToCurrent = new EventUpcasterDescriptor<IntermediateEvent, CurrentEvent>(
+		EventUpcasterDescriptor<LegacyEvent, IntermediateEvent> legacyToMid = new(new LegacyToIntermediateUpcaster());
+		EventUpcasterDescriptor<IntermediateEvent, CurrentEvent> midToCurrent = new(
 			new IntermediateToCurrentUpcaster()
 		);
-		var registry = new EventUpcasterRegistry([legacyToMid, midToCurrent]);
+		EventUpcasterRegistry registry = new([legacyToMid, midToCurrent]);
 
-		var legacyEvent = new LegacyEvent { OldField = "v1" };
+		LegacyEvent legacyEvent = new() { OldField = "v1" };
 
 		// Act
 		var result = registry.Upcast(legacyEvent);
@@ -159,10 +157,10 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenAlreadyCurrentEvent_ReturnsUnchanged()
 	{
 		// Arrange: only LegacyEvent → CurrentEvent upcaster registered
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
-		var registry = new EventUpcasterRegistry([descriptor]);
+		EventUpcasterDescriptor<LegacyEvent, CurrentEvent> descriptor = new(new LegacyToCurrentUpcaster());
+		EventUpcasterRegistry registry = new([descriptor]);
 
-		var currentEvent = new CurrentEvent { NewField = "already-current" };
+		CurrentEvent currentEvent = new() { NewField = "already-current" };
 
 		// Act
 		var result = registry.Upcast(currentEvent);
@@ -176,7 +174,7 @@ public sealed class EventUpcasterRegistryTests
 	public async Task CanUpcast_GivenNullEvent_ThrowsArgumentNullException()
 	{
 		// Arrange
-		var registry = new EventUpcasterRegistry([]);
+		EventUpcasterRegistry registry = new([]);
 
 		// Act & Assert
 		await Assert.That(() => registry.CanUpcast(null!)).Throws<ArgumentNullException>();
@@ -186,7 +184,7 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenNullEvent_ThrowsArgumentNullException()
 	{
 		// Arrange
-		var registry = new EventUpcasterRegistry([]);
+		EventUpcasterRegistry registry = new([]);
 
 		// Act & Assert
 		await Assert.That(() => registry.Upcast(null!)).Throws<ArgumentNullException>();
@@ -196,8 +194,8 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Descriptor_GivenWrongSourceType_ThrowsInvalidOperationException()
 	{
 		// Arrange
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
-		var wrongEvent = new CurrentEvent { NewField = "not-a-legacy-event" };
+		EventUpcasterDescriptor<LegacyEvent, CurrentEvent> descriptor = new(new LegacyToCurrentUpcaster());
+		CurrentEvent wrongEvent = new() { NewField = "not-a-legacy-event" };
 
 		// Act & Assert
 		await Assert.That(() => descriptor.Upcast(wrongEvent)).Throws<InvalidOperationException>();
@@ -208,10 +206,10 @@ public sealed class EventUpcasterRegistryTests
 	{
 		// Arrange
 		var now = DateTime.UtcNow;
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
-		var registry = new EventUpcasterRegistry([descriptor]);
+		EventUpcasterDescriptor<LegacyEvent, CurrentEvent> descriptor = new(new LegacyToCurrentUpcaster());
+		EventUpcasterRegistry registry = new([descriptor]);
 
-		var legacyEvent = new LegacyEvent
+		LegacyEvent legacyEvent = new()
 		{
 			OldField = "test",
 			Details =
@@ -241,13 +239,11 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenThreeHopChain_AppliesAllStepsInOrder()
 	{
 		// Arrange: LegacyEvent → IntermediateEvent → V3Event (three hops)
-		var legacyToMid = new EventUpcasterDescriptor<LegacyEvent, IntermediateEvent>(
-			new LegacyToIntermediateUpcaster()
-		);
-		var midToV3 = new EventUpcasterDescriptor<IntermediateEvent, V3Event>(new IntermediateToV3Upcaster());
-		var registry = new EventUpcasterRegistry([legacyToMid, midToV3]);
+		EventUpcasterDescriptor<LegacyEvent, IntermediateEvent> legacyToMid = new(new LegacyToIntermediateUpcaster());
+		EventUpcasterDescriptor<IntermediateEvent, V3Event> midToV3 = new(new IntermediateToV3Upcaster());
+		EventUpcasterRegistry registry = new([legacyToMid, midToV3]);
 
-		var legacyEvent = new LegacyEvent { OldField = "source" };
+		LegacyEvent legacyEvent = new() { OldField = "source" };
 
 		// Act
 		var result = registry.Upcast(legacyEvent);
@@ -263,9 +259,9 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Upcast_GivenSameTypeUpcaster_AppliesOnceAndStops()
 	{
 		// Arrange
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, LegacyEvent>(new InPlaceUpcaster());
-		var registry = new EventUpcasterRegistry([descriptor]);
-		var legacyEvent = new LegacyEvent { OldField = "value" };
+		EventUpcasterDescriptor<LegacyEvent, LegacyEvent> descriptor = new(new InPlaceUpcaster());
+		EventUpcasterRegistry registry = new([descriptor]);
+		LegacyEvent legacyEvent = new() { OldField = "value" };
 
 		// Act
 		var result = registry.Upcast(legacyEvent);
@@ -279,10 +275,8 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Constructor_GivenCircularChain_ThrowsAtConstruction()
 	{
 		// Arrange
-		var legacyToCurrent = new EventUpcasterDescriptor<LegacyEvent, CurrentEvent>(new LegacyToCurrentUpcaster());
-		var currentToLegacy = new EventUpcasterDescriptor<CurrentEvent, LegacyEvent>(
-			new CurrentEventToLegacyUpcaster()
-		);
+		EventUpcasterDescriptor<LegacyEvent, CurrentEvent> legacyToCurrent = new(new LegacyToCurrentUpcaster());
+		EventUpcasterDescriptor<CurrentEvent, LegacyEvent> currentToLegacy = new(new CurrentEventToLegacyUpcaster());
 
 		// Act & Assert
 		await Assert
@@ -294,7 +288,7 @@ public sealed class EventUpcasterRegistryTests
 	public async Task Constructor_GivenSelfLoop_DoesNotThrow()
 	{
 		// Arrange
-		var descriptor = new EventUpcasterDescriptor<LegacyEvent, LegacyEvent>(new InPlaceUpcaster());
+		EventUpcasterDescriptor<LegacyEvent, LegacyEvent> descriptor = new(new InPlaceUpcaster());
 
 		// Act & Assert
 		await Assert.That(() => new EventUpcasterRegistry([descriptor])).ThrowsNothing();
@@ -304,13 +298,11 @@ public sealed class EventUpcasterRegistryTests
 	public async Task CanUpcast_GivenThreeHopChain_ReturnsTrue()
 	{
 		// Arrange: chain LegacyEvent → IntermediateEvent → V3Event
-		var legacyToMid = new EventUpcasterDescriptor<LegacyEvent, IntermediateEvent>(
-			new LegacyToIntermediateUpcaster()
-		);
-		var midToV3 = new EventUpcasterDescriptor<IntermediateEvent, V3Event>(new IntermediateToV3Upcaster());
-		var registry = new EventUpcasterRegistry([legacyToMid, midToV3]);
+		EventUpcasterDescriptor<LegacyEvent, IntermediateEvent> legacyToMid = new(new LegacyToIntermediateUpcaster());
+		EventUpcasterDescriptor<IntermediateEvent, V3Event> midToV3 = new(new IntermediateToV3Upcaster());
+		EventUpcasterRegistry registry = new([legacyToMid, midToV3]);
 
-		var legacyEvent = new LegacyEvent { OldField = "test" };
+		LegacyEvent legacyEvent = new() { OldField = "test" };
 
 		// Act
 		var result = registry.CanUpcast(legacyEvent);

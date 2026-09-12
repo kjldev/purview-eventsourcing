@@ -266,14 +266,14 @@ public static class AdminOperationalEndpoints
 		if (!typeRegistry.TryResolve(aggregateType, out _))
 			return TypedResults.NotFound();
 
-		var unknown = new HashSet<string>(StringComparer.Ordinal);
+		HashSet<string> unknown = new(StringComparer.Ordinal);
 		var totalEvents = 0;
 		var page = 1;
 		const int pageSize = 500;
 
 		while (true)
 		{
-			var query = new EventRangeQuery(
+			EventRangeQuery query = new(
 				VersionFrom: null,
 				VersionTo: null,
 				TimeFromUtc: null,

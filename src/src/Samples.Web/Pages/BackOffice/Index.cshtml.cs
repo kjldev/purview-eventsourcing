@@ -17,7 +17,7 @@ sealed class IndexModel(IQueryableEventStore inventoryStore, IQueryableEventStor
 	{
 		var ct = HttpContext.RequestAborted;
 
-		var request = new ContinuationRequest { MaxRecords = 1000 };
+		ContinuationRequest request = new() { MaxRecords = 1000 };
 		var inventoryResult = await inventoryStore.ListAsync<InventoryAggregate>(
 			q => q.OrderBy(i => i.ProductId),
 			request,

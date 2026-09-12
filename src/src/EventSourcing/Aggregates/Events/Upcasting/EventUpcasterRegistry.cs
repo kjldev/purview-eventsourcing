@@ -43,7 +43,7 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 	{
 		foreach (var sourceType in _upcastersBySourceType.Keys)
 		{
-			var visitedTypes = new HashSet<Type>();
+			HashSet<Type> visitedTypes = [];
 			var current = sourceType;
 
 			while (_upcastersBySourceType.TryGetValue(current, out var descriptor))
@@ -76,7 +76,7 @@ public sealed class EventUpcasterRegistry : IEventUpcasterRegistry
 		ArgumentNullException.ThrowIfNull(aggregateEvent);
 
 		var current = aggregateEvent;
-		var visitedTypes = new HashSet<Type> { current.GetType() };
+		HashSet<Type> visitedTypes = [current.GetType()];
 
 		// Follow the chain: v1 → v2 → v3 …
 		while (_upcastersBySourceType.TryGetValue(current.GetType(), out var descriptor))

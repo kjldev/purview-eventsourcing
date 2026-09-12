@@ -2,8 +2,8 @@ var runBenchmark = Array.Exists(
 	args,
 	static arg => string.Equals(arg, "--benchmark", StringComparison.OrdinalIgnoreCase)
 );
-var runner = new SourceGeneratorPerformanceRunner();
-var store = new PerformanceHistoryStore();
+SourceGeneratorPerformanceRunner runner = new();
+PerformanceHistoryStore store = new();
 
 var previousRun = store.TryLoadLatest();
 var run = runBenchmark ? runner.RunBenchmark() : runner.RunQuick();

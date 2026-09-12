@@ -11,7 +11,7 @@ public class OrderAggregateTests
 		OrderStatusCode statusCode = OrderStatusCode.Draft
 	)
 	{
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		if (id is not null)
 			order.Details.Id = id;
 
@@ -47,7 +47,7 @@ public class OrderAggregateTests
 	public async Task CreateOrder_GivenValidCustomerId_SetsProperties()
 	{
 		// Arrange & Act
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = "order-1";
 		order.CreateOrder("customer-1");
 
@@ -65,7 +65,7 @@ public class OrderAggregateTests
 	[Arguments("     ")]
 	public void CreateOrder_GivenNullEmptyOrWhitespaceCustomerId_ThrowsArgumentException(string? customerId)
 	{
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		Assert.Throws<ArgumentException>(() => order.CreateOrder(customerId!));
 	}
 

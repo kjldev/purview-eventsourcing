@@ -138,7 +138,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 
 	async Task EnsureLocationsAsync(CancellationToken cancellationToken)
 	{
-		var existingLocationIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		HashSet<string> existingLocationIds = new(StringComparer.OrdinalIgnoreCase);
 		await foreach (
 			var location in store.GetListEnumerableAsync<LocationAggregate>(cancellationToken: cancellationToken)
 		)
@@ -146,7 +146,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 			existingLocationIds.Add(location.LocationId);
 		}
 
-		var knownLocations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, string> knownLocations = new(StringComparer.OrdinalIgnoreCase);
 		foreach (var (locationId, locationName) in Locations)
 			knownLocations[locationId] = locationName;
 
@@ -171,7 +171,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 
 	async Task<string[]> SeedCustomersAsync(CancellationToken cancellationToken)
 	{
-		var ids = new List<string>();
+		List<string> ids = [];
 		var phones = new[] { "+44 7700 900000", "+44 7700 900001", null, "+44 7700 900002", null };
 
 		for (var i = 0; i < FirstNames.Length; i++)
@@ -199,7 +199,7 @@ public sealed class SeedDataService(IQueryableEventStore store) : ISeedDataServi
 
 	async Task<(string AggregateId, int Index)[]> SeedInventoryAsync(CancellationToken cancellationToken)
 	{
-		var ids = new List<(string, int)>();
+		List<(string, int)> ids = [];
 
 		for (var i = 0; i < Products.Length; i++)
 		{

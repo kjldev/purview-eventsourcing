@@ -70,7 +70,7 @@ public class SqlServerEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 		};
 		configureOptions?.Invoke(options);
 
-		var client = new SqlServerEventStoreClient(options);
+		SqlServerEventStoreClient client = new(options);
 		Client = client;
 
 		SqlServerEventStore<TAggregate> eventStore = new(

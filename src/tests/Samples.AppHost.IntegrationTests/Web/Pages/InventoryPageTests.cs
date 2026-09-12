@@ -39,7 +39,7 @@ public sealed class InventoryPageTests(AppHostFixture fixture)
 			return;
 		}
 
-		var form = new Dictionary<string, string>
+		Dictionary<string, string> form = new()
 		{
 			["ProductId"] = "SKU-TEST-001",
 			["ProductName"] = "Test Widget",
@@ -48,7 +48,7 @@ public sealed class InventoryPageTests(AppHostFixture fixture)
 			["__RequestVerificationToken"] = antiForgery,
 		};
 
-		using var content = new FormUrlEncodedContent(form);
+		using FormUrlEncodedContent content = new(form);
 		var response = await _client.PostAsync("/BackOffice/Catalog/Create", content, cancellationToken);
 
 		await Assert.That((int)response.StatusCode).IsEqualTo(302);

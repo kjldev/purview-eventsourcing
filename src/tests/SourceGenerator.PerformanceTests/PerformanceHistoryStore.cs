@@ -34,7 +34,7 @@ sealed class PerformanceHistoryStore
 
 	static string FindRepositoryRoot()
 	{
-		var current = new DirectoryInfo(Directory.GetCurrentDirectory());
+		DirectoryInfo? current = new(Directory.GetCurrentDirectory());
 		while (current is not null)
 		{
 			if (Directory.Exists(Path.Combine(current.FullName, ".git")))

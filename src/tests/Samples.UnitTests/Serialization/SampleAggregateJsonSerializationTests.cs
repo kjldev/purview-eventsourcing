@@ -10,7 +10,7 @@ public sealed class SampleAggregateJsonSerializationTests
 	[Test]
 	public async Task SerializeAndDeserialize_GivenOrderAggregate_RestoresGeneratedAggregateState()
 	{
-		var aggregate = new OrderAggregate();
+		OrderAggregate aggregate = new();
 		aggregate.Details.Id = "order-1";
 		aggregate.CreateOrder("customer-1");
 		aggregate.AddLineItem("product-1", "Widget", 2, 12.5m);
@@ -35,7 +35,7 @@ public sealed class SampleAggregateJsonSerializationTests
 	[Test]
 	public async Task SerializeAndDeserialize_GivenCustomerAggregate_RestoresGeneratedAggregateState()
 	{
-		var aggregate = new CustomerAggregate();
+		CustomerAggregate aggregate = new();
 		aggregate.Details.Id = "customer-9";
 		aggregate.RegisterCustomer("Alice", "alice@example.com");
 		aggregate.ChangePhoneNumber("555-0100");

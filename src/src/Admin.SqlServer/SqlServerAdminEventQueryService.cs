@@ -4,11 +4,11 @@ using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Admin.Abstractions.Models;
 using Purview.EventSourcing.Admin.Abstractions.Queries;
 using Purview.EventSourcing.Admin.Abstractions.Services;
-using Purview.EventSourcing.Admin.SqlServer.Internal;
+using Purview.EventSourcing.Admin.SQLServer.Internal;
 using Purview.EventSourcing.SqlServer.Events;
 using Purview.EventSourcing.SqlServer.Events.EntityFramework;
 
-namespace Purview.EventSourcing.Admin.SqlServer;
+namespace Purview.EventSourcing.Admin.SQLServer;
 
 /// <summary>
 /// Provides event range queries against SQL Server for the Admin portal.
@@ -92,7 +92,7 @@ public sealed class SqlServerAdminEventQueryService(IOptions<SqlServerEventStore
 
 	static EventStoreDbContext CreateContext(SqlServerEventStoreOptions options, SqlServerAdminTableDescriptor table)
 	{
-		var builder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> builder = new();
 		builder.UseSqlServer(options.ConnectionString);
 		return new EventStoreDbContext(builder.Options, table.SchemaName, table.TableName);
 	}

@@ -14,9 +14,14 @@ public sealed class EventStoreDbContextDesignTimeFactory : IDesignTimeDbContextF
 	/// </summary>
 	/// <param name="args">Command-line arguments passed by EF Core design-time tools.</param>
 	/// <returns>A new <see cref="EventStoreDbContext"/> instance.</returns>
+	[System.Diagnostics.CodeAnalysis.SuppressMessage(
+		"Naming",
+		"PDS0004:Use correct acronym capitalization",
+		Justification = "Matches source."
+	)]
 	public EventStoreDbContext CreateDbContext(string[] args)
 	{
-		var optionsBuilder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> optionsBuilder = new();
 		optionsBuilder.UseNpgsql("Host=localhost;Database=eventstore_design;Username=postgres;Password=postgres");
 
 		return new EventStoreDbContext(optionsBuilder.Options);

@@ -9,7 +9,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerSnapshotEventStoreFi
 {
 	static OrderAggregate CreateDraftWithItems(string id)
 	{
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = id;
 		order
 			.CreateOrder("customer-1")
@@ -47,7 +47,7 @@ public sealed class OrderAggregateIntegrationTests(SqlServerSnapshotEventStoreFi
 	public async Task SaveAsync_GivenDraftOrderWithNullableNotes_LoadedNotesMatch(CancellationToken cancellationToken)
 	{
 		var id = $"{Guid.NewGuid()}";
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = id;
 		order.CreateOrder("customer-2");
 		order.AddLineItem("prod-1", "Widget", 1, 10m);

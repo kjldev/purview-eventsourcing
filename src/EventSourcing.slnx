@@ -11,8 +11,8 @@
 	<Folder Name="/src/">
 		<Project Path="src/EntityFrameworkCore.SourceGenerator/EntityFrameworkCore.SourceGenerator.csproj" />
 		<Project Path="src/EventSourcing/EventSourcing.csproj" />
-		<Project Path="src/SourceGenerator/SourceGenerator.csproj" />
 		<Project Path="src/SourceGenerator.CodeFixes/SourceGenerator.CodeFixes.csproj" />
+		<Project Path="src/SourceGenerator/SourceGenerator.csproj" />
 	</Folder>
 	<Folder Name="/src/admin/">
 		<Project Path="src/Admin.Abstractions/Admin.Abstractions.csproj" />
@@ -56,7 +56,10 @@
 		<Project Path="tests/SourceGenerator.UnitTests/SourceGenerator.UnitTests.csproj" />
 	</Folder>
 	<Folder Name="/tests/admin/">
-		<Project Path="tests/Admin.SqlServer.UnitTests/Admin.SqlServer.UnitTests.csproj" />
+		<Project
+			Path="tests/Admin.SqlServer.UnitTests/Admin.SqlServer.UnitTests.csproj"
+			DisplayName="Admin.SQLServer.UnitTests"
+		/>
 		<Project Path="tests/Admin.UnitTests/Admin.UnitTests.csproj" />
 	</Folder>
 	<Folder Name="/tests/implementations/">
@@ -64,8 +67,14 @@
 		<Project Path="tests/CosmosDb.IntegrationTests/CosmosDb.IntegrationTests.csproj" />
 		<Project Path="tests/MongoDB.IntegrationTests/MongoDB.IntegrationTests.csproj" />
 		<Project Path="tests/Postgres.IntegrationTests/Postgres.IntegrationTests.csproj" />
-		<Project Path="tests/SqlServer.IntegrationTests/SqlServer.IntegrationTests.csproj" />
-		<Project Path="tests/SqlServer.PerformanceTests/SqlServer.PerformanceTests.csproj" />
+		<Project
+			Path="tests/SqlServer.IntegrationTests/SqlServer.IntegrationTests.csproj"
+			DisplayName="SQLServer.IntegrationTests"
+		/>
+		<Project
+			Path="tests/SqlServer.PerformanceTests/SqlServer.PerformanceTests.csproj"
+			DisplayName="SQLServer.PerformanceTests"
+		/>
 	</Folder>
 	<Folder Name="/tests/samples/">
 		<Project Path="tests/Samples.AppHost.IntegrationTests/Samples.AppHost.IntegrationTests.csproj" />
@@ -77,6 +86,6 @@
 		<Project Path="tests/Validation.ZodSharp.UnitTests/Validation.ZodSharp.UnitTests.csproj" />
 	</Folder>
 	<Folder Name="/tools/">
-		<Project Path="tools/AdminAPI.OpenAPI/AdminAPI.OpenAPI.csproj" DisplayName="AdminAPI.OpenAPI" />
+		<Project Path="tools/AdminAPI.OpenAPI/AdminAPI.OpenAPI.csproj" />
 	</Folder>
 </Solution>

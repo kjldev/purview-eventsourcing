@@ -213,7 +213,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 
 	static CustomerAggregate NewCustomer(string name, string email, bool isActive)
 	{
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = $"{Guid.NewGuid()}";
 		customer.RegisterCustomer(name, email);
 		if (!isActive)
@@ -224,7 +224,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 
 	static InventoryAggregate NewInventory(string productId, string productName, int quantityOnHand, int reserved)
 	{
-		var inventory = new InventoryAggregate();
+		InventoryAggregate inventory = new();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
 		inventory.Create(productId, productName, "loc-1", "Main", initialQuantity: quantityOnHand);
 		if (reserved > 0)
@@ -235,7 +235,7 @@ public sealed class QueryableAggregateIntegrationTests(SqlServerSnapshotEventSto
 
 	static OrderAggregate NewOrder(string customerId, string orderIdSuffix)
 	{
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = $"order-{orderIdSuffix}-{Guid.NewGuid():N}";
 		order.CreateOrder(customerId).AddLineItem("prod-1", "Widget", 1, 10m);
 		return order;

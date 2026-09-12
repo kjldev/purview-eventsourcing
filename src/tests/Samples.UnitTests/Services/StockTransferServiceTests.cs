@@ -250,7 +250,7 @@ public sealed class StockTransferServiceTests
 		var source = StockedItem("inv-1", "LOC-001", "Warehouse North", 100);
 		var sourceLocation = Location("LOC-001", "Warehouse North");
 		var destinationLocation = Location("LOC-002", "Warehouse South");
-		var createdDestination = new InventoryAggregate();
+		InventoryAggregate createdDestination = new();
 		createdDestination.Details.Id = "inv-2";
 
 		var transactionFactory = IEventStoreTransactionFactory.Mock();

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots.EntityFramework;
 
@@ -8,10 +8,10 @@ namespace Purview.EventSourcing.SqlServer.Snapshots.EntityFramework;
 /// matching the same schema and indices as the ADO.NET auto-create path.
 /// </summary>
 /// <remarks>
-/// Creates a new <see cref="SnapshotStoreDbContext"/> with explicit schema and table names.
+/// Creates a new <see cref="SnapshotStoreDBContext"/> with explicit schema and table names.
 /// </remarks>
-public class SnapshotStoreDbContext(
-	DbContextOptions<SnapshotStoreDbContext> options,
+public class SnapshotStoreDBContext(
+	DbContextOptions<SnapshotStoreDBContext> options,
 	string schemaName,
 	string tableName
 ) : DbContext(options)
@@ -25,10 +25,10 @@ public class SnapshotStoreDbContext(
 	public DbSet<SnapshotStoreEntity> SnapshotEntities { get; set; } = default!;
 
 	/// <summary>
-	/// Creates a new <see cref="SnapshotStoreDbContext"/> with the specified options.
+	/// Creates a new <see cref="SnapshotStoreDBContext"/> with the specified options.
 	/// Schema and table names default to "dbo" and "Snapshots".
 	/// </summary>
-	public SnapshotStoreDbContext(DbContextOptions<SnapshotStoreDbContext> options)
+	public SnapshotStoreDBContext(DbContextOptions<SnapshotStoreDBContext> options)
 		: this(options, "dbo", "EventStoreSnapshots") { }
 
 	///<inheritdoc/>

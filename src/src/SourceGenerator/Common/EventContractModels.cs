@@ -98,8 +98,8 @@ readonly record struct ContractLocation(
 			return Location.None;
 
 		var value = location.Value;
-		var textSpan = new TextSpan(value.SpanStart, value.SpanLength);
-		var lineSpan = new LinePositionSpan(
+		TextSpan textSpan = new(value.SpanStart, value.SpanLength);
+		LinePositionSpan lineSpan = new(
 			new LinePosition(value.StartLine, value.StartCharacter),
 			new LinePosition(value.EndLine, value.EndCharacter)
 		);

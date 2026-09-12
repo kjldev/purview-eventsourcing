@@ -341,7 +341,7 @@ static partial class AggregateSourceEmitter
 		CodeWriter writer
 	)
 	{
-		var declaredKeys = new HashSet<string>(StringComparer.Ordinal);
+		HashSet<string> declaredKeys = new(StringComparer.Ordinal);
 		foreach (var method in outputContext.Aggregate.Methods.Where(static method => method.IsCollectionEvent))
 		{
 			var collectionEvent = method.CollectionEvent!;

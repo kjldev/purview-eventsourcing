@@ -12,7 +12,7 @@ public sealed class IndexModelTests
 	{
 		// Arrange
 		var auditService = IAggregateAuditService.Mock();
-		var recentEvent = new AggregateEventHistoryItem
+		AggregateEventHistoryItem recentEvent = new()
 		{
 			AggregateId = "order-1",
 			AggregateType = "OrderAggregate",
@@ -164,7 +164,7 @@ public sealed class IndexModelTests
 		string? queryString = null
 	)
 	{
-		var httpContext = new DefaultHttpContext { RequestAborted = cancellationToken };
+		DefaultHttpContext httpContext = new() { RequestAborted = cancellationToken };
 		if (!string.IsNullOrWhiteSpace(queryString))
 			httpContext.Request.QueryString = new QueryString(queryString);
 

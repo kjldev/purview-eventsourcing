@@ -15,4 +15,8 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 		<PackageReference Include="Microsoft.Extensions.Options" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Extensions\Microsoft\Extensions\DependencyInjection\" />
+	</ItemGroup>
 </Project>

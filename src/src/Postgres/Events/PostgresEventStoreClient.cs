@@ -529,7 +529,7 @@ sealed partial class PostgresEventStoreClient
 			{
 				await using var context = CreateContext();
 				await CreateStorageTablesWithEfAsync(context, cancellationToken);
-				await using var connection = new NpgsqlConnection(_options.ConnectionString);
+				await using NpgsqlConnection connection = new(_options.ConnectionString);
 				await connection.OpenAsync(cancellationToken);
 				await PostgresJsonIndexSchemaManager.ApplyAsync(
 					connection,
@@ -610,7 +610,7 @@ sealed partial class PostgresEventStoreClient
 		DbContextOptionsBuilder<EventStoreDbContext> optionsBuilder = new();
 		var commandTimeout = Math.Max(1, _options.TimeoutInSeconds ?? 60);
 		optionsBuilder.UseNpgsql(connection, sql => sql.CommandTimeout(commandTimeout));
-		var context = new EventStoreDbContext(optionsBuilder.Options, _options.SchemaName, _options.TableName);
+		EventStoreDbContext context = new(optionsBuilder.Options, _options.SchemaName, _options.TableName);
 		if (transaction is not null)
 			context.Database.UseTransaction(transaction);
 		return context;

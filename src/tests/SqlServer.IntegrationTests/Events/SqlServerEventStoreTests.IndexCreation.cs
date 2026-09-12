@@ -104,9 +104,9 @@ public sealed class SqlServerEventStoreIndexCreationTests(SqlServerEventStoreFix
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT COUNT(1)
 			FROM sys.columns c
@@ -128,9 +128,9 @@ public sealed class SqlServerEventStoreIndexCreationTests(SqlServerEventStoreFix
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT COUNT(1)
 			FROM sys.indexes i
@@ -152,9 +152,9 @@ public sealed class SqlServerEventStoreIndexCreationTests(SqlServerEventStoreFix
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT c.name
 			FROM sys.indexes i
@@ -173,7 +173,7 @@ public sealed class SqlServerEventStoreIndexCreationTests(SqlServerEventStoreFix
 		command.Parameters.AddWithValue("@tableName", tableName);
 		command.Parameters.AddWithValue("@indexName", indexName);
 
-		var result = new List<string>();
+		List<string> result = [];
 		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 		while (await reader.ReadAsync(cancellationToken))
 			result.Add(reader.GetString(0));
@@ -188,9 +188,9 @@ public sealed class SqlServerEventStoreIndexCreationTests(SqlServerEventStoreFix
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT c.name
 			FROM sys.indexes i
@@ -209,7 +209,7 @@ public sealed class SqlServerEventStoreIndexCreationTests(SqlServerEventStoreFix
 		command.Parameters.AddWithValue("@tableName", tableName);
 		command.Parameters.AddWithValue("@indexName", indexName);
 
-		var result = new List<string>();
+		List<string> result = [];
 		await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 		while (await reader.ReadAsync(cancellationToken))
 			result.Add(reader.GetString(0));

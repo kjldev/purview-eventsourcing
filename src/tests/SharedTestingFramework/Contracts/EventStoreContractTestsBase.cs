@@ -4,7 +4,6 @@ using Purview.EventSourcing.ChangeFeed;
 
 namespace Purview.EventSourcing.Contracts;
 
-#pragma warning disable CA1506 // Avoid excessive class coupling - the shared contract surface intentionally touches many event-store contract types.
 /// <summary>
 /// Provider-agnostic event-store contract tests.
 ///

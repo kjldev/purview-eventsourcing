@@ -10,7 +10,7 @@ sealed class DeletedModel(IQueryableEventStore store) : PageModel
 
 	public async Task OnGetAsync()
 	{
-		var deleted = new List<CustomerAggregate>();
+		List<CustomerAggregate> deleted = [];
 		await foreach (
 			var id in store.GetAggregateIdsAsync<CustomerAggregate>(includeDeleted: true, HttpContext.RequestAborted)
 		)

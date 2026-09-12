@@ -44,7 +44,7 @@ public static class AzureStorageConnectionStringComposer
 				? basePath
 				: blobEndpoint.AbsolutePath;
 
-			var builder = new UriBuilder(blobEndpoint) { Path = trimmedPath };
+			UriBuilder builder = new(blobEndpoint) { Path = trimmedPath };
 			parts["BlobEndpoint"] = builder.Uri.ToString().TrimEnd('/');
 		}
 
@@ -70,7 +70,7 @@ public static class AzureStorageConnectionStringComposer
 			return "UseDevelopmentStorage=true";
 		}
 
-		var merged = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, string> merged = new(StringComparer.OrdinalIgnoreCase);
 		Merge(fallback, merged);
 		Merge(blob, merged);
 		Merge(eventStore, merged);
@@ -81,7 +81,7 @@ public static class AzureStorageConnectionStringComposer
 			&& Uri.TryCreate(tableEndpointRaw, UriKind.Absolute, out var tableEndpoint)
 		)
 		{
-			var blobBuilder = new UriBuilder(tableEndpoint);
+			UriBuilder blobBuilder = new(tableEndpoint);
 			if (blobBuilder.Port == 10002)
 				blobBuilder.Port = 10000;
 
@@ -94,7 +94,7 @@ public static class AzureStorageConnectionStringComposer
 			&& Uri.TryCreate(blobEndpointRaw, UriKind.Absolute, out var blobEndpoint)
 		)
 		{
-			var tableBuilder = new UriBuilder(blobEndpoint);
+			UriBuilder tableBuilder = new(blobEndpoint);
 			if (tableBuilder.Port == 10000)
 				tableBuilder.Port = 10002;
 
@@ -109,7 +109,7 @@ public static class AzureStorageConnectionStringComposer
 		if (string.IsNullOrWhiteSpace(connectionString))
 			return [with(StringComparer.OrdinalIgnoreCase)];
 
-		var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, string> values = new(StringComparer.OrdinalIgnoreCase);
 		foreach (
 			var part in connectionString.Split(
 				';',

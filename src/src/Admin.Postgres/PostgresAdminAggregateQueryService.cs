@@ -32,7 +32,7 @@ public sealed class PostgresAdminAggregateQueryService(IOptions<PostgresEventSto
 		var page = Math.Max(1, query.Page);
 		var pageSize = Math.Max(1, query.PageSize);
 
-		var candidates = new List<AggregateSummaryResponse>();
+		List<AggregateSummaryResponse> candidates = [];
 		foreach (var table in PostgresAdminTableResolver.ResolveTables(options.Value, query.AggregateType))
 		{
 			await using var context = CreateContext(options.Value, table);
@@ -57,7 +57,7 @@ public sealed class PostgresAdminAggregateQueryService(IOptions<PostgresEventSto
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateType);
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
 
-		var query = new AggregateSearchQuery(aggregateType, aggregateId, null, null, null, null, 1, 1);
+		AggregateSearchQuery query = new(aggregateType, aggregateId, null, null, null, null, 1, 1);
 		var result = await SearchAsync(query, cancellationToken);
 		return result.Items.Count == 0 ? null : result.Items[0];
 	}
@@ -123,7 +123,7 @@ public sealed class PostgresAdminAggregateQueryService(IOptions<PostgresEventSto
 
 	static EventStoreDbContext CreateContext(PostgresEventStoreOptions options, PostgresAdminTableDescriptor table)
 	{
-		var builder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> builder = new();
 		builder.UseNpgsql(options.ConnectionString);
 		return new EventStoreDbContext(builder.Options, table.SchemaName, table.TableName);
 	}

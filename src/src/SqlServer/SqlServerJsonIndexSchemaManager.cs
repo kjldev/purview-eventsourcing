@@ -112,13 +112,13 @@ static partial class SqlServerJsonIndexSchemaManager
 		if (options is null || !options.Enabled || options.Indexes.Length == 0)
 			return Array.Empty<SqlServerJsonIndexDescriptor>().AsReadOnly();
 
-		var errors = new List<string>();
-		var indexNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		var computedColumns = new Dictionary<string, SqlServerJsonComputedColumnDescriptor>(
+		List<string> errors = [];
+		HashSet<string> indexNames = new(StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, SqlServerJsonComputedColumnDescriptor> computedColumns = new(
 			StringComparer.OrdinalIgnoreCase
 		);
-		var logicalKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		var descriptors = new List<SqlServerJsonIndexDescriptor>();
+		HashSet<string> logicalKeys = new(StringComparer.OrdinalIgnoreCase);
+		List<SqlServerJsonIndexDescriptor> descriptors = [];
 
 		for (var i = 0; i < options.Indexes.Length; i++)
 		{
@@ -230,8 +230,8 @@ static partial class SqlServerJsonIndexSchemaManager
 		List<string> errors
 	)
 	{
-		var normalizedIncludeColumns = new List<string>();
-		var seenIncludeColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		List<string> normalizedIncludeColumns = [];
+		HashSet<string> seenIncludeColumns = new(StringComparer.OrdinalIgnoreCase);
 		foreach (var includeColumn in definition.IncludeColumns ?? [])
 		{
 			if (string.IsNullOrWhiteSpace(includeColumn))
@@ -380,7 +380,7 @@ static partial class SqlServerJsonIndexSchemaManager
 		CancellationToken cancellationToken
 	)
 	{
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT COUNT(1)
 			FROM sys.columns c
@@ -407,7 +407,7 @@ static partial class SqlServerJsonIndexSchemaManager
 		CancellationToken cancellationToken
 	)
 	{
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT COUNT(1)
 			FROM sys.indexes i
@@ -435,7 +435,7 @@ static partial class SqlServerJsonIndexSchemaManager
 		try
 		{
 #pragma warning disable CA2100
-			await using var command = new SqlCommand(sql, connection, transaction);
+			await using SqlCommand command = new(sql, connection, transaction);
 #pragma warning restore CA2100
 			await command.ExecuteNonQueryAsync(cancellationToken);
 		}

@@ -88,10 +88,10 @@ public sealed class TableEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 			snapshotStrategy: new IntervalSnapshotStrategy<TAggregate>(snapshotRecalculationInterval)
 		);
 
-		var tableClient = new AzureTableClient(azureStorageOptions, eventStore.TableName);
+		AzureTableClient tableClient = new(azureStorageOptions, eventStore.TableName);
 		TableClient = tableClient;
 
-		var blobClient = new AzureBlobClient(azureStorageOptions, eventStore.ContainerName);
+		AzureBlobClient blobClient = new(azureStorageOptions, eventStore.ContainerName);
 		BlobClient = blobClient;
 
 		_eventStoreAsDisposable = eventStore as IDisposable;

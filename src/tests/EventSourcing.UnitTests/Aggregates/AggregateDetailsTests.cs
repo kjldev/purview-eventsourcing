@@ -8,7 +8,7 @@ public class AggregateDetailsTests
 	public async Task Id_WhenChangedAfterSet_ThrowsIdAlreadySetException()
 	{
 		// Arrange
-		var details = new AggregateDetails { Id = "test-id" };
+		AggregateDetails details = new() { Id = "test-id" };
 
 		// Act
 		string ChangeId() => details.Id = "another-id";
@@ -21,7 +21,7 @@ public class AggregateDetailsTests
 	public async Task Locked_WhenUnlockedAfterBeingLocked_ThrowsLockedException()
 	{
 		// Arrange
-		var details = new AggregateDetails { Id = "test-id", Locked = true };
+		AggregateDetails details = new() { Id = "test-id", Locked = true };
 
 		// Act
 		bool Unlock() => details.Locked = false;
@@ -34,7 +34,7 @@ public class AggregateDetailsTests
 	public async Task Clone_ModifyingClone_DoesNotAffectOriginal()
 	{
 		// Arrange
-		var original = new AggregateDetails
+		AggregateDetails original = new()
 		{
 			Id = "original",
 			SavedVersion = 3,
@@ -59,8 +59,8 @@ public class AggregateDetailsTests
 	public async Task Clone_PreservesUpdatedTimestamp()
 	{
 		// Arrange
-		var expectedUpdated = new DateTimeOffset(2026, 2, 10, 9, 30, 0, TimeSpan.Zero);
-		var original = new AggregateDetails { Id = "original", Updated = expectedUpdated };
+		DateTimeOffset expectedUpdated = new(2026, 2, 10, 9, 30, 0, TimeSpan.Zero);
+		AggregateDetails original = new() { Id = "original", Updated = expectedUpdated };
 
 		// Act
 		var clone = (AggregateDetails)original.Clone();

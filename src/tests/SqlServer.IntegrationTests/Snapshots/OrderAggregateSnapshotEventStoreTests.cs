@@ -14,7 +14,7 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 		var store = fixture.CreateSnapshotStore<OrderAggregate>();
 		var id = Guid.NewGuid().ToString("D");
 
-		var aggregate = new OrderAggregate();
+		OrderAggregate aggregate = new();
 		aggregate.Details.Id = id;
 		aggregate
 			.CreateOrder("customer-1")
@@ -48,7 +48,7 @@ public sealed class OrderAggregateSnapshotEventStoreTests(SqlServerSnapshotEvent
 		var store = fixture.CreateSnapshotStore<OrderAggregate>();
 		var id = Guid.NewGuid().ToString("D");
 
-		var aggregate = new OrderAggregate();
+		OrderAggregate aggregate = new();
 		aggregate.Details.Id = id;
 		aggregate
 			.CreateOrder("customer-1")

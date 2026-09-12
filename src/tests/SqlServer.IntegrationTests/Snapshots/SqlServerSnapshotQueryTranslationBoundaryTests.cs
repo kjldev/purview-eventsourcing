@@ -12,7 +12,7 @@ public sealed class SqlServerSnapshotQueryTranslationBoundaryTests(SqlServerSnap
 	public async Task QueryAsync_GivenPrimitiveScalarValueObjectMembers_Translates(CancellationToken cancellationToken)
 	{
 		var store = fixture.CreateSnapshotStore<CustomerAggregate>();
-		var customer = new CustomerAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		CustomerAggregate customer = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		customer.RegisterCustomer("Jane Smith", "jane@test.com");
 		customer.ChangeEmail("updated@test.com");
 
@@ -33,7 +33,7 @@ public sealed class SqlServerSnapshotQueryTranslationBoundaryTests(SqlServerSnap
 	public async Task QueryAsync_GivenNonScalarValueObjectMembers_Translates(CancellationToken cancellationToken)
 	{
 		var store = fixture.CreateSnapshotStore<SnapshotValueObjectsAggregate>();
-		var aggregate = new SnapshotValueObjectsAggregate();
+		SnapshotValueObjectsAggregate aggregate = new();
 		aggregate.Details.Id = Guid.NewGuid().ToString("D");
 		aggregate.CaptureUserDetails(
 			UserDetails.Create(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Jane Snapshot", true),
@@ -57,7 +57,7 @@ public sealed class SqlServerSnapshotQueryTranslationBoundaryTests(SqlServerSnap
 	public async Task QueryAsync_GivenDirectlyMappedComplexNestedMembers_Translates(CancellationToken cancellationToken)
 	{
 		var store = fixture.CreateSnapshotStore<PersistenceAggregate>();
-		var aggregate = new PersistenceAggregate { Details = { Id = Guid.NewGuid().ToString("D") } };
+		PersistenceAggregate aggregate = new() { Details = { Id = Guid.NewGuid().ToString("D") } };
 		aggregate.SetComplexProperty(
 			new Aggregates.ComplexTestType
 			{

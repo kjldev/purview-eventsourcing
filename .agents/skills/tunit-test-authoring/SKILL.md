@@ -67,13 +67,47 @@ All assertion extensions live under `Purview.SourceGeneratorFramework.Testing.TU
 (globally imported by the package's props). `Assert.That(...)` calls are terminal and **return the value**
 when awaited.
 
-- **`CodeQueryAssertions`** — return syntax nodes: `HasGeneratedMethod` (optionally with
-  `TypeReference[]` parameter types), `HasGeneratedMethodReturnType`, `HasGeneratedClass`,
+- **`CodeQueryAssertions`** — return `CodeQueryResult<T>` (the matched node via `.Node`, plus a query
+  scoped to it via `.Query`): `HasGeneratedMethod` (optionally with `TypeReference[]` parameter types),
+  `HasGeneratedMethodReturnType`, `HasGeneratedClass` (by name or `TypeReference`/`TypeIdentity` identity),
   `HasGeneratedProperty`, `HasGeneratedField`, `HasGeneratedSyntaxTree`; `HasFixedMethod` for code-fix and
-  refactor results.
+  refactor results. The assertions operate on a `CodeQuery` directly, so pass any query — `result.Generated()`
+  (generated trees), `result.Output()` (whole compilation), or `result.FixedCode()` — or use the convenience
+  overloads on the test result types, which query the relevant code for you.
+- **Scoped member chaining** — `HasPropertyOfType(name, type)`, `HasFieldOfType(name, type)`,
+  `HasMethodOfType(name, TypeReference[])`, `HasConstructorOfType(TypeReference[])`, and
+  `HasAttributeOfType(name)` chain from a scoped `CodeQueryResult<T>` (e.g. the result of `HasGeneratedClass`)
+  and return the matched member. They are named to avoid colliding with the bool `Has*` predicates in
+  `MemberQueryExtensions`.
+- **Fluent `.And` chains** — the node-producing assertions (`HasGeneratedClass`, `HasPropertyOfType`,
+  `HasMethodOfType`, `HasNestedType`) move the chain onto the matched node, so further assertions can be
+  appended with `.And`. Node-inspection assertions — `WithAccessibility`, `WithGetterAccessibility`,
+  `WithSetterAccessibility`, `WithBaseType`, `WithGenericTypeParameter(s)`, `IsInNamespace`,
+  `IsInGlobalNamespace` — keep the node on the chain:
   ```csharp
-  MethodDeclarationSyntax method = await Assert.That(result).HasGeneratedMethod("DoWork", [intType, nullableInt]);
-  ClassDeclarationSyntax cls = await Assert.That(result).HasGeneratedClass("Service");
+  var method = await Assert.That(query)
+      .HasGeneratedClass("Service")
+      .And.HasNestedType("Builder")
+      .And.WithAccessibility(Accessibility.Private)
+      .And.HasMethodOfType("Build", []);
+  ```
+  Generic types are matched by arity — `HasGeneratedClass(name, arity)` or a `TypeIdentity` with arity —
+  so `new TypeIdentity("ResourceDefinition", ns, arity: 1)` finds `ResourceDefinition<TResourceType>`
+  without matching the non-generic `ResourceDefinition`.
+- **Nullable expected types in tests** — use the test-only `query.MakeNullable(type)` extension (on a
+  `CodeQuery`). It resolves the annotation against the query's compilation and, unlike
+  `TypeReference.Nullable()`/`TypeIdentity.MakeNullable()`, does not trip the `PSGFR16` context-overload
+  suggestion, since tests have no generation context to pass.
+  ```csharp
+  CodeQueryResult<MethodDeclarationSyntax> method = await Assert.That(result.Generated()).HasGeneratedMethod("DoWork", [intType, nullableInt]);
+  CodeQueryResult<ClassDeclarationSyntax> cls = await Assert.That(result.Generated()).HasGeneratedClass("Service");
+  await Assert.That(cls.HasProperty("Count", intType)).IsTrue();           // chained member query
+  await Assert.That(cls.Node.Identifier.ValueText).IsEqualTo("Service");   // direct syntax access
+  await Assert.That(result.FixedCode()).HasFixedMethod("DoWork");          // code-fix / refactor results
+
+  var query = result.Generated();
+  var attributeClass = await Assert.That(query).HasGeneratedClass(hostKitAttribute);
+  await Assert.That(attributeClass).HasPropertyOfType("Name", query.MakeNullable(TypeLibrary.System.String));
   ```
 - **`DiagnosticAssertions`** — `HasDiagnostic(descriptor|id)`, `HasDiagnostics(count)`,
   `DoesNotHaveDiagnostic`, `HasNoDiagnostics`, `HasNoErrorDiagnostics` on generator/analyzer/code-fix results.

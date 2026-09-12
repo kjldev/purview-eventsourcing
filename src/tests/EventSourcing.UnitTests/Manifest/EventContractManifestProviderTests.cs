@@ -10,7 +10,7 @@ public sealed class EventContractManifestProviderTests
 	[Test]
 	public async Task GetAsync_GivenNoBaseline_ReportsNotConfigured(CancellationToken cancellationToken)
 	{
-		var provider = new EventContractManifestProvider(1, ManifestJson, baselineJson: null);
+		EventContractManifestProvider provider = new(1, ManifestJson, baselineJson: null);
 
 		var info = await provider.GetAsync(cancellationToken);
 
@@ -22,7 +22,7 @@ public sealed class EventContractManifestProviderTests
 	[Test]
 	public async Task GetAsync_GivenMatchingBaseline_ReportsCompatible(CancellationToken cancellationToken)
 	{
-		var provider = new EventContractManifestProvider(1, ManifestJson, baselineJson: ManifestJson);
+		EventContractManifestProvider provider = new(1, ManifestJson, baselineJson: ManifestJson);
 
 		var info = await provider.GetAsync(cancellationToken);
 
@@ -35,7 +35,7 @@ public sealed class EventContractManifestProviderTests
 		const string changedManifest =
 			/*lang=json,strict*/
 			"""{"formatVersion":1,"aggregates":[{"name":"OrderAggregate","namespace":"Testing","events":[]}]}""";
-		var provider = new EventContractManifestProvider(1, ManifestJson, baselineJson: changedManifest);
+		EventContractManifestProvider provider = new(1, ManifestJson, baselineJson: changedManifest);
 
 		var info = await provider.GetAsync(cancellationToken);
 
@@ -45,7 +45,7 @@ public sealed class EventContractManifestProviderTests
 	[Test]
 	public async Task AddEventContractManifest_RegistersProvider(CancellationToken cancellationToken)
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventContractManifest(1, ManifestJson, baselineJson: ManifestJson);
 
 		using var provider = services.BuildServiceProvider();

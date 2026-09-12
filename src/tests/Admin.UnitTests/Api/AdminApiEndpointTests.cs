@@ -11,16 +11,16 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Purview.EventSourcing.Admin.Abstractions.Models;
 using Purview.EventSourcing.Admin.Abstractions.Queries;
 using Purview.EventSourcing.Admin.Abstractions.Services;
-using Purview.EventSourcing.Admin.Security;
 
 namespace Purview.EventSourcing.Admin.API;
 
-public sealed class AdminApiEndpointTests
+public sealed class AdminAPIEndpointTests
 {
 	[Test]
 	public async Task HostPolicyOverride_IsEnforced(CancellationToken cancellationToken)
@@ -95,7 +95,7 @@ public sealed class AdminApiEndpointTests
 	}
 
 	[Test]
-	public async Task OpenApiDocument_ContainsOnlyAdminPathsAndBearerSecurity(CancellationToken cancellationToken)
+	public async Task OpenAPIDocument_ContainsOnlyAdminPathsAndBearerSecurity(CancellationToken cancellationToken)
 	{
 		await using var host = await AdminTestHost.CreateAsync();
 		var client = host.Client;
@@ -194,7 +194,7 @@ public sealed class AdminApiEndpointTests
 		);
 
 		await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-		await Assert.That(host.AggregateQueryService.LastQuery?.PageSize).IsEqualTo(500);
+		await Assert.That(host.AggregateQueryService.LastQuery?.PageSize).IsEqualTo(200);
 	}
 
 	[Test]
@@ -390,12 +390,12 @@ sealed class AdminTestHost : IAsyncDisposable
 		var builder = WebApplication.CreateBuilder();
 		builder.Logging.ClearProviders();
 
-		builder.Services.AddPurviewEventSourcingAdminApi(options =>
+		builder.AddPurviewEventSourcingAdminAPI(options =>
 		{
 			options.Features.ExportEvents = true;
 			configureAdmin?.Invoke(options);
 		});
-		builder.Services.AddPurviewEventSourcingAdminOpenApi();
+		builder.AddPurviewEventSourcingAdminOpenAPI();
 		builder
 			.Services.AddAuthentication(TestAuthHandler.SchemeName)
 			.AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, null);
@@ -403,7 +403,7 @@ sealed class AdminTestHost : IAsyncDisposable
 		configureAuthorization?.Invoke(authorization);
 		builder.Services.AddPurviewEventSourcingAdminSecurity(permissionProvider ?? new AllowAllPermissionProvider());
 
-		var aggregateQueryService = new RecordingAggregateQueryService();
+		RecordingAggregateQueryService aggregateQueryService = new();
 		builder.Services.AddSingleton<IAdminAggregateQueryService>(aggregateQueryService);
 		builder.Services.AddSingleton<IAdminEventQueryService, RecordingEventQueryService>();
 		builder.Services.AddSingleton<IAdminProjectionService, RecordingProjectionService>();
@@ -421,7 +421,7 @@ sealed class AdminTestHost : IAsyncDisposable
 		var addresses = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
 		var baseAddress = addresses!.Addresses.First();
 
-		var client = new HttpClient { BaseAddress = new Uri(baseAddress) };
+		HttpClient client = new() { BaseAddress = new Uri(baseAddress) };
 		return new AdminTestHost(app, client, aggregateQueryService);
 	}
 
@@ -444,7 +444,7 @@ sealed class TestAuthHandler(
 
 	protected override Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
-		var principal = new ClaimsPrincipal(new ClaimsIdentity(SchemeName));
+		ClaimsPrincipal principal = new(new ClaimsIdentity(SchemeName));
 		return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, SchemeName)));
 	}
 }
@@ -517,7 +517,7 @@ sealed class RecordingAggregateQueryService : IAdminAggregateQueryService
 	)
 	{
 		LastQuery = query;
-		var item = new AggregateSummaryResponse(
+		AggregateSummaryResponse item = new(
 			query.AggregateType ?? "order",
 			query.AggregateId ?? "order-1",
 			3,
@@ -556,7 +556,7 @@ sealed class RecordingEventQueryService : IAdminEventQueryService
 		CancellationToken cancellationToken
 	)
 	{
-		var envelope = new EventEnvelopeResponse(
+		EventEnvelopeResponse envelope = new(
 			aggregateType,
 			aggregateId,
 			new EventMetadataResponse(

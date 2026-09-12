@@ -98,7 +98,7 @@ static class CosmosDbUtilities
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var memoryStream = new MemoryStream();
+			MemoryStream memoryStream = new();
 			await EventStoreSerializationHelpers.SerializeAsync(
 				memoryStream,
 				documentResponse,
@@ -133,7 +133,7 @@ static class CosmosDbUtilities
 			if (IsIdDefinedAtTopLevel)
 				return document;
 
-			var documentResponse = new ExpandoObject();
+			ExpandoObject documentResponse = new();
 			documentResponse.TryAdd(IdPropertyName, GetId(document));
 
 			object? currentItem;

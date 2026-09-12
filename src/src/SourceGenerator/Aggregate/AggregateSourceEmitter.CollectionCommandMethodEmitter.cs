@@ -234,7 +234,7 @@ static partial class AggregateSourceEmitter
 					: TypeLibrary
 						.System.Collections.Generic.IEnumerable.MakeGeneric(collectionEvent.ElementType)
 						.AsTypeReference();
-			var normalizingParam = new ParameterDeclarationOptions(parameter.ParameterName, normalizeValidateType)
+			ParameterDeclarationOptions normalizingParam = new(parameter.ParameterName, normalizeValidateType)
 			{
 				Modifier = ParameterModifier.Ref,
 			};

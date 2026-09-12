@@ -299,7 +299,7 @@ sealed class PostgresEventStoreTransaction(string? correlationId = null) : IPost
 		Exception? failure
 	)
 	{
-		var rollbackResults = new List<TransactionAggregateResult>(processed.Count + 1);
+		List<TransactionAggregateResult> rollbackResults = new(processed.Count + 1);
 		var rollbackError =
 			failure
 			?? new InvalidOperationException(

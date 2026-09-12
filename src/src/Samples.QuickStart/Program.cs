@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Purview.EventSourcing.Samples.Domain;
 using Purview.EventSourcing.Samples.QuickStart.Infrastructure;
 
@@ -7,7 +7,7 @@ EventStoreOperationContext.RequiresValidPrincipalIdentifierDefault = false;
 using CancellationTokenSource cts = new();
 Console.CancelKeyPress += (_, _) => cts.Cancel();
 
-var services = new ServiceCollection();
+ServiceCollection services = new();
 services.AddEventSourcing();
 services.AddSingleton<InMemoryFailurePlan>();
 services.AddSingleton(typeof(IQueryableEventStoreCore<>), typeof(InMemoryTransactionalEventStore<>));

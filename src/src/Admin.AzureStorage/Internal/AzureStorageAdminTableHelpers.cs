@@ -12,7 +12,7 @@ static class AzureStorageAdminTableHelpers
 	{
 		ArgumentNullException.ThrowIfNull(options);
 
-		var tableOptions = new TableClientOptions();
+		TableClientOptions tableOptions = new();
 		if (options.TimeoutInSeconds is > 0)
 			tableOptions.Retry.NetworkTimeout = TimeSpan.FromSeconds(options.TimeoutInSeconds.Value);
 
@@ -41,7 +41,7 @@ static class AzureStorageAdminTableHelpers
 			var normalized = aggregateType.Trim();
 			var directCandidates = new[] { $"{options.Table}{normalized}", $"{options.Table}{normalized}Aggregate" };
 
-			var matched = new List<string>();
+			List<string> matched = [];
 			foreach (var candidate in directCandidates.Distinct(StringComparer.OrdinalIgnoreCase))
 			{
 				var exists = await TableExistsAsync(tableServiceClient, candidate, cancellationToken);
@@ -53,7 +53,7 @@ static class AzureStorageAdminTableHelpers
 				return matched;
 		}
 
-		var names = new List<string>();
+		List<string> names = [];
 		await foreach (
 			var table in tableServiceClient.QueryAsync(filter: (string?)null, maxPerPage: 100, cancellationToken)
 		)

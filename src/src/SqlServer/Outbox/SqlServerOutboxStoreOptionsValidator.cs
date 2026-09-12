@@ -8,8 +8,8 @@ sealed class SqlServerOutboxStoreOptionsValidator : IValidateOptions<SqlServerOu
 	public ValidateOptionsResult Validate(string? name, SqlServerOutboxStoreOptions options)
 	{
 		ArgumentNullException.ThrowIfNull(options);
-		var validationContext = new ValidationContext(options);
-		var validationResults = new List<ValidationResult>();
+		ValidationContext validationContext = new(options);
+		List<ValidationResult> validationResults = [];
 		if (!Validator.TryValidateObject(options, validationContext, validationResults, validateAllProperties: true))
 			return ValidateOptionsResult.Fail(
 				validationResults.Select(static x => x.ErrorMessage ?? "Options validation failed.")

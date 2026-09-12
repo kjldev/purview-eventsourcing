@@ -4,55 +4,62 @@
 		<!-- Keep compiler-facing Roslyn packages aligned with the minimum SDK pinned in global.json so analyser ProjectReferences load on build machines. -->
 		<RoslynCompilerVersion>5.9.0</RoslynCompilerVersion>
 		<RoslynAnalyzersVersion>5.9.0</RoslynAnalyzersVersion>
-		<TUnitVersion>1.65.68</TUnitVersion>
-		<PurviewSGFrameworkVersion>1.0.0-prerelease.37</PurviewSGFrameworkVersion>
-		<PurviewZodSharpVersion>2.0.0-prerelease.3</PurviewZodSharpVersion>
+		<TUnitVersion>1.67.0</TUnitVersion>
+		<PurviewSGFrameworkVersion>1.0.0-prerelease.39</PurviewSGFrameworkVersion>
+		<PurviewZodSharpVersion>2.0.0-prerelease.5</PurviewZodSharpVersion>
+		<TestcontainersVersion>4.15.0</TestcontainersVersion>
+		<DotnetRuntimeVersion>10.0.12</DotnetRuntimeVersion>
+		<AspireVersion>13.5.3</AspireVersion>
+		<OTelVersion>1.18.0</OTelVersion>
+		<MSExtensionVersion>10.10.0</MSExtensionVersion>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.5.3" />
+		<PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="$(AspireVersion)" />
 		<PackageVersion Include="AspireC4.Hosting" Version="13.3.5" />
 		<PackageVersion Include="Bogus" Version="35.6.5" />
 		<PackageVersion Include="LinqKit" Version="1.3.11" />
 		<PackageVersion Include="FluentValidation" Version="12.1.1" />
-		<PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
+		<PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Http" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Logging" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Options" Version="$(DotnetRuntimeVersion)" />
 		<PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
-		<PackageVersion Include="Purview.Aspire.ResourceKit" Version="1.0.0-prerelease.24" />
+		<PackageVersion Include="Purview.Aspire.ResourceKit" Version="1.0.0-prerelease.25" />
 		<PackageVersion Include="Purview.SourceGeneratorFramework" Version="$(PurviewSGFrameworkVersion)" />
 		<PackageVersion
 			Include="Purview.SourceGeneratorFramework.Testing.TUnit"
 			Version="$(PurviewSGFrameworkVersion)"
 		/>
-		<PackageVersion Include="Purview.Telemetry.SourceGenerator" Version="5.0.0-prerelease.6" />
+		<PackageVersion Include="Purview.Telemetry.SourceGenerator" Version="5.0.0-prerelease.7" />
 		<PackageVersion Include="Purview.ZodSharp" Version="$(PurviewZodSharpVersion)" />
 		<PackageVersion Include="Purview.ZodSharp.AspNetCore" Version="$(PurviewZodSharpVersion)" />
 		<PackageVersion Include="Purview.ZodSharp.SystemTextJson" Version="$(PurviewZodSharpVersion)" />
-		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.400" />
+		<PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynAnalyzersVersion)" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynCompilerVersion)" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynCompilerVersion)" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynCompilerVersion)" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynCompilerVersion)" />
-		<PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.9.0" />
-		<PackageVersion Include="Testcontainers.Azurite" Version="4.14.0" />
-		<PackageVersion Include="Testcontainers.CosmosDb" Version="4.14.0" />
-		<PackageVersion Include="Testcontainers.MongoDb" Version="4.14.0" />
-		<PackageVersion Include="Testcontainers.MsSql" Version="4.14.0" />
-		<PackageVersion Include="Testcontainers.PostgreSql" Version="4.14.0" />
+		<PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion
+			Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+			Version="$(DotnetRuntimeVersion)"
+		/>
+		<PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MSExtensionVersion)" />
+		<PackageVersion Include="Testcontainers.Azurite" Version="$(TestcontainersVersion)" />
+		<PackageVersion Include="Testcontainers.CosmosDb" Version="$(TestcontainersVersion)" />
+		<PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersVersion)" />
+		<PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersVersion)" />
+		<PackageVersion Include="Testcontainers.PostgreSql" Version="$(TestcontainersVersion)" />
 		<PackageVersion Include="TUnit" Version="$(TUnitVersion)" />
 		<PackageVersion Include="TUnit.Aspire" Version="$(TUnitVersion)" />
 		<PackageVersion Include="TUnit.Assertions" Version="$(TUnitVersion)" />
@@ -60,33 +67,33 @@
 		<PackageVersion Include="TUnit.Mocks" Version="$(TUnitVersion)" />
 		<PackageVersion Include="Azure.Storage.Blobs" Version="12.29.2" />
 		<PackageVersion Include="Azure.Data.Tables" Version="12.12.0" />
-		<PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.62.1" />
+		<PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.63.0" />
 		<PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-		<PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+		<PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.3" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(DotnetRuntimeVersion)" />
 		<PackageVersion Include="Npgsql" Version="10.0.3" />
 		<PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
-		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
-		<PackageVersion Include="MongoDB.Driver" Version="3.11.1" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(DotnetRuntimeVersion)" />
+		<PackageVersion Include="MongoDB.Driver" Version="3.11.2" />
 		<!-- Aspire -->
-		<PackageVersion Include="Aspire.Hosting" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Hosting.Testing" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Hosting.MongoDB" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Npgsql" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Hosting.Redis" Version="13.5.3" />
-		<PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.5.3" />
-		<PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.5.3" />
+		<PackageVersion Include="Aspire.Hosting" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Hosting.Testing" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Hosting.MongoDB" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Npgsql" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Hosting.Redis" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
+		<PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="$(AspireVersion)" />
 		<!-- Service Discovery -->
-		<PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.9.0" />
+		<PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MSExtensionVersion)" />
 		<!-- OpenTelemetry -->
-		<PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
-		<PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
-		<PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
-		<PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+		<PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OTelVersion)" />
+		<PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OTelVersion)" />
+		<PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OTelVersion)" />
+		<PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OTelVersion)" />
 	</ItemGroup>
 </Project>

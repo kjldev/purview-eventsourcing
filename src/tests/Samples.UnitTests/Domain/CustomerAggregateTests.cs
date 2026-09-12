@@ -4,7 +4,7 @@ public sealed partial class CustomerAggregateTests
 {
 	static CustomerAggregate CreateCustomer(string? id = null)
 	{
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		if (id is not null)
 			customer.Details.Id = id;
 		return customer;

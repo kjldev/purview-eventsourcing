@@ -51,7 +51,7 @@ public static class AdminAggregatesEndpoints
 				(routeHandlerContext, next) =>
 				{
 					var factory = routeHandlerContext.ApplicationServices.GetRequiredService<IZodSchemaFactory>();
-					var filter = new ZodSchemaValidationEndpointFilter<AggregateSearchRequest>(
+					ZodSchemaValidationEndpointFilter<AggregateSearchRequest> filter = new(
 						factory,
 						request =>
 							AdminContractRefinements.InvalidTimeRange(
@@ -110,10 +110,7 @@ public static class AdminAggregatesEndpoints
 				(routeHandlerContext, next) =>
 				{
 					var factory = routeHandlerContext.ApplicationServices.GetRequiredService<IZodSchemaFactory>();
-					var filter = new ZodSchemaValidationEndpointFilter<EventRangeRequest>(
-						factory,
-						RefineEventRangeRequest
-					);
+					ZodSchemaValidationEndpointFilter<EventRangeRequest> filter = new(factory, RefineEventRangeRequest);
 					return invocation => filter.InvokeAsync(invocation, next);
 				}
 			);
@@ -187,10 +184,7 @@ public static class AdminAggregatesEndpoints
 				(routeHandlerContext, next) =>
 				{
 					var factory = routeHandlerContext.ApplicationServices.GetRequiredService<IZodSchemaFactory>();
-					var filter = new ZodSchemaValidationEndpointFilter<EventRangeRequest>(
-						factory,
-						RefineEventRangeRequest
-					);
+					ZodSchemaValidationEndpointFilter<EventRangeRequest> filter = new(factory, RefineEventRangeRequest);
 					return invocation => filter.InvokeAsync(invocation, next);
 				}
 			);
@@ -205,7 +199,7 @@ public static class AdminAggregatesEndpoints
 	{
 		var pageSize = ClampPageSize(request.PageSize, options.Value.Paging.MaxPageSize);
 
-		var query = new AggregateSearchQuery(
+		AggregateSearchQuery query = new(
 			request.AggregateType,
 			request.AggregateId,
 			request.FromUtc,
@@ -251,7 +245,7 @@ public static class AdminAggregatesEndpoints
 		if (routeValidation is not null)
 			return routeValidation;
 
-		var query = new EventRangeQuery(
+		EventRangeQuery query = new(
 			request.VersionFrom,
 			request.VersionTo,
 			request.TimeFromUtc,
@@ -372,7 +366,7 @@ public static class AdminAggregatesEndpoints
 		if (firstPage is null)
 			return TypedResults.NotFound();
 
-		var stream = new MemoryStream();
+		MemoryStream stream = new();
 		await using (
 			var writer = new StreamWriter(
 				stream,
@@ -457,7 +451,7 @@ public static class AdminAggregatesEndpoints
 
 	static ValidationProblem? ValidateRouteParameters(string aggregateType, string aggregateId)
 	{
-		var errors = new Dictionary<string, string[]>();
+		Dictionary<string, string[]> errors = [];
 		if (string.IsNullOrWhiteSpace(aggregateType) || aggregateType.Length > 256)
 			errors["aggregateType"] = ["aggregateType must be a non-empty value of at most 256 characters."];
 

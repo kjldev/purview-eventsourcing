@@ -202,7 +202,7 @@ partial class PostgresEventStore<T>
 			var now = DateTimeOffset.UtcNow;
 
 			var streamVersionId = streamEntity?.Id ?? CreateStreamVersionId(aggregate.Id());
-			var streamVersionRow = new PostgresEventStoreClient.RowData
+			PostgresEventStoreClient.RowData streamVersionRow = new()
 			{
 				Id = streamVersionId,
 				EntityType = StreamVersionType,

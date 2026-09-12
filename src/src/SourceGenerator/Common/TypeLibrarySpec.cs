@@ -68,10 +68,10 @@ static partial class TypeLibrarySpec
 	[TypeRef("Purview.EventSourcing.Serialization")]
 	static readonly TypeIdentity ValueObjectDeserializationMode = default;
 
-	[TypeRef(typeof(System.AttributeUsageAttribute))]
+	[TypeRef(typeof(AttributeUsageAttribute))]
 	static readonly TypeIdentity AttributeUsageAttribute = default;
 
-	[TypeRef(typeof(System.AttributeTargets))]
+	[TypeRef(typeof(AttributeTargets))]
 	static readonly TypeIdentity AttributeTargets = default;
 
 	[TypeRef("System")]

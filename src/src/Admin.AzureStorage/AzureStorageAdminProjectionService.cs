@@ -76,9 +76,9 @@ public sealed class AzureStorageAdminProjectionService(IOptions<AzureStorageEven
 		if (events.Count == 0)
 			return null;
 
-		var appliedVersions = new List<long>();
-		var skippedVersions = new List<long>();
-		var projectedState = new Dictionary<string, object>();
+		List<long> appliedVersions = [];
+		List<long> skippedVersions = [];
+		Dictionary<string, object> projectedState = [];
 
 		foreach (var item in events.OrderBy(x => x.Version))
 		{
@@ -149,7 +149,7 @@ public sealed class AzureStorageAdminProjectionService(IOptions<AzureStorageEven
 			cancellationToken
 		);
 
-		var rows = new List<(long Version, EventEntity Event)>();
+		List<(long Version, EventEntity Event)> rows = [];
 		foreach (var tableName in tableNames)
 		{
 			var table = AzureStorageAdminTableHelpers.CreateTableClient(tableService, tableName);

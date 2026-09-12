@@ -56,6 +56,7 @@ pipeline-release *args:
 [group('Pipeline')]
 pipeline-local-release *args:
     just ensure-pipeline-tool
+    just lint-fix
     echo "Running local release pipeline..."
     "{{ pipeline_tool }}" --Release:Mode=LocalNuGet {{ args }}
 
@@ -145,3 +146,11 @@ lint-fix:
 [group('Utilities')]
 lint-check:
     dotnet csharpier check .
+
+# Clean up the repository by removing build artifacts, bin/obj folders etc, and shutting down the build server
+[group('Utilities')]
+scrub:
+    find . -type d \( -name bin -o -name obj \) -exec rm -rf {} +
+    just clean
+    just restore --force-evaluate
+    dotnet build-server shutdown

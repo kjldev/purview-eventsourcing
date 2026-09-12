@@ -6,7 +6,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_HasRecords_GivenEmptyResults_ReturnsFalse()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string> { Results = [], RequestedCount = 10 };
+		ContinuationResponse<string> response = new() { Results = [], RequestedCount = 10 };
 
 		// Assert
 		await Assert.That(response.HasRecords).IsFalse();
@@ -16,7 +16,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_HasRecords_GivenResults_ReturnsTrue()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string> { Results = ["item1", "item2"], RequestedCount = 10 };
+		ContinuationResponse<string> response = new() { Results = ["item1", "item2"], RequestedCount = 10 };
 
 		// Assert
 		await Assert.That(response.HasRecords).IsTrue();
@@ -26,7 +26,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_HasMoreRecords_GivenContinuationToken_ReturnsTrue()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
+		ContinuationResponse<string> response = new()
 		{
 			Results = ["item1"],
 			RequestedCount = 1,
@@ -41,7 +41,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_HasMoreRecords_GivenNoContinuationToken_ReturnsFalse()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
+		ContinuationResponse<string> response = new()
 		{
 			Results = ["item1"],
 			RequestedCount = 10,
@@ -56,7 +56,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_ToRequest_CreatesRequestWithTokenAndCount()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
+		ContinuationResponse<string> response = new()
 		{
 			Results = ["item"],
 			RequestedCount = 25,
@@ -75,7 +75,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_HasMoreRecords_GivenEmptyStringToken_ReturnsFalse()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
+		ContinuationResponse<string> response = new()
 		{
 			Results = ["item1"],
 			RequestedCount = 10,
@@ -90,7 +90,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_HasMoreRecords_GivenWhitespaceToken_ReturnsFalse()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
+		ContinuationResponse<string> response = new()
 		{
 			Results = ["item1"],
 			RequestedCount = 10,
@@ -105,7 +105,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_Convert_MapsResultsCorrectly()
 	{
 		// Arrange
-		var response = new ContinuationResponse<int>
+		ContinuationResponse<int> response = new()
 		{
 			Results = [1, 2, 3],
 			RequestedCount = 10,
@@ -128,7 +128,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_Convert_PreservesTotalCount()
 	{
 		// Arrange
-		var response = new ContinuationResponse<int>
+		ContinuationResponse<int> response = new()
 		{
 			Results = [1, 2],
 			RequestedCount = 10,
@@ -147,7 +147,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_Convert_TransformsType()
 	{
 		// Arrange
-		var response = new ContinuationResponse<int> { Results = [100, 200, 300], RequestedCount = 10 };
+		ContinuationResponse<int> response = new() { Results = [100, 200, 300], RequestedCount = 10 };
 
 		// Act
 		var converted = response.Convert(i => $"Value-{i}");
@@ -163,7 +163,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_Convert_GivenEmptyResults_ReturnsEmptyConverted()
 	{
 		// Arrange
-		var response = new ContinuationResponse<int>
+		ContinuationResponse<int> response = new()
 		{
 			Results = [],
 			RequestedCount = 10,
@@ -182,7 +182,7 @@ public class ContinuationTests
 	public async Task ContinuationResponse_ImplicitCastToRequest_CreatesRequest()
 	{
 		// Arrange
-		var response = new ContinuationResponse<string>
+		ContinuationResponse<string> response = new()
 		{
 			Results = ["item"],
 			RequestedCount = 50,

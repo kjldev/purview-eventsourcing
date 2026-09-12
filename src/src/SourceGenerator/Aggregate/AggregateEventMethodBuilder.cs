@@ -22,7 +22,7 @@ static class AggregateEventMethodBuilder
 		string? aggregateEventNamespaceOverride,
 		string? aggregateEventSuffixOverride,
 		string? assemblyEventSuffix,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		CancellationToken cancellationToken,
 		out AggregateEventMethodInfo methodInfo
 	)
@@ -43,8 +43,9 @@ static class AggregateEventMethodBuilder
 		if (eventAttribute.Exists && collectionEventAttribute.Exists)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.UnsupportedEventMethodSignature,
+					isBlocking: false,
 					methodSymbol,
 					methodSymbol.Name,
 					$"methods cannot combine [{TypeLibrary.Purview.EventSourcing.Aggregates.EventAttribute.RenderTypeName}] and [{TypeLibrary.Purview.EventSourcing.Aggregates.CollectionEventAttribute.RenderTypeName}]"
@@ -56,7 +57,12 @@ static class AggregateEventMethodBuilder
 		if (!methodSymbol.IsPartialDefinition)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(DiagnosticLibrary.EventMethodMustBePartial, methodSymbol, methodSymbol.Name)
+				ReportableDiagnostic.Create(
+					DiagnosticLibrary.EventMethodMustBePartial,
+					isBlocking: false,
+					methodSymbol,
+					methodSymbol.Name
+				)
 			);
 
 			return false;
@@ -77,8 +83,9 @@ static class AggregateEventMethodBuilder
 		if (version < 1)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventSchemaVersionMustBePositive,
+					isBlocking: false,
 					methodSymbol,
 					methodSymbol.Name,
 					methodSymbol.ContainingType.Name,
@@ -180,7 +187,7 @@ static class AggregateEventMethodBuilder
 		INamedTypeSymbol classSymbol,
 		IMethodSymbol methodSymbol,
 		bool isCollectionEvent,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		out TypeReference returnType,
 		out EventMethodReturnKind returnKind
 	)
@@ -192,8 +199,9 @@ static class AggregateEventMethodBuilder
 		void ReportUnsupportedSignature(string reason)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.UnsupportedEventMethodSignature,
+					isBlocking: false,
 					methodSymbol,
 					methodSymbol.Name,
 					reason
@@ -205,8 +213,9 @@ static class AggregateEventMethodBuilder
 		if (methodSymbol.DeclaredAccessibility == Accessibility.Public && !EventVerbMap.IsVerbPhrase(methodSymbol.Name))
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.AggregateMethodShouldBeVerbPhrase,
+					isBlocking: false,
 					methodSymbol,
 					methodSymbol.Name
 				)
@@ -382,7 +391,7 @@ static class AggregateEventMethodBuilder
 		Dictionary<string, IPropertySymbol> propertySymbolsByName,
 		Compilation compilation,
 		INamedTypeSymbol? valueObjectContextType,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		CancellationToken cancellationToken,
 		out ImmutableArray<EventPropertyInfo> allParameters,
 		out ImmutableArray<EventPropertyInfo> eventParameters,
@@ -486,7 +495,7 @@ static class AggregateEventMethodBuilder
 		Dictionary<string, IPropertySymbol> propertySymbolsByName,
 		Compilation compilation,
 		INamedTypeSymbol? valueObjectContextType,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		out EventPropertyInfo propertyInfo
 	)
 	{
@@ -507,8 +516,9 @@ static class AggregateEventMethodBuilder
 			if (isComputedParameter)
 			{
 				diagnostics.Add(
-					DiagnosticInfo.Create(
+					ReportableDiagnostic.Create(
 						DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+						isBlocking: false,
 						parameter,
 						parameter.Name,
 						methodSymbol.Name,
@@ -568,8 +578,9 @@ static class AggregateEventMethodBuilder
 		if (!propertySymbolsByName.TryGetValue(aggregatePropertyName, out var propertySymbol))
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+					isBlocking: false,
 					parameter,
 					parameter.Name,
 					methodSymbol.Name,
@@ -583,8 +594,9 @@ static class AggregateEventMethodBuilder
 		if (propertySymbol.SetMethod is null)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+					isBlocking: false,
 					parameter,
 					parameter.Name,
 					methodSymbol.Name,
@@ -598,8 +610,9 @@ static class AggregateEventMethodBuilder
 		if (propertySymbol.SetMethod.IsInitOnly)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+					isBlocking: false,
 					parameter,
 					parameter.Name,
 					methodSymbol.Name,
@@ -621,8 +634,9 @@ static class AggregateEventMethodBuilder
 		if (conversionKind is null)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+					isBlocking: false,
 					parameter,
 					parameter.Name,
 					methodSymbol.Name,
@@ -641,8 +655,9 @@ static class AggregateEventMethodBuilder
 		)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterNullabilityMismatch,
+					isBlocking: false,
 					parameter,
 					parameter.Name,
 					methodSymbol.Name,
@@ -679,7 +694,7 @@ static class AggregateEventMethodBuilder
 		string eventSuffix,
 		bool hasExplicitEventName,
 		string eventName,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		out string resolvedEventName
 	)
 	{
@@ -690,8 +705,9 @@ static class AggregateEventMethodBuilder
 			if (!EventVerbMap.IsPastTenseEventName(resolvedEventName))
 			{
 				diagnostics.Add(
-					DiagnosticInfo.Create(
+					ReportableDiagnostic.Create(
 						DiagnosticLibrary.EventNameOverrideShouldBePastTense,
+						isBlocking: false,
 						methodSymbol,
 						resolvedEventName,
 						methodSymbol.Name
@@ -706,8 +722,9 @@ static class AggregateEventMethodBuilder
 				: $"Create{TrimAggregateSuffix(classSymbol.Name)}";
 
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.UnableToInferEventName,
+					isBlocking: false,
 					methodSymbol,
 					methodSymbol.Name,
 					suggestedMethodName
@@ -1064,7 +1081,7 @@ static class AggregateEventMethodBuilder
 	{
 		var symbolName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 		var shortName = classSymbol.Name;
-		var builder = new System.Text.StringBuilder(shortName.Length + HintNameSeparatorAndSuffixLength);
+		System.Text.StringBuilder builder = new(shortName.Length + HintNameSeparatorAndSuffixLength);
 
 		foreach (var character in shortName)
 		{
@@ -1236,7 +1253,7 @@ static class AggregateEventMethodBuilder
 		IMethodSymbol methodSymbol,
 		CollectionEventAttributeData collectionEventAttribute,
 		Dictionary<string, IPropertySymbol> propertySymbolsByName,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		Compilation compilation,
 		out EventPropertyInfo parameterInfo,
 		out CollectionEventInfo? collectionEvent
@@ -1252,8 +1269,9 @@ static class AggregateEventMethodBuilder
 		if (string.IsNullOrWhiteSpace(collectionEventAttribute.PropertyName))
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.UnsupportedEventMethodSignature,
+					isBlocking: false,
 					methodLocation,
 					methodSymbol.Name,
 					"collection property name must be provided via [CollectionEvent(nameof(CollectionProperty))]"
@@ -1266,8 +1284,9 @@ static class AggregateEventMethodBuilder
 		if (!propertySymbolsByName.TryGetValue(collectionEventAttribute.PropertyName, out var collectionProperty))
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+					isBlocking: false,
 					methodLocation,
 					methodSymbol.Parameters[0].Name,
 					methodSymbol.Name,
@@ -1282,8 +1301,9 @@ static class AggregateEventMethodBuilder
 		if (!TryGetCollectionDetails(collectionProperty.Type, out var elementType, out var isSet))
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.EventParameterMustMapToWritableProperty,
+					isBlocking: false,
 					methodLocation,
 					methodSymbol.Parameters[0].Name,
 					methodSymbol.Name,
@@ -1317,8 +1337,9 @@ static class AggregateEventMethodBuilder
 			{
 				var actualElementTypeName = elementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 				diagnostics.Add(
-					DiagnosticInfo.Create(
+					ReportableDiagnostic.Create(
 						DiagnosticLibrary.UnsupportedEventMethodSignature,
+						isBlocking: false,
 						parameter,
 						methodSymbol.Name,
 						$"collection item type '{parameter.Type}' does not match '{actualElementTypeName}'"
@@ -1337,8 +1358,9 @@ static class AggregateEventMethodBuilder
 		{
 			var elementTypeName = elementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.UnsupportedEventMethodSignature,
+					isBlocking: false,
 					parameter.Locations.FirstOrDefault() ?? methodLocation,
 					methodSymbol.Name,
 					$"collection methods only support '{elementTypeName}', '{elementTypeName}[]', or IEnumerable<{elementTypeName}> parameters"

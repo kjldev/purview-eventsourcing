@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Snapshotting;
@@ -21,8 +21,8 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 	where T : AggregateBase, new()
 {
 	readonly IEventStoreCore<T> _eventStore;
-	readonly MongoDBClient _mongoDbClient;
-	readonly IOptions<MongoDBSnapshotEventStoreOptions> _mongoDbOptions;
+	readonly MongoDBClient _mongoDBClient;
+	readonly IOptions<MongoDBSnapshotEventStoreOptions> _mongoDBOptions;
 	readonly IMongoDBSnapshotEventStoreTelemetry _telemetry;
 	readonly ISnapshotStrategy<T> _snapshotStrategy;
 	readonly ISnapshotStrategySelector? _snapshotStrategySelector;
@@ -48,21 +48,21 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 	)
 	{
 		_eventStore = eventStore;
-		_mongoDbOptions = mongoDbOptions;
+		_mongoDBOptions = mongoDbOptions;
 		_telemetry = telemetry;
 		_snapshotStrategy = snapshotStrategy ?? new AlwaysSnapshotStrategy<T>();
 		_snapshotStrategySelector = snapshotStrategySelector;
 
 		_aggregateName = TypeNameHelper.GetName(typeof(T), "Aggregate");
-		var collectionName = _mongoDbOptions.Value.Collection ?? $"snapshot-{_aggregateName}-store";
-		_mongoDbClient = new(
+		var collectionName = _mongoDBOptions.Value.Collection ?? $"snapshot-{_aggregateName}-store";
+		_mongoDBClient = new(
 			mongoDBClientTelemetry,
 			new()
 			{
-				ConnectionString = _mongoDbOptions.Value.ConnectionString,
-				Database = _mongoDbOptions.Value.Database,
+				ConnectionString = _mongoDBOptions.Value.ConnectionString,
+				Database = _mongoDBOptions.Value.Database,
 				Collection = collectionName,
-				ApplicationName = _mongoDbOptions.Value.ApplicationName,
+				ApplicationName = _mongoDBOptions.Value.ApplicationName,
 			}
 		);
 	}
@@ -72,7 +72,7 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 	{
 		ArgumentNullException.ThrowIfNull(aggregate, nameof(aggregate));
 
-		if (await _mongoDbClient.UpsertAsync(aggregate, BuildPredicate(aggregate), cancellationToken))
+		if (await _mongoDBClient.UpsertAsync(aggregate, BuildPredicate(aggregate), cancellationToken))
 			_telemetry.SnapshotCreated(_aggregateName);
 	}
 
@@ -92,6 +92,6 @@ public sealed partial class MongoDBSnapshotEventStore<T> : IMongoDBSnapshotEvent
 	public void Dispose()
 	{
 		GC.SuppressFinalize(this);
-		_mongoDbClient?.Dispose();
+		_mongoDBClient?.Dispose();
 	}
 }

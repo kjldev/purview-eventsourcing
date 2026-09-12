@@ -12,7 +12,7 @@ partial class PostgresSnapshotEventStore<T>
 		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default
 	)
 	{
-		var request = new ContinuationRequest { MaxRecords = maxRecordsPerIteration };
+		ContinuationRequest request = new() { MaxRecords = maxRecordsPerIteration };
 		ContinuationResponse<T>? response;
 		do
 		{
@@ -31,7 +31,7 @@ partial class PostgresSnapshotEventStore<T>
 		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default
 	)
 	{
-		var request = new ContinuationRequest { MaxRecords = maxRecordsPerIteration };
+		ContinuationRequest request = new() { MaxRecords = maxRecordsPerIteration };
 		ContinuationResponse<T>? response;
 		do
 		{

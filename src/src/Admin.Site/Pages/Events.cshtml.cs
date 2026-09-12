@@ -10,7 +10,7 @@ namespace Purview.EventSourcing.Admin.Site.Pages;
 /// <param name="adminApiClient">The generated Admin API client used to load event ranges.</param>
 public class EventsModel(AdminApiClient adminApiClient) : PageModel
 {
-	readonly AdminApiClient _adminApiClient = adminApiClient ?? throw new ArgumentNullException(nameof(adminApiClient));
+	readonly AdminApiClient _adminAPIClient = adminApiClient ?? throw new ArgumentNullException(nameof(adminApiClient));
 
 	/// <summary>
 	/// Gets or sets the aggregate type whose events are displayed.
@@ -79,7 +79,7 @@ public class EventsModel(AdminApiClient adminApiClient) : PageModel
 
 		try
 		{
-			EventRange = await _adminApiClient.GetAggregateEventRangeAsync(
+			EventRange = await _adminAPIClient.GetAggregateEventRangeAsync(
 				AggregateType,
 				AggregateId,
 				VersionFrom,

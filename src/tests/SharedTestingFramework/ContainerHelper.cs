@@ -1,4 +1,4 @@
-﻿using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Testcontainers.Azurite;
@@ -66,7 +66,7 @@ public static partial class ContainerHelper
 				container.GetMappedPublicPort(CosmosDbBuilder.CosmosDbPort)
 			).Uri;
 
-			using var httpClient = new HttpClient();
+			using HttpClient httpClient = new();
 			try
 			{
 				using var httpResponse = await httpClient.GetAsync(endpoint).ConfigureAwait(false);
@@ -83,7 +83,7 @@ public static partial class ContainerHelper
 
 	public static MongoDbContainer CreateMongoDB(Action<MongoDbBuilder>? config = null)
 	{
-		var builder = new MongoDbBuilder($"mongo:{MongoDbImageTag}").WithReplicaSet()
+		var builder = new MongoDbBuilder($"mongo:{MongoDBImageTag}").WithReplicaSet()
 		//.WithAutoRemove(true)
 		//.WithCleanUp(true)
 		//.WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(27017))
@@ -96,7 +96,7 @@ public static partial class ContainerHelper
 
 	public static MsSqlContainer CreateMsSql(Action<MsSqlBuilder>? config = null)
 	{
-		var builder = new MsSqlBuilder($"mcr.microsoft.com/mssql/server:{SqlServerImageTag}");
+		MsSqlBuilder builder = new($"mcr.microsoft.com/mssql/server:{SqlServerImageTag}");
 
 		config?.Invoke(builder);
 
@@ -105,7 +105,7 @@ public static partial class ContainerHelper
 
 	public static PostgreSqlContainer CreatePostgreSql(Action<PostgreSqlBuilder>? config = null)
 	{
-		var builder = new PostgreSqlBuilder($"postgres:{PostgresImageTag}");
+		PostgreSqlBuilder builder = new($"postgres:{PostgresImageTag}");
 
 		config?.Invoke(builder);
 

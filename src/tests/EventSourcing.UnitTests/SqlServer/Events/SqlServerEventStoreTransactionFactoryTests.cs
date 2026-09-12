@@ -11,7 +11,7 @@ public sealed class SqlServerEventStoreTransactionFactoryTests
 	{
 		var correlationIdProvider = IEventStoreCorrelationIdProvider.Mock();
 		correlationIdProvider.GetCorrelationId().Returns("ambient-sql-correlation");
-		var factory = new SqlServerEventStoreTransactionFactory(correlationIdProvider);
+		SqlServerEventStoreTransactionFactory factory = new(correlationIdProvider);
 
 		await using var transaction = factory.CreateSqlServerTransaction();
 
@@ -23,7 +23,7 @@ public sealed class SqlServerEventStoreTransactionFactoryTests
 	{
 		var correlationIdProvider = IEventStoreCorrelationIdProvider.Mock();
 		correlationIdProvider.GetCorrelationId().Returns("ambient-sql-correlation");
-		var factory = new SqlServerEventStoreTransactionFactory(correlationIdProvider);
+		SqlServerEventStoreTransactionFactory factory = new(correlationIdProvider);
 
 		await using var transaction = factory.CreateSqlServerTransaction("explicit-sql-correlation");
 
@@ -36,7 +36,7 @@ public sealed class SqlServerEventStoreTransactionFactoryTests
 	{
 		var correlationIdProvider = IEventStoreCorrelationIdProvider.Mock();
 		correlationIdProvider.GetCorrelationId().Returns("ambient-sql-correlation");
-		var factory = new SqlServerEventStoreTransactionFactory(correlationIdProvider);
+		SqlServerEventStoreTransactionFactory factory = new(correlationIdProvider);
 
 		await using var transaction = factory.Create();
 
@@ -47,7 +47,7 @@ public sealed class SqlServerEventStoreTransactionFactoryTests
 	[Test]
 	public async Task AddEventSourcing_GivenNoSqlRegistration_UsesDefaultTransactionFactory()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 
 		using var serviceProvider = services.BuildServiceProvider();
@@ -59,7 +59,7 @@ public sealed class SqlServerEventStoreTransactionFactoryTests
 	[Test]
 	public async Task AddSqlServerEventStore_RegistersSqlServerSpecificFactoryWithoutReplacingDefaultFactory()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddSingleton<IConfiguration>(
 			new ConfigurationBuilder()
 				.AddInMemoryCollection(
@@ -85,7 +85,7 @@ public sealed class SqlServerEventStoreTransactionFactoryTests
 	[Test]
 	public async Task AddSqlServerEventStore_GivenInvalidJsonIndexConfiguration_ResolvingOptionsThrowsValidationException()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddSingleton<IConfiguration>(
 			new ConfigurationBuilder()
 				.AddInMemoryCollection(

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -529,7 +529,7 @@ sealed partial class SqlServerEventStoreClient
 			{
 				await using var context = CreateContext();
 				await CreateStorageTablesWithEfAsync(context, cancellationToken);
-				await using var connection = new SqlConnection(_options.ConnectionString);
+				await using SqlConnection connection = new(_options.ConnectionString);
 				await connection.OpenAsync(cancellationToken);
 				await SqlServerJsonIndexSchemaManager.ApplyAsync(
 					connection,
@@ -610,7 +610,7 @@ sealed partial class SqlServerEventStoreClient
 		DbContextOptionsBuilder<EventStoreDbContext> optionsBuilder = new();
 		var commandTimeout = Math.Max(1, _options.TimeoutInSeconds ?? 60);
 		optionsBuilder.UseSqlServer(connection, sql => sql.CommandTimeout(commandTimeout));
-		var context = new EventStoreDbContext(optionsBuilder.Options, _options.SchemaName, _options.TableName);
+		EventStoreDbContext context = new(optionsBuilder.Options, _options.SchemaName, _options.TableName);
 		if (transaction is not null)
 			context.Database.UseTransaction(transaction);
 		return context;

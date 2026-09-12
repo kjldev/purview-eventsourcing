@@ -68,7 +68,7 @@ public class PostgresEventStoreFixture : IAsyncInitializer, IAsyncDisposable
 		};
 		configureOptions?.Invoke(options);
 
-		var client = new PostgresEventStoreClient(options);
+		PostgresEventStoreClient client = new(options);
 		Client = client;
 
 		PostgresEventStore<TAggregate> eventStore = new(

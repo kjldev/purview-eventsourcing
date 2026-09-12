@@ -4,7 +4,7 @@ public class InventoryAggregateTests
 {
 	static InventoryAggregate CreateInventory(string? id = null, int initialQty = 100)
 	{
-		var inv = new InventoryAggregate();
+		InventoryAggregate inv = new();
 		if (id is not null)
 			inv.Details.Id = id;
 		inv.Create("prod-1", "Widget A", "loc-1", "Main Warehouse", initialQty);
@@ -32,21 +32,21 @@ public class InventoryAggregateTests
 	[Test]
 	public void Create_GivenNullProductId_ThrowsArgumentException()
 	{
-		var inv = new InventoryAggregate();
+		InventoryAggregate inv = new();
 		Assert.Throws<ArgumentException>(() => inv.Create(null!, "name", "loc-1", "Main Warehouse"));
 	}
 
 	[Test]
 	public void Create_GivenNullLocationId_ThrowsArgumentException()
 	{
-		var inv = new InventoryAggregate();
+		InventoryAggregate inv = new();
 		Assert.Throws<ArgumentException>(() => inv.Create("p1", "name", null!, "Main Warehouse"));
 	}
 
 	[Test]
 	public void Create_GivenNegativeQuantity_ThrowsArgumentOutOfRangeException()
 	{
-		var inv = new InventoryAggregate();
+		InventoryAggregate inv = new();
 		Assert.Throws<ArgumentOutOfRangeException>(() => inv.Create("p1", "name", "loc-1", "Main Warehouse", -1));
 	}
 

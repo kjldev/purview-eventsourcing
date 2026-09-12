@@ -15,7 +15,7 @@ public sealed class AdminSnapshotEndpointsTests
 	[Test]
 	public async Task SnapshotStatus_GivenMaterializedSnapshot_ReportsExists(CancellationToken cancellationToken)
 	{
-		var store = new StubQueryableEventStore { Snapshot = new PersistenceAggregate() };
+		StubQueryableEventStore store = new() { Snapshot = new PersistenceAggregate() };
 		await using var host = await AdminTestHost.CreateAsync(
 			configureAdmin: static options => options.Features.ViewSnapshot = true,
 			configureServices: services =>
@@ -39,7 +39,7 @@ public sealed class AdminSnapshotEndpointsTests
 	[Test]
 	public async Task SnapshotStatus_GivenNoSnapshot_ReportsNotExists(CancellationToken cancellationToken)
 	{
-		var store = new StubQueryableEventStore { Snapshot = null };
+		StubQueryableEventStore store = new() { Snapshot = null };
 		await using var host = await AdminTestHost.CreateAsync(
 			configureAdmin: static options => options.Features.ViewSnapshot = true,
 			configureServices: services =>
@@ -61,8 +61,8 @@ public sealed class AdminSnapshotEndpointsTests
 	[Test]
 	public async Task RebuildSnapshot_GivenAggregate_SavesFreshSnapshot(CancellationToken cancellationToken)
 	{
-		var aggregate = new PersistenceAggregate();
-		var store = new StubQueryableEventStore { Snapshot = aggregate };
+		PersistenceAggregate aggregate = new();
+		StubQueryableEventStore store = new() { Snapshot = aggregate };
 		await using var host = await AdminTestHost.CreateAsync(
 			configureAdmin: static options => options.Features.RebuildSnapshot = true,
 			configureServices: services =>
@@ -89,7 +89,7 @@ public sealed class AdminSnapshotEndpointsTests
 	[Test]
 	public async Task RebuildSnapshot_GivenUnregisteredAggregate_ReturnsNotFound(CancellationToken cancellationToken)
 	{
-		var store = new StubQueryableEventStore { Snapshot = new PersistenceAggregate() };
+		StubQueryableEventStore store = new() { Snapshot = new PersistenceAggregate() };
 		await using var host = await AdminTestHost.CreateAsync(
 			configureAdmin: static options => options.Features.RebuildSnapshot = true,
 			configureServices: services =>
@@ -113,7 +113,7 @@ public sealed class AdminSnapshotEndpointsTests
 	[Test]
 	public async Task RebuildSnapshot_GivenMissingQueryableStore_ReturnsNotFound(CancellationToken cancellationToken)
 	{
-		var store = new StubQueryableEventStore { Snapshot = new PersistenceAggregate() };
+		StubQueryableEventStore store = new() { Snapshot = new PersistenceAggregate() };
 		await using var host = await AdminTestHost.CreateAsync(
 			configureAdmin: static options => options.Features.RebuildSnapshot = true,
 			configureServices: services =>

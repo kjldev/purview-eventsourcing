@@ -24,7 +24,7 @@ public sealed class CartCheckoutService(IEventStoreTransactionFactory transactio
 		if (!customer.IsActive)
 			return CartCheckoutResult.Fail($"Customer '{customer.Name}' is not active.");
 
-		var inventoryReservations = new Dictionary<string, InventoryReservation>(StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, InventoryReservation> inventoryReservations = new(StringComparer.OrdinalIgnoreCase);
 		foreach (var item in items)
 		{
 			if (!inventoryReservations.TryGetValue(item.InventoryId, out var reservation))

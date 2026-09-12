@@ -149,7 +149,7 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 
 	async Task<TransactionResult> CommitSequentiallyAsync(CancellationToken cancellationToken)
 	{
-		var results = new List<TransactionAggregateResult>(_enlisted.Count);
+		List<TransactionAggregateResult> results = new(_enlisted.Count);
 
 		foreach (var enlisted in _enlisted)
 		{
@@ -190,7 +190,7 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 
 		await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-		var processed = new List<IProcessedSaveOperation>(_enlisted.Count);
+		List<IProcessedSaveOperation> processed = new(_enlisted.Count);
 		IEnlistedAggregate? failedEnlisted = null;
 		Exception? failure = null;
 
@@ -227,7 +227,7 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 		{
 			await transaction.CommitAsync(cancellationToken);
 
-			var committedResults = new List<TransactionAggregateResult>(processed.Count);
+			List<TransactionAggregateResult> committedResults = new(processed.Count);
 			foreach (var operation in processed)
 			{
 				Exception? postCommitError = null;
@@ -260,7 +260,7 @@ public sealed class EventStoreTransaction : IEventStoreTransaction
 		foreach (var operation in processed)
 			await operation.AfterRollbackAsync(cancellationToken);
 
-		var rollbackResults = new List<TransactionAggregateResult>(processed.Count + 1);
+		List<TransactionAggregateResult> rollbackResults = new(processed.Count + 1);
 		var rollbackError =
 			failure
 			?? new InvalidOperationException(

@@ -32,10 +32,10 @@ partial class AggregateEventNameMapperTests
 	public async Task GetTypeName_GivenLegacyUpcasterSourceType_ResolvesStoredName()
 	{
 		// Arrange
-		var upcaster = new EventUpcasterDescriptor<LegacyEventV1, CurrentEventV2>(
+		EventUpcasterDescriptor<LegacyEventV1, CurrentEventV2> upcaster = new(
 			new LegacyEventV1ToCurrentEventV2Upcaster()
 		);
-		var mapper = new AggregateEventNameMapper([upcaster]);
+		AggregateEventNameMapper mapper = new([upcaster]);
 		var aggregateName = mapper.InitializeAggregate<CorrectlyNamedAggregate>();
 
 		// The stored event name is what the store would have persisted when LegacyEventV1

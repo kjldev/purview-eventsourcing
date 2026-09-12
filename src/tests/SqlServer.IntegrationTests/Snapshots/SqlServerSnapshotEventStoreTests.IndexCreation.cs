@@ -4,7 +4,7 @@ using Purview.EventSourcing.Aggregates.Persistence;
 
 namespace Purview.EventSourcing.SqlServer.Snapshots;
 
-partial class SqlServerSnapshotEventStoreTests
+partial class SQLServerSnapshotEventStoreTests
 {
 	[Test]
 	public async Task SaveAsync_GivenConfiguredJsonIndex_CreatesSnapshotComputedColumnAndIndex(
@@ -54,9 +54,9 @@ partial class SqlServerSnapshotEventStoreTests
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT COUNT(1)
 			FROM sys.columns c
@@ -78,9 +78,9 @@ partial class SqlServerSnapshotEventStoreTests
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new SqlConnection(connectionString);
+		await using SqlConnection connection = new(connectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			"""
 			SELECT COUNT(1)
 			FROM sys.indexes i

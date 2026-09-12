@@ -19,7 +19,7 @@ static class AggregateInfoBuilder
 		var mergedClassSymbol = compilation.GetTypeByMetadataName(classMetadataFullName);
 		if (mergedClassSymbol is not null)
 			classSymbol = mergedClassSymbol;
-		var diagnostics = ImmutableArray.CreateBuilder<DiagnosticInfo>();
+		var diagnostics = ImmutableArray.CreateBuilder<ReportableDiagnostic>();
 
 		var canGenerate = ValidateAggregateClass(
 			classSymbol,
@@ -58,10 +58,10 @@ static class AggregateInfoBuilder
 			cancellationToken
 		);
 
-		var methods = new List<AggregateEventMethodInfo>();
-		var invalidMethods = new List<InvalidAggregateEventMethodInfo>();
-		var methodsByEventType = new Dictionary<TypeReference, IMethodSymbol>();
-		var methodsBySchemaVersion = new Dictionary<int, (IMethodSymbol Symbol, bool IsExplicit)>();
+		List<AggregateEventMethodInfo> methods = [];
+		List<InvalidAggregateEventMethodInfo> invalidMethods = [];
+		Dictionary<TypeReference, IMethodSymbol> methodsByEventType = [];
+		Dictionary<int, (IMethodSymbol Symbol, bool IsExplicit)> methodsBySchemaVersion = [];
 
 		BuildMethods(
 			classSymbol,
@@ -81,7 +81,7 @@ static class AggregateInfoBuilder
 			cancellationToken
 		);
 
-		var containingTypes = new List<AggregateContainingTypeInfo>();
+		List<AggregateContainingTypeInfo> containingTypes = [];
 		var currentContainingType = classSymbol.ContainingType;
 		while (currentContainingType is not null)
 		{
@@ -129,7 +129,7 @@ static class AggregateInfoBuilder
 	static bool ValidateAggregateClass(
 		INamedTypeSymbol classSymbol,
 		ClassDeclarationSyntax syntax,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		out bool shouldDeclareAggregateBase,
 		out bool isPartial,
 		out bool inheritsAggregateBase
@@ -146,8 +146,9 @@ static class AggregateInfoBuilder
 		if (!isPartial)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.AggregateMustBePartial,
+					isBlocking: true,
 					syntax.Identifier.GetLocation(),
 					classSymbol.Name
 				)
@@ -158,8 +159,9 @@ static class AggregateInfoBuilder
 		if (classSymbol.ContainingType is not null)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.NestedAggregatesAreNotSupported,
+					isBlocking: true,
 					syntax.Identifier.GetLocation(),
 					classSymbol.Name
 				)
@@ -170,8 +172,9 @@ static class AggregateInfoBuilder
 		if (classSymbol.TypeParameters.Length > 0)
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.GenericAggregatesAreNotSupported,
+					isBlocking: true,
 					syntax.Identifier.GetLocation(),
 					classSymbol.Name
 				)
@@ -188,8 +191,9 @@ static class AggregateInfoBuilder
 			else
 			{
 				diagnostics.Add(
-					DiagnosticInfo.Create(
+					ReportableDiagnostic.Create(
 						DiagnosticLibrary.AggregateMustInheritAggregateBase,
+						isBlocking: true,
 						syntax.Identifier.GetLocation(),
 						classSymbol.Name
 					)
@@ -201,8 +205,9 @@ static class AggregateInfoBuilder
 		if (AggregateEventMethodBuilder.HasRegisterEventsMethod(classSymbol, out var registerEventsMethod))
 		{
 			diagnostics.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.ManualRegisterEventsIsNotSupported,
+					isBlocking: true,
 					registerEventsMethod!.Locations.FirstOrDefault(),
 					classSymbol.Name
 				)
@@ -216,7 +221,7 @@ static class AggregateInfoBuilder
 	static void ScanProperties(
 		INamedTypeSymbol classSymbol,
 		Compilation compilation,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		List<AggregateStatePropertyInfo> properties,
 		Dictionary<string, IPropertySymbol> propertySymbolsByName,
 		List<IMethodSymbol> attributedMethods,
@@ -240,8 +245,9 @@ static class AggregateInfoBuilder
 				)
 				{
 					diagnostics.Add(
-						DiagnosticInfo.Create(
-							DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSqlSnapshots,
+						ReportableDiagnostic.Create(
+							DiagnosticLibrary.ScalarComplexValueMayNotTranslateInSQLSnapshots,
+							isBlocking: false,
 							propertySymbol.Locations.FirstOrDefault(),
 							propertySymbol.Name,
 							classSymbol.Name,
@@ -258,8 +264,9 @@ static class AggregateInfoBuilder
 				if (propertySymbol.SetMethod.DeclaredAccessibility is not Accessibility.Private)
 				{
 					diagnostics.Add(
-						DiagnosticInfo.Create(
+						ReportableDiagnostic.Create(
 							DiagnosticLibrary.AggregatePropertySetterShouldBePrivate,
+							isBlocking: false,
 							propertySymbol.SetMethod.Locations.FirstOrDefault()
 								?? propertySymbol.Locations.FirstOrDefault(),
 							propertySymbol.Name,
@@ -275,8 +282,9 @@ static class AggregateInfoBuilder
 				)
 				{
 					diagnostics.Add(
-						DiagnosticInfo.Create(
+						ReportableDiagnostic.Create(
 							DiagnosticLibrary.AggregatePropertyCollectionTypeMustUseEventStoreCollections,
+							isBlocking: false,
 							propertySymbol.Locations.FirstOrDefault(),
 							propertySymbol.Name,
 							classSymbol.Name,
@@ -327,7 +335,7 @@ static class AggregateInfoBuilder
 		List<InvalidAggregateEventMethodInfo> invalidMethods,
 		Dictionary<TypeReference, IMethodSymbol> methodsByEventType,
 		Dictionary<int, (IMethodSymbol Symbol, bool IsExplicit)> methodsBySchemaVersion,
-		ImmutableArray<DiagnosticInfo>.Builder diagnostics,
+		ImmutableArray<ReportableDiagnostic>.Builder diagnostics,
 		CancellationToken cancellationToken
 	)
 	{
@@ -377,8 +385,9 @@ static class AggregateInfoBuilder
 			if (methodsByEventType.TryGetValue(methodInfo.EventType, out var conflictingMethod))
 			{
 				diagnostics.Add(
-					DiagnosticInfo.Create(
+					ReportableDiagnostic.Create(
 						DiagnosticLibrary.DuplicateGeneratedEventName,
+						isBlocking: false,
 						methodSymbol,
 						methodSymbol.Name,
 						classSymbol.Name,
@@ -386,8 +395,9 @@ static class AggregateInfoBuilder
 					)
 				);
 				diagnostics.Add(
-					DiagnosticInfo.Create(
+					ReportableDiagnostic.Create(
 						DiagnosticLibrary.DuplicateGeneratedEventName,
+						isBlocking: false,
 						conflictingMethod,
 						conflictingMethod.Name,
 						classSymbol.Name,
@@ -413,8 +423,9 @@ static class AggregateInfoBuilder
 				if (methodInfo.Version > 1 && existingSchemaVersionMethod.IsExplicit)
 				{
 					diagnostics.Add(
-						DiagnosticInfo.Create(
+						ReportableDiagnostic.Create(
 							DiagnosticLibrary.DuplicateEventSchemaVersionOnAggregate,
+							isBlocking: false,
 							methodSymbol,
 							methodSymbol.Name,
 							classSymbol.Name,
@@ -423,8 +434,9 @@ static class AggregateInfoBuilder
 						)
 					);
 					diagnostics.Add(
-						DiagnosticInfo.Create(
+						ReportableDiagnostic.Create(
 							DiagnosticLibrary.DuplicateEventSchemaVersionOnAggregate,
+							isBlocking: false,
 							existingSchemaVersionMethod.Symbol,
 							existingSchemaVersionMethod.Symbol.Name,
 							classSymbol.Name,

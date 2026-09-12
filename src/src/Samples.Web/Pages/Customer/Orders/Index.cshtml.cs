@@ -39,7 +39,7 @@ sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore
 		CurrentCustomer = await customerStore.GetAsync<CustomerAggregate>(customerId, ct);
 
 		var skipCount = (Page - 1) * PageSize;
-		var request = new ContinuationRequest
+		ContinuationRequest request = new()
 		{
 			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
@@ -61,7 +61,7 @@ sealed class IndexModel(IQueryableEventStore customerStore, IQueryableEventStore
 
 	public string PaginationLink(int page)
 	{
-		var query = new QueryBuilder
+		QueryBuilder query = new()
 		{
 			{ "page", page.ToString(CultureInfo.InvariantCulture) },
 			{ "pageSize", PageSize.ToString(CultureInfo.InvariantCulture) },

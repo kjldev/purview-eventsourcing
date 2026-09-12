@@ -13,8 +13,8 @@ public sealed class PermissionProviderTests
 	public async Task DenyAllPermissionProvider_ReturnsEmptyList_ForAnyUser()
 	{
 		// Arrange
-		var provider = new DenyAllPermissionProvider();
-		var user = new ClaimsPrincipal();
+		DenyAllPermissionProvider provider = new();
+		ClaimsPrincipal user = new();
 
 		// Act
 		var permissions = await provider.GetPermissionsAsync(user, CancellationToken.None);
@@ -27,8 +27,8 @@ public sealed class PermissionProviderTests
 	public async Task DenyAllPermissionProvider_DeniesAllByDefault()
 	{
 		// Arrange
-		var provider = new DenyAllPermissionProvider();
-		var user = new ClaimsPrincipal(
+		DenyAllPermissionProvider provider = new();
+		ClaimsPrincipal user = new(
 			new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "user123"), new Claim(ClaimTypes.Role, "Admin")])
 		);
 
@@ -43,7 +43,7 @@ public sealed class PermissionProviderTests
 	public async Task ServiceCollection_RegistersSecurity_WithDefaults()
 	{
 		// Arrange
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 
 		// Act
 		services.AddPurviewEventSourcingAdminSecurity();
@@ -58,8 +58,8 @@ public sealed class PermissionProviderTests
 	public async Task ServiceCollection_RegistersSecurity_WithCustomProvider()
 	{
 		// Arrange
-		var customProvider = new TestCustomPermissionProvider();
-		var services = new ServiceCollection();
+		TestCustomPermissionProvider customProvider = new();
+		ServiceCollection services = new();
 
 		// Act
 		services.AddPurviewEventSourcingAdminSecurity(customProvider);
@@ -74,7 +74,7 @@ public sealed class PermissionProviderTests
 	public async Task ServiceCollection_RegistersAuthorizationHandlers()
 	{
 		// Arrange
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddAuthorizationBuilder();
 
 		// Act

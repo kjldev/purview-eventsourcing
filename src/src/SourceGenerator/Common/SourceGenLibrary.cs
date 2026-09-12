@@ -44,7 +44,7 @@ static partial class SourceGenLibrary
 				if (!info.ShouldProcess || !info.HasValue)
 					return GeneratorResult<AggregateTarget>.Create([.. info.Diagnostics]);
 
-				var target = new AggregateTarget(
+				AggregateTarget target = new(
 					info.Value,
 					EventContractBuilder.Build(info.Value),
 					EventContractBuilder.BuildLocations(info.Value, classSymbol, syntax)

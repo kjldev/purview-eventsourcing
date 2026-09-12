@@ -92,7 +92,7 @@ public sealed class PostgresAdminEventQueryService(IOptions<PostgresEventStoreOp
 
 	static EventStoreDbContext CreateContext(PostgresEventStoreOptions options, PostgresAdminTableDescriptor table)
 	{
-		var builder = new DbContextOptionsBuilder<EventStoreDbContext>();
+		DbContextOptionsBuilder<EventStoreDbContext> builder = new();
 		builder.UseNpgsql(options.ConnectionString);
 		return new EventStoreDbContext(builder.Options, table.SchemaName, table.TableName);
 	}

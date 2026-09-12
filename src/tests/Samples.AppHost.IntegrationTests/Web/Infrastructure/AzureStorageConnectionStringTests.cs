@@ -44,7 +44,7 @@ public sealed class AzureStorageConnectionStringTests(AppHostFixture fixture)
 
 		var normalized = AzureStorageConnectionStringComposer.Normalize(connectionString);
 		var containerName = $"startupcheck-{Guid.NewGuid():N}"[..22];
-		var serviceClient = new BlobServiceClient(normalized);
+		BlobServiceClient serviceClient = new(normalized);
 		var containerClient = serviceClient.GetBlobContainerClient(containerName);
 		await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 		await containerClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
@@ -72,7 +72,7 @@ public sealed class AzureStorageConnectionStringTests(AppHostFixture fixture)
 		);
 
 		var blobContainerName = $"startupcheck-{Guid.NewGuid():N}"[..22];
-		var blobClient = new BlobContainerClient(mergedConnectionString, blobContainerName);
+		BlobContainerClient blobClient = new(mergedConnectionString, blobContainerName);
 		await blobClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 		await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
 

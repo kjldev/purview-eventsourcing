@@ -10,7 +10,7 @@ namespace Purview.EventSourcing.Admin.Site.Pages;
 /// <param name="adminApiClient">The generated Admin API client used to build projections.</param>
 public class ProjectionModel(AdminApiClient adminApiClient) : PageModel
 {
-	readonly AdminApiClient _adminApiClient = adminApiClient ?? throw new ArgumentNullException(nameof(adminApiClient));
+	readonly AdminApiClient _adminAPIClient = adminApiClient ?? throw new ArgumentNullException(nameof(adminApiClient));
 
 	/// <summary>
 	/// Gets or sets the aggregate type to project.
@@ -57,20 +57,20 @@ public class ProjectionModel(AdminApiClient adminApiClient) : PageModel
 		{
 			Projection =
 				Version.HasValue && Version.Value > 0
-					? await _adminApiClient.GetAggregateProjectionAtVersionAsync(
+					? await _adminAPIClient.GetAggregateProjectionAtVersionAsync(
 						AggregateType,
 						AggregateId,
 						Version,
 						cancellationToken
 					)
 				: AsOfUtc.HasValue
-					? await _adminApiClient.GetAggregateProjectionAtTimeAsync(
+					? await _adminAPIClient.GetAggregateProjectionAtTimeAsync(
 						AggregateType,
 						AggregateId,
 						new DateTimeOffset(AsOfUtc.Value, TimeSpan.Zero),
 						cancellationToken
 					)
-				: await _adminApiClient.GetAggregateProjectionAtVersionAsync(
+				: await _adminAPIClient.GetAggregateProjectionAtVersionAsync(
 					AggregateType,
 					AggregateId,
 					long.MaxValue,

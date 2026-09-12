@@ -54,7 +54,7 @@ public sealed class WorkspacesBoundaryTests
 
 	static string ResolveGeneratorProjectPath()
 	{
-		var current = new DirectoryInfo(AppContext.BaseDirectory);
+		DirectoryInfo? current = new(AppContext.BaseDirectory);
 		while (current is not null)
 		{
 			if (File.Exists(Path.Combine(current.FullName, "nuget.config")))

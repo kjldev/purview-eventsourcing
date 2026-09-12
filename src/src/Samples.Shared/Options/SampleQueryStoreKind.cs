@@ -6,5 +6,5 @@ public enum SampleQueryStoreKind
 
 	Postgres,
 
-	MongoDb,
+	MongoDB,
 }

@@ -240,10 +240,11 @@ public sealed class AggregateSourceGeneratorIncrementalTests : AggregateSourceGe
 	{
 		if (
 			step.Outputs.Length > 0
-			&& step.Outputs[0].Value is global::Purview.SourceGeneratorFramework.GeneratorResult<AggregateTarget> result
+			&& step.Outputs[0].Value is SourceGeneratorFramework.GeneratorResult<AggregateTarget> result
 		)
 			return result.HasValue ? result.Value.Info.AggregateClass.Identity.Name : "(failed)";
 
+		// If the step has no outputs, we can't determine the aggregate name, so return a placeholder.
 		return "(unknown)";
 	}
 

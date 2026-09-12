@@ -40,7 +40,7 @@ public sealed class AzureStorageAdminAggregateQueryService(IOptions<AzureStorage
 			cancellationToken
 		);
 
-		var candidates = new List<AggregateSummaryResponse>();
+		List<AggregateSummaryResponse> candidates = [];
 		foreach (var tableName in tableNames)
 		{
 			var table = AzureStorageAdminTableHelpers.CreateTableClient(tableService, tableName);
@@ -115,7 +115,7 @@ public sealed class AzureStorageAdminAggregateQueryService(IOptions<AzureStorage
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateType);
 		ArgumentException.ThrowIfNullOrWhiteSpace(aggregateId);
 
-		var query = new AggregateSearchQuery(aggregateType, aggregateId, null, null, null, null, 1, 1);
+		AggregateSearchQuery query = new(aggregateType, aggregateId, null, null, null, null, 1, 1);
 		var result = await SearchAsync(query, cancellationToken);
 		return result.Items.Count == 0 ? null : result.Items[0];
 	}

@@ -14,7 +14,7 @@ public sealed class AggregateAuditServiceIntegrationTests(SqlServerEventStoreFix
 	{
 		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 		var eventStore = CreateEventStoreFacade(orderStore);
-		var service = new AggregateAuditService(eventStore);
+		AggregateAuditService service = new(eventStore);
 
 		var order = await orderStore.CreateAsync(cancellationToken: cancellationToken);
 		order.CreateOrder("customer-1").AddLineItem("sku-1", "Widget", 1, 10m).ConfirmOrder();
@@ -37,7 +37,7 @@ public sealed class AggregateAuditServiceIntegrationTests(SqlServerEventStoreFix
 
 	static IEventStore CreateEventStoreFacade(IEventStoreCore<OrderAggregate> orderStore)
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddSingleton(orderStore);
 		services.AddSingleton(orderStore);
 		services.AddSingleton<IEventStore, EventStoreFacade>();

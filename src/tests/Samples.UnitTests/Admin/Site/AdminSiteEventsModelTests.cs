@@ -7,11 +7,11 @@ namespace Purview.EventSourcing.Samples.Admin.Site;
 public sealed class AdminSiteEventsModelTests
 {
 	[Test]
-	public async Task OnGetAsync_WithExistingAggregate_CallsAdminApiClientAndReturnsPage(
+	public async Task OnGetAsync_WithExistingAggregate_CallsAdminAPIClientAndReturnsPage(
 		CancellationToken cancellationToken
 	)
 	{
-		var expected = new PagedResultOfEventEnvelopeResponse
+		PagedResultOfEventEnvelopeResponse expected = new()
 		{
 			Items =
 			[
@@ -41,7 +41,7 @@ public sealed class AdminSiteEventsModelTests
 		var capturedPage = (int?)null;
 		var capturedPageSize = (int?)null;
 
-		var fakeClient = new FakeAdminApiClient(
+		FakeAdminAPIClient fakeClient = new(
 			(aggregateType, aggregateId, versionFrom, versionTo, _, _, page, pageSize, _, _) =>
 			{
 				capturedAggregateType = aggregateType;
@@ -54,7 +54,7 @@ public sealed class AdminSiteEventsModelTests
 			}
 		);
 
-		var model = new EventsModel(fakeClient) { AggregateType = "CustomerAggregate", AggregateId = "customer-1" };
+		EventsModel model = new(fakeClient) { AggregateType = "CustomerAggregate", AggregateId = "customer-1" };
 
 		var result = await model.OnGetAsync(cancellationToken);
 
@@ -71,7 +71,7 @@ public sealed class AdminSiteEventsModelTests
 	[Test]
 	public async Task OnGetAsync_WithEmptyEventStream_ReturnsPageAndEmptyResult(CancellationToken cancellationToken)
 	{
-		var expected = new PagedResultOfEventEnvelopeResponse
+		PagedResultOfEventEnvelopeResponse expected = new()
 		{
 			Items = [],
 			Page = 1,
@@ -79,9 +79,9 @@ public sealed class AdminSiteEventsModelTests
 			TotalCount = 0,
 		};
 
-		var fakeClient = new FakeAdminApiClient((_, _, _, _, _, _, _, _, _, _) => Task.FromResult(expected));
+		FakeAdminAPIClient fakeClient = new((_, _, _, _, _, _, _, _, _, _) => Task.FromResult(expected));
 
-		var model = new EventsModel(fakeClient) { AggregateType = "CustomerAggregate", AggregateId = "customer-1" };
+		EventsModel model = new(fakeClient) { AggregateType = "CustomerAggregate", AggregateId = "customer-1" };
 
 		var result = await model.OnGetAsync(cancellationToken);
 
@@ -92,7 +92,7 @@ public sealed class AdminSiteEventsModelTests
 
 	static readonly HttpClient SharedHttpClient = new();
 
-	sealed class FakeAdminApiClient(
+	sealed class FakeAdminAPIClient(
 		Func<
 			string,
 			string,

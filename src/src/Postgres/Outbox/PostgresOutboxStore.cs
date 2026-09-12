@@ -73,7 +73,7 @@ public sealed partial class PostgresOutboxStore(
 			{
 				await EnsureSchemaAsync(token);
 
-				await using var command = new NpgsqlCommand(
+				await using NpgsqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET "LeaseOwner" = @owner, "LeaseExpiresUtc" = @leaseUntil
@@ -96,7 +96,7 @@ public sealed partial class PostgresOutboxStore(
 				command.Parameters.AddWithValue("batch", batchSize);
 				command.Parameters.AddWithValue("now", DateTimeOffset.UtcNow);
 
-				var messages = new List<OutboxEnvelope>();
+				List<OutboxEnvelope> messages = new();
 				await using var reader = await command.ExecuteReaderAsync(token);
 				while (await reader.ReadAsync(token))
 					messages.Add(ReadMessage(reader));
@@ -111,7 +111,7 @@ public sealed partial class PostgresOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new NpgsqlCommand(
+				await using NpgsqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET "State" = 1, "DispatchedUtc" = @now, "LeaseExpiresUtc" = NULL,
@@ -137,7 +137,7 @@ public sealed partial class PostgresOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new NpgsqlCommand(
+				await using NpgsqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET "State" = 2, "AttemptCount" = "AttemptCount" + 1, "NextAttemptUtc" = @next,
@@ -159,7 +159,7 @@ public sealed partial class PostgresOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new NpgsqlCommand(
+				await using NpgsqlCommand command = new(
 					$"""
 					UPDATE {_schema}.{_table}
 					SET "State" = 3, "LeaseExpiresUtc" = NULL, "LeaseOwner" = NULL, "LastError" = @errorMessage
@@ -179,7 +179,7 @@ public sealed partial class PostgresOutboxStore(
 		ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new NpgsqlCommand(
+				await using NpgsqlCommand command = new(
 					$"""
 					DELETE FROM {_schema}.{_table}
 					WHERE "CreatedUtc" < @cutoff AND ("State" = 1 OR "State" = 3)
@@ -201,7 +201,7 @@ public sealed partial class PostgresOutboxStore(
 		await ExecuteWithConnectionAsync(
 			async (connection, token) =>
 			{
-				await using var command = new NpgsqlCommand(
+				await using NpgsqlCommand command = new(
 					$"""
 					SELECT "Id", "AggregateType", "AggregateId", "EventType", "PayloadJson",
 						"IdempotencyKey", "CorrelationId", "CreatedUtc", "State", "AttemptCount",
@@ -216,7 +216,7 @@ public sealed partial class PostgresOutboxStore(
 				command.Parameters.AddWithValue("skip", skip);
 				command.Parameters.AddWithValue("take", take);
 
-				var messages = new List<OutboxEnvelope>();
+				List<OutboxEnvelope> messages = [];
 				await using var reader = await command.ExecuteReaderAsync(token);
 				while (await reader.ReadAsync(token))
 					messages.Add(ReadMessage(reader));
@@ -233,7 +233,7 @@ public sealed partial class PostgresOutboxStore(
 		CancellationToken cancellationToken
 	)
 	{
-		await using var command = new NpgsqlCommand(
+		await using NpgsqlCommand command = new(
 			$"""
 			INSERT INTO {_schema}.{_table}
 				("Id", "AggregateType", "AggregateId", "EventType", "PayloadJson", "IdempotencyKey",
@@ -268,7 +268,7 @@ public sealed partial class PostgresOutboxStore(
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new NpgsqlConnection(_connectionString);
+		await using NpgsqlConnection connection = new(_connectionString);
 		await connection.OpenAsync(cancellationToken);
 		return await operation(connection, cancellationToken);
 	}
@@ -278,7 +278,7 @@ public sealed partial class PostgresOutboxStore(
 		CancellationToken cancellationToken
 	)
 	{
-		await using var connection = new NpgsqlConnection(_connectionString);
+		await using NpgsqlConnection connection = new(_connectionString);
 		await connection.OpenAsync(cancellationToken);
 		await operation(connection, cancellationToken);
 	}
@@ -290,10 +290,10 @@ public sealed partial class PostgresOutboxStore(
 
 		if (outboxOptions.Value.AutoCreateTable)
 		{
-			await using var connection = new NpgsqlConnection(_connectionString);
+			await using NpgsqlConnection connection = new(_connectionString);
 			await connection.OpenAsync(cancellationToken);
 
-			await using var command = new NpgsqlCommand(
+			await using NpgsqlCommand command = new(
 				$"""
 				CREATE TABLE IF NOT EXISTS {_schema}.{_table} (
 					"Id" VARCHAR(64) NOT NULL PRIMARY KEY,

@@ -19,7 +19,7 @@ public sealed class SnapshotStrategyTests
 
 	static TestAggregate CreateAggregate(int savedVersion)
 	{
-		var aggregate = new TestAggregate { Details = { Id = Guid.NewGuid().ToString() } };
+		TestAggregate aggregate = new() { Details = { Id = Guid.NewGuid().ToString() } };
 		aggregate.Details.SavedVersion = savedVersion;
 		return aggregate;
 	}
@@ -41,7 +41,7 @@ public sealed class SnapshotStrategyTests
 	)
 	{
 		// Arrange
-		var strategy = new IntervalSnapshotStrategy<TestAggregate>(interval);
+		IntervalSnapshotStrategy<TestAggregate> strategy = new(interval);
 		var aggregate = CreateAggregate(savedVersion);
 
 		// Act
@@ -55,7 +55,7 @@ public sealed class SnapshotStrategyTests
 	public async Task IntervalStrategy_GivenZeroEventsApplied_ReturnsFalse()
 	{
 		// Arrange — interval of 1 would normally always snapshot, but 0 events means nothing was saved
-		var strategy = new IntervalSnapshotStrategy<TestAggregate>(1);
+		IntervalSnapshotStrategy<TestAggregate> strategy = new(1);
 		var aggregate = CreateAggregate(10);
 
 		// Act
@@ -69,7 +69,7 @@ public sealed class SnapshotStrategyTests
 	public async Task IntervalStrategy_GivenNullAggregate_ThrowsArgumentNullException()
 	{
 		// Arrange
-		var strategy = new IntervalSnapshotStrategy<TestAggregate>(1);
+		IntervalSnapshotStrategy<TestAggregate> strategy = new(1);
 
 		// Act & Assert
 		await Assert.That(() => strategy.ShouldSnapshot(null!, eventsApplied: 1)).Throws<ArgumentNullException>();
@@ -98,7 +98,7 @@ public sealed class SnapshotStrategyTests
 	public async Task AlwaysStrategy_GivenEventsApplied_AlwaysReturnsTrue(int eventsApplied)
 	{
 		// Arrange
-		var strategy = new AlwaysSnapshotStrategy<TestAggregate>();
+		AlwaysSnapshotStrategy<TestAggregate> strategy = new();
 		var aggregate = CreateAggregate(savedVersion: 1);
 
 		// Act
@@ -112,7 +112,7 @@ public sealed class SnapshotStrategyTests
 	public async Task AlwaysStrategy_GivenZeroEventsApplied_ReturnsFalse()
 	{
 		// Arrange
-		var strategy = new AlwaysSnapshotStrategy<TestAggregate>();
+		AlwaysSnapshotStrategy<TestAggregate> strategy = new();
 		var aggregate = CreateAggregate(savedVersion: 1);
 
 		// Act
@@ -133,7 +133,7 @@ public sealed class SnapshotStrategyTests
 	public async Task NeverStrategy_GivenAnyInput_AlwaysReturnsFalse(int eventsApplied)
 	{
 		// Arrange
-		var strategy = new NeverSnapshotStrategy<TestAggregate>();
+		NeverSnapshotStrategy<TestAggregate> strategy = new();
 		var aggregate = CreateAggregate(savedVersion: 1);
 
 		// Act
@@ -150,7 +150,7 @@ public sealed class SnapshotStrategyTests
 	[Test]
 	public async Task Selector_GivenAggregateOverride_ReturnsOverride()
 	{
-		var expected = new NeverSnapshotStrategy<TestAggregate>();
+		NeverSnapshotStrategy<TestAggregate> expected = new();
 		var selector = new SnapshotStrategySelector()
 			.SetDefault(new AlwaysSnapshotStrategy<TestAggregate>())
 			.Set(expected);
@@ -163,7 +163,7 @@ public sealed class SnapshotStrategyTests
 	[Test]
 	public async Task Selector_GivenNoAggregateOverride_ReturnsDefault()
 	{
-		var expected = new NeverSnapshotStrategy<TestAggregate>();
+		NeverSnapshotStrategy<TestAggregate> expected = new();
 		var selector = new SnapshotStrategySelector().SetDefault(expected);
 
 		var selected = selector.Resolve<TestAggregate>();
@@ -178,9 +178,9 @@ public sealed class SnapshotStrategyTests
 	[Test]
 	public async Task Resolver_GivenContextAggregateStrategy_PrefersContext()
 	{
-		var defaultStrategy = new RecordingSnapshotStrategy { Result = false };
-		var selectorStrategy = new RecordingSnapshotStrategy { Result = false };
-		var contextStrategy = new RecordingSnapshotStrategy { Result = true };
+		RecordingSnapshotStrategy defaultStrategy = new() { Result = false };
+		RecordingSnapshotStrategy selectorStrategy = new() { Result = false };
+		RecordingSnapshotStrategy contextStrategy = new() { Result = true };
 
 		var context = new EventStoreOperationContext
 		{
@@ -205,9 +205,9 @@ public sealed class SnapshotStrategyTests
 	[Test]
 	public async Task Resolver_GivenContextSelectorAndNoContextAggregateStrategy_UsesContextSelector()
 	{
-		var defaultStrategy = new RecordingSnapshotStrategy { Result = false };
-		var contextSelectorStrategy = new RecordingSnapshotStrategy { Result = true };
-		var context = new EventStoreOperationContext
+		RecordingSnapshotStrategy defaultStrategy = new() { Result = false };
+		RecordingSnapshotStrategy contextSelectorStrategy = new() { Result = true };
+		EventStoreOperationContext context = new()
 		{
 			SnapshotStrategySelector = new SnapshotStrategySelector().SetDefault(contextSelectorStrategy),
 		};
@@ -229,8 +229,8 @@ public sealed class SnapshotStrategyTests
 	[Test]
 	public async Task Resolver_GivenStoreSelectorAndNoContextSelector_UsesStoreSelector()
 	{
-		var defaultStrategy = new RecordingSnapshotStrategy { Result = false };
-		var storeSelectorStrategy = new RecordingSnapshotStrategy { Result = true };
+		RecordingSnapshotStrategy defaultStrategy = new() { Result = false };
+		RecordingSnapshotStrategy storeSelectorStrategy = new() { Result = true };
 		var storeSelector = new SnapshotStrategySelector().SetDefault(storeSelectorStrategy);
 
 		var aggregate = CreateAggregate(savedVersion: 1);
@@ -251,7 +251,7 @@ public sealed class SnapshotStrategyTests
 	[Test]
 	public async Task Resolver_GivenNoContextOrSelectors_UsesDefault()
 	{
-		var defaultStrategy = new RecordingSnapshotStrategy { Result = true };
+		RecordingSnapshotStrategy defaultStrategy = new() { Result = true };
 		var aggregate = CreateAggregate(savedVersion: 1);
 		aggregate.Details.CurrentVersion = 2;
 

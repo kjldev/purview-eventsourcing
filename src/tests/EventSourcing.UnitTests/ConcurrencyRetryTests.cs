@@ -132,7 +132,7 @@ public sealed class ConcurrencyRetryTests
 	{
 		// Arrange
 		var calls = 0;
-		using var cts = new CancellationTokenSource();
+		using CancellationTokenSource cts = new();
 		cts.CancelAfter(TimeSpan.FromMilliseconds(50));
 
 		// Act & Assert

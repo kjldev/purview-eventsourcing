@@ -9,7 +9,7 @@ public sealed class AdminSitePageTests(AppHostFixture fixture)
 	readonly HttpClient _client = fixture.CreateWebClient(followRedirects: true);
 
 	[Test]
-	public async Task AdminDashboard_Returns200_AndContainsSearchUi(CancellationToken cancellationToken)
+	public async Task AdminDashboard_Returns200_AndContainsSearchUI(CancellationToken cancellationToken)
 	{
 		var response = await _client.GetAsync("/admin", cancellationToken);
 		var html = await response.Content.ReadAsStringAsync(cancellationToken);

@@ -13,14 +13,14 @@ public sealed class EventHistoryExtensionsTests
 	{
 		// Arrange
 		var baseTime = DateTimeOffset.UtcNow.AddMinutes(-10);
-		var store = new HistoryEnabledStore([
+		HistoryEnabledStore store = new([
 			CreateEvent("Created", 1, baseTime),
 			CreateEvent("Updated", 2, baseTime.AddMinutes(1)),
 			CreateEvent("Updated", 3, baseTime.AddMinutes(2)),
 			CreateEvent("Deleted", 4, baseTime.AddMinutes(3)),
 		]);
 
-		var request = new AggregateEventHistoryRequest
+		AggregateEventHistoryRequest request = new()
 		{
 			FromVersion = 2,
 			ToVersion = 4,
@@ -43,7 +43,7 @@ public sealed class EventHistoryExtensionsTests
 	{
 		// Arrange
 		var baseTime = DateTimeOffset.UtcNow.AddMinutes(-5);
-		var store = new HistoryEnabledStore([
+		HistoryEnabledStore store = new([
 			CreateEvent("EventA", 1, baseTime),
 			CreateEvent("EventB", 2, baseTime.AddMinutes(1)),
 			CreateEvent("EventC", 3, baseTime.AddMinutes(2)),
@@ -74,7 +74,7 @@ public sealed class EventHistoryExtensionsTests
 	public async Task GetEventHistoryAsync_ExposesCompletePersistedMetadata(CancellationToken cancellationToken)
 	{
 		var timestamp = DateTimeOffset.UtcNow;
-		var sourceEvent = new TestAuditEvent
+		TestAuditEvent sourceEvent = new()
 		{
 			Details = new EventDetails
 			{
@@ -87,7 +87,7 @@ public sealed class EventHistoryExtensionsTests
 				UserId = "user-7",
 			},
 		};
-		var store = new HistoryEnabledStore([(sourceEvent, "Updated")]);
+		HistoryEnabledStore store = new([(sourceEvent, "Updated")]);
 
 		var response = await store.GetEventHistoryAsync("agg-1", cancellationToken: cancellationToken);
 
@@ -106,7 +106,7 @@ public sealed class EventHistoryExtensionsTests
 	{
 		// Arrange
 		var baseTime = DateTimeOffset.UtcNow.AddMinutes(-5);
-		var store = new HistoryEnabledStore([
+		HistoryEnabledStore store = new([
 			CreateEvent("EventA", 1, baseTime),
 			CreateEvent("EventB", 2, baseTime.AddMinutes(1)),
 			CreateEvent("EventC", 3, baseTime.AddMinutes(2)),
@@ -132,7 +132,7 @@ public sealed class EventHistoryExtensionsTests
 	{
 		// Arrange
 		var baseTime = DateTimeOffset.UtcNow.AddMinutes(-5);
-		var store = new HistoryEnabledStore([
+		HistoryEnabledStore store = new([
 			CreateEvent("EventA", 1, baseTime),
 			CreateEvent("EventB", 2, baseTime.AddMinutes(1)),
 			CreateEvent("EventC", 3, baseTime.AddMinutes(2)),
@@ -190,8 +190,8 @@ public sealed class EventHistoryExtensionsTests
 	public async Task GetEventHistoryAsync_GivenInvalidRequest_ThrowsArgumentOutOfRangeException()
 	{
 		// Arrange
-		var store = new HistoryEnabledStore([]);
-		var request = new AggregateEventHistoryRequest { FromVersion = 5, ToVersion = 4 };
+		HistoryEnabledStore store = new([]);
+		AggregateEventHistoryRequest request = new() { FromVersion = 5, ToVersion = 4 };
 
 		// Act / Assert
 		var exception = (

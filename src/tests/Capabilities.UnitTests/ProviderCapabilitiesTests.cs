@@ -10,7 +10,7 @@ public sealed class ProviderCapabilitiesTests
 {
 	static EventStoreCapabilities Resolve(Action<IServiceCollection> register)
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		register(services);
 		using var provider = services.BuildServiceProvider();
 		return provider.GetRequiredService<IEventStoreCapabilitiesProvider>().GetCapabilities();

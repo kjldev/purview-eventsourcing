@@ -27,13 +27,13 @@ public static class AdminClientServiceCollectionExtensions
 	/// <remarks>
 	/// <para>
 	/// The generated client targets the Admin API route prefix from the OpenAPI document (by default
-	/// <c>/admin/api</c>). When <see cref="AdminClientOptions.BaseUrl"/> is <see langword="null"/> the client
+	/// <c>/admin/api</c>). When <see cref="AdminClientOptions.BaseURL"/> is <see langword="null"/> the client
 	/// sends relative request URIs, so the hosting application must either configure
-	/// <see cref="AdminClientOptions.BaseUrl"/> or add a delegating handler (via
+	/// <see cref="AdminClientOptions.BaseURL"/> or add a delegating handler (via
 	/// <paramref name="configureClient"/>) that resolves the origin.
 	/// </para>
 	/// </remarks>
-	public static IServiceCollection AddAdminApiClient(
+	public static IServiceCollection AddAdminAPIClient(
 		[NotNull] this IServiceCollection services,
 		Action<AdminClientOptions>? configure = null,
 		Action<IHttpClientBuilder>? configureClient = null
@@ -48,7 +48,7 @@ public static class AdminClientServiceCollectionExtensions
 				{
 					var options = serviceProvider.GetRequiredService<IOptions<AdminClientOptions>>().Value;
 					client.BaseAddress =
-						options.BaseUrl
+						options.BaseURL
 						// HttpClient requires an absolute BaseAddress for relative request URIs. When no base URL
 						// is configured, a non-routable placeholder is used and a delegating handler (for example
 						// the same-origin resolver used by the Admin portal site) rewrites each request to the real
@@ -60,7 +60,7 @@ public static class AdminClientServiceCollectionExtensions
 				(httpClient, serviceProvider) =>
 				{
 					var options = serviceProvider.GetRequiredService<IOptions<AdminClientOptions>>().Value;
-					return new AdminApiClient(options.BaseUrl?.ToString() ?? string.Empty, httpClient);
+					return new AdminApiClient(options.BaseURL?.ToString() ?? string.Empty, httpClient);
 				}
 			)
 			.AddHttpMessageHandler(serviceProvider => new AdminClientDelegatingHandler(serviceProvider));

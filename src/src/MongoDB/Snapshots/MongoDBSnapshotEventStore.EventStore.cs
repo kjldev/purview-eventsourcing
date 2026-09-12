@@ -1,4 +1,4 @@
-﻿using Purview.EventSourcing.Aggregates;
+using Purview.EventSourcing.Aggregates;
 using Purview.EventSourcing.Aggregates.Events;
 using Purview.EventSourcing.Aggregates.Snapshotting;
 
@@ -76,7 +76,7 @@ partial class MongoDBSnapshotEventStore<T>
 	{
 		var result = await _eventStore.DeleteAsync(aggregate, operationContext, cancellationToken);
 		if (result)
-			await _mongoDbClient.DeleteAsync(BuildPredicate(aggregate), cancellationToken);
+			await _mongoDBClient.DeleteAsync(BuildPredicate(aggregate), cancellationToken);
 
 		return result;
 	}
@@ -90,7 +90,7 @@ partial class MongoDBSnapshotEventStore<T>
 	{
 		var result = await _eventStore.RestoreAsync(aggregate, operationContext, cancellationToken);
 		if (result)
-			await _mongoDbClient.UpsertAsync(aggregate, BuildPredicate(aggregate), cancellationToken);
+			await _mongoDBClient.UpsertAsync(aggregate, BuildPredicate(aggregate), cancellationToken);
 
 		return result;
 	}

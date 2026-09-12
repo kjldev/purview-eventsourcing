@@ -13,7 +13,7 @@ public sealed class EventStoreSerializationHelpersTests
 	public async Task SerializeAndDeserialize_GivenAggregateWithPrivateSetterAndGetterOnlyCollections_RestoresState()
 	{
 		string[] value = ["value-2", "value-3"];
-		var aggregate = new SerializerAggregate
+		SerializerAggregate aggregate = new()
 		{
 			Details = new AggregateDetails { Id = "aggregate-1", CurrentVersion = 3 },
 		};
@@ -41,7 +41,7 @@ public sealed class EventStoreSerializationHelpersTests
 	[Test]
 	public async Task SerializeAndDeserialize_GivenEventWithDetails_RestoresEventDetails()
 	{
-		var @event = new SerializerEvent
+		SerializerEvent @event = new()
 		{
 			Details = new EventDetails { AggregateVersion = 2, CorrelationId = "corr-1" },
 			Value = "event-value",
@@ -86,7 +86,7 @@ public sealed class EventStoreSerializationHelpersTests
 	[Test]
 	public async Task Deserialize_GivenLegacyEventJson_ProducesEventThatCanBeUpcast()
 	{
-		var legacyEvent = new LegacySerializerEvent
+		LegacySerializerEvent legacyEvent = new()
 		{
 			Details = new EventDetails { CorrelationId = "corr-2" },
 			OldField = "legacy",
@@ -94,7 +94,7 @@ public sealed class EventStoreSerializationHelpersTests
 		var json = EventStoreSerializationHelpers.Serialize(legacyEvent, legacyEvent.GetType());
 		var deserialized = EventStoreSerializationHelpers.Deserialize<LegacySerializerEvent>(json)!;
 
-		var registry = new EventUpcasterRegistry([
+		EventUpcasterRegistry registry = new([
 			new EventUpcasterDescriptor<LegacySerializerEvent, CurrentSerializerEvent>(
 				new LegacySerializerEventUpcaster()
 			),

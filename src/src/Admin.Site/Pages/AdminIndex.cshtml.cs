@@ -10,7 +10,7 @@ namespace Purview.EventSourcing.Admin.Site.Pages;
 /// <param name="adminApiClient">The generated Admin API client used to search aggregates.</param>
 public class AdminIndexModel(AdminApiClient adminApiClient) : PageModel
 {
-	readonly AdminApiClient _adminApiClient = adminApiClient ?? throw new ArgumentNullException(nameof(adminApiClient));
+	readonly AdminApiClient _adminAPIClient = adminApiClient ?? throw new ArgumentNullException(nameof(adminApiClient));
 
 	/// <summary>
 	/// Gets or sets the aggregate type filter for the search.
@@ -50,7 +50,7 @@ public class AdminIndexModel(AdminApiClient adminApiClient) : PageModel
 	{
 		try
 		{
-			SearchResults = await _adminApiClient.SearchAggregatesAsync(
+			SearchResults = await _adminAPIClient.SearchAggregatesAsync(
 				new AggregateSearchRequest
 				{
 					AggregateType = string.IsNullOrWhiteSpace(AggregateType) ? null : AggregateType,

@@ -27,7 +27,7 @@ public sealed class EFSnapshotShapeAnalyzer : DiagnosticAnalyzer
 
 	static void AnalyzeSnapshotShapes(CompilationAnalysisContext context)
 	{
-		var visited = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+		HashSet<ITypeSymbol> visited = new(SymbolEqualityComparer.Default);
 		foreach (var type in GetSourceTypes(context.Compilation.Assembly.GlobalNamespace))
 		{
 			if (TypeHelpers.HasAttribute(type, TypeLibrary.AggregateAttribute))
@@ -142,8 +142,7 @@ public sealed class EFSnapshotShapeAnalyzer : DiagnosticAnalyzer
 	static bool HasOpaqueAttribute(IPropertySymbol property) =>
 		TypeHelpers.HasAttribute(property, TypeLibrary.EFOpaqueAttribute);
 
-	static bool IsDictionaryLike(ITypeSymbol type) =>
-		type is not INamedTypeSymbol named ? false : IsDictionaryType(named);
+	static bool IsDictionaryLike(ITypeSymbol type) => type is INamedTypeSymbol named ? IsDictionaryType(named) : false;
 
 	static bool IsDictionaryType(INamedTypeSymbol type) =>
 		type.IsGenericType

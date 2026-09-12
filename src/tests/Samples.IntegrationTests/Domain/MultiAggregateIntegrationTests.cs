@@ -28,19 +28,19 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 
 		// --- Phase 1: Register customer ---
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = $"{Guid.NewGuid()}";
 		customer.RegisterCustomer("Alice Johnson", "alice@example.com");
 		await customerStore.SaveAsync(customer, cancellationToken);
 
 		// --- Phase 2: Initialize inventory ---
-		var inventory = new InventoryAggregate();
+		InventoryAggregate inventory = new();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
 		inventory.Create("widget-1", "Premium Widget", "loc-1", "Main Warehouse", initialQuantity: 100);
 		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Phase 3: Create order for the customer ---
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = $"{Guid.NewGuid()}";
 		order
 			.CreateOrder(customer.Id())
@@ -99,13 +99,13 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 
 		// --- Set up inventory ---
-		var inventory = new InventoryAggregate();
+		InventoryAggregate inventory = new();
 		inventory.Details.Id = $"{Guid.NewGuid()}";
 		inventory.Create("gadget-1", "Super Gadget", "loc-2", "Returns Warehouse", initialQuantity: 50);
 		await inventoryStore.SaveAsync(inventory, cancellationToken);
 
 		// --- Create and confirm order ---
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = $"{Guid.NewGuid()}";
 		order.CreateOrder("customer-cancel").AddLineItem("gadget-1", "Super Gadget", 10, 15.00m);
 		inventory.ReserveStock(10, order.Id());
@@ -143,12 +143,12 @@ public sealed class MultiAggregateIntegrationTests(SqlServerEventStoreFixture fi
 		var customerStore = fixture.CreateEventStore<CustomerAggregate>();
 		var orderStore = fixture.CreateEventStore<OrderAggregate>();
 
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = $"{Guid.NewGuid()}";
 		customer.RegisterCustomer("Bob Smith", "bob@example.com");
 		await customerStore.SaveAsync(customer, cancellationToken);
 
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = $"{Guid.NewGuid()}";
 		order.CreateOrder(customer.Id());
 		order.AddLineItem("prod-1", "Item", 1, 25m);

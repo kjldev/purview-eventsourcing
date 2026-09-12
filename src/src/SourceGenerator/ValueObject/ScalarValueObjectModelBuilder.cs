@@ -21,14 +21,21 @@ static class ScalarValueObjectModelBuilder
 			return GeneratorResult<ScalarValueObjectModel>.Empty;
 
 		var location = syntax.GetLocation();
-		var diagnosticsList = new List<DiagnosticInfo>();
-		diagnosticsList.AddRange(ValueObjectSymbolInspector.ValidateValueObjectType(typeSymbol, "Scalar", location));
+		List<ReportableDiagnostic> diagnosticsList =
+		[
+			.. ValueObjectSymbolInspector.ValidateValueObjectType(typeSymbol, "Scalar", location),
+		];
 
 		var attributes = typeSymbol.GetAttributes();
 		if (ValueObjectSymbolInspector.HasAttribute(attributes, ValueObjectSymbolInspector.ValueObjectAttributeName))
 		{
 			diagnosticsList.Add(
-				DiagnosticInfo.Create(DiagnosticLibrary.ConflictingValueObjectAttributes, location, typeSymbol.Name)
+				ReportableDiagnostic.Create(
+					DiagnosticLibrary.ConflictingValueObjectAttributes,
+					isBlocking: true,
+					location,
+					typeSymbol.Name
+				)
 			);
 			return GeneratorResult<ScalarValueObjectModel>.Create([.. diagnosticsList]);
 		}
@@ -42,8 +49,9 @@ static class ScalarValueObjectModelBuilder
 		if (scalarProperty is null)
 		{
 			diagnosticsList.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.ScalarPropertyMissing,
+					isBlocking: true,
 					location,
 					typeSymbol.Name,
 					scalarOptions.PropertyName
@@ -66,7 +74,12 @@ static class ScalarValueObjectModelBuilder
 		if (typeSymbol.TypeKind == TypeKind.Struct && !typeSymbol.IsRecord)
 		{
 			diagnosticsList.Add(
-				DiagnosticInfo.Create(DiagnosticLibrary.ScalarShouldBeRecordStruct, location, typeSymbol.Name)
+				ReportableDiagnostic.Create(
+					DiagnosticLibrary.ScalarShouldBeRecordStruct,
+					isBlocking: false,
+					location,
+					typeSymbol.Name
+				)
 			);
 		}
 
@@ -147,8 +160,9 @@ static class ScalarValueObjectModelBuilder
 		if (scalarOptions.DeserializationMode == ValueObjectSymbolInspector.StrictModeName && !createExists)
 		{
 			diagnosticsList.Add(
-				DiagnosticInfo.Create(
+				ReportableDiagnostic.Create(
 					DiagnosticLibrary.StrictDeserializationRequiresCreate,
+					isBlocking: false,
 					typeSymbol.Locations.FirstOrDefault(),
 					typeSymbol.Name
 				)
@@ -157,7 +171,7 @@ static class ScalarValueObjectModelBuilder
 
 		var hintName = ValueObjectSymbolInspector.BuildHintName(typeSymbol, "ScalarValueObject");
 
-		var model = new ScalarValueObjectModel(
+		ScalarValueObjectModel model = new(
 			typeModel.Value,
 			scalarOptions,
 			ctorExists,

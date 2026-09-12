@@ -175,8 +175,8 @@ sealed partial class PostgresClient
 			FROM {QuoteIdentifier(_options.SchemaName)}.{QuoteIdentifier(_options.TableName)}
 			WHERE "AggregateType" = @aggregateType AND "Payload" @> CAST(@jsonFragment AS jsonb)
 			""";
-		var aggregateTypeParameter = new NpgsqlParameter<string>("aggregateType", aggregateType);
-		var jsonFragmentParameter = new NpgsqlParameter<string>("jsonFragment", jsonFragment);
+		NpgsqlParameter<string> aggregateTypeParameter = new("aggregateType", aggregateType);
+		NpgsqlParameter<string> jsonFragmentParameter = new("jsonFragment", jsonFragment);
 
 		var query = context
 			.Snapshots.FromSqlRaw(sql, aggregateTypeParameter, jsonFragmentParameter)
@@ -207,8 +207,8 @@ sealed partial class PostgresClient
 			FROM {QuoteIdentifier(_options.SchemaName)}.{QuoteIdentifier(_options.TableName)}
 			WHERE "AggregateType" = @aggregateType AND "Payload" ? @payloadKey
 			""";
-		var aggregateTypeParameter = new NpgsqlParameter<string>("aggregateType", aggregateType);
-		var keyParameter = new NpgsqlParameter<string>("payloadKey", key);
+		NpgsqlParameter<string> aggregateTypeParameter = new("aggregateType", aggregateType);
+		NpgsqlParameter<string> keyParameter = new("payloadKey", key);
 
 		var query = context
 			.Snapshots.FromSqlRaw(sql, aggregateTypeParameter, keyParameter)
@@ -231,7 +231,7 @@ sealed partial class PostgresClient
 	}
 
 	static IQueryable<T> BuildAggregateQuery<T>(
-		SnapshotQueryDbContext<T> context,
+		SnapshotQueryDBContext<T> context,
 		string aggregateType,
 		Expression<Func<T, bool>>? whereClause
 	)
@@ -249,14 +249,14 @@ sealed partial class PostgresClient
 		T aggregate,
 		string id,
 		string aggregateType,
-		SnapshotQueryDbContext<T> context,
+		SnapshotQueryDBContext<T> context,
 		CancellationToken cancellationToken
 	)
 		where T : class
 	{
 		ArgumentNullException.ThrowIfNull(aggregate);
 		var exists = await context.Snapshots.AsNoTracking().AnyAsync(s => s.Id == id, cancellationToken);
-		var entity = new SnapshotQueryRow<T>
+		SnapshotQueryRow<T> entity = new()
 		{
 			Id = id,
 			AggregateType = aggregateType,
@@ -271,14 +271,14 @@ sealed partial class PostgresClient
 		return await context.SaveChangesAsync(cancellationToken) > 0;
 	}
 
-	SnapshotStorageDbContext CreateStorageContext() => new(_options);
+	SnapshotStorageDBContext CreateStorageContext() => new(_options);
 
-	SnapshotStorageDbContext CreateStorageContext(NpgsqlConnection connection) => new(_options, connection);
+	SnapshotStorageDBContext CreateStorageContext(NpgsqlConnection connection) => new(_options, connection);
 
-	SnapshotQueryDbContext<T> CreateQueryContext<T>()
+	SnapshotQueryDBContext<T> CreateQueryContext<T>()
 		where T : class => new(_options);
 
-	SnapshotQueryDbContext<T> CreateQueryContext<T>(NpgsqlConnection connection)
+	SnapshotQueryDBContext<T> CreateQueryContext<T>(NpgsqlConnection connection)
 		where T : class => new(_options, connection);
 
 	static void ValidateIdentifier(string identifier)
@@ -295,17 +295,17 @@ sealed partial class PostgresClient
 	[GeneratedRegex(@"^[\w\-\.]+$")]
 	private static partial Regex IdentifierRegex();
 
-	sealed class SnapshotStorageDbContext : DbContext
+	sealed class SnapshotStorageDBContext : DbContext
 	{
 		readonly PostgresClientOptions _options;
 		readonly NpgsqlConnection? _connection;
 
-		public SnapshotStorageDbContext(PostgresClientOptions options)
+		public SnapshotStorageDBContext(PostgresClientOptions options)
 		{
 			_options = options;
 		}
 
-		public SnapshotStorageDbContext(PostgresClientOptions options, NpgsqlConnection connection)
+		public SnapshotStorageDBContext(PostgresClientOptions options, NpgsqlConnection connection)
 		{
 			_options = options;
 			_connection = connection;
@@ -335,18 +335,18 @@ sealed partial class PostgresClient
 		}
 	}
 
-	sealed class SnapshotQueryDbContext<TAggregate> : DbContext
+	sealed class SnapshotQueryDBContext<TAggregate> : DbContext
 		where TAggregate : class
 	{
 		readonly PostgresClientOptions _options;
 		readonly NpgsqlConnection? _connection;
 
-		public SnapshotQueryDbContext(PostgresClientOptions options)
+		public SnapshotQueryDBContext(PostgresClientOptions options)
 		{
 			_options = options;
 		}
 
-		public SnapshotQueryDbContext(PostgresClientOptions options, NpgsqlConnection connection)
+		public SnapshotQueryDBContext(PostgresClientOptions options, NpgsqlConnection connection)
 		{
 			_options = options;
 			_connection = connection;
@@ -391,7 +391,7 @@ sealed partial class PostgresClient
 
 	static void RegisterScalarValueObjectConversions(ModelConfigurationBuilder configurationBuilder, Type rootType)
 	{
-		var visited = new HashSet<Type>();
+		HashSet<Type> visited = [];
 		RegisterScalarValueObjectConversionsRecursive(configurationBuilder, rootType, visited);
 	}
 
@@ -453,7 +453,7 @@ sealed partial class PostgresClient
 
 	static void ConfigureComplexGraph(ComplexPropertyBuilder builder, Type type)
 	{
-		var visited = new HashSet<Type>();
+		HashSet<Type> visited = [];
 		ConfigureComplexGraphRecursive(builder, type, visited);
 	}
 
@@ -657,7 +657,7 @@ sealed partial class PostgresClient
 
 	static void ValidateAggregatePayloadShape(Type type)
 	{
-		var visited = new HashSet<Type>();
+		HashSet<Type> visited = [];
 		ValidateAggregatePayloadShapeRecursive(type, visited);
 	}
 
@@ -940,11 +940,11 @@ sealed partial class PostgresClient
 	)
 		where T : class
 	{
-		var aggregateTypeVisitor = new AggregateTypeExpressionVisitor(aggregateType);
+		AggregateTypeExpressionVisitor aggregateTypeVisitor = new(aggregateType);
 		var rewritten = (Expression<Func<T, bool>>)aggregateTypeVisitor.Visit(whereClause);
-		var invariantCasingVisitor = new InvariantStringMethodNormalizationVisitor();
+		InvariantStringMethodNormalizationVisitor invariantCasingVisitor = new();
 		rewritten = (Expression<Func<T, bool>>)invariantCasingVisitor.Visit(rewritten);
-		var scalarVisitor = new ScalarValueMemberAccessPredicateVisitor();
+		ScalarValueMemberAccessPredicateVisitor scalarVisitor = new();
 		return (Expression<Func<T, bool>>)scalarVisitor.Visit(rewritten);
 	}
 
@@ -1132,7 +1132,7 @@ sealed partial class PostgresClient
 			{
 				if (
 					context.GetType().IsGenericType
-					&& context.GetType().GetGenericTypeDefinition() == typeof(SnapshotQueryDbContext<>)
+					&& context.GetType().GetGenericTypeDefinition() == typeof(SnapshotQueryDBContext<>)
 				)
 				{
 					var aggregateType = context.GetType().GenericTypeArguments[0];
@@ -1162,7 +1162,7 @@ sealed partial class PostgresClient
 			{
 				await using var context = CreateStorageContext();
 				await CreateStorageTablesWithEfAsync(context, cancellationToken);
-				await using var connection = new NpgsqlConnection(_options.ConnectionString);
+				await using NpgsqlConnection connection = new(_options.ConnectionString);
 				await connection.OpenAsync(cancellationToken);
 				await PostgresJsonIndexSchemaManager.ApplyAsync(
 					connection,

@@ -163,9 +163,9 @@ enum EventParameterConversionKind
 	ContextualCreate = 3,
 }
 
-sealed record class EventMethodValidationResult(ImmutableArray<DiagnosticInfo> Diagnostics);
+sealed record class EventMethodValidationResult(ImmutableArray<ReportableDiagnostic> Diagnostics);
 
-sealed record class EventTypeValidationResult(ImmutableArray<DiagnosticInfo> Diagnostics);
+sealed record class EventTypeValidationResult(ImmutableArray<ReportableDiagnostic> Diagnostics);
 
 enum EventMethodReturnKind
 {

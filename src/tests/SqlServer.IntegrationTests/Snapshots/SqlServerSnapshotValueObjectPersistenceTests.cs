@@ -25,7 +25,7 @@ public sealed class SqlServerSnapshotValueObjectPersistenceTests(SqlServerSnapsh
 		var displayName = "Jane Snapshot";
 		var displayName2 = "Jane Snapshot 2";
 
-		var aggregate = new SnapshotValueObjectsAggregate();
+		SnapshotValueObjectsAggregate aggregate = new();
 		aggregate.Details.Id = aggregateId;
 		aggregate.CaptureUserDetails(
 			UserDetails.Create(Guid.Parse("11111111-1111-1111-1111-111111111111"), displayName, true),
@@ -40,7 +40,7 @@ public sealed class SqlServerSnapshotValueObjectPersistenceTests(SqlServerSnapsh
 		);
 		var snapshot = snapshotQuery.Results.SingleOrDefault();
 
-		var events = new List<(IEvent @event, string eventType)>();
+		List<(IEvent @event, string eventType)> events = [];
 		await foreach (
 			var @event in store.GetEventRangeAsync(aggregateId, versionFrom: 1, versionTo: null, cancellationToken)
 		)

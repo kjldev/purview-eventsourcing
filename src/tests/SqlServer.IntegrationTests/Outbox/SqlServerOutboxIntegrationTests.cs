@@ -28,7 +28,7 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("outbox");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("outbox-commit"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("outbox-commit"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
@@ -59,7 +59,7 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("outbox");
 
-		var factory = new SqlServerEventStoreTransactionFactory(new FixedCorrelationIdProvider("outbox-rollback"));
+		SqlServerEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("outbox-rollback"));
 		await using var transaction = factory.CreateSqlServerTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
@@ -82,7 +82,7 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 	{
 		var tableName = $"Outbox_{Guid.NewGuid():N}";
 		var store = CreateStore(tableName);
-		var handler = new RecordingHandler();
+		RecordingHandler handler = new();
 		var dispatcher = CreateDispatcher(store, handler);
 		var envelope = Envelope($"agg-{Guid.NewGuid():N}", "dispatch-1");
 
@@ -151,7 +151,7 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 	{
 		var tableName = $"Outbox_{Guid.NewGuid():N}";
 		var store = CreateStore(tableName);
-		var handler = new SlowRecordingHandler();
+		SlowRecordingHandler handler = new();
 		var dispatcher1 = CreateDispatcher(store, handler, leaseDuration: TimeSpan.FromSeconds(30));
 		var dispatcher2 = CreateDispatcher(store, handler, leaseDuration: TimeSpan.FromSeconds(30));
 
@@ -183,7 +183,7 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 		TimeSpan? leaseDuration = null
 	)
 	{
-		var options = new OutboxDispatchOptions();
+		OutboxDispatchOptions options = new();
 		configure?.Invoke(options);
 		if (leaseDuration is not null)
 			options.LeaseDuration = leaseDuration.Value;
@@ -205,9 +205,9 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 
 	async Task<OutboxRow?> ReadOutboxRowAsync(string tableName, string id, CancellationToken cancellationToken)
 	{
-		await using var connection = new SqlConnection(fixture.ConnectionString);
+		await using SqlConnection connection = new(fixture.ConnectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			$"SELECT [State], [AttemptCount], [LastError] FROM dbo.[{tableName}] WHERE [Id] = @id",
 			connection
 		);
@@ -226,9 +226,9 @@ public sealed class SqlServerOutboxIntegrationTests(SqlServerEventStoreFixture f
 
 	async Task<int> CountOutboxRowsAsync(string tableName, string idempotencyKey, CancellationToken cancellationToken)
 	{
-		await using var connection = new SqlConnection(fixture.ConnectionString);
+		await using SqlConnection connection = new(fixture.ConnectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new SqlCommand(
+		await using SqlCommand command = new(
 			$"SELECT COUNT(1) FROM dbo.[{tableName}] WHERE [IdempotencyKey] = @key",
 			connection
 		);

@@ -90,12 +90,12 @@ public sealed class CustomerPageTests(AppHostFixture fixture)
 	[Test]
 	public async Task BackOfficeCustomersCreate_Post_RedirectsToIndex(CancellationToken cancellationToken)
 	{
-		var form = new Dictionary<string, string> { ["Name"] = "Test Customer", ["Email"] = "test@example.com" };
+		Dictionary<string, string> form = new() { ["Name"] = "Test Customer", ["Email"] = "test@example.com" };
 
 		var antiForgery = await GetAntiForgeryTokenAsync("/BackOffice/Customers/Create", cancellationToken);
 		form["__RequestVerificationToken"] = antiForgery;
 
-		using var content = new FormUrlEncodedContent(form);
+		using FormUrlEncodedContent content = new(form);
 		var response = await _client.PostAsync("/BackOffice/Customers/Create", content, cancellationToken);
 
 		await Assert.That((int)response.StatusCode).IsEqualTo(302);

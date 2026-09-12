@@ -361,7 +361,7 @@ public sealed class AdminOperationalEndpointsTests
 			const int total = 6;
 			var pageSize = Math.Max(1, query.PageSize);
 			var page = Math.Max(1, query.Page);
-			var items = new List<EventEnvelopeResponse>();
+			List<EventEnvelopeResponse> items = [];
 			for (var i = 0; i < pageSize; i++)
 			{
 				var version = ((page - 1) * pageSize) + i + 1;

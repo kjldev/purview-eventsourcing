@@ -30,7 +30,7 @@ public sealed class EventStoreCapabilitiesTests
 	[Test]
 	public async Task Merge_Union_StrongestGuaranteeAndMetadataWin()
 	{
-		var eventPart = new EventStoreCapabilities(
+		EventStoreCapabilities eventPart = new(
 			EventStoreTransactionGuarantee.BestEffort,
 			SupportsEventStreams: true,
 			SupportsSnapshots: false,
@@ -41,7 +41,7 @@ public sealed class EventStoreCapabilitiesTests
 			Concurrency: ConcurrencyGuarantee.Optimistic,
 			OperationalLimitations: ["limitation-a"]
 		);
-		var snapshotPart = new EventStoreCapabilities(
+		EventStoreCapabilities snapshotPart = new(
 			EventStoreTransactionGuarantee.Atomic,
 			SupportsEventStreams: false,
 			SupportsSnapshots: true,
@@ -75,7 +75,7 @@ public sealed class EventStoreCapabilitiesTests
 	[Test]
 	public async Task AddEventSourcing_WithoutProvider_ReportsDefaultCapabilities()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 
 		using var provider = services.BuildServiceProvider();
@@ -87,7 +87,7 @@ public sealed class EventStoreCapabilitiesTests
 	[Test]
 	public async Task AddEventStoreCapabilities_CustomProvider_ReportsRegisteredCapabilities()
 	{
-		var custom = new EventStoreCapabilities(
+		EventStoreCapabilities custom = new(
 			EventStoreTransactionGuarantee.BestEffort,
 			SupportsEventStreams: true,
 			SupportsSnapshots: false,
@@ -99,7 +99,7 @@ public sealed class EventStoreCapabilitiesTests
 			OperationalLimitations: []
 		);
 
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddEventSourcing();
 		services.AddEventStoreCapabilities(custom);
 

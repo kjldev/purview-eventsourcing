@@ -15,7 +15,7 @@ public sealed class SqlServerEventStoreTransactionTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.Increment();
 
-		await using var transaction = new SqlServerEventStoreTransaction("sql");
+		await using SqlServerEventStoreTransaction transaction = new("sql");
 		transaction.Enlist(agg1, new FakeTransactionalStore("sqlserver-primary"));
 
 		var exception = await Assert
@@ -33,7 +33,7 @@ public sealed class SqlServerEventStoreTransactionTests
 		var agg2 = TestHelpers.Aggregate<TestAggregate>(clearEvents: false);
 		agg2.Increment();
 
-		await using var transaction = new SqlServerEventStoreTransaction("sql");
+		await using SqlServerEventStoreTransaction transaction = new("sql");
 		transaction.Enlist(agg1, new FakeTransactionalStore("sqlserver-primary"));
 		transaction.Enlist(agg2, new FakeTransactionalStore("sqlserver-primary"));
 

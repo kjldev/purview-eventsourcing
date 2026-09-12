@@ -41,7 +41,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 		var ct = HttpContext.RequestAborted;
 		var skipCount = (Page - 1) * PageSize;
-		var request = new ContinuationRequest
+		ContinuationRequest request = new()
 		{
 			ContinuationToken = skipCount > 0 ? $"{skipCount}" : null,
 			MaxRecords = PageSize,
@@ -89,7 +89,7 @@ sealed class IndexModel(IQueryableEventStore store) : PageModel
 
 	public string PaginationLink(int page)
 	{
-		var query = new QueryBuilder
+		QueryBuilder query = new()
 		{
 			{ "sortBy", SortBy },
 			{ "sortDir", SortDir },

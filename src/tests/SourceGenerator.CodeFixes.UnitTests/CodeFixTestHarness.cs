@@ -40,13 +40,13 @@ public static class CodeFixTestHarness
 	{
 		var (updatedCompilation, originalTree) = CreateCompilation(source);
 
-		var analyzer = new TAnalyzer();
+		TAnalyzer analyzer = new();
 		var analyzerDiagnosticsAll = await updatedCompilation
 			.WithAnalyzers([analyzer])
 			.GetAnalyzerDiagnosticsAsync(cancellationToken);
 		var analyzerDiagnostics = analyzerDiagnosticsAll.ToArray();
 
-		var provider = new TCodeFix();
+		TCodeFix provider = new();
 		var applicable = analyzerDiagnostics
 			.Where(diagnostic => provider.FixableDiagnosticIds.Contains(diagnostic.Id, StringComparer.Ordinal))
 			.ToArray();
@@ -54,7 +54,7 @@ public static class CodeFixTestHarness
 		if (applicable.Length == 0)
 			return new HarnessResult(originalTree.ToString(), []);
 
-		using var workspace = new AdhocWorkspace();
+		using AdhocWorkspace workspace = new();
 		var project = workspace.AddProject("CodeFixTest", LanguageNames.CSharp);
 		var document = workspace.AddDocument(project.Id, "Test.cs", await originalTree.GetTextAsync(cancellationToken));
 
@@ -102,7 +102,7 @@ public static class CodeFixTestHarness
 
 	static (Compilation Compilation, SyntaxTree OriginalTree) CreateCompilation(string source)
 	{
-		var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
+		CSharpParseOptions parseOptions = new(LanguageVersion.Latest);
 		var tree = CSharpSyntaxTree.ParseText(source, parseOptions, path: "Test.cs");
 		var compilation = CSharpCompilation.Create(
 			"CodeFixTest",
@@ -131,13 +131,8 @@ public static class CodeFixTestHarness
 		CancellationToken cancellationToken
 	)
 	{
-		var codeActions = new List<CodeAction>();
-		var context = new CodeFixContext(
-			document,
-			diagnostic,
-			(action, _) => codeActions.Add(action),
-			cancellationToken
-		);
+		List<CodeAction> codeActions = [];
+		CodeFixContext context = new(document, diagnostic, (action, _) => codeActions.Add(action), cancellationToken);
 		await provider.RegisterCodeFixesAsync(context);
 		return codeActions;
 	}

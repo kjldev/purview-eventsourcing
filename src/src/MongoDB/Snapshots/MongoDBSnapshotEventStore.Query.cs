@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 
 namespace Purview.EventSourcing.MongoDB.Snapshots;
 
@@ -11,7 +11,7 @@ partial class MongoDBSnapshotEventStore<T>
 		int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords,
 		CancellationToken cancellationToken = default
 	) =>
-		_mongoDbClient
+		_mongoDBClient
 			.GetQueryEnumerableAsync(whereClause, orderByClause, maxRecordsPerIteration, cancellationToken)
 			.SelectAsync(FulfilRequirements);
 
@@ -21,7 +21,7 @@ partial class MongoDBSnapshotEventStore<T>
 		int maxRecordsPerIteration = ContinuationRequest.DefaultMaxRecords,
 		CancellationToken cancellationToken = default
 	) =>
-		_mongoDbClient
+		_mongoDBClient
 			.GetListEnumerableAsync(orderByClause, maxRecordsPerIteration, cancellationToken)
 			.SelectAsync(FulfilRequirements);
 
@@ -73,11 +73,11 @@ partial class MongoDBSnapshotEventStore<T>
 		ArgumentNullException.ThrowIfNull(whereClause, nameof(whereClause));
 		ArgumentNullException.ThrowIfNull(request, nameof(request));
 
-		var result = await _mongoDbClient.QueryAsync(whereClause, orderByClause, request, cancellationToken);
+		var result = await _mongoDBClient.QueryAsync(whereClause, orderByClause, request, cancellationToken);
 
 		result.Results = [.. result.Results.Select(FulfilRequirements)];
 		if (request.IncludeTotalCount)
-			result.TotalCount = await _mongoDbClient.CountAsync(whereClause, cancellationToken);
+			result.TotalCount = await _mongoDBClient.CountAsync(whereClause, cancellationToken);
 
 		return result;
 	}
@@ -89,11 +89,11 @@ partial class MongoDBSnapshotEventStore<T>
 		CancellationToken cancellationToken = default
 	)
 	{
-		var results = await _mongoDbClient.ListAsync(orderByClause, request, cancellationToken);
+		var results = await _mongoDBClient.ListAsync(orderByClause, request, cancellationToken);
 
 		results.Results = [.. results.Results.Select(FulfilRequirements)];
 		if (request.IncludeTotalCount)
-			results.TotalCount = await _mongoDbClient.CountAsync<T>(cancellationToken);
+			results.TotalCount = await _mongoDBClient.CountAsync<T>(cancellationToken);
 
 		return results;
 	}
@@ -102,5 +102,5 @@ partial class MongoDBSnapshotEventStore<T>
 	public Task<long> CountAsync(
 		Expression<Func<T, bool>>? whereClause,
 		CancellationToken cancellationToken = default
-	) => _mongoDbClient.CountAsync(whereClause, cancellationToken);
+	) => _mongoDBClient.CountAsync(whereClause, cancellationToken);
 }

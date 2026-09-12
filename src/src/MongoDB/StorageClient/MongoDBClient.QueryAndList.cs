@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
@@ -26,7 +26,7 @@ partial class MongoDBClient
 
 		var results = whereQuery.Skip(skipCount).Take(request.MaxRecords);
 		var itemResults = (await results.ToListAsync(cancellationToken)).ToArray();
-		var response = new ContinuationResponse<T>
+		ContinuationResponse<T> response = new()
 		{
 			Results = itemResults,
 			RequestedCount = request.MaxRecords,
@@ -55,7 +55,7 @@ partial class MongoDBClient
 
 		var results = listQuery.Skip(skipCount).Take(request.MaxRecords);
 		var itemResults = (await results.ToListAsync(cancellationToken)).ToArray();
-		var response = new ContinuationResponse<T>
+		ContinuationResponse<T> response = new()
 		{
 			Results = itemResults,
 			RequestedCount = request.MaxRecords,

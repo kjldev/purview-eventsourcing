@@ -37,14 +37,14 @@ sealed partial class AggregateEventNameMapper(IEnumerable<IEventUpcasterDescript
 	public string? GetTypeName<T>(string eventTypeName)
 		where T : IAggregate
 	{
-		ArgumentNullException.ThrowIfNull(eventTypeName.OrNull(), nameof(eventTypeName));
+		ArgumentException.ThrowIfNullOrWhiteSpace(eventTypeName);
 
 		return _eventNamesByDefinedTypeName.TryGetValue(eventTypeName, out var eventName) ? eventName : null;
 	}
 
 	public string? GetTypeName(string eventTypeName)
 	{
-		ArgumentNullException.ThrowIfNull(eventTypeName);
+		ArgumentException.ThrowIfNullOrWhiteSpace(eventTypeName);
 
 		return _eventNamesByDefinedTypeName.TryGetValue(eventTypeName, out var eventName) ? eventName : null;
 	}
@@ -59,7 +59,7 @@ sealed partial class AggregateEventNameMapper(IEnumerable<IEventUpcasterDescript
 			aggregateTypeFullName,
 			_ =>
 			{
-				var aggregateInstance = new T();
+				T aggregateInstance = new();
 				var aggregateName = aggregateInstance.AggregateType;
 
 				Populate<T>(aggregateName, [.. aggregateInstance.GetRegisteredEventTypes()]);

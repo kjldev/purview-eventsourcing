@@ -11,15 +11,15 @@ public class MultiAggregateWorkflowTests
 	public async Task OrderFulfilment_CustomerPlacesOrderWithInventoryReservation_AllAggregatesHaveCorrectState()
 	{
 		// Arrange — set up customer, inventory, and order
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = "cust-1";
 		customer.RegisterCustomer("Alice Johnson", "alice@example.com");
 
-		var inventory = new InventoryAggregate();
+		InventoryAggregate inventory = new();
 		inventory.Details.Id = "inv-widget";
 		inventory.Create("widget-1", "Premium Widget", "warehouse-1", "Main Warehouse", initialQuantity: 100);
 
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = "order-1";
 
 		// Act — full order lifecycle
@@ -50,11 +50,11 @@ public class MultiAggregateWorkflowTests
 	public async Task OrderCancellation_ReleasesInventoryReservation_InventoryRestored()
 	{
 		// Arrange
-		var inventory = new InventoryAggregate();
+		InventoryAggregate inventory = new();
 		inventory.Details.Id = "inv-gadget";
 		inventory.Create("gadget-1", "Gadget", "warehouse-1", "Main Warehouse", initialQuantity: 50);
 
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = "order-cancel";
 		order.CreateOrder("cust-1").AddLineItem("gadget-1", "Gadget", 10, 15.00m);
 
@@ -76,11 +76,11 @@ public class MultiAggregateWorkflowTests
 	public async Task CustomerDeactivation_DoesNotAffectExistingOrders()
 	{
 		// Arrange
-		var customer = new CustomerAggregate();
+		CustomerAggregate customer = new();
 		customer.Details.Id = "cust-deactivate";
 		customer.RegisterCustomer("Bob Smith", "bob@example.com");
 
-		var order = new OrderAggregate();
+		OrderAggregate order = new();
 		order.Details.Id = "order-existing";
 		order.CreateOrder(customer.Id());
 		order.AddLineItem("prod-1", "Item", 1, 10m);

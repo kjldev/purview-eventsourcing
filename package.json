@@ -1,6 +1,6 @@
 {
 	"name": "purview-eventsourcing",
-	"version": "2.0.0-prerelease.30",
+	"version": "2.0.0-prerelease.31",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/purview-dev/eventsourcing.git"

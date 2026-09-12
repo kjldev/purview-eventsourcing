@@ -13,7 +13,7 @@ public sealed class InventoryAggregateIntegrationTests(SqlServerSnapshotEventSto
 		int qty = 100
 	)
 	{
-		var inv = new InventoryAggregate();
+		InventoryAggregate inv = new();
 		inv.Details.Id = id;
 		inv.Create(productId, productName, "loc-1", "Main Warehouse", initialQuantity: qty);
 		return inv;

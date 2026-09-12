@@ -55,7 +55,7 @@ public sealed class ZodSchemaValidationEndpointFilter<T>(IZodSchemaFactory facto
 				var result = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
 				if (!result.IsSuccess || _refinement is not null)
 				{
-					var errors = new List<ValidationError>();
+					List<ValidationError> errors = [];
 					if (!result.IsSuccess)
 						errors.AddRange(result.Errors);
 
@@ -67,6 +67,7 @@ public sealed class ZodSchemaValidationEndpointFilter<T>(IZodSchemaFactory facto
 						var problem = ValidationResult<T>
 							.Failure(errors)
 							.ToHttpValidationProblemDetails(StatusCodes.Status400BadRequest);
+
 						return TypedResults.ValidationProblem(problem.Errors, extensions: problem.Extensions);
 					}
 				}

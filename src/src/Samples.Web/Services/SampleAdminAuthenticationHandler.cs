@@ -15,12 +15,12 @@ sealed class SampleAdminAuthenticationHandler(
 
 	protected override Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
-		var identity = new ClaimsIdentity(
+		ClaimsIdentity identity = new(
 			[new Claim(ClaimTypes.NameIdentifier, "sample-admin"), new Claim(ClaimTypes.Name, "Sample Admin")],
 			SchemeName
 		);
 
-		var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
+		AuthenticationTicket ticket = new(new ClaimsPrincipal(identity), SchemeName);
 		return Task.FromResult(AuthenticateResult.Success(ticket));
 	}
 }

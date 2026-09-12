@@ -9,8 +9,8 @@ public sealed class FluentValidationAggregateValidatorTests
 	public async Task ValidateAsync_UsesAsyncRules(CancellationToken cancellationToken)
 	{
 		var asyncRuleInvoked = false;
-		var aggregate = new TestAggregate { Name = "invalid" };
-		var validator = new InlineValidator<TestAggregate>();
+		TestAggregate aggregate = new() { Name = "invalid" };
+		InlineValidator<TestAggregate> validator = [];
 		validator
 			.RuleFor(m => m.Name)
 			.MustAsync(
@@ -21,7 +21,7 @@ public sealed class FluentValidationAggregateValidatorTests
 				}
 			);
 
-		var adapter = new FluentValidationAggregateValidator<TestAggregate>(validator);
+		FluentValidationAggregateValidator<TestAggregate> adapter = new(validator);
 
 		var result = await adapter.ValidateAsync(aggregate, cancellationToken);
 
@@ -36,11 +36,11 @@ public sealed class FluentValidationAggregateValidatorTests
 	)]
 	public async Task Validate_WhenFluentValidationFails_MapsToCoreValidationResult()
 	{
-		var aggregate = new TestAggregate { Name = "" };
-		var validator = new InlineValidator<TestAggregate>();
+		TestAggregate aggregate = new() { Name = "" };
+		InlineValidator<TestAggregate> validator = [];
 		validator.RuleFor(m => m.Name).NotEmpty();
 
-		var adapter = new FluentValidationAggregateValidator<TestAggregate>(validator);
+		FluentValidationAggregateValidator<TestAggregate> adapter = new(validator);
 
 		var result = adapter.Validate(aggregate);
 

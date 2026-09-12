@@ -98,7 +98,7 @@ sealed class SqlServerStorePerformanceRunner
 				cancellationToken
 			);
 
-			var loadedAggregates = new List<PersistenceAggregate>(aggregateIds.Length);
+			List<PersistenceAggregate> loadedAggregates = new(aggregateIds.Length);
 			var getScenario = await MeasureAsync(
 				"EventStore.Get",
 				workload.AggregateCount,
@@ -330,7 +330,7 @@ sealed class SqlServerStorePerformanceRunner
 			if (matches)
 				expectedCustomerMatches++;
 
-			var aggregate = new CustomerAggregate { Details = { Id = $"{Guid.NewGuid():D}" } };
+			CustomerAggregate aggregate = new() { Details = { Id = $"{Guid.NewGuid():D}" } };
 			aggregate.RegisterCustomer(
 				matches ? matchingCustomerName : $"other customer {i}",
 				matches ? matchingCustomerEmail : $"other-{i}@test.com",
@@ -387,7 +387,7 @@ sealed class SqlServerStorePerformanceRunner
 			if (matches)
 				expectedValueObjectMatches++;
 
-			var aggregate = new SnapshotValueObjectsAggregate { Details = { Id = $"{Guid.NewGuid():D}" } };
+			SnapshotValueObjectsAggregate aggregate = new() { Details = { Id = $"{Guid.NewGuid():D}" } };
 			var userId = matches ? matchingUserId : Guid.Parse("44444444-4444-4444-4444-444444444444");
 
 			aggregate.CaptureUserDetails(
@@ -480,7 +480,7 @@ sealed class SqlServerStorePerformanceRunner
 	static SqlServerEventStore<TAggregate> CreateEventStore<TAggregate>(string connectionString, string tableName)
 		where TAggregate : class, IAggregate, new()
 	{
-		var options = new SqlServerEventStoreOptions
+		SqlServerEventStoreOptions options = new()
 		{
 			ConnectionString = connectionString,
 			TableName = tableName,

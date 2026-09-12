@@ -16,7 +16,7 @@ namespace Purview.EventSourcing.Admin.MongoDB;
 /// </remarks>
 /// <param name="mongoClient">The MongoDB client used to reach the event store database.</param>
 /// <param name="databaseName">The name of the database that holds the event store collections.</param>
-public sealed class MongoDbAdminProjectionService(IMongoClient mongoClient, string databaseName)
+public sealed class MongoDBAdminProjectionService(IMongoClient mongoClient, string databaseName)
 	: IAdminProjectionService
 {
 	readonly IMongoClient _mongoClient = mongoClient ?? throw new ArgumentNullException(nameof(mongoClient));
@@ -52,9 +52,9 @@ public sealed class MongoDbAdminProjectionService(IMongoClient mongoClient, stri
 			return null;
 		}
 
-		var appliedVersions = new List<long>();
-		var skippedVersions = new List<long>();
-		var projectedState = new Dictionary<string, object>();
+		List<long> appliedVersions = [];
+		List<long> skippedVersions = [];
+		Dictionary<string, object> projectedState = [];
 
 		foreach (var evt in events)
 		{
@@ -129,9 +129,9 @@ public sealed class MongoDbAdminProjectionService(IMongoClient mongoClient, stri
 			return null;
 		}
 
-		var appliedVersions = new List<long>();
-		var skippedVersions = new List<long>();
-		var projectedState = new Dictionary<string, object>();
+		List<long> appliedVersions = [];
+		List<long> skippedVersions = [];
+		Dictionary<string, object> projectedState = [];
 
 		foreach (var evt in events)
 		{

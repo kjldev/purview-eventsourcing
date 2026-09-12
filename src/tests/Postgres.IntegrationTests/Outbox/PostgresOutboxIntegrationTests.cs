@@ -28,7 +28,7 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("outbox");
 
-		var factory = new PostgresEventStoreTransactionFactory(new FixedCorrelationIdProvider("outbox-commit"));
+		PostgresEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("outbox-commit"));
 		await using var transaction = factory.CreatePostgresTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
@@ -59,7 +59,7 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 		var aggregate = await eventStore.CreateAsync(aggregateId, cancellationToken);
 		aggregate.AppendString("outbox");
 
-		var factory = new PostgresEventStoreTransactionFactory(new FixedCorrelationIdProvider("outbox-rollback"));
+		PostgresEventStoreTransactionFactory factory = new(new FixedCorrelationIdProvider("outbox-rollback"));
 		await using var transaction = factory.CreatePostgresTransaction();
 		transaction.Enlist(aggregate, eventStore);
 		transaction.Enlist(
@@ -82,7 +82,7 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 	{
 		var tableName = $"outbox_{Guid.NewGuid():N}";
 		var store = CreateStore(tableName);
-		var handler = new RecordingHandler();
+		RecordingHandler handler = new();
 		var dispatcher = CreateDispatcher(store, handler);
 		var envelope = Envelope($"agg-{Guid.NewGuid():N}", "dispatch-1");
 
@@ -151,7 +151,7 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 	{
 		var tableName = $"outbox_{Guid.NewGuid():N}";
 		var store = CreateStore(tableName);
-		var handler = new SlowRecordingHandler();
+		SlowRecordingHandler handler = new();
 		var dispatcher1 = CreateDispatcher(store, handler, leaseDuration: TimeSpan.FromSeconds(30));
 		var dispatcher2 = CreateDispatcher(store, handler, leaseDuration: TimeSpan.FromSeconds(30));
 
@@ -183,7 +183,7 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 		TimeSpan? leaseDuration = null
 	)
 	{
-		var options = new OutboxDispatchOptions();
+		OutboxDispatchOptions options = new();
 		configure?.Invoke(options);
 		if (leaseDuration is not null)
 			options.LeaseDuration = leaseDuration.Value;
@@ -206,9 +206,9 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 
 	async Task<OutboxRow?> ReadOutboxRowAsync(string tableName, string id, CancellationToken cancellationToken)
 	{
-		await using var connection = new NpgsqlConnection(fixture.ConnectionString);
+		await using NpgsqlConnection connection = new(fixture.ConnectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new NpgsqlCommand(
+		await using NpgsqlCommand command = new(
 			$"SELECT \"State\", \"AttemptCount\", \"LastError\" FROM public.\"{tableName}\" WHERE \"Id\" = @id",
 			connection
 		);
@@ -227,9 +227,9 @@ public sealed class PostgresOutboxIntegrationTests(PostgresEventStoreFixture fix
 
 	async Task<int> CountOutboxRowsAsync(string tableName, string idempotencyKey, CancellationToken cancellationToken)
 	{
-		await using var connection = new NpgsqlConnection(fixture.ConnectionString);
+		await using NpgsqlConnection connection = new(fixture.ConnectionString);
 		await connection.OpenAsync(cancellationToken);
-		await using var command = new NpgsqlCommand(
+		await using NpgsqlCommand command = new(
 			$"SELECT COUNT(1) FROM public.\"{tableName}\" WHERE \"IdempotencyKey\" = @key",
 			connection
 		);

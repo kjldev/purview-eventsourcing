@@ -24,7 +24,7 @@ public sealed class InMemoryEventStoreConcurrencyTests
 
 	static ServiceProvider CreateProvider()
 	{
-		var services = new ServiceCollection();
+		ServiceCollection services = new();
 		services.AddLogging();
 		services.AddEventSourcing().AddInMemoryEventStore();
 		return services.BuildServiceProvider();
@@ -50,7 +50,7 @@ public sealed class InMemoryEventStoreConcurrencyTests
 
 		// A stale writer (a separate instance that has only seen version 1) attempts to
 		// persist its own version 2, which has already been written.
-		var staleWriter = new TestAggregate { Details = { Id = "agg-1" } };
+		TestAggregate staleWriter = new() { Details = { Id = "agg-1" } };
 		staleWriter.Increment(3);
 
 		// Act & Assert

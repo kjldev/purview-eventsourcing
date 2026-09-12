@@ -8,7 +8,7 @@ public enum SampleAdminStoreKind
 
 	Postgres,
 
-	MongoDb,
+	MongoDB,
 
 	AzureStorage,
 }

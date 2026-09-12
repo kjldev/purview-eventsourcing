@@ -34,7 +34,7 @@ public sealed class AssemblyAggregateTypeRegistry(IAggregateEventNameMapper even
 
 	static Dictionary<string, Type> Build(IAggregateEventNameMapper eventNameMapper)
 	{
-		var result = new Dictionary<string, Type>(StringComparer.Ordinal);
+		Dictionary<string, Type> result = new(StringComparer.Ordinal);
 		foreach (var type in FindAggregateTypes())
 		{
 			var aggregateName = Initialize(eventNameMapper, type);

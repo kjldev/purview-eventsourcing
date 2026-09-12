@@ -28,7 +28,7 @@ partial class PostgresEventStore<T>
 			if (!ReturnAggregate(streamVersion.IsDeleted, aggregateId, operationContext))
 				return null;
 
-			var aggregate = new T { Details = { Id = aggregateId } };
+			T aggregate = new() { Details = { Id = aggregateId } };
 
 			await GetAndApplyEventsAsync(aggregate, streamVersion, version, cancellationToken);
 
